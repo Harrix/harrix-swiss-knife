@@ -41,7 +41,7 @@ LABEL_REVEAL_IN_EXPLORER = "Reveal in File Explorer"
 LABEL_SET_DATE = "Set this date in main field"
 LABEL_SET_DATE_MINUS_ONE = "Set this date - 1 day in main field"
 LABEL_SET_DATE_PLUS_ONE = "Set this date + 1 day in main field"
-LABEL_SET_DATE_SELECTED = "Set date for selected rows…"
+LABEL_SET_DATE_SELECTED = "Change date…"
 LABEL_SHOW_ALL_RECORDS = "Show all records"
 
 ICON_ADD_DUMBBELL_WEIGHT_TYPES = "dumbbell"

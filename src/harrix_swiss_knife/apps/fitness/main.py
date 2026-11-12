@@ -8062,24 +8062,37 @@ class MainWindow(
         self.spinBox_count.setValue(amount)
 
     @requires_database()
-    def _set_date_for_selected_process_records(self, record_ids: list[int]) -> None:
-        """Set the same date on several process rows after user picks a date in a dialog."""
-        min_rows_for_bulk_date = 2
-        if len(record_ids) < min_rows_for_bulk_date or self.db_manager is None:
+    def _set_date_for_selected_process_records(
+        self,
+        record_ids: list[int],
+        *,
+        initial_date: str | None = None,
+    ) -> None:
+        """Change date for one or more process rows after the user picks a date."""
+        if not record_ids or self.db_manager is None:
             return
         if not self._validate_database_connection():
             return
 
+        count = len(record_ids)
         dialog = QDialog(self)
-        dialog.setWindowTitle("Set date for selected process records")
+        dialog.setWindowTitle("Change date" if count == 1 else "Change date for selected process records")
         dialog_layout = QVBoxLayout(dialog)
         dialog_layout.addWidget(
-            QLabel(f"New date for {len(record_ids)} process records:", dialog),
+            QLabel(
+                "New date for this process record:" if count == 1 else f"New date for {count} process records:",
+                dialog,
+            ),
         )
         date_edit = QDateEdit(dialog)
-        date_edit.setCalendarPopup(True)
         date_edit.setDisplayFormat("yyyy-MM-dd")
-        date_edit.setDate(self.dateEdit.date())
+        default_date = self.dateEdit.date()
+        if initial_date:
+            parsed = QDate.fromString(str(initial_date).strip()[:10], "yyyy-MM-dd")
+            if parsed.isValid():
+                default_date = parsed
+        date_edit.setDate(default_date)
+        attach_date_edit_quick_controls(date_edit)
         dialog_layout.addWidget(date_edit)
 
         buttons = QDialogButtonBox(
@@ -8523,12 +8536,15 @@ class MainWindow(
                 )
 
         selected_process_ids = self._get_selected_row_ids("process")
-        bulk_date_action = None
-        ids_for_date_change: list[int] = []
-        if len(selected_process_ids) > 1:
-            ids_for_date_change = list(selected_process_ids)
+        change_date_action = None
+        ids_for_date_change: list[int] = list(selected_process_ids)
+        if not ids_for_date_change:
+            single_id = self._get_selected_row_id("process")
+            if single_id is not None:
+                ids_for_date_change = [single_id]
+        if ids_for_date_change:
             add_separator(context_menu)
-            bulk_date_action = add_labeled_action(context_menu, LABEL_SET_DATE_SELECTED, ICON_SET_DATE_SELECTED)
+            change_date_action = add_labeled_action(context_menu, LABEL_SET_DATE_SELECTED, ICON_SET_DATE_SELECTED)
 
         add_separator(context_menu)
         refresh_action = add_refresh_action(context_menu)
@@ -8580,8 +8596,11 @@ class MainWindow(
                 self.delete_record("process")
             else:
                 logger.debug("⚠️ Context menu: No row selected for deletion")
-        elif bulk_date_action is not None and action == bulk_date_action:
-            self._set_date_for_selected_process_records(ids_for_date_change)
+        elif change_date_action is not None and action == change_date_action:
+            self._set_date_for_selected_process_records(
+                ids_for_date_change,
+                initial_date=date_value or None,
+            )
 
     def _show_record_congratulations(self, exercise: str, record_info: dict) -> None:
         """Show congratulations message for new records.

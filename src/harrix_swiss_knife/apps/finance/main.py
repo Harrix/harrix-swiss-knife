@@ -201,6 +201,7 @@ from harrix_swiss_knife.apps.finance.standard_items_dialog import StandardItemsD
 from harrix_swiss_knife.apps.finance.tags import parse_tag_text
 from harrix_swiss_knife.apps.finance.text_input_dialog import TextInputDialog
 from harrix_swiss_knife.apps.finance.transaction_day_headers import (
+    IS_DAY_HEADER_ROLE,
     apply_transaction_day_header_spans,
     install_transaction_day_headers,
     map_transactions_index_to_source,
@@ -5323,24 +5324,37 @@ class MainWindow(
             item.setCheckState(state)
 
     @requires_database()
-    def _set_date_for_selected_transactions(self, transaction_ids: list[int]) -> None:
-        """Set the same date on several transactions after user picks a date in a dialog."""
-        min_rows_for_bulk_date = 2
-        if len(transaction_ids) < min_rows_for_bulk_date or self.db_manager is None:
+    def _set_date_for_selected_transactions(
+        self,
+        transaction_ids: list[int],
+        *,
+        initial_date: str | None = None,
+    ) -> None:
+        """Change date for one or more transactions after the user picks a date."""
+        if not transaction_ids or self.db_manager is None:
             return
         if not self._validate_database_connection():
             return
 
+        count = len(transaction_ids)
         dialog = QDialog(self)
-        dialog.setWindowTitle("Set date for selected transactions")
+        dialog.setWindowTitle("Change date" if count == 1 else "Change date for selected transactions")
         dialog_layout = QVBoxLayout(dialog)
         dialog_layout.addWidget(
-            QLabel(f"New date for {len(transaction_ids)} transactions:", dialog),
+            QLabel(
+                "New date for this transaction:" if count == 1 else f"New date for {count} transactions:",
+                dialog,
+            ),
         )
         date_edit = QDateEdit(dialog)
-        date_edit.setCalendarPopup(True)
         date_edit.setDisplayFormat("yyyy-MM-dd")
-        date_edit.setDate(self.dateEdit.date())
+        default_date = self.dateEdit.date()
+        if initial_date:
+            parsed = QDate.fromString(str(initial_date).strip()[:10], "yyyy-MM-dd")
+            if parsed.isValid():
+                default_date = parsed
+        date_edit.setDate(default_date)
+        attach_date_edit_quick_controls(date_edit)
         dialog_layout.addWidget(date_edit)
 
         buttons = QDialogButtonBox(
@@ -6080,10 +6094,11 @@ class MainWindow(
         context_menu: QMenu = QMenu(self)
         filter_by_category_action = None
         category_value = ""
+        date_value = ""
 
         # Get the clicked index
         index: QModelIndex = self.tableView_transactions.indexAt(position)
-        if index.isValid():
+        if index.isValid() and not bool(index.data(IS_DAY_HEADER_ROLE)):
             # Get the category from the Category column
             category_index: QModelIndex = self.tableView_transactions.model().index(index.row(), 3)
             if category_index.isValid():
@@ -6103,10 +6118,14 @@ class MainWindow(
                     lambda _checked=False, t=tag_for_dialog: self._show_transactions_by_tag_dialog(t or None)
                 )
 
-            # Get the date from the Date column
-            date_index: QModelIndex = self.tableView_transactions.model().index(index.row(), 5)
+            # Date column is hidden; still read it for form helpers and Change date…
+            date_index: QModelIndex = self.tableView_transactions.model().index(
+                index.row(),
+                TRANSACTION_COL_DATE,
+            )
             if date_index.isValid():
-                date_value: str = self.tableView_transactions.model().data(date_index)
+                raw_date = self.tableView_transactions.model().data(date_index)
+                date_value = str(raw_date).strip() if raw_date else ""
                 if date_value:
                     set_date_action, set_date_plus_one_action, set_date_minus_one_action = (
                         add_date_in_main_field_actions(context_menu)
@@ -6120,17 +6139,26 @@ class MainWindow(
                     )
 
         add_to_standard_items_action = None
-        if index.isValid():
+        if index.isValid() and not bool(index.data(IS_DAY_HEADER_ROLE)):
             add_separator(context_menu)
             add_to_standard_items_action = context_menu.addAction("📋 Add to Standard Items")
 
+        # Date column is always hidden (day headers); edit via dialog for 1+ rows.
         selected_transaction_ids = self._get_selected_row_ids("transactions")
-        bulk_date_action = None
-        ids_for_date_change: list[int] = []
-        if len(selected_transaction_ids) > 1:
-            ids_for_date_change = list(selected_transaction_ids)
+        change_date_action = None
+        ids_for_date_change: list[int] = list(selected_transaction_ids)
+        if not ids_for_date_change and index.isValid() and not bool(index.data(IS_DAY_HEADER_ROLE)):
+            source_index, source_model = map_transactions_index_to_source(index)
+            if isinstance(source_model, QStandardItemModel) and source_index.isValid():
+                header_item = source_model.verticalHeaderItem(source_index.row())
+                if header_item is not None and header_item.text().strip():
+                    try:
+                        ids_for_date_change = [int(header_item.text())]
+                    except ValueError:
+                        ids_for_date_change = []
+        if ids_for_date_change:
             add_separator(context_menu)
-            bulk_date_action = add_labeled_action(context_menu, LABEL_SET_DATE_SELECTED, ICON_SET_DATE_SELECTED)
+            change_date_action = add_labeled_action(context_menu, LABEL_SET_DATE_SELECTED, ICON_SET_DATE_SELECTED)
 
         add_separator(context_menu)
         refresh_action = add_refresh_action(context_menu)
@@ -6210,8 +6238,11 @@ class MainWindow(
             self.on_export_csv()
         elif action == export_excel_action:
             self.on_export_excel()
-        elif bulk_date_action is not None and action == bulk_date_action:
-            self._set_date_for_selected_transactions(ids_for_date_change)
+        elif change_date_action is not None and action == change_date_action:
+            self._set_date_for_selected_transactions(
+                ids_for_date_change,
+                initial_date=date_value or None,
+            )
         elif action == delete_action:
             logger.debug("🔧 Context menu: Delete action triggered")
             # Perform the deletion
