@@ -29,6 +29,7 @@ _ICON_COLUMN_WIDTH = 24
 NAME_LOCAL_ROLE = Qt.ItemDataRole.UserRole + 1
 ICON_ROLE = Qt.ItemDataRole.UserRole + 2
 ICON_LUCIDE_ROLE = Qt.ItemDataRole.UserRole + 3
+IS_SECTION_ROLE = Qt.ItemDataRole.UserRole + 4
 _NAME_LOCAL_FONT_SCALE = 0.85
 _NAME_LOCAL_MIN_PIXEL_SIZE = 12
 _NAME_LOCAL_MIN_POINT_SIZE = 7.0
@@ -57,6 +58,8 @@ class CategorySuggestDelegate(QStyledItemDelegate):
         index: QModelIndex | QPersistentModelIndex,
     ) -> bool:
         """Handle clicks on the Use button."""
+        if self._is_section(index):
+            return False
         category_name = self._category_name(index)
         if not category_name or category_name not in self._suggested:
             return super().editorEvent(event, model, option, index)
@@ -82,7 +85,7 @@ class CategorySuggestDelegate(QStyledItemDelegate):
     ) -> bool:
         """Show the full category label when the visible text is elided."""
         del option
-        if view is None:
+        if view is None or self._is_section(index):
             return False
         tip = index.data(Qt.ItemDataRole.ToolTipRole)
         if tip is None:
@@ -100,6 +103,10 @@ class CategorySuggestDelegate(QStyledItemDelegate):
         index: QModelIndex | QPersistentModelIndex,
     ) -> None:
         """Paint category text, selection chrome, and optional Use button."""
+        if self._is_section(index):
+            self._paint_section_header(painter, option, index)
+            return
+
         opt = QStyleOptionViewItem(option)
         self.initStyleOption(opt, index)
 
@@ -200,11 +207,17 @@ class CategorySuggestDelegate(QStyledItemDelegate):
         return "" if value is None else str(value).strip()
 
     def _category_name(self, index: QModelIndex | QPersistentModelIndex) -> str | None:
+        if self._is_section(index):
+            return None
         value = index.data(Qt.ItemDataRole.UserRole)
         if value is None:
             return None
         text = str(value).strip()
         return text or None
+
+    @staticmethod
+    def _is_section(index: QModelIndex | QPersistentModelIndex) -> bool:
+        return bool(index.data(IS_SECTION_ROLE))
 
     def _category_name_local(self, index: QModelIndex | QPersistentModelIndex) -> str | None:
         value = index.data(NAME_LOCAL_ROLE)
@@ -219,6 +232,55 @@ class CategorySuggestDelegate(QStyledItemDelegate):
             return widget
         parent = self.parent()
         return parent if isinstance(parent, QWidget) else None
+
+    def _paint_section_header(
+        self,
+        painter: QPainter,
+        option: QStyleOptionViewItem,
+        index: QModelIndex | QPersistentModelIndex,
+    ) -> None:
+        """Paint a non-selectable Expense/Income section caption."""
+        opt = QStyleOptionViewItem(option)
+        self.initStyleOption(opt, index)
+        host = self._host_widget(option)
+        fluent = palette_for(host)
+        secondary = mix(fluent.window_bg, fluent.text_secondary)
+        fill = list_item_hover(fluent)
+
+        painter.save()
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(fill)
+        painter.drawRoundedRect(option.rect.adjusted(1, 1, -1, -1), RADIUS_CONTROL, RADIUS_CONTROL)
+
+        content_left = 8
+        lucide_name = self._category_lucide(index)
+        icon_rect = QRect(
+            option.rect.left() + content_left,
+            option.rect.top(),
+            _ICON_COLUMN_WIDTH,
+            option.rect.height(),
+        )
+        if lucide_name:
+            lucide = category_lucide_icon("", size=16, lucide_name=lucide_name)
+            if not lucide.isNull():
+                pixmap = lucide.pixmap(16, 16)
+                x = icon_rect.left() + (icon_rect.width() - pixmap.width()) // 2
+                y = icon_rect.top() + (icon_rect.height() - pixmap.height()) // 2
+                painter.drawPixmap(x, y, pixmap)
+
+        font = QFont(opt.font)
+        font.setBold(True)
+        painter.setFont(font)
+        painter.setPen(secondary)
+        text_rect = option.rect.adjusted(content_left + _ICON_COLUMN_WIDTH + 4, 0, -4, 0)
+        metrics = QFontMetrics(font)
+        painter.drawText(
+            text_rect,
+            int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft | Qt.TextFlag.TextSingleLine),
+            metrics.elidedText(opt.text, Qt.TextElideMode.ElideRight, max(0, text_rect.width())),
+        )
+        painter.restore()
 
     def _paint_category_label(
         self,

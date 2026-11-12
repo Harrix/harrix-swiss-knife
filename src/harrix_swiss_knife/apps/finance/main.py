@@ -143,13 +143,13 @@ from harrix_swiss_knife.apps.finance.category_icon_display import (
     category_lucide_icon,
     strip_category_display_value,
 )
+from harrix_swiss_knife.apps.finance.category_list_model import populate_category_picker_model
 from harrix_swiss_knife.apps.finance.category_suggest import suggest_categories
 from harrix_swiss_knife.apps.finance.chart_year_start_dialog import ChartYearStartDialog
 from harrix_swiss_knife.apps.finance.currencies_dialog import CurrenciesDialog
 from harrix_swiss_knife.apps.finance.deferred_ui_refresh import DeferredUiRefreshScheduler
 from harrix_swiss_knife.apps.finance.delegates import (
-    ICON_LUCIDE_ROLE,
-    ICON_ROLE,
+    IS_SECTION_ROLE,
     NAME_LOCAL_ROLE,
     AmountDelegate,
     CategoryComboBoxDelegate,
@@ -1034,8 +1034,9 @@ class MainWindow(
         - `_previous` (`QModelIndex`): Previously selected index.
 
         """
-        if current.isValid():
-            refresh_category_state_label(self, self._category_form_label_from_index(current))
+        label = self._category_form_label_from_index(current) if current.isValid() else None
+        if label:
+            refresh_category_state_label(self, label)
 
             # Defer so Use-button click handlers are not destroyed mid-signal.
             QTimer.singleShot(0, self._clear_category_suggestions)
@@ -1863,7 +1864,9 @@ class MainWindow(
 
     def _category_form_label_from_index(self, index: QModelIndex) -> str | None:
         """Build form category status text from a list index (plain title)."""
-        if not index.isValid():
+        if not index.isValid() or bool(index.data(IS_SECTION_ROLE)):
+            return None
+        if not index.data(Qt.ItemDataRole.UserRole):
             return None
         title = index.data(Qt.ItemDataRole.DisplayRole)
         if not title:
@@ -6398,35 +6401,16 @@ class MainWindow(
             ]:
                 set_combo_plain_items(combo, currencies, select=combo.currentText())
 
-            # Update categories list view with icons
+            # Update categories list view with Expense / Income blocks
             expense_categories = self.db_manager.get_categories_with_icons_by_type(0)
             income_categories = self.db_manager.get_categories_with_icons_by_type(1)
 
             model: QStandardItemModel = QStandardItemModel()
-
-            # Add expense categories first
-            for category_name, icon, name_local, icon_lucide in expense_categories:
-                title = category_name
-                item: QStandardItem = QStandardItem(title)
-                item.setData(category_name, Qt.ItemDataRole.UserRole)
-                item.setData(name_local, NAME_LOCAL_ROLE)
-                item.setData(icon or "", ICON_ROLE)
-                item.setData(icon_lucide or "", ICON_LUCIDE_ROLE)
-                item.setData(title, Qt.ItemDataRole.ToolTipRole)
-                item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
-                model.appendRow(item)
-
-            # Add income categories with special marking
-            for category_name, icon, name_local, icon_lucide in income_categories:
-                title = f"{category_name} (Income)"
-                item = QStandardItem(title)
-                item.setData(category_name, Qt.ItemDataRole.UserRole)
-                item.setData(name_local, NAME_LOCAL_ROLE)
-                item.setData(icon or "", ICON_ROLE)
-                item.setData(icon_lucide or "", ICON_LUCIDE_ROLE)
-                item.setData(title, Qt.ItemDataRole.ToolTipRole)
-                item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
-                model.appendRow(item)
+            populate_category_picker_model(
+                model,
+                expense_categories=expense_categories,
+                income_categories=income_categories,
+            )
 
             self.listView_categories.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
             self.listView_categories.setModel(model)
