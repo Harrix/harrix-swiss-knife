@@ -11,6 +11,7 @@ from PySide6.QtWidgets import QAbstractItemView, QLabel, QListView, QSizePolicy,
 from harrix_swiss_knife.apps.common.tracker_layout_chrome import (
     apply_tracker_column_surfaces,
     quiet_group_box,
+    show_splitter_hairlines,
 )
 from harrix_swiss_knife.apps.common.ui_chrome import button_cta_mint_qss, button_idle_qss
 from harrix_swiss_knife.apps.finance.finance_tabs_ui_settings import (
@@ -44,7 +45,7 @@ _TWO_PANE_SPLITTER_LEN = 2
 
 
 def install_finance_layout_chrome(host: Any) -> None:
-    """Polish Accounts / Exchange / Rates / Charts / Reports like Transactions."""
+    """Polish Accounts / Exchange / Rates / Charts / Reports with flat panes."""
     _polish_all_tabs(host)
     _configure_all_splitters(host)
     if not getattr(host, "_finance_tabs_theme_bound", False):
@@ -257,16 +258,25 @@ def _polish_accounts(host: Any) -> None:
 def _polish_all_tabs(host: Any) -> None:
     apply_tracker_column_surfaces(
         host,
-        soft_panes=(
+        soft_panes=(),
+        content_panes=(
             (host.frame_accounts, "financeAccountsForm"),
             (host.frame_exchange, "financeExchangeForm"),
             (host.frame_rates, "financeRatesForm"),
             (host.frame_accounts_2, "financeChartsForm"),
             (host.frame_5, "financeReportsForm"),
-        ),
-        content_panes=(
             (host.widget_exchange_rates_right, "financeRatesChartPane"),
             (host.layoutWidget, "financeChartsPane"),
+            # Tables stay out of content_panes — setStyleSheet would wipe Fluent header chrome.
+        ),
+    )
+    show_splitter_hairlines(
+        (
+            getattr(host, "splitter_2", None),
+            getattr(host, "splitter_4", None),
+            getattr(host, "splitter_5", None),
+            getattr(host, "splitter_6", None),
+            getattr(host, "splitter_7", None),
         ),
     )
     _polish_accounts(host)

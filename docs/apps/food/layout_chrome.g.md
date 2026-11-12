@@ -22,20 +22,20 @@ lang: en
 def install_food_layout_chrome(host: Any) -> None
 ```
 
-Apply soft panes plus Stats-tab Fluent polish.
+Apply flat panes plus Stats-tab Fluent polish.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def install_food_layout_chrome(host: Any) -> None:
-    soft = [
+    content = [
         (host.frame_food_controls, "foodEntryForm"),
         (host.widget_food_middle, "foodEntryItems"),
+        (host.widget_food_log, "foodLogPane"),
     ]
-    content = [(host.widget_food_log, "foodLogPane")]
     if hasattr(host, "frame") and host.frame is not None:
-        soft.append((host.frame, "foodStatsTablePane"))
+        content.append((host.frame, "foodStatsTablePane"))
     if hasattr(host, "widget_food_stats_chart"):
         content.append((host.widget_food_stats_chart, "foodStatsChartPane"))
 
@@ -45,11 +45,17 @@ def install_food_layout_chrome(host: Any) -> None:
         host.groupBox_food_today,
         host.groupBox_food_yesterday,
     ]
+    splitters = []
+    if hasattr(host, "splitter_food"):
+        splitters.append(host.splitter_food)
+    if hasattr(host, "splitter_food_stats"):
+        splitters.append(host.splitter_food_stats)
     install_tracker_column_chrome(
         host,
-        soft_panes=soft,
+        soft_panes=(),
         content_panes=content,
         quiet_boxes=boxes,
+        splitters=splitters,
         theme_flag="_food_layout_chrome_theme_bound",
     )
     _polish_stats_tab(host)

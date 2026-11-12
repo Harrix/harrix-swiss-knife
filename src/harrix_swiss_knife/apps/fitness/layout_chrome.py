@@ -12,6 +12,7 @@ from harrix_swiss_knife.apps.common.tracker_layout_chrome import (
     apply_tracker_column_surfaces,
     polish_left_field_labels,
     quiet_group_box,
+    show_splitter_hairlines,
 )
 from harrix_swiss_knife.apps.common.tracker_splitter_settings import load_splitter_sizes, save_splitter_sizes
 from harrix_swiss_knife.apps.common.ui_chrome import apply_soft_form_spin_fills, button_cta_green_qss, button_idle_qss
@@ -144,25 +145,32 @@ def _idle_button(host: Any, name: str, text: str, icon: str) -> None:
 
 
 def _polish_all(host: Any) -> None:
-    soft: list[tuple[Any, str]] = [
+    content: list[tuple[Any, str]] = [
         (host.frame, "fitnessEntryForm"),
         (host.widget_middle, "fitnessExerciseList"),
+        (host.widget_process, "fitnessProcessPane"),
     ]
-    content: list[tuple[Any, str]] = [(host.widget_process, "fitnessProcessPane")]
     if hasattr(host, "widget_left_panel"):
-        soft.append((host.widget_left_panel, "fitnessChartsForm"))
+        content.append((host.widget_left_panel, "fitnessChartsForm"))
     if hasattr(host, "widget_right_panel"):
         content.append((host.widget_right_panel, "fitnessChartsPane"))
     if hasattr(host, "frame_4"):
-        soft.append((host.frame_4, "fitnessWeightForm"))
+        content.append((host.frame_4, "fitnessWeightForm"))
     if hasattr(host, "frame_5"):
-        soft.append((host.frame_5, "fitnessStatisticsForm"))
+        content.append((host.frame_5, "fitnessStatisticsForm"))
     if hasattr(host, "widget_top"):
-        soft.append((host.widget_top, "fitnessExercisesTop"))
+        content.append((host.widget_top, "fitnessExercisesTop"))
     if hasattr(host, "widget_bottom"):
-        soft.append((host.widget_bottom, "fitnessExercisesBottom"))
+        content.append((host.widget_bottom, "fitnessExercisesBottom"))
 
-    apply_tracker_column_surfaces(host, soft_panes=soft, content_panes=content)
+    apply_tracker_column_surfaces(host, soft_panes=(), content_panes=content)
+    show_splitter_hairlines(
+        (
+            getattr(host, "splitter", None),
+            getattr(host, "splitter_charts", None),
+            getattr(host, "splitter_2", None),
+        ),
+    )
     for name in ("groupBox", "groupBox_9", "groupBox_type_of_charts", "groupBox_4", "groupBox_6", "groupBox_10"):
         box = getattr(host, name, None)
         if box is not None:

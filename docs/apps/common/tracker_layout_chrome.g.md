@@ -15,6 +15,7 @@ lang: en
 - [🔧 Function `install_tracker_column_chrome`](#-function-install_tracker_column_chrome)
 - [🔧 Function `polish_left_field_labels`](#-function-polish_left_field_labels)
 - [🔧 Function `quiet_group_box`](#-function-quiet_group_box)
+- [🔧 Function `show_splitter_hairlines`](#-function-show_splitter_hairlines)
 - [🔧 Function `soft_panel_css`](#-function-soft_panel_css)
 
 </details>
@@ -22,10 +23,13 @@ lang: en
 ## 🔧 Function `apply_tracker_column_surfaces`
 
 ```python
-def apply_tracker_column_surfaces(host: QWidget, *, soft_panes: Sequence[tuple[QWidget, str]], content_panes: Sequence[tuple[QWidget, str]] = (), quiet_boxes: Iterable[Any] = ()) -> None
+def apply_tracker_column_surfaces(host: QWidget, *, soft_panes: Sequence[tuple[QWidget, str]] = (), content_panes: Sequence[tuple[QWidget, str]] = (), quiet_boxes: Iterable[Any] = ()) -> None
 ```
 
-Paint soft/content panes and quiet GroupBoxes once (caller may theme-bind).
+Paint flat panes and quiet GroupBoxes once (caller may theme-bind).
+
+Prefer putting every working column in `content_panes` (transparent).
+`soft_panes` remains for rare cases that still need a card fill.
 
 <details>
 <summary>Code:</summary>
@@ -34,7 +38,7 @@ Paint soft/content panes and quiet GroupBoxes once (caller may theme-bind).
 def apply_tracker_column_surfaces(
     host: QWidget,
     *,
-    soft_panes: Sequence[tuple[QWidget, str]],
+    soft_panes: Sequence[tuple[QWidget, str]] = (),
     content_panes: Sequence[tuple[QWidget, str]] = (),
     quiet_boxes: Iterable[Any] = (),
 ) -> None:
@@ -48,20 +52,21 @@ def apply_tracker_column_surfaces(
 ## 🔧 Function `install_tracker_column_chrome`
 
 ```python
-def install_tracker_column_chrome(host: QWidget, *, soft_panes: Sequence[tuple[QWidget, str]], content_panes: Sequence[tuple[QWidget, str]] = (), quiet_boxes: Iterable[Any] = (), theme_flag: str = '_tracker_column_chrome_theme_bound') -> None
+def install_tracker_column_chrome(host: QWidget, *, soft_panes: Sequence[tuple[QWidget, str]] = (), content_panes: Sequence[tuple[QWidget, str]] = (), quiet_boxes: Iterable[Any] = (), splitters: Sequence[Any] = (), theme_flag: str = '_tracker_column_chrome_theme_bound') -> None
 ```
 
-Apply soft left/middle panels and quiet GroupBoxes; rebind on theme change.
+Apply flat column panes and quiet GroupBoxes; rebind on theme change.
 
 Args:
 
 - `host` (`QWidget`): Window that owns the panes (theme bind target).
-- `soft_panes` (`Sequence[tuple[QWidget, str]]`): Form / list columns with
-  soft card fill. Each tuple is `(widget, objectName)`.
-- `content_panes` (`Sequence[tuple[QWidget, str]]`): Table / chart columns
-  kept transparent. Defaults to empty.
+- `soft_panes` (`Sequence[tuple[QWidget, str]]`): Optional card-fill panes.
+  Prefer empty; use `content_panes` for flat columns.
+- `content_panes` (`Sequence[tuple[QWidget, str]]`): Flat transparent columns.
 - `quiet_boxes` (`Iterable[Any]`): `QGroupBox` widgets that should lose the
   Fluent title underline. Defaults to empty.
+- `splitters` (`Sequence[Any]`): Splitters that should show a light idle
+  hairline while keeping the normal grip width.
 - `theme_flag` (`str`): Attribute name used to bind theme once per host.
 
 <details>
@@ -71,9 +76,10 @@ Args:
 def install_tracker_column_chrome(
     host: QWidget,
     *,
-    soft_panes: Sequence[tuple[QWidget, str]],
+    soft_panes: Sequence[tuple[QWidget, str]] = (),
     content_panes: Sequence[tuple[QWidget, str]] = (),
     quiet_boxes: Iterable[Any] = (),
+    splitters: Sequence[Any] = (),
     theme_flag: str = "_tracker_column_chrome_theme_bound",
 ) -> None:
 
@@ -84,6 +90,7 @@ def install_tracker_column_chrome(
             content_panes=content_panes,
             quiet_boxes=quiet_boxes,
         )
+        show_splitter_hairlines(splitters)
 
     refresh()
     if not getattr(host, theme_flag, False):
@@ -160,13 +167,39 @@ def quiet_group_box(group: Any, *, untitled: bool = False) -> None:
 
 </details>
 
+## 🔧 Function `show_splitter_hairlines`
+
+```python
+def show_splitter_hairlines(splitters: Sequence[Any]) -> None
+```
+
+Show a thin idle splitter line; grip width stays Fluent `SPACE_S`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def show_splitter_hairlines(splitters: Sequence[Any]) -> None:
+    for splitter in splitters:
+        if splitter is None:
+            continue
+        splitter.setProperty("_hskQuietSplitter", False)  # noqa: FBT003
+        # Force painted handles to pick up the property on the next polish.
+        for index in range(1, splitter.count()):
+            handle = splitter.handle(index)
+            if handle is not None:
+                handle.update()
+```
+
+</details>
+
 ## 🔧 Function `soft_panel_css`
 
 ```python
 def soft_panel_css(host: QWidget) -> str
 ```
 
-Return the soft entry-column fill used by Finance Transactions.
+Return the soft card fill for rare panes that still need a raised column.
 
 <details>
 <summary>Code:</summary>

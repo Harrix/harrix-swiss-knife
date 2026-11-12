@@ -22,7 +22,7 @@ lang: en
 def install_finance_layout_chrome(host: Any) -> None
 ```
 
-Polish Accounts / Exchange / Rates / Charts / Reports like Transactions.
+Polish Accounts / Exchange / Rates / Charts / Reports with flat panes.
 
 <details>
 <summary>Code:</summary>

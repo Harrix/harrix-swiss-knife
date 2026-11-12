@@ -11,6 +11,7 @@ from PySide6.QtWidgets import QLabel, QTableView
 from harrix_swiss_knife.apps.common.tracker_layout_chrome import (
     apply_tracker_column_surfaces,
     install_tracker_column_chrome,
+    show_splitter_hairlines,
 )
 from harrix_swiss_knife.apps.common.tracker_splitter_settings import load_splitter_sizes, save_splitter_sizes
 from harrix_swiss_knife.apps.common.ui_chrome import button_idle_qss, muted_caption_qss
@@ -28,14 +29,14 @@ _TWO_PANE = 2
 
 
 def install_food_layout_chrome(host: Any) -> None:
-    """Apply soft panes plus Stats-tab Fluent polish."""
-    soft = [
+    """Apply flat panes plus Stats-tab Fluent polish."""
+    content = [
         (host.frame_food_controls, "foodEntryForm"),
         (host.widget_food_middle, "foodEntryItems"),
+        (host.widget_food_log, "foodLogPane"),
     ]
-    content = [(host.widget_food_log, "foodLogPane")]
     if hasattr(host, "frame") and host.frame is not None:
-        soft.append((host.frame, "foodStatsTablePane"))
+        content.append((host.frame, "foodStatsTablePane"))
     if hasattr(host, "widget_food_stats_chart"):
         content.append((host.widget_food_stats_chart, "foodStatsChartPane"))
 
@@ -45,11 +46,17 @@ def install_food_layout_chrome(host: Any) -> None:
         host.groupBox_food_today,
         host.groupBox_food_yesterday,
     ]
+    splitters = []
+    if hasattr(host, "splitter_food"):
+        splitters.append(host.splitter_food)
+    if hasattr(host, "splitter_food_stats"):
+        splitters.append(host.splitter_food_stats)
     install_tracker_column_chrome(
         host,
-        soft_panes=soft,
+        soft_panes=(),
         content_panes=content,
         quiet_boxes=boxes,
+        splitters=splitters,
         theme_flag="_food_layout_chrome_theme_bound",
     )
     _polish_stats_tab(host)
@@ -129,9 +136,14 @@ def _polish_stats_tab(host: Any) -> None:
         return
     apply_tracker_column_surfaces(
         host,
-        soft_panes=((host.frame, "foodStatsTablePane"),),
-        content_panes=((host.widget_food_stats_chart, "foodStatsChartPane"),),
+        soft_panes=(),
+        content_panes=(
+            (host.frame, "foodStatsTablePane"),
+            (host.widget_food_stats_chart, "foodStatsChartPane"),
+        ),
     )
+    if hasattr(host, "splitter_food_stats"):
+        show_splitter_hairlines((host.splitter_food_stats,))
     if isinstance(getattr(host, "label", None), QLabel):
         host.label.setText("Daily calories")
         host.label.setStyleSheet(_caption_qss())

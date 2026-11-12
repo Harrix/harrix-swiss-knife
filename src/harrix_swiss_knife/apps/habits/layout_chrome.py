@@ -11,6 +11,7 @@ from PySide6.QtWidgets import QAbstractItemView, QLabel, QListView, QTableView
 from harrix_swiss_knife.apps.common.tracker_layout_chrome import (
     apply_tracker_column_surfaces,
     quiet_group_box,
+    show_splitter_hairlines,
 )
 from harrix_swiss_knife.apps.common.tracker_splitter_settings import load_splitter_sizes, save_splitter_sizes
 from harrix_swiss_knife.apps.common.ui_chrome import button_idle_qss
@@ -120,18 +121,23 @@ def _configure_habits_splitter(host: Any) -> None:
 
 
 def _polish_all(host: Any) -> None:
-    soft: list[tuple[Any, str]] = []
     content: list[tuple[Any, str]] = []
     if hasattr(host, "frame_habits"):
-        soft.append((host.frame_habits, "habitsEntryForm"))
+        content.append((host.frame_habits, "habitsEntryForm"))
     if hasattr(host, "layoutWidget"):
-        soft.append((host.layoutWidget, "habitsChartsForm"))
+        content.append((host.layoutWidget, "habitsChartsForm"))
     # Do not put tableView_process_habits in content_panes: setStyleSheet there
     # wipes Fluent table/header chrome and leaves a white word-wrap header.
     if hasattr(host, "widget_charts_heatmap"):
         content.append((host.widget_charts_heatmap, "habitsChartsPane"))
 
-    apply_tracker_column_surfaces(host, soft_panes=soft, content_panes=content)
+    apply_tracker_column_surfaces(host, soft_panes=(), content_panes=content)
+    show_splitter_hairlines(
+        (
+            getattr(host, "splitter_habits", None),
+            getattr(host, "splitter_charts", None),
+        ),
+    )
     for name in ("groupBox_habits_5", "groupBox_habits_2"):
         box = getattr(host, name, None)
         if box is not None:

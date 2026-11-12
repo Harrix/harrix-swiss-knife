@@ -34,7 +34,7 @@ from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.day_bands import day_band_color
 from harrix_swiss_knife.apps.common.table_context_menu import add_delete_action
 from harrix_swiss_knife.apps.common.text_case import capitalize_first_letter
-from harrix_swiss_knife.apps.common.tracker_layout_chrome import soft_panel_css
+from harrix_swiss_knife.apps.common.tracker_layout_chrome import show_splitter_hairlines
 from harrix_swiss_knife.apps.common.ui_chrome import button_cta_cyan_qss
 from harrix_swiss_knife.apps.food.database_manager import merge_food_autocomplete_entries
 from harrix_swiss_knife.apps.food.delegates import IsDrinkDelegate, is_drink_to_model, parse_is_drink_cell
@@ -191,6 +191,7 @@ class RecipesWidget(QWidget):
         root.setContentsMargins(0, 0, 0, 0)
 
         splitter = QSplitter(Qt.Orientation.Horizontal)
+        self._recipes_splitter = splitter
         root.addWidget(splitter)
 
         standard_bold_font = QFont()
@@ -329,6 +330,7 @@ class RecipesWidget(QWidget):
         splitter.setStretchFactor(0, 1)
         splitter.setStretchFactor(1, 0)
         splitter.setStretchFactor(2, 3)
+        show_splitter_hairlines((splitter,))
         apply_lucide_indicators(self)
 
     def _clear_editor(self) -> None:
@@ -490,16 +492,15 @@ class RecipesWidget(QWidget):
         )
 
     def _refresh_theme(self) -> None:
-        """Paint panes / list for the current Fluent theme (no light StyledPanel)."""
+        """Paint flat panes / list for the current Fluent theme."""
         palette = palette_for(self)
-        panel = soft_panel_css(self)
         text = css(mix(palette.window_bg, palette.text_primary))
         muted = css(mix(palette.window_bg, palette.text_secondary))
         self._list_panel.setStyleSheet(
-            f"QWidget#recipesListPanel {{ background: {panel}; border: none; color: {text}; }}",
+            f"QWidget#recipesListPanel {{ background: transparent; border: none; color: {text}; }}",
         )
         self._controls_panel.setStyleSheet(
-            f"QFrame#recipesControlsPanel {{ background: {panel}; border: none; color: {text}; }}",
+            f"QFrame#recipesControlsPanel {{ background: transparent; border: none; color: {text}; }}",
         )
         self._editor_panel.setStyleSheet(
             f"QWidget#recipesEditorPanel {{ background: transparent; border: none; color: {text}; }}",
@@ -507,6 +508,7 @@ class RecipesWidget(QWidget):
         self.label_recipes_heading.setStyleSheet(f"color: {text}; background: transparent;")
         for label in (self.label_weight_unit, self.label_kcal_unit, self.label_recipe_totals):
             label.setStyleSheet(f"color: {muted}; background: transparent;")
+        show_splitter_hairlines((self._recipes_splitter,))
         style_fluent_item_view(self.list_recipes)
         for row in range(self.table_ingredients.rowCount()):
             self._apply_ingredient_row_background(row)

@@ -41,7 +41,7 @@ from PySide6.QtWidgets import (
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.day_bands import day_band_color, readable_cell_fill
 from harrix_swiss_knife.apps.common.table_context_menu import add_delete_action, add_lightbox_action
-from harrix_swiss_knife.apps.common.tracker_layout_chrome import soft_panel_css
+from harrix_swiss_knife.apps.common.tracker_layout_chrome import show_splitter_hairlines
 from harrix_swiss_knife.apps.common.ui_chrome import (
     button_cta_green_qss,
     button_danger_qss,
@@ -468,6 +468,7 @@ class WorkoutsWidget(QWidget):
         splitter.addWidget(right)
         splitter.setStretchFactor(0, 1)
         splitter.setStretchFactor(1, 3)
+        show_splitter_hairlines((splitter,))
         self._update_add_exercise_button()
 
     def _can_start_workout(self) -> bool:
@@ -678,9 +679,8 @@ class WorkoutsWidget(QWidget):
             self._apply_row_background(row)
 
     def _refresh_theme(self) -> None:
-        """Paint panes / list / labels for the current Fluent theme."""
+        """Paint flat panes / list / labels for the current Fluent theme."""
         palette = palette_for(self)
-        panel = soft_panel_css(self)
         text = css(mix(palette.window_bg, palette.text_primary))
         muted = css(mix(palette.window_bg, palette.text_secondary))
         fill, _hover, border, _selection_text = selection_chrome_colors()
@@ -696,7 +696,7 @@ class WorkoutsWidget(QWidget):
         self.setStyleSheet(f"QWidget#workoutsWidget {{ background: transparent; color: {text}; }}")
         self._workouts_splitter.setStyleSheet("QSplitter#workoutsSplitter { background: transparent; }")
         self._left_panel.setStyleSheet(
-            f"QWidget#workoutsLeftPanel {{ background: {panel}; border: none; color: {text}; }}",
+            f"QWidget#workoutsLeftPanel {{ background: transparent; border: none; color: {text}; }}",
         )
         self._right_panel.setStyleSheet(
             f"QWidget#workoutsRightPanel {{ background: transparent; border: none; color: {text}; }}",
@@ -714,6 +714,7 @@ class WorkoutsWidget(QWidget):
         self.label_exercise_timer.setStyleSheet(f"color: {muted}; background: transparent;")
         self.label_meta.setStyleSheet(f"color: {muted}; background: transparent;")
         self.label_totals.setStyleSheet(f"color: {muted}; background: transparent;")
+        show_splitter_hairlines((self._workouts_splitter,))
         style_fluent_item_view(self.list_workouts)
         self._apply_image_column_metrics()
         self._refresh_row_highlights()

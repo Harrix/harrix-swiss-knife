@@ -1,7 +1,7 @@
-"""Shared soft-panel / quiet chrome for tracker multi-column layouts.
+"""Shared flat-panel / quiet chrome for tracker multi-column layouts.
 
-Mirrors the Finance Transactions declutter: columns separate by surface, not by
-idle splitter hairlines or GroupBox underlines.
+Columns share the window surface and separate by a thin splitter hairline, not
+by card fills, nested frames, or GroupBox underlines.
 
 """
 
@@ -26,11 +26,16 @@ FIELD_LABEL_WIDTH = 90
 def apply_tracker_column_surfaces(
     host: QWidget,
     *,
-    soft_panes: Sequence[tuple[QWidget, str]],
+    soft_panes: Sequence[tuple[QWidget, str]] = (),
     content_panes: Sequence[tuple[QWidget, str]] = (),
     quiet_boxes: Iterable[Any] = (),
 ) -> None:
-    """Paint soft/content panes and quiet GroupBoxes once (caller may theme-bind)."""
+    """Paint flat panes and quiet GroupBoxes once (caller may theme-bind).
+
+    Prefer putting every working column in `content_panes` (transparent).
+    `soft_panes` remains for rare cases that still need a card fill.
+
+    """
     _apply_column_surfaces(host, soft_panes=soft_panes, content_panes=content_panes)
     for box in quiet_boxes:
         quiet_group_box(box)
@@ -39,22 +44,24 @@ def apply_tracker_column_surfaces(
 def install_tracker_column_chrome(
     host: QWidget,
     *,
-    soft_panes: Sequence[tuple[QWidget, str]],
+    soft_panes: Sequence[tuple[QWidget, str]] = (),
     content_panes: Sequence[tuple[QWidget, str]] = (),
     quiet_boxes: Iterable[Any] = (),
+    splitters: Sequence[Any] = (),
     theme_flag: str = "_tracker_column_chrome_theme_bound",
 ) -> None:
-    """Apply soft left/middle panels and quiet GroupBoxes; rebind on theme change.
+    """Apply flat column panes and quiet GroupBoxes; rebind on theme change.
 
     Args:
 
     - `host` (`QWidget`): Window that owns the panes (theme bind target).
-    - `soft_panes` (`Sequence[tuple[QWidget, str]]`): Form / list columns with
-      soft card fill. Each tuple is `(widget, objectName)`.
-    - `content_panes` (`Sequence[tuple[QWidget, str]]`): Table / chart columns
-      kept transparent. Defaults to empty.
+    - `soft_panes` (`Sequence[tuple[QWidget, str]]`): Optional card-fill panes.
+      Prefer empty; use `content_panes` for flat columns.
+    - `content_panes` (`Sequence[tuple[QWidget, str]]`): Flat transparent columns.
     - `quiet_boxes` (`Iterable[Any]`): `QGroupBox` widgets that should lose the
       Fluent title underline. Defaults to empty.
+    - `splitters` (`Sequence[Any]`): Splitters that should show a light idle
+      hairline while keeping the normal grip width.
     - `theme_flag` (`str`): Attribute name used to bind theme once per host.
 
     """
@@ -66,6 +73,7 @@ def install_tracker_column_chrome(
             content_panes=content_panes,
             quiet_boxes=quiet_boxes,
         )
+        show_splitter_hairlines(splitters)
 
     refresh()
     if not getattr(host, theme_flag, False):
@@ -116,8 +124,21 @@ def quiet_group_box(group: Any, *, untitled: bool = False) -> None:
     )
 
 
+def show_splitter_hairlines(splitters: Sequence[Any]) -> None:
+    """Show a thin idle splitter line; grip width stays Fluent `SPACE_S`."""
+    for splitter in splitters:
+        if splitter is None:
+            continue
+        splitter.setProperty("_hskQuietSplitter", False)  # noqa: FBT003
+        # Force painted handles to pick up the property on the next polish.
+        for index in range(1, splitter.count()):
+            handle = splitter.handle(index)
+            if handle is not None:
+                handle.update()
+
+
 def soft_panel_css(host: QWidget) -> str:
-    """Return the soft entry-column fill used by Finance Transactions."""
+    """Return the soft card fill for rare panes that still need a raised column."""
     palette = palette_for(host)
     return css(mix(palette.window_bg, palette.card_bg))
 
@@ -138,6 +159,8 @@ def _apply_column_surfaces(
         widget.setStyleSheet(f"{kind}#{name} {{ background: {panel}; border: none; }}")
     for widget, name in content_panes:
         widget.setObjectName(name)
+        if isinstance(widget, QFrame):
+            widget.setFrameShape(QFrame.Shape.NoFrame)
         widget.setAutoFillBackground(False)
         kind = "QFrame" if isinstance(widget, QFrame) else "QWidget"
         widget.setStyleSheet(f"{kind}#{name} {{ background: transparent; border: none; }}")
