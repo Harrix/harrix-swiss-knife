@@ -85,8 +85,8 @@ def test_monthly_summary_totals_per_month(report_ctx: ReportBuildContext) -> Non
 
     assert headers[:3] == ["Month", "Total", "Cafe + Food"]
     # Only expense categories are reported, and Cafe/Food are pinned to the front.
-    assert [name for _cid, name, _icon in categories[:2]] == ["☕ Cafe", "🍔 Food"]
-    assert combined_ids == {cid for cid, name, _icon in categories if name in {"☕ Cafe", "🍔 Food"}}
+    assert [name for _cid, name, _icon in categories[:2]] == ["Cafe", "Food"]
+    assert combined_ids == {cid for cid, name, _icon in categories if name in {"Cafe", "Food"}}
 
     # Rows run newest first and cover every month from the earliest transaction to today.
     assert rows[-1][0] == "2024-01"

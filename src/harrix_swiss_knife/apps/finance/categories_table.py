@@ -7,6 +7,7 @@ from PySide6.QtGui import QColor, QStandardItem, QStandardItemModel
 
 from harrix_swiss_knife.apps.common.day_bands import set_readable_cell_fill
 from harrix_swiss_knife.apps.common.table_models import RecordIdSortProxyModel
+from harrix_swiss_knife.apps.finance.category_icon_display import category_lucide_icon
 
 
 class CategoriesTableProxyModel(RecordIdSortProxyModel):
@@ -41,7 +42,7 @@ class CategoriesTableProxyModel(RecordIdSortProxyModel):
 
 
 def create_categories_table_proxy_model(
-    rows: list[tuple[str, str, int, str, str, object, object]],
+    rows: list[tuple[str, str, int, str, str, object, object, str]],
     headers: list[str],
 ) -> CategoriesTableProxyModel:
     """Build categories proxy from display rows.
@@ -49,7 +50,7 @@ def create_categories_table_proxy_model(
     Args:
 
     - `rows` (`list[tuple]`): Each item is
-      `(display_name, type_label, type_value, plain_name, name_local, color, row_id)`.
+      `(display_name, type_label, type_value, plain_name, name_local, color, row_id, emoji)`.
     - `headers` (`list[str]`): Column headers for display columns.
 
     Returns:
@@ -60,10 +61,14 @@ def create_categories_table_proxy_model(
     model = QStandardItemModel()
     model.setHorizontalHeaderLabels(headers)
 
-    for row_idx, (display_name, type_label, type_value, plain_name, name_local, color, row_id) in enumerate(rows):
+    for row_idx, (display_name, type_label, type_value, plain_name, name_local, color, row_id, emoji) in enumerate(
+        rows
+    ):
         fill = color if isinstance(color, QColor) else QColor(color)
         name_item = QStandardItem(display_name)
         name_item.setData(plain_name, Qt.ItemDataRole.UserRole)
+        if emoji:
+            name_item.setIcon(category_lucide_icon(emoji))
         set_readable_cell_fill(name_item, fill)
         name_item.setEditable(False)
 

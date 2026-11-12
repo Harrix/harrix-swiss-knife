@@ -199,8 +199,10 @@ class StandardItemsDialog(QDialog):
             name_item.setData(_COL_CATEGORY_ID, int(category_id))
             en_item = QTableWidgetItem(str(name_en or ""))
             suffix = " (Income)" if int(category_type) == 1 else ""
-            category_display = f"{icon or ''} {category_name}{suffix}".strip()
+            category_display = f"{category_name}{suffix}"
             category_item = QTableWidgetItem(category_display)
+            if icon:
+                category_item.setIcon(category_lucide_icon(str(icon)))
             self.table.setItem(row_idx, 0, name_item)
             self.table.setItem(row_idx, 1, en_item)
             self.table.setItem(row_idx, 2, category_item)

@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife.apps.common.tracker_filter_chrome import prepare_date_filter_fields
 from harrix_swiss_knife.apps.common.ui_chrome import muted_caption_qss
+from harrix_swiss_knife.apps.finance.category_icon_display import category_display_label, category_lucide_icon
 from harrix_swiss_knife.fluent.tokens import CONTROL_HEIGHT, SPACE_S, SPACE_XS
 from harrix_swiss_knife.fluent.widgets.display import FluentTag
 from harrix_swiss_knife.fluent.widgets.enums import Severity
@@ -182,16 +183,18 @@ def populate_transactions_category_filter(
     expense_categories: list[tuple[str, str, str]],
     income_categories: list[tuple[str, str, str]],
 ) -> None:
-    """Fill the category filter with icons and optional local-name parentheses."""
+    """Fill the category filter with Lucide icons and optional local-name parentheses."""
     selected = transactions_filter_combo_value(combo)
     combo.blockSignals(True)  # noqa: FBT003
     try:
         combo.clear()
         combo.addItem(FILTER_ALL_CATEGORIES, "")
         for name, icon, name_local in expense_categories:
-            combo.addItem(_category_filter_display(name, icon, name_local, income=False), name)
+            label = category_display_label(name, name_local=name_local)
+            combo.addItem(category_lucide_icon(icon, size=_FILTER_TYPE_ICON_SIZE), label, name)
         for name, icon, name_local in income_categories:
-            combo.addItem(_category_filter_display(name, icon, name_local, income=True), name)
+            label = category_display_label(name, income=True, name_local=name_local)
+            combo.addItem(category_lucide_icon(icon, size=_FILTER_TYPE_ICON_SIZE), label, name)
         index = combo.findData(selected)
         combo.setCurrentIndex(max(index, 0))
     finally:
@@ -295,16 +298,6 @@ def transactions_filter_combo_value(combo: QComboBox) -> str:
         if text:
             return text
     return selected_transactions_filter_value(combo.currentText())
-
-
-def _category_filter_display(name: str, icon: str, name_local: str, *, income: bool) -> str:
-    display = f"{icon} {name}".strip() if icon else name
-    if income:
-        display = f"{display} (Income)"
-    local = name_local.strip()
-    if local:
-        display = f"{display} ({local})"
-    return display
 
 
 def _inline_caption(caption: str, widget: QWidget, parent: QWidget) -> QWidget:

@@ -355,8 +355,8 @@ def get_monthly_summary_report_data(
             category[3],
         )
         if category_type == 0:
-            display_name = f"{category_icon} {category_name}" if category_icon else category_name
-            expense_categories.append((cat_id, display_name, category_icon or ""))
+            # UI / report headers use plain names; DB emoji stays in the third tuple slot.
+            expense_categories.append((cat_id, category_name, category_icon or ""))
             category_name_to_id[category_name] = cat_id
 
     if not expense_categories:

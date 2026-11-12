@@ -211,7 +211,7 @@ def install_transactions_filter_chrome(host: Any) -> None:
 def populate_transactions_category_filter(combo: QComboBox, expense_categories: list[tuple[str, str, str]], income_categories: list[tuple[str, str, str]]) -> None
 ```
 
-Fill the category filter with icons and optional local-name parentheses.
+Fill the category filter with Lucide icons and optional local-name parentheses.
 
 <details>
 <summary>Code:</summary>
@@ -228,9 +228,11 @@ def populate_transactions_category_filter(
         combo.clear()
         combo.addItem(FILTER_ALL_CATEGORIES, "")
         for name, icon, name_local in expense_categories:
-            combo.addItem(_category_filter_display(name, icon, name_local, income=False), name)
+            label = category_display_label(name, name_local=name_local)
+            combo.addItem(category_lucide_icon(icon, size=_FILTER_TYPE_ICON_SIZE), label, name)
         for name, icon, name_local in income_categories:
-            combo.addItem(_category_filter_display(name, icon, name_local, income=True), name)
+            label = category_display_label(name, income=True, name_local=name_local)
+            combo.addItem(category_lucide_icon(icon, size=_FILTER_TYPE_ICON_SIZE), label, name)
         index = combo.findData(selected)
         combo.setCurrentIndex(max(index, 0))
     finally:

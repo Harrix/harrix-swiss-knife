@@ -1587,8 +1587,6 @@ def transform_transaction_data(
         color: Any = date_colors[date_to_color_index[date]] if date_colors else None
 
         display_category_name: str = category_name
-        if icon:
-            display_category_name = f"{icon} {category_name}"
         if category_type == 1:  # Income category
             display_category_name = f"{display_category_name} (Income)"
 
@@ -1601,6 +1599,7 @@ def transform_transaction_data(
 
         amount_display: str = f"-{amount:.2f}" if category_type == 0 else f"{amount:.2f}"
 
+        # Trailing: transaction id, DB category emoji (UI → Lucide), day-band color.
         transformed_row: list[Any] = [
             description,
             description_en,
@@ -1611,6 +1610,7 @@ def transform_transaction_data(
             tag,
             total_display,
             transaction_id,
+            icon or "",
             color,
         ]
         transformed_data.append(transformed_row)

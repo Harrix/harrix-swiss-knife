@@ -141,21 +141,20 @@ class CategorySuggestDelegate(QStyledItemDelegate):
             painter.drawRoundedRect(option.rect.adjusted(1, 1, -2, -2), RADIUS_CONTROL, RADIUS_CONTROL)
 
         content_left = 8 if not selected else 8 + _MARKER_WIDTH
-        icon = self._category_icon(index)
+        emoji = self._category_icon(index)
         icon_rect = QRect(
             option.rect.left() + content_left,
             option.rect.top(),
             _ICON_COLUMN_WIDTH,
             option.rect.height(),
         )
-        if icon:
-            painter.setPen(text_color)
-            painter.setFont(opt.font)
-            painter.drawText(
-                icon_rect,
-                int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignHCenter | Qt.TextFlag.TextSingleLine),
-                icon,
-            )
+        if emoji:
+            lucide = category_lucide_icon(emoji, size=16)
+            if not lucide.isNull():
+                pixmap = lucide.pixmap(16, 16)
+                x = icon_rect.left() + (icon_rect.width() - pixmap.width()) // 2
+                y = icon_rect.top() + (icon_rect.height() - pixmap.height()) // 2
+                painter.drawPixmap(x, y, pixmap)
         text_rect = option.rect.adjusted(content_left + _ICON_COLUMN_WIDTH + 4, 0, -(reserved_right + 4), 0)
         secondary = mix(fluent.window_bg, fluent.text_secondary)
         self._paint_category_label(painter, opt, index, text_rect, text_color, secondary)
@@ -225,7 +224,7 @@ class CategorySuggestDelegate(QStyledItemDelegate):
         secondary_color: QColor,
     ) -> None:
         """Draw main category text and optional gray smaller local name."""
-        # DisplayRole keeps the title without the emoji; emoji is painted in ICON_ROLE.
+        # DisplayRole keeps the title without the emoji; ICON_ROLE holds DB emoji → Lucide.
         main_text = option.text
         name_local = self._category_name_local(index)
 
@@ -479,21 +478,20 @@ def paint(
             painter.drawRoundedRect(option.rect.adjusted(1, 1, -2, -2), RADIUS_CONTROL, RADIUS_CONTROL)
 
         content_left = 8 if not selected else 8 + _MARKER_WIDTH
-        icon = self._category_icon(index)
+        emoji = self._category_icon(index)
         icon_rect = QRect(
             option.rect.left() + content_left,
             option.rect.top(),
             _ICON_COLUMN_WIDTH,
             option.rect.height(),
         )
-        if icon:
-            painter.setPen(text_color)
-            painter.setFont(opt.font)
-            painter.drawText(
-                icon_rect,
-                int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignHCenter | Qt.TextFlag.TextSingleLine),
-                icon,
-            )
+        if emoji:
+            lucide = category_lucide_icon(emoji, size=16)
+            if not lucide.isNull():
+                pixmap = lucide.pixmap(16, 16)
+                x = icon_rect.left() + (icon_rect.width() - pixmap.width()) // 2
+                y = icon_rect.top() + (icon_rect.height() - pixmap.height()) // 2
+                painter.drawPixmap(x, y, pixmap)
         text_rect = option.rect.adjusted(content_left + _ICON_COLUMN_WIDTH + 4, 0, -(reserved_right + 4), 0)
         secondary = mix(fluent.window_bg, fluent.text_secondary)
         self._paint_category_label(painter, opt, index, text_rect, text_color, secondary)

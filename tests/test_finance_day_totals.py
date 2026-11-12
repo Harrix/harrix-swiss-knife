@@ -97,10 +97,10 @@ def test_format_transaction_day_total_matches_table_load() -> None:
 def test_refresh_transaction_day_totals_updates_last_column(qapp: QApplication) -> None:  # noqa: ARG001
     model = QStandardItemModel()
     model.setColumnCount(8)
-    model.appendRow(_row("Coffee", "-80.00", "☕ Cafe", "RUB", "2026-08-25", ""))
-    model.appendRow(_row("Bread", "-20.00", "🍞 Food", "RUB", "2026-08-25", ""))
-    model.appendRow(_row("Salary", "1000.00", "💰 Job (Income)", "RUB", "2026-08-25", ""))
-    model.appendRow(_row("Taxi", "-50.00", "🚕 Transport", "RUB", "2026-08-24", "-50.00"))
+    model.appendRow(_row("Coffee", "-80.00", "Cafe", "RUB", "2026-08-25", ""))
+    model.appendRow(_row("Bread", "-20.00", "Food", "RUB", "2026-08-25", ""))
+    model.appendRow(_row("Salary", "1000.00", "Job (Income)", "RUB", "2026-08-25", ""))
+    model.appendRow(_row("Taxi", "-50.00", "Transport", "RUB", "2026-08-24", "-50.00"))
 
     model.item(0, TRANSACTION_COL_AMOUNT).setText("-40.00")
     totals = refresh_transaction_day_totals(model, None)
@@ -145,9 +145,9 @@ def test_format_transaction_selection_status() -> None:
 def test_sum_transaction_rows_in_default_currency(qapp: QApplication) -> None:  # noqa: ARG001
     model = QStandardItemModel()
     model.setColumnCount(8)
-    model.appendRow(_row("Coffee", "-80.00", "☕ Cafe", "RUB", "2026-08-25", ""))
-    model.appendRow(_row("Salary", "1000.00", "💰 Job (Income)", "RUB", "2026-08-25", ""))
-    model.appendRow(_row("Taxi", "-1.00", "🚕 Transport", "USD", "2026-08-25", ""))
+    model.appendRow(_row("Coffee", "-80.00", "Cafe", "RUB", "2026-08-25", ""))
+    model.appendRow(_row("Salary", "1000.00", "Job (Income)", "RUB", "2026-08-25", ""))
+    model.appendRow(_row("Taxi", "-1.00", "Transport", "USD", "2026-08-25", ""))
 
     count, total = sum_transaction_rows_in_default_currency(model, [0, 1, 2], _FakeDbManager())
     assert count == 3

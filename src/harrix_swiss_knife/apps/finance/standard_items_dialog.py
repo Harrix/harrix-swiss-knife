@@ -28,6 +28,7 @@ from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.table_context_menu import add_delete_action
 from harrix_swiss_knife.apps.common.text_case import capitalize_first_letter
 from harrix_swiss_knife.apps.common.word_wrap_header import install_word_wrap_header
+from harrix_swiss_knife.apps.finance.category_icon_display import category_lucide_icon
 from harrix_swiss_knife.apps.finance.transaction_translate_parser import (
     align_translations_to_descriptions,
     parse_transaction_translate_response,
@@ -228,8 +229,10 @@ class StandardItemsDialog(QDialog):
             name_item.setData(_COL_CATEGORY_ID, int(category_id))
             en_item = QTableWidgetItem(str(name_en or ""))
             suffix = " (Income)" if int(category_type) == 1 else ""
-            category_display = f"{icon or ''} {category_name}{suffix}".strip()
+            category_display = f"{category_name}{suffix}"
             category_item = QTableWidgetItem(category_display)
+            if icon:
+                category_item.setIcon(category_lucide_icon(str(icon)))
             self.table.setItem(row_idx, 0, name_item)
             self.table.setItem(row_idx, 1, en_item)
             self.table.setItem(row_idx, 2, category_item)
@@ -388,8 +391,11 @@ class _StandardItemEditDialog(QDialog):
             category_type = int(row[2])
             icon = str(row[3] or "")
             suffix = " (Income)" if category_type == 1 else ""
-            display = f"{icon} {name}{suffix}".strip()
-            self.category_combo.addItem(display, category_id)
+            display = f"{name}{suffix}"
+            if icon:
+                self.category_combo.addItem(category_lucide_icon(icon), display, category_id)
+            else:
+                self.category_combo.addItem(display, category_id)
         form.addRow("Name:", self.name_edit)
         form.addRow("English:", self.name_en_edit)
         form.addRow("Category:", self.category_combo)

@@ -187,7 +187,7 @@ class CategoriesDialog(QDialog):
 
     def _reload_table(self) -> None:
         """Reload the categories table from the database."""
-        rows: list[tuple[str, str, int, str, str, object, object]] = []
+        rows: list[tuple[str, str, int, str, str, object, object, str]] = []
         for row in self.db_manager.get_all_categories():
             category_id, name, category_type, icon, name_local = (
                 row[0],
@@ -198,8 +198,7 @@ class CategoriesDialog(QDialog):
             )
             type_label = "Expense" if category_type == 0 else "Income"
             color = QColor(255, 200, 200) if category_type == 0 else QColor(200, 255, 200)
-            display_name = f"{icon} {name}".strip() if icon else name
-            rows.append((display_name, type_label, category_type, name, name_local, color, category_id))
+            rows.append((name, type_label, category_type, name, name_local, color, category_id, icon))
         proxy = create_categories_table_proxy_model(rows, _HEADERS)
         self.table.setModel(proxy)
         header = self.table.horizontalHeader()
