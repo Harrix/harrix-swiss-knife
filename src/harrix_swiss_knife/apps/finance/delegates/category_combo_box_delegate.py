@@ -11,6 +11,7 @@ from PySide6.QtWidgets import QComboBox, QStyleOptionViewItem, QWidget
 from harrix_swiss_knife.apps.common.delegates import ComboBoxDelegate
 from harrix_swiss_knife.apps.common.ui_helpers import apply_white_editor_background
 from harrix_swiss_knife.apps.finance.category_icon_display import category_lucide_icon
+from harrix_swiss_knife.apps.finance.delegates.category_suggest_delegate import ICON_LUCIDE_ROLE, ICON_ROLE
 
 _CATEGORY_ENTRY_EMOJI_INDEX = 1
 _CATEGORY_ENTRY_LUCIDE_INDEX = 2
@@ -103,4 +104,6 @@ class CategoryComboBoxDelegate(ComboBoxDelegate):
         if 0 <= item_index < len(self._category_lucides):
             lucide = self._category_lucides[item_index]
         icon = category_lucide_icon(emoji, lucide_name=lucide) if (emoji or lucide) else QIcon()
+        model.setData(index, emoji, ICON_ROLE)
+        model.setData(index, lucide, ICON_LUCIDE_ROLE)
         model.setData(index, icon, Qt.ItemDataRole.DecorationRole)

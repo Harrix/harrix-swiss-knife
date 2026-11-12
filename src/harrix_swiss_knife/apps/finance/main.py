@@ -152,6 +152,8 @@ from harrix_swiss_knife.apps.finance.chart_year_start_dialog import ChartYearSta
 from harrix_swiss_knife.apps.finance.currencies_dialog import CurrenciesDialog
 from harrix_swiss_knife.apps.finance.deferred_ui_refresh import DeferredUiRefreshScheduler
 from harrix_swiss_knife.apps.finance.delegates import (
+    ICON_LUCIDE_ROLE,
+    ICON_ROLE,
     IS_SECTION_ROLE,
     AmountDelegate,
     CategoryComboBoxDelegate,
@@ -1728,6 +1730,8 @@ class MainWindow(
                     item.setData(original_value, Qt.ItemDataRole.UserRole)
 
                 if col_idx == category_column and (category_emoji or category_lucide):
+                    item.setData(category_emoji, ICON_ROLE)
+                    item.setData(category_lucide, ICON_LUCIDE_ROLE)
                     item.setIcon(category_lucide_icon(category_emoji, lucide_name=category_lucide))
 
                 if col_idx == len(display_data) - 1:
@@ -2289,6 +2293,8 @@ class MainWindow(
                     item.setData(original_value, Qt.ItemDataRole.UserRole)
 
                 if col_idx == category_column and (category_emoji or category_lucide):
+                    item.setData(category_emoji, ICON_ROLE)
+                    item.setData(category_lucide, ICON_LUCIDE_ROLE)
                     item.setIcon(category_lucide_icon(category_emoji, lucide_name=category_lucide))
 
                 if col_idx == len(display_data) - 1:  # Last column

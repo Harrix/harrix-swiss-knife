@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from PySide6.QtCore import QPoint, QSize, Qt, QTimer
-from PySide6.QtGui import QAction, QFont
+from PySide6.QtGui import QAction, QFont, QStandardItemModel
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QHeaderView,
@@ -27,6 +27,8 @@ from harrix_swiss_knife.apps.common.tracker_layout_chrome import (
     quiet_group_box,
 )
 from harrix_swiss_knife.apps.common.ui_chrome import button_cta_mint_qss, button_idle_qss, muted_caption_qss
+from harrix_swiss_knife.apps.finance.category_icon_display import category_lucide_icon
+from harrix_swiss_knife.apps.finance.delegates.category_suggest_delegate import ICON_LUCIDE_ROLE, ICON_ROLE
 from harrix_swiss_knife.apps.finance.transactions_ui_settings import (
     ALWAYS_HIDDEN_COLUMNS,
     EXPECTED_SPLITTER_LEN,
@@ -158,9 +160,55 @@ def install_transactions_entry_chrome(host: Any) -> None:
             _polish_form_column(host)
             _polish_category_list(host)
             _polish_entry_surfaces(host)
+            refresh_category_icons_for_theme(host)
 
         bind_theme(host, _refresh_theme)
         host._transactions_entry_theme_bound = True  # noqa: SLF001
+
+
+def refresh_category_icons_for_theme(host: Any) -> None:
+    """Repaint category Lucide icons after light/dark chrome changes."""
+    view = getattr(host, "listView_categories", None)
+    if view is not None:
+        viewport = view.viewport()
+        if viewport is not None:
+            viewport.update()
+
+    table = getattr(host, "tableView_transactions", None)
+    if table is None:
+        return
+    source = _leaf_standard_item_model(table.model())
+    if source is None:
+        return
+    for row in range(source.rowCount()):
+        item = source.item(row, TRANSACTION_COL_CATEGORY)
+        if item is None:
+            continue
+        emoji = item.data(ICON_ROLE)
+        lucide = item.data(ICON_LUCIDE_ROLE)
+        emoji_text = "" if emoji is None else str(emoji)
+        lucide_text = "" if lucide is None else str(lucide)
+        if not emoji_text and not lucide_text:
+            continue
+        item.setIcon(category_lucide_icon(emoji_text, lucide_name=lucide_text))
+    viewport = table.viewport()
+    if viewport is not None:
+        viewport.update()
+
+
+def _leaf_standard_item_model(model: object) -> QStandardItemModel | None:
+    """Unwrap proxy layers until a `QStandardItemModel` is found."""
+    current: object | None = model
+    seen: set[int] = set()
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        if isinstance(current, QStandardItemModel):
+            return current
+        source_fn = getattr(current, "sourceModel", None)
+        if not callable(source_fn):
+            break
+        current = source_fn()
+    return None
 
 
 def persist_transactions_splitter_sizes(host: Any) -> None:
@@ -307,6 +355,9 @@ def _polish_category_list(host: Any) -> None:
     font.setBold(True)
     host.label_categories.setFont(font)
     host.label_categories.setToolTip("Select the category for the new transaction")
+    viewport = view.viewport()
+    if viewport is not None:
+        viewport.update()
 
 
 def _polish_entry_surfaces(host: Any) -> None:

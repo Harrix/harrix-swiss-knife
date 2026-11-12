@@ -4,10 +4,12 @@ from __future__ import annotations
 
 from harrix_swiss_knife.apps.finance.category_icon_display import (
     category_display_label,
+    category_lucide_icon,
     lucide_name_for_category_icon,
     resolve_category_lucide_name,
     strip_category_display_value,
 )
+from harrix_swiss_knife.qt_lucide_icon import LUCIDE_COLOR_DARK, LUCIDE_COLOR_LIGHT, neutral_lucide_color
 
 
 def test_seed_emojis_map_to_lucide() -> None:
@@ -40,3 +42,12 @@ def test_lucide_override_wins_over_emoji_map() -> None:
     assert resolve_category_lucide_name(emoji="🍔", lucide_name="car") == "car"
     assert resolve_category_lucide_name(emoji="🍔", lucide_name="") == "utensils"
     assert resolve_category_lucide_name(emoji="🍔", lucide_name="not-a-real-icon") == "utensils"
+
+
+def test_neutral_lucide_color_is_chrome_stroke() -> None:
+    assert neutral_lucide_color() in {LUCIDE_COLOR_DARK, LUCIDE_COLOR_LIGHT}
+
+
+def test_category_lucide_icon_paints_known_emoji() -> None:
+    icon = category_lucide_icon("🍔")
+    assert not icon.isNull()

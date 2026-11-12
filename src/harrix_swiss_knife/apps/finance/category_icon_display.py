@@ -4,8 +4,9 @@ The database and catalog keep emoji strings in `icon`. Optional `icon_lucide`
 stores an explicit Lucide ID chosen in the category dialog. When empty, UI
 falls back to the emoji→Lucide map (or `tags` for unknown emoji).
 
-Category icons always use a neutral dark stroke so they do not inherit
-CodeStyle semantic colors (`sparkles` blue, `pencil` orange, …).
+Category icons always use a chrome-neutral stroke (dark on light, light on
+Fluent dark) so they do not inherit CodeStyle semantic colors
+(`sparkles` blue, `pencil` orange, …).
 
 """
 
@@ -16,10 +17,10 @@ from PySide6.QtGui import QIcon
 from harrix_swiss_knife.fluent.tokens import ICON_SIZE
 from harrix_swiss_knife.qt_emoji_icon import split_leading_emoji
 from harrix_swiss_knife.qt_lucide_icon import (
-    LUCIDE_COLOR_DARK,
     create_lucide_icon,
     lucide_name_for_chrome_emoji,
     lucide_svg_path,
+    neutral_lucide_color,
 )
 
 # Seed / preset emoji → Lucide id. Unknown custom emoji falls back below.
@@ -99,7 +100,7 @@ def category_lucide_icon(
     name = resolve_category_lucide_name(emoji=emoji, lucide_name=lucide_name)
     if name is None:
         return QIcon()
-    return create_lucide_icon(name, size, color=LUCIDE_COLOR_DARK)
+    return create_lucide_icon(name, size, color=neutral_lucide_color())
 
 
 def lucide_name_for_category_icon(emoji: str) -> str | None:

@@ -649,10 +649,15 @@ def lucide_color_for(name: str) -> str:
     mapped = LUCIDE_ICON_COLORS.get(name)
     dark = _fluent_is_dark()
     if mapped is None:
-        return LUCIDE_COLOR_LIGHT if dark else LUCIDE_COLOR_DARK
+        return neutral_lucide_color()
     if dark and mapped == LUCIDE_COLOR_TURQUOISE:
         return LUCIDE_COLOR_CYAN
     return mapped
+
+
+def neutral_lucide_color() -> str:
+    """Return a chrome-neutral Lucide stroke for light or Fluent dark theme."""
+    return LUCIDE_COLOR_LIGHT if _fluent_is_dark() else LUCIDE_COLOR_DARK
 
 
 def lucide_name_for_chrome_emoji(emoji: str) -> str | None:
