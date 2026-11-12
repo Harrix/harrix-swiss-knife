@@ -80,7 +80,7 @@ def test_refresh_food_log_calorie_columns_updates_day_total(qapp: QApplication) 
     totals = refresh_food_log_calorie_columns(model)
 
     assert totals["2026-08-25"] == 130.0
-    assert model.item(0, FOOD_LOG_COL_TOTAL_PER_DAY).text() == "130.0"
+    assert model.item(0, FOOD_LOG_COL_TOTAL_PER_DAY).text() == "Total: 130.0"
     assert model.item(1, FOOD_LOG_COL_TOTAL_PER_DAY).text() == ""
     assert totals["2026-08-24"] == 10.0
 

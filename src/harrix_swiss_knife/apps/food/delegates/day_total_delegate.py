@@ -263,7 +263,7 @@ def food_log_macros_row_height(font: QFont) -> int:
 
 
 def food_log_total_column_width(font: QFont) -> int:
-    """Return the Total per day width that fits the widest macros button.
+    """Return the Total per day width that fits totals and the macros button.
 
     Args:
 
@@ -276,9 +276,13 @@ def food_log_total_column_width(font: QFont) -> int:
     """
     button_font = QFont(font)
     button_font.setBold(False)
-    metrics = QFontMetrics(button_font)
-    text_width = max(metrics.horizontalAdvance(macros_button_appearance(status).label) for status in DayMacrosStatus)
-    return text_width + (2 * _BUTTON_TEXT_PAD) + (2 * _CELL_SIDE_PAD) + _BUTTON_BORDER
+    button_metrics = QFontMetrics(button_font)
+    button_width = max(
+        button_metrics.horizontalAdvance(macros_button_appearance(status).label) for status in DayMacrosStatus
+    )
+    button_width += (2 * _BUTTON_TEXT_PAD) + (2 * _CELL_SIDE_PAD) + _BUTTON_BORDER
+    total_width = QFontMetrics(font).horizontalAdvance("Total: 9999.9") + (2 * _CELL_SIDE_PAD)
+    return max(button_width, total_width)
 
 
 def macros_button_appearance(status: DayMacrosStatus) -> MacrosButtonAppearance:

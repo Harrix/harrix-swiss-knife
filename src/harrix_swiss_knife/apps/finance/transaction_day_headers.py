@@ -124,7 +124,7 @@ class DayHeaderDelegate(QStyledItemDelegate):
         cursor_right = text_rect.right()
         painter.setFont(total_font)
         if expense_display:
-            painter.setPen(ink if expense_display.startswith("-") else fluent.success)
+            painter.setPen(ink if "-" in expense_display else fluent.success)
             expense_rect = QRect(
                 cursor_right - expense_width,
                 text_rect.top(),
@@ -576,7 +576,7 @@ def _format_header_total(total_raw: str, host: QWidget | None) -> str:
     if not text:
         return ""
     # Stored as "-12.50"; show with the same amount formatting as the table.
-    return _with_header_currency(format_amount(text), host)
+    return f"Total: {_with_header_currency(format_amount(text), host)}"
 
 
 def _income_totals_by_date(source: QAbstractItemModel) -> dict[str, float]:

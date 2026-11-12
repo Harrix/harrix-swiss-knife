@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from harrix_swiss_knife.apps.finance.category_icon_display import (
+    CATEGORY_LUCIDE_COLORS,
     category_display_label,
     category_lucide_color,
     category_lucide_icon,
@@ -10,7 +11,7 @@ from harrix_swiss_knife.apps.finance.category_icon_display import (
     resolve_category_lucide_name,
     strip_category_display_value,
 )
-from harrix_swiss_knife.qt_lucide_icon import LUCIDE_COLOR_BLUE, LUCIDE_COLOR_ORANGE
+from harrix_swiss_knife.qt_lucide_icon import LUCIDE_COLOR_BLUE, LUCIDE_COLOR_ORANGE, LUCIDE_COLOR_YELLOW
 
 
 def test_seed_emojis_map_to_lucide() -> None:
@@ -48,6 +49,8 @@ def test_lucide_override_wins_over_emoji_map() -> None:
 def test_category_lucide_color_is_semantic_or_stable() -> None:
     assert category_lucide_color("utensils") == LUCIDE_COLOR_ORANGE
     assert category_lucide_color("car") == LUCIDE_COLOR_BLUE
+    assert category_lucide_color("gift") == CATEGORY_LUCIDE_COLORS["gift"]
+    assert category_lucide_color("gift") != LUCIDE_COLOR_YELLOW
     assert category_lucide_color("custom-widget-a") == category_lucide_color("custom-widget-a")
     assert category_lucide_color("custom-widget-a") != category_lucide_color("custom-widget-b")
 

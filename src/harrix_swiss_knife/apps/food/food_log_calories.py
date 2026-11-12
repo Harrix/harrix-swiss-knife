@@ -242,7 +242,7 @@ def refresh_food_log_calorie_columns(model: QStandardItemModel) -> dict[str, flo
             is_first = bool(date_str) and date_str not in seen_dates
             if is_first:
                 seen_dates.add(date_str)
-            total_text = f"{totals[date_str]:.1f}" if is_first else ""
+            total_text = f"Total: {totals[date_str]:.1f}" if is_first else ""
             _set_item_text(model, row, FOOD_LOG_COL_TOTAL_PER_DAY, total_text)
     finally:
         model.blockSignals(False)  # noqa: FBT003

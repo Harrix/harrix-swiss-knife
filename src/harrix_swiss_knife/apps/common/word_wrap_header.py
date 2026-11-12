@@ -11,7 +11,9 @@ from PySide6.QtWidgets import QHeaderView, QStyleOptionHeader, QTableView, QWidg
 from harrix_swiss_knife.apps.common.ui_chrome import MUTED_TEXT
 from harrix_swiss_knife.fluent.theme import FluentTheme, css, is_fluent_themed, mix
 
-HEADER_TEXT_FLAGS = Qt.AlignmentFlag.AlignCenter | Qt.TextFlag.TextWordWrap
+HEADER_WRAP_FLAG = Qt.TextFlag.TextWordWrap
+# Legacy name used by size helpers; alignment is chosen per section.
+HEADER_TEXT_FLAGS = Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter | HEADER_WRAP_FLAG
 _BOUNDARY_GRIP_PX = 5
 _BOUNDARY_INSET_PX = 8
 _TEXT_PADDING = 8
@@ -19,6 +21,34 @@ _TEXT_INSET = 4
 _HEADER_ICON_SIZE = 16
 _HEADER_ICON_TOP = 4
 _HEADER_ICON_GAP = 2
+# Column titles that match amount-style cells (right-aligned content).
+_RIGHT_HEADER_TOKENS = frozenset(
+    {
+        "amount",
+        "rate",
+        "weight",
+        "balance",
+        "total",
+        "price",
+        "cost",
+        "fee",
+        "loss",
+        "kcal",
+        "cal",
+        "calories",
+        "reps",
+        "sets",
+        "kg",
+        "lbs",
+        "count",
+        "qty",
+        "quantity",
+        "%",
+        "percent",
+        "delta",
+        "sum",
+    }
+)
 
 
 class WordWrapHeaderView(QHeaderView):
@@ -47,7 +77,7 @@ class WordWrapHeaderView(QHeaderView):
         self._wrap_first_section = wrap_first_section
         self._updating_height = False
         self._hover_boundary_x: int | None = None
-        self.setDefaultAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.setDefaultAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         self.setTextElideMode(Qt.TextElideMode.ElideNone)
         self.setMouseTracking(True)
         self.viewport().setMouseTracking(True)
@@ -113,11 +143,17 @@ class WordWrapHeaderView(QHeaderView):
         painter.setPen(QPen(hairline, 1))
         painter.drawLine(rect.bottomLeft(), rect.bottomRight())
 
+        alignment = self._section_alignment(logical_index)
         icon = self._section_icon(logical_index)
         text_top = 2
         if not icon.isNull():
             pixmap = icon.pixmap(_HEADER_ICON_SIZE, _HEADER_ICON_SIZE)
-            icon_x = rect.x() + (rect.width() - pixmap.width()) // 2
+            if alignment & Qt.AlignmentFlag.AlignRight:
+                icon_x = rect.right() - _TEXT_INSET - pixmap.width()
+            elif alignment & Qt.AlignmentFlag.AlignHCenter:
+                icon_x = rect.x() + (rect.width() - pixmap.width()) // 2
+            else:
+                icon_x = rect.x() + _TEXT_INSET
             icon_y = rect.y() + _HEADER_ICON_TOP
             painter.drawPixmap(icon_x, icon_y, pixmap)
             text_top = _HEADER_ICON_TOP + pixmap.height() + _HEADER_ICON_GAP
@@ -127,7 +163,7 @@ class WordWrapHeaderView(QHeaderView):
             painter.setPen(ink)
             painter.drawText(
                 rect.adjusted(_TEXT_INSET, text_top, -_TEXT_INSET, -2),
-                int(HEADER_TEXT_FLAGS),
+                int(alignment | HEADER_WRAP_FLAG),
                 text,
             )
         painter.restore()
@@ -204,6 +240,24 @@ class WordWrapHeaderView(QHeaderView):
     def _on_section_resized(self, _logical_index: int, _old_size: int, _new_size: int) -> None:
         self.refresh_wrapped_height()
 
+    def _section_alignment(self, logical_index: int) -> Qt.AlignmentFlag:
+        """Match header text to cell alignment (text left, amounts right)."""
+        model = self.model()
+        if model is not None:
+            stored = model.headerData(logical_index, self.orientation(), Qt.ItemDataRole.TextAlignmentRole)
+            if isinstance(stored, Qt.AlignmentFlag):
+                return stored
+            if isinstance(stored, int) and not isinstance(stored, bool) and stored != 0:
+                return Qt.AlignmentFlag(stored)
+        if _header_title_is_numeric(self._section_text(logical_index)):
+            return Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+        default = self.defaultAlignment()
+        if not (default & Qt.AlignmentFlag.AlignHorizontal_Mask):
+            default |= Qt.AlignmentFlag.AlignLeft
+        if not (default & Qt.AlignmentFlag.AlignVertical_Mask):
+            default |= Qt.AlignmentFlag.AlignVCenter
+        return default
+
     def _section_icon(self, logical_index: int) -> QIcon:
         model = self.model()
         if model is None:
@@ -264,10 +318,11 @@ def install_word_wrap_header(
         header.setHighlightSections(current.highlightSections())
         header.setStretchLastSection(current.stretchLastSection())
         header.setSortIndicatorShown(current.isSortIndicatorShown())
-        header.setDefaultAlignment(current.defaultAlignment())
         header.setMinimumSectionSize(current.minimumSectionSize())
         header.setDefaultSectionSize(current.defaultSectionSize())
         header.setSectionsMovable(current.sectionsMovable())
+    # Prefer left-aligned titles that match cell text; Amount-like columns go right.
+    header.setDefaultAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
     header.setTextElideMode(Qt.TextElideMode.ElideNone)
     table.setHorizontalHeader(header)
     # New headers start on the system light palette; restore Fluent dark chrome.
@@ -303,3 +358,18 @@ def wrapped_header_text_size(
     inner_width = max(width - padding, 1)
     bounds = font_metrics.boundingRect(0, 0, inner_width, 10_000, int(HEADER_TEXT_FLAGS), text)
     return QSize(max(width, bounds.width() + padding), bounds.height() + padding)
+
+
+def _header_title_is_numeric(title: str) -> bool:
+    """Return whether `title` names a numeric / amount-style column."""
+    normalized = title.strip().casefold()
+    # Day-total columns often keep left-aligned labels + action buttons.
+    if "per day" in normalized:
+        return False
+    normalized = normalized.replace("/", " ")
+    if not normalized:
+        return False
+    tokens = {token for token in normalized.replace("-", " ").split() if token}
+    if tokens & _RIGHT_HEADER_TOKENS:
+        return True
+    return any(token.startswith("kcal") or token.endswith("kcal") for token in tokens)

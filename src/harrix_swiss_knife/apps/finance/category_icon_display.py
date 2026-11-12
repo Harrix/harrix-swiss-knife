@@ -20,17 +20,20 @@ from harrix_swiss_knife.fluent.tokens import ICON_SIZE
 from harrix_swiss_knife.qt_emoji_icon import split_leading_emoji
 from harrix_swiss_knife.qt_lucide_icon import (
     LUCIDE_COLOR_BLUE,
-    LUCIDE_COLOR_CYAN,
     LUCIDE_COLOR_GREEN,
     LUCIDE_COLOR_GREEN_2,
     LUCIDE_COLOR_ORANGE,
     LUCIDE_COLOR_RED,
     LUCIDE_COLOR_TURQUOISE,
-    LUCIDE_COLOR_YELLOW,
     create_lucide_icon,
     lucide_name_for_chrome_emoji,
     lucide_svg_path,
 )
+
+# Deeper gold / cyan than chrome `LUCIDE_COLOR_YELLOW` / `CYAN` so icons stay
+# readable on day-band table fills without raising stroke weight.
+_CATEGORY_GOLD = "#c49a2a"
+_CATEGORY_CYAN = "#3d8fad"
 
 # Seed / preset emoji → Lucide id. Unknown custom emoji falls back below.
 FINANCE_CATEGORY_EMOJI_TO_LUCIDE: dict[str, str] = {
@@ -86,50 +89,50 @@ CATEGORY_LUCIDE_COLORS: dict[str, str] = {
     "shopping-cart": LUCIDE_COLOR_ORANGE,
     "shopping-bag": LUCIDE_COLOR_ORANGE,
     "car": LUCIDE_COLOR_BLUE,
-    "plug": LUCIDE_COLOR_YELLOW,
-    "zap": LUCIDE_COLOR_YELLOW,
+    "plug": _CATEGORY_GOLD,
+    "zap": _CATEGORY_GOLD,
     "house": LUCIDE_COLOR_TURQUOISE,
     "hotel": LUCIDE_COLOR_TURQUOISE,
     "armchair": LUCIDE_COLOR_TURQUOISE,
-    "laptop": LUCIDE_COLOR_CYAN,
-    "wrench": LUCIDE_COLOR_CYAN,
-    "receipt": LUCIDE_COLOR_CYAN,
+    "laptop": _CATEGORY_CYAN,
+    "wrench": _CATEGORY_CYAN,
+    "receipt": _CATEGORY_CYAN,
     "wallet": LUCIDE_COLOR_GREEN,
     "credit-card": LUCIDE_COLOR_GREEN,
     "landmark": LUCIDE_COLOR_GREEN,
     "briefcase": LUCIDE_COLOR_GREEN_2,
     "handshake": LUCIDE_COLOR_GREEN_2,
-    "gift": LUCIDE_COLOR_YELLOW,
-    "party-popper": LUCIDE_COLOR_YELLOW,
-    "ticket": LUCIDE_COLOR_YELLOW,
+    "gift": _CATEGORY_GOLD,
+    "party-popper": _CATEGORY_GOLD,
+    "ticket": _CATEGORY_GOLD,
     "hospital": LUCIDE_COLOR_RED,
     "spray-can": LUCIDE_COLOR_RED,
     "scale": LUCIDE_COLOR_BLUE,
     "book-open": LUCIDE_COLOR_BLUE,
     "graduation-cap": LUCIDE_COLOR_BLUE,
-    "clapperboard": LUCIDE_COLOR_CYAN,
+    "clapperboard": _CATEGORY_CYAN,
     "volleyball": LUCIDE_COLOR_GREEN,
     "dog": LUCIDE_COLOR_ORANGE,
     "baby": LUCIDE_COLOR_ORANGE,
-    "shirt": LUCIDE_COLOR_CYAN,
+    "shirt": _CATEGORY_CYAN,
     "user": LUCIDE_COLOR_TURQUOISE,
     "users": LUCIDE_COLOR_TURQUOISE,
     "pencil": LUCIDE_COLOR_ORANGE,
-    "toy-brick": LUCIDE_COLOR_YELLOW,
+    "toy-brick": _CATEGORY_GOLD,
     "refresh-cw": LUCIDE_COLOR_TURQUOISE,
     "undo-2": LUCIDE_COLOR_TURQUOISE,
-    "circle-help": LUCIDE_COLOR_CYAN,
-    "tags": LUCIDE_COLOR_CYAN,
+    "circle-help": _CATEGORY_CYAN,
+    "tags": _CATEGORY_CYAN,
 }
 
 _CATEGORY_COLOR_PALETTE: tuple[str, ...] = (
     LUCIDE_COLOR_BLUE,
-    LUCIDE_COLOR_CYAN,
+    _CATEGORY_CYAN,
     LUCIDE_COLOR_TURQUOISE,
     LUCIDE_COLOR_GREEN,
     LUCIDE_COLOR_GREEN_2,
     LUCIDE_COLOR_ORANGE,
-    LUCIDE_COLOR_YELLOW,
+    _CATEGORY_GOLD,
 )
 
 _FALLBACK_LUCIDE = "tags"
@@ -151,7 +154,7 @@ def category_lucide_color(lucide_name: str) -> str:
     """Return a stable chromatic stroke for category Lucide ID `lucide_name`."""
     name = lucide_name.strip()
     if not name:
-        return LUCIDE_COLOR_CYAN
+        return _CATEGORY_CYAN
     mapped = CATEGORY_LUCIDE_COLORS.get(name)
     if mapped is not None:
         return mapped

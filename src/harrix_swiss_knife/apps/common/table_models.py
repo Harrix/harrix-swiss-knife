@@ -14,7 +14,16 @@ from PySide6.QtCore import (
     Qt,
     QTimer,
 )
-from PySide6.QtGui import QBrush, QColor, QGuiApplication, QIcon, QPainter, QStandardItem, QStandardItemModel
+from PySide6.QtGui import (
+    QBrush,
+    QColor,
+    QGuiApplication,
+    QIcon,
+    QPainter,
+    QPalette,
+    QStandardItem,
+    QStandardItemModel,
+)
 from PySide6.QtWidgets import QAbstractButton, QStyle, QStyleOptionHeader, QWidget
 
 from harrix_swiss_knife.apps.common.day_bands import DayBand, day_band_id_item, set_day_band, set_readable_cell_fill
@@ -57,7 +66,7 @@ class ColoredTableProxyModel(RecordIdSortProxyModel):
 
 
 class _RecordIdCornerMark(QWidget):
-    """Sort triangle drawn on top of the table's header-corner button."""
+    """`ID` label (and optional sort triangle) on the table header-corner button."""
 
     def __init__(self, button: QAbstractButton) -> None:
         """Cover `button` without taking its clicks."""
@@ -76,11 +85,22 @@ class _RecordIdCornerMark(QWidget):
         return False
 
     def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
-        """Draw the current id-sort direction, or nothing when unsorted."""
-        if self._order is None:
-            return
+        """Draw a short `ID` caption, plus the sort chevron when that column is sorted."""
         painter = QPainter(self)
-        _paint_header_sort_indicator(painter, self._indicator_widget(), self.rect(), self._order)
+        painter.setRenderHint(QPainter.RenderHint.TextAntialiasing, on=True)
+        painter.setPen(self.palette().color(QPalette.ColorRole.ButtonText))
+        font = self.font()
+        font.setBold(True)
+        point = font.pointSizeF()
+        if point > 0:
+            font.setPointSizeF(max(8.0, point - 1.0))
+        painter.setFont(font)
+        label_rect = self.rect()
+        if self._order is not None:
+            label_rect = label_rect.adjusted(0, 0, 0, -8)
+        painter.drawText(label_rect, int(Qt.AlignmentFlag.AlignCenter), "ID")
+        if self._order is not None:
+            _paint_header_sort_indicator(painter, self._indicator_widget(), self.rect(), self._order)
         painter.end()
 
     def set_order(self, order: Qt.SortOrder | None) -> None:

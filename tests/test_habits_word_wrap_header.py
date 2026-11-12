@@ -10,6 +10,7 @@ from PySide6.QtWidgets import QApplication, QTableView, QWidget
 from harrix_swiss_knife.apps.common.day_bands import table_surface_color
 from harrix_swiss_knife.apps.common.word_wrap_header import (
     WordWrapHeaderView,
+    _header_title_is_numeric,
     install_word_wrap_header,
     wrapped_header_text_size,
 )
@@ -39,6 +40,14 @@ def test_wrapped_header_text_size_grows_when_width_shrinks(qapp: QApplication) -
     wide = wrapped_header_text_size(_LONG_HABIT_NAME, 400, metrics)
     narrow = wrapped_header_text_size(_LONG_HABIT_NAME, 80, metrics)
     assert narrow.height() > wide.height()
+
+
+def test_header_title_numeric_heuristic_matches_amount_columns() -> None:
+    assert _header_title_is_numeric("Amount")
+    assert _header_title_is_numeric("Rate")
+    assert _header_title_is_numeric("kcal/100g")
+    assert not _header_title_is_numeric("Description")
+    assert not _header_title_is_numeric("Total per day")
 
 
 def test_word_wrap_header_sizes_habit_column_to_wrap_width(qapp: QApplication) -> None:
