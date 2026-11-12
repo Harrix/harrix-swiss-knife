@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMenu,
     QMenuBar,
+    QScrollBar,
     QSizePolicy,
     QSplitter,
     QTabWidget,
@@ -41,7 +42,9 @@ from harrix_swiss_knife.win11_caption import (
     HTTOP,
     OVERLAY_CAPTION_PROPERTY,
     CaptionButton,
+    _caption_control_at,
     _caption_surface,
+    _live_caption_hit_test,
     _sync_caption_button_hover,
     caption_hit_test,
     install_win11_caption,
@@ -86,6 +89,21 @@ def test_caption_hit_test_maximized_does_not_resize() -> None:
     caption = QRect(0, 0, 800, CAPTION_BUTTON_HEIGHT)
     assert caption_hit_test(QPoint(200, 1), size, caption=caption, interactive=[], maximized=True) == HTCAPTION
     assert caption_hit_test(QPoint(799, 100), size, caption=caption, interactive=[], maximized=True) == HTCLIENT
+
+
+def test_edge_scrollbar_keeps_client_hit_not_resize(qapp: QApplication) -> None:
+    """Scrollbar on the right edge must stay HTCLIENT, not HTRIGHT."""
+    window = QWidget()
+    window.resize(400, 300)
+    bar = QScrollBar(Qt.Orientation.Vertical, window)
+    bar.setGeometry(390, 40, 10, 220)
+    window.show()
+    qapp.processEvents()
+
+    edge = QPoint(395, 150)
+    assert _caption_control_at(window, edge)
+    assert _live_caption_hit_test(window, edge) == HTCLIENT
+    window.close()
 
 
 def test_write_nccalcsize_client_rect_updates_first_rect() -> None:

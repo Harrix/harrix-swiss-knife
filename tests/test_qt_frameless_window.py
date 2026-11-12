@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import pytest
-from PySide6.QtCore import QPoint, QSize
-from PySide6.QtWidgets import QApplication, QPushButton, QWidget
+from PySide6.QtCore import QPoint, QSize, Qt
+from PySide6.QtWidgets import QApplication, QPushButton, QScrollBar, QWidget
 
 from harrix_swiss_knife.qt_frameless_window import (
     _HTCLIENT,
@@ -64,4 +64,18 @@ def test_close_button_blocks_frameless_resize(qapp: QApplication) -> None:
 
     assert _blocks_frameless_resize(window, QPoint(178, 20))
     assert not _blocks_frameless_resize(window, QPoint(199, 1))
+    window.close()
+
+
+def test_edge_scrollbar_blocks_frameless_resize(qapp: QApplication) -> None:
+    """A vertical scrollbar on the window edge must not become a resize grip."""
+    window = QWidget()
+    window.resize(200, 120)
+    bar = QScrollBar(Qt.Orientation.Vertical, window)
+    bar.setGeometry(190, 10, 10, 100)
+    window.show()
+    qapp.processEvents()
+
+    assert _blocks_frameless_resize(window, QPoint(195, 60))
+    assert not _blocks_frameless_resize(window, QPoint(199, 5))
     window.close()

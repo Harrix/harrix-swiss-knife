@@ -6,7 +6,7 @@ import sys
 from typing import Any
 
 from PySide6.QtCore import QByteArray, QPoint, QSize, Qt
-from PySide6.QtWidgets import QAbstractButton, QWidget
+from PySide6.QtWidgets import QAbstractButton, QScrollBar, QWidget
 
 _FRAMELESS_BORDER = 8
 
@@ -161,10 +161,12 @@ def try_handle_frameless_resize_native_event(
 
 
 def _blocks_frameless_resize(widget: QWidget, local: QPoint) -> bool:
-    """Return whether `local` is over a button that must keep mouse clicks."""
+    """Return whether `local` is over a control that must keep mouse clicks."""
     child = widget.childAt(local)
     while child is not None and child is not widget:
-        if isinstance(child, QAbstractButton):
+        # Scrollbars sit on the window edge and would otherwise lose to the
+        # frameless resize strip (`_FRAMELESS_BORDER`).
+        if isinstance(child, (QAbstractButton, QScrollBar)):
             return True
         child = child.parentWidget()
     return False

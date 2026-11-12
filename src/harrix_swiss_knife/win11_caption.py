@@ -30,6 +30,7 @@ from PySide6.QtWidgets import (
     QMenu,
     QMenuBar,
     QScrollArea,
+    QScrollBar,
     QSizePolicy,
     QSplitter,
     QStackedWidget,
@@ -985,6 +986,10 @@ def _caption_buttons(window: QWidget) -> list[CaptionButton]:
 def _caption_control_at(window: QWidget, local: QPoint) -> bool:
     child = window.childAt(local)
     while child is not None and child is not window:
+        # Flat scrollbars are ~10px; the frameless resize strip is 8px. Prefer the
+        # scrollbar cursor over SizeHorCursor / SizeVerCursor on the window edge.
+        if isinstance(child, QScrollBar):
+            return True
         if isinstance(child, (QAbstractButton, QLineEdit, QComboBox, QAbstractSpinBox)):
             return True
         if isinstance(child, QTabBar):
