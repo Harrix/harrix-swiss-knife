@@ -482,11 +482,51 @@ def test_double_click_empty_margin_aligns_image_to_edge(qapp: QApplication) -> N
     top_aligned = canvas._image_rect()
     assert canvas.zoom == pytest.approx(zoom_before)
     assert top_aligned.top() == pytest.approx(0.0, abs=0.5)
-    assert top_aligned.left() == pytest.approx(centered.left(), abs=0.5)
+    assert top_aligned.center().x() == pytest.approx(200.0, abs=1.0)
     _double_click(canvas, QPointF(200, 295))
     bottom_aligned = canvas._image_rect()
     assert bottom_aligned.bottom() == pytest.approx(300.0, abs=0.5)
-    assert bottom_aligned.left() == pytest.approx(centered.left(), abs=0.5)
+    assert bottom_aligned.center().x() == pytest.approx(200.0, abs=1.0)
+    canvas.close()
+
+
+def test_double_click_empty_margin_aligns_mid_edges_and_center(qapp: QApplication) -> None:  # noqa: ARG001
+    image = QImage(40, 20, QImage.Format.Format_RGB32)
+    image.fill(Qt.GlobalColor.red)
+    canvas = ScreenshotPreviewCanvas(image)
+    canvas.resize(400, 300)
+    # Park the image in the bottom-right so the left/top/center of the view are empty.
+    canvas._offset = QPointF(160.0, 120.0)
+    parked = canvas._image_rect()
+    assert parked.left() > 200.0
+    assert parked.top() > 150.0
+
+    _double_click(canvas, QPointF(50, 150))
+    left_mid = canvas._image_rect()
+    assert left_mid.left() == pytest.approx(0.0, abs=0.5)
+    assert left_mid.center().y() == pytest.approx(150.0, abs=1.0)
+
+    _double_click(canvas, QPointF(350, 150))
+    right_mid = canvas._image_rect()
+    assert right_mid.right() == pytest.approx(400.0, abs=0.5)
+    assert right_mid.center().y() == pytest.approx(150.0, abs=1.0)
+
+    _double_click(canvas, QPointF(200, 20))
+    top_mid = canvas._image_rect()
+    assert top_mid.top() == pytest.approx(0.0, abs=0.5)
+    assert top_mid.center().x() == pytest.approx(200.0, abs=1.0)
+
+    _double_click(canvas, QPointF(200, 280))
+    bottom_mid = canvas._image_rect()
+    assert bottom_mid.bottom() == pytest.approx(300.0, abs=0.5)
+    assert bottom_mid.center().x() == pytest.approx(200.0, abs=1.0)
+
+    # Move off-center again, then double-click the empty view center.
+    canvas._offset = QPointF(160.0, 120.0)
+    _double_click(canvas, QPointF(200, 150))
+    centered = canvas._image_rect()
+    assert centered.center().x() == pytest.approx(200.0, abs=1.0)
+    assert centered.center().y() == pytest.approx(150.0, abs=1.0)
     canvas.close()
 
 

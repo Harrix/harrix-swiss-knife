@@ -85,6 +85,8 @@ _DRAG_THRESHOLD = 4
 _EDGE_SNAP_THRESHOLD = 8
 _SNAP_GUIDE_COLOR = QColor(255, 0, 200, 220)
 _PASTE_OFFSET = 10.0
+_ALIGN_GRID_LAST = 2
+_ALIGN_EPSILON = 0.5
 _annotation_clipboard: list[Annotation] = []
 
 
@@ -96,7 +98,8 @@ class ScreenshotPreviewCanvas(QWidget):
     Right-click opens annotation edit commands (undo, cut/copy/paste, layer order).
     Double-click on the image in the view tool returns a zoomed image to that
     opening size; at the opening size, a small image is fitted into the view.
-    Double-click in the empty margin beside the image pans it flush to that edge.
+    Double-click in the empty margin beside the image pans it to the matching
+    nine-cell view slot (corners, mid-edges, or center).
 
     """
 
@@ -875,22 +878,45 @@ class ScreenshotPreviewCanvas(QWidget):
         return self._crop_rect
 
     def _align_image_to_empty_margin(self, pos: QPointF) -> bool:
-        """Pan so the image edge next to the empty click sits flush with the view edge."""
+        """Pan the image into the nine-cell view slot under the empty-margin click.
+
+        Corners, mid-edges (top/bottom/left/right center), and the center cell are
+        all supported. Placement uses the click position in the view, not only
+        which side of the image was hit, so a click in the middle of a large empty
+        L-shaped margin centers on that axis instead of snapping to a corner.
+
+        """
         rect = self._image_rect()
         if rect.isEmpty():
             return False
         view = self.rect()
-        dx = 0.0
-        dy = 0.0
-        if pos.x() < rect.left():
-            dx = -rect.left()
-        elif pos.x() > rect.right():
-            dx = view.width() - rect.right()
-        if pos.y() < rect.top():
-            dy = -rect.top()
-        elif pos.y() > rect.bottom():
-            dy = view.height() - rect.bottom()
-        if dx == 0.0 and dy == 0.0:
+        view_w = float(view.width())
+        view_h = float(view.height())
+        if view_w <= 0.0 or view_h <= 0.0:
+            return False
+
+        third_w = view_w / 3.0
+        third_h = view_h / 3.0
+        col = 0 if pos.x() < third_w else (_ALIGN_GRID_LAST if pos.x() >= 2.0 * third_w else 1)
+        row = 0 if pos.y() < third_h else (_ALIGN_GRID_LAST if pos.y() >= 2.0 * third_h else 1)
+
+        if col == 0:
+            target_left = 0.0
+        elif col == _ALIGN_GRID_LAST:
+            target_left = view_w - rect.width()
+        else:
+            target_left = (view_w - rect.width()) / 2.0
+
+        if row == 0:
+            target_top = 0.0
+        elif row == _ALIGN_GRID_LAST:
+            target_top = view_h - rect.height()
+        else:
+            target_top = (view_h - rect.height()) / 2.0
+
+        dx = target_left - rect.left()
+        dy = target_top - rect.top()
+        if abs(dx) < _ALIGN_EPSILON and abs(dy) < _ALIGN_EPSILON:
             return False
         self._offset = QPointF(self._offset.x() + dx, self._offset.y() + dy)
         self._sync_text_editor_geometry()
