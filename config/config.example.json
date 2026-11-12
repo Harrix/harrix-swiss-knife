@@ -404,6 +404,7 @@
       "food_log_to_tsv": "snippet:config/prompts/food-log-to-tsv.md",
       "food_voice_log_to_tsv": "snippet:config/prompts/food-voice-log-to-tsv.md",
       "habits_emoji_suggest": "snippet:config/prompts/habits-emoji-suggest.md",
+      "lucide_icon_suggest": "snippet:config/prompts/lucide-icon-suggest.md",
       "food_kcal_lookup": "snippet:config/prompts/food-kcal-lookup.md",
       "food_day_macros": "snippet:config/prompts/food-day-macros.md",
       "food_range_macros": "snippet:config/prompts/food-range-macros.md",

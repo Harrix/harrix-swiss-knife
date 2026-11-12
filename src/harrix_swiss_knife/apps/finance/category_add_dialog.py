@@ -98,6 +98,9 @@ class CategoryAddDialog(QDialog):
             form_group,
             presets=FINANCE_CATEGORY_LUCIDE_PRESETS,
             allow_empty=True,
+            app_config=self._app_config,
+            bothub_state=self._bothub_state,
+            suggest_query_provider=lambda: self._name_edit.text(),
         )
         lucide_row.addWidget(self._lucide_row, 1)
         form_layout.addLayout(lucide_row)

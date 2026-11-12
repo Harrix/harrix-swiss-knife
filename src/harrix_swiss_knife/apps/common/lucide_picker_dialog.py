@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from PySide6.QtCore import QSize, Qt, QTimer
 from PySide6.QtGui import QIcon
@@ -20,7 +20,10 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife import qt_modality
+from harrix_swiss_knife.apps.common import message_box
+from harrix_swiss_knife.apps.common.lucide_icon_ai import request_lucide_icon_suggestions
 from harrix_swiss_knife.fluent.tokens import ICON_SIZE
+from harrix_swiss_knife.integrations.bothub import BothubRequestState
 from harrix_swiss_knife.qt_lucide_icon import (
     LUCIDE_COLOR_DARK,
     apply_lucide_dialog_buttons,
@@ -28,10 +31,11 @@ from harrix_swiss_knife.qt_lucide_icon import (
     install_line_edit_search_chrome,
     list_lucide_icon_names,
     lucide_svg_path,
+    make_ai_lucide_push_button,
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Callable, Sequence
 
 _SEARCH_DEBOUNCE_MS = 250
 _GRID_ICON_SIZE = 28
@@ -49,12 +53,18 @@ class LucideChoiceRow(QWidget):
         current_name: str = "",
         presets: Sequence[str] | None = None,
         allow_empty: bool = True,
+        app_config: dict[str, Any] | None = None,
+        bothub_state: BothubRequestState | None = None,
+        suggest_query_provider: Callable[[], str] | None = None,
     ) -> None:
         """Create a compact Lucide chooser row."""
         super().__init__(parent)
         self._presets = tuple(presets) if presets is not None else ()
         self._allow_empty = allow_empty
         self._name = current_name.strip()
+        self._app_config = app_config or {}
+        self._bothub_state = bothub_state or BothubRequestState()
+        self._suggest_query_provider = suggest_query_provider
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -88,11 +98,17 @@ class LucideChoiceRow(QWidget):
         self._refresh_preview()
 
     def _choose(self) -> None:
+        suggest_query = ""
+        if self._suggest_query_provider is not None:
+            suggest_query = self._suggest_query_provider().strip()
         dialog = LucidePickerDialog(
             self,
             current_name=self._name,
             presets=self._presets,
             allow_empty=self._allow_empty,
+            app_config=self._app_config,
+            bothub_state=self._bothub_state,
+            suggest_query=suggest_query,
         )
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return
@@ -118,6 +134,9 @@ class LucidePickerDialog(QDialog):
         presets: Sequence[str] | None = None,
         allow_empty: bool = True,
         title: str = "Choose Lucide icon",
+        app_config: dict[str, Any] | None = None,
+        bothub_state: BothubRequestState | None = None,
+        suggest_query: str = "",
     ) -> None:
         """Initialize the Lucide picker dialog."""
         super().__init__(parent)
@@ -126,8 +145,13 @@ class LucidePickerDialog(QDialog):
         self.resize(560, 520)
         self._allow_empty = allow_empty
         self._presets = tuple(dict.fromkeys(name.strip() for name in (presets or ()) if name.strip()))
+        self._ai_suggestions: tuple[str, ...] = ()
         self._all_names = list_lucide_icon_names()
         self._selected = current_name.strip()
+        self._app_config = app_config or {}
+        self._bothub_state = bothub_state or BothubRequestState()
+        self._suggest_query = suggest_query.strip()
+        self._ai_request_in_progress = False
         self._filter_timer = QTimer(self)
         self._filter_timer.setSingleShot(True)
         self._filter_timer.setInterval(_SEARCH_DEBOUNCE_MS)
@@ -152,11 +176,18 @@ class LucidePickerDialog(QDialog):
             preview_row.addWidget(clear_button)
         root.addLayout(preview_row)
 
+        search_row = QHBoxLayout()
         self._search = QLineEdit()
         self._search.setPlaceholderText("Search Lucide id…")
         install_line_edit_search_chrome(self._search, clear_tooltip="Clear search")
         self._search.textChanged.connect(self._on_search_changed)
-        root.addWidget(self._search)
+        search_row.addWidget(self._search, 1)
+        self._ai_button = make_ai_lucide_push_button("")
+        self._ai_button.setToolTip("Suggest Lucide icons with AI")
+        self._ai_button.setFixedWidth(36)
+        self._ai_button.clicked.connect(self._suggest_with_ai)
+        search_row.addWidget(self._ai_button)
+        root.addLayout(search_row)
 
         self._hint = QLabel(_EMPTY_HINT)
         root.addWidget(self._hint)
@@ -189,11 +220,34 @@ class LucidePickerDialog(QDialog):
         root.addWidget(buttons)
 
         self._sync_preview()
+        self._update_ai_button()
         self._rebuild_grid()
 
     def selected_name(self) -> str:
         """Return the chosen Lucide id, possibly empty when auto-from-emoji is allowed."""
         return self._selected.strip()
+
+    def _ai_query_text(self) -> str:
+        search = self._search.text().strip()
+        if search:
+            return search
+        return self._suggest_query
+
+    def _apply_ai_suggestions(self, icons: list[str]) -> None:
+        valid = tuple(dict.fromkeys(name for name in icons if lucide_svg_path(name) is not None))
+        if not valid:
+            message_box.warning(self, "Suggest Lucide", "AI returned no valid Lucide icons")
+            return
+        self._ai_suggestions = valid
+        self._search.blockSignals(True)  # noqa: FBT003
+        self._search.clear()
+        self._search.blockSignals(False)  # noqa: FBT003
+        self._select_name(valid[0])
+        self._rebuild_grid()
+
+    def _on_ai_finished(self) -> None:
+        self._ai_request_in_progress = False
+        self._update_ai_button()
 
     def _on_id_changed(self, text: str) -> None:
         value = text.strip()
@@ -215,18 +269,26 @@ class LucidePickerDialog(QDialog):
 
     def _on_search_changed(self, _text: str) -> None:
         self._filter_timer.start()
+        self._update_ai_button()
 
     def _rebuild_grid(self) -> None:
         query = self._search.text().strip().casefold()
         self._list.clear()
         if not query:
-            names = [name for name in self._presets if lucide_svg_path(name) is not None]
-            self._hint.setText("Presets below. " + _EMPTY_HINT)
+            if self._ai_suggestions:
+                names = [name for name in self._ai_suggestions if lucide_svg_path(name) is not None]
+                self._hint.setText("AI suggestions below. " + _EMPTY_HINT)
+            else:
+                names = [name for name in self._presets if lucide_svg_path(name) is not None]
+                self._hint.setText("Presets below. " + _EMPTY_HINT)
         else:
             names = [name for name in self._all_names if query in name.casefold()]
             if len(names) > _MAX_SEARCH_RESULTS:
                 names = names[:_MAX_SEARCH_RESULTS]
-            self._hint.setText(f"Showing {len(names)} match(es)" + (" (truncated)" if len(names) == _MAX_SEARCH_RESULTS else ""))
+            self._hint.setText(
+                f"Showing {len(names)} match(es)"
+                + (" (truncated)" if len(names) == _MAX_SEARCH_RESULTS else "")
+            )
 
         selected_row = -1
         for index, name in enumerate(names):
@@ -249,6 +311,21 @@ class LucidePickerDialog(QDialog):
         self._id_edit.setText(self._selected)
         self._id_edit.blockSignals(False)  # noqa: FBT003
 
+    def _suggest_with_ai(self) -> None:
+        query = self._ai_query_text()
+        if not query or self._ai_request_in_progress:
+            return
+        self._ai_request_in_progress = True
+        self._update_ai_button()
+        request_lucide_icon_suggestions(
+            self,
+            app_config=self._app_config,
+            bothub_state=self._bothub_state,
+            query=query,
+            on_icons=self._apply_ai_suggestions,
+            on_finished=self._on_ai_finished,
+        )
+
     def _sync_preview(self) -> None:
         if self._selected and lucide_svg_path(self._selected) is not None:
             self._preview.setPixmap(
@@ -258,3 +335,6 @@ class LucidePickerDialog(QDialog):
             return
         self._preview.clear()
         self._preview_name.setText("Auto (from emoji)" if not self._selected else self._selected)
+
+    def _update_ai_button(self) -> None:
+        self._ai_button.setEnabled(bool(self._ai_query_text()) and not self._ai_request_in_progress)

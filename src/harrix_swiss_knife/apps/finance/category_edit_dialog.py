@@ -173,6 +173,9 @@ class CategoryEditDialog(QDialog):
             current_name=str(self.category_data.get("icon_lucide", "") or ""),
             presets=FINANCE_CATEGORY_LUCIDE_PRESETS,
             allow_empty=True,
+            app_config=self._app_config,
+            bothub_state=self._bothub_state,
+            suggest_query_provider=lambda: self.name_edit.text(),
         )
         lucide_layout.addWidget(self._lucide_row, 1)
         layout.addLayout(lucide_layout)

@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 from PySide6.QtWidgets import QApplication
 
+from harrix_swiss_knife.apps.common.lucide_icon_ai import parse_lucide_icon_response
 from harrix_swiss_knife.apps.common.lucide_picker_dialog import LucideChoiceRow, LucidePickerDialog
 from harrix_swiss_knife.qt_lucide_icon import list_lucide_icon_names
 
@@ -44,3 +45,29 @@ def test_lucide_choice_row_auto_label(qapp: QApplication) -> None:  # noqa: ARG0
     row.set_lucide_name("utensils")
     assert row.lucide_name() == "utensils"
     assert row._label.text() == "utensils"
+
+
+def test_parse_lucide_icon_response_keeps_valid_unique() -> None:
+    known = ("car", "shopping-cart", "sparkles", "utensils")
+    assert parse_lucide_icon_response("utensils\ncar\nutensils", known_names=known) == ["utensils", "car"]
+    assert parse_lucide_icon_response("```\n- shopping-cart\n`sparkles`\n", known_names=known) == [
+        "shopping-cart",
+        "sparkles",
+    ]
+    assert parse_lucide_icon_response("not-a-real-icon\ncar", known_names=known) == ["car"]
+    assert parse_lucide_icon_response("no icons here", known_names=known) == []
+
+
+def test_lucide_picker_ai_button_uses_suggest_query(qapp: QApplication) -> None:  # noqa: ARG001
+    dialog = LucidePickerDialog(
+        None,
+        current_name="",
+        presets=("car",),
+        allow_empty=True,
+        suggest_query="Coffee shops",
+    )
+    assert dialog._ai_query_text() == "Coffee shops"
+    assert dialog._ai_button.isEnabled()
+    dialog._search.setText("cart")
+    assert dialog._ai_query_text() == "cart"
+    dialog.close()
