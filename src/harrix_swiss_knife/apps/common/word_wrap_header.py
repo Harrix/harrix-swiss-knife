@@ -8,7 +8,7 @@ from PySide6.QtCore import QAbstractItemModel, QEvent, QPointF, QRect, QSize, Qt
 from PySide6.QtGui import QColor, QFontMetrics, QIcon, QMouseEvent, QPainter, QPaintEvent, QPalette, QPen
 from PySide6.QtWidgets import QHeaderView, QStyleOptionHeader, QTableView, QWidget
 
-from harrix_swiss_knife.apps.common.ui_chrome import HAIRLINE, SELECTION_BORDER
+from harrix_swiss_knife.apps.common.ui_chrome import SELECTION_BORDER, SEPARATOR
 from harrix_swiss_knife.fluent.theme import FluentTheme, css, is_fluent_themed, mix
 
 HEADER_WRAP_FLAG = Qt.TextFlag.TextWordWrap
@@ -412,8 +412,8 @@ def header_column_separator_color(widget: QWidget | None = None) -> QColor:
         if palette.dark:
             wash = QColor(255, 255, 255, 28)
             return mix(palette.window_bg, wash)
-    # Site hairline — lighter than SEPARATOR (`#e0e0e0`).
-    return QColor(HAIRLINE)
+    # Site separator — a step darker than hairline, still quieter than hover blue.
+    return QColor(SEPARATOR)
 
 
 def header_column_separator_insets(height: int) -> tuple[int, int]:
