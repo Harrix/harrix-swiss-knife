@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife.apps.common.qt_main_window import compute_app_window_geometry
+from harrix_swiss_knife.fluent.tokens import CONTROL_HEIGHT
 from harrix_swiss_knife.fluent.widgets.buttons import FluentSplitButton
 from harrix_swiss_knife.screenshot import preview_canvas as canvas_module
 from harrix_swiss_knife.screenshot import preview_dialog as preview_dialog_module
@@ -1015,6 +1016,8 @@ def test_show_screenshot_preview_adds_tabs(qapp: QApplication) -> None:
     bar = tabs.tabBar()
     assert bar.isVisible()
     assert bar.mapToGlobal(QPoint(0, 0)).y() < window._tools_host.mapToGlobal(QPoint(0, 0)).y()
+    assert window._tools_host.mapToGlobal(QPoint(0, 0)).x() <= tabs.mapToGlobal(QPoint(0, 0)).x()
+    assert window._tools_host.width() == CONTROL_HEIGHT
     assert not bar.drawBase()
     assert not bar.autoFillBackground()
     assert "background: transparent" in bar.styleSheet()

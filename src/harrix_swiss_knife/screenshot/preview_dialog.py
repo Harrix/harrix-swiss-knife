@@ -219,14 +219,15 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._tab_bar = tab_bar
         root.addWidget(tab_bar)
 
+        body = QHBoxLayout()
+        body.setSpacing(SPACE_S)
+
         tools_host = QWidget(central)
-        tools_layout = FlowLayout(
-            tools_host,
-            margin=0,
-            h_spacing=SPACE_XS,
-            v_spacing=SPACE_XS,
-            alignment=Qt.AlignmentFlag.AlignHCenter,
-        )
+        tools_host.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
+        tools_layout = QVBoxLayout(tools_host)
+        tools_layout.setContentsMargins(0, 0, 0, 0)
+        tools_layout.setSpacing(SPACE_XS)
+        tools_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignHCenter)
         self._tool_group = QButtonGroup(self)
         self._tool_group.setExclusive(True)
         eyedropper_button: FluentIconButton | None = None
@@ -256,10 +257,13 @@ class ScreenshotPreviewWindow(QMainWindow):
         tools_layout.addWidget(self._color_button)
         if eyedropper_button is not None:
             tools_layout.addWidget(eyedropper_button)
+        tools_layout.addStretch(1)
 
         self._tools_host = tools_host
-        self._tools_layout = tools_layout
-        root.addWidget(tools_host)
+        body.addWidget(tools_host, 0)
+
+        content = QVBoxLayout()
+        content.setSpacing(SPACE_S)
 
         text_bar_host = QWidget(central)
         text_bar_row = QHBoxLayout(text_bar_host)
@@ -272,8 +276,8 @@ class ScreenshotPreviewWindow(QMainWindow):
         text_bar_row.addStretch(1)
         self._text_bar_host = text_bar_host
         text_bar_host.hide()
-        root.addWidget(text_bar_host)
-        root.addWidget(self._tabs, stretch=1)
+        content.addWidget(text_bar_host)
+        content.addWidget(self._tabs, stretch=1)
 
         footer = QVBoxLayout()
         footer.setSpacing(SPACE_S)
@@ -339,6 +343,9 @@ class ScreenshotPreviewWindow(QMainWindow):
         crop_row.addStretch(1)
         self._crop_bar.hide()
         footer.addWidget(self._crop_bar)
+        content.addLayout(footer)
+        body.addLayout(content, stretch=1)
+        root.addLayout(body, stretch=1)
 
         self._status = QLabel(central)
         self._status.setWordWrap(True)
@@ -347,8 +354,7 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._status.setText(_STATUS_HINT)
         bind_theme(self._status, self._refresh_status_theme)
         self._refresh_status_theme()
-        footer.addWidget(self._status)
-        root.addLayout(footer)
+        root.addWidget(self._status)
 
         install_documented_shortcut(
             self,
@@ -504,7 +510,7 @@ class ScreenshotPreviewWindow(QMainWindow):
         return cast("tuple[bool, int]", super().nativeEvent(event_type, message))
 
     def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
-        """Reflow the top tool row when the window width changes."""
+        """Keep the left tool rail one control wide after window resize."""
         super().resizeEvent(event)
         self._refit_tools_host()
 
@@ -932,10 +938,8 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._status.setText("Redone")
 
     def _refit_tools_host(self) -> None:
-        """Size the top tool strip so FlowLayout can wrap on narrow Windows."""
-        width = max(CONTROL_HEIGHT, self._tools_host.width())
-        height = max(CONTROL_HEIGHT, self._tools_layout.heightForWidth(width))
-        self._tools_host.setMinimumHeight(height)
+        """Keep the left annotation rail one Fluent control wide."""
+        self._tools_host.setFixedWidth(CONTROL_HEIGHT)
         self._tools_host.updateGeometry()
 
     def _refresh_annotation_tool_icons(self) -> None:
