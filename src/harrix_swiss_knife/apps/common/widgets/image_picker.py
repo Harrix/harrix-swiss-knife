@@ -106,23 +106,6 @@ _DROP_SELECTED_STYLE = drop_zone_qss(selector="#ImagePickerDropArea", selected=T
 _IMAGE_FILTER = "Images (*.png *.jpg *.jpeg *.gif *.bmp *.svg *.webp *.avif);;All files (*)"
 
 
-def _zone_icon_button_qss(host: QWidget | None = None) -> str:
-    """Return QSS for in-zone camera/paste icons (Fluent subtle hover in dark)."""
-    if host is not None and is_fluent_themed(host):
-        palette = palette_for(host)
-        return f"""
-QPushButton {{
-    border: none;
-    background: transparent;
-    border-radius: {RADIUS_CONTROL}px;
-    padding: 0px;
-}}
-QPushButton:hover {{ background-color: {css(palette.subtle_hover)}; }}
-QPushButton:pressed {{ background-color: {css(palette.subtle_pressed)}; }}
-"""
-    return _ZONE_EMOJI_BUTTON_STYLE_LIGHT
-
-
 class ImagePicker(QWidget):
     """Configurable image picker for single, multi, or compact drop workflows."""
 
@@ -864,14 +847,6 @@ class ImagePicker(QWidget):
             self._drop_area.setStyleSheet(sheet)
         self._refresh_zone_buttons()
 
-    def _refresh_zone_buttons(self) -> None:
-        """Keep in-zone camera/paste hover fills on the active Fluent theme."""
-        sheet = _zone_icon_button_qss(self)
-        for attr in ("_zone_paste_button", "_zone_screenshot_button"):
-            button = getattr(self, attr, None)
-            if isinstance(button, QPushButton) and button.styleSheet() != sheet:
-                button.setStyleSheet(sheet)
-
     def _refresh_single_removal_ui(self) -> None:
         if not hasattr(self, "_preview_label"):
             return
@@ -892,6 +867,14 @@ class ImagePicker(QWidget):
                 self._clear_button.setText("Clear")
                 apply_lucide_button_icon(self._clear_button, CLEAR_BUTTON_ICON)
                 self._clear_button.setToolTip("Clear image")
+
+    def _refresh_zone_buttons(self) -> None:
+        """Keep in-zone camera/paste hover fills on the active Fluent theme."""
+        sheet = _zone_icon_button_qss(self)
+        for attr in ("_zone_paste_button", "_zone_screenshot_button"):
+            button = getattr(self, attr, None)
+            if isinstance(button, QPushButton) and button.styleSheet() != sheet:
+                button.setStyleSheet(sheet)
 
     def _resolve_image_path(self, path: str) -> Path | None:
         if not path.strip():
@@ -1083,3 +1066,20 @@ def save_qimage_to_temp_file(qimage: QImage, *, max_image_side: int | None = Non
     if qimage.save(str(tmp)):
         return str(tmp)
     return None
+
+
+def _zone_icon_button_qss(host: QWidget | None = None) -> str:
+    """Return QSS for in-zone camera/paste icons (Fluent subtle hover in dark)."""
+    if host is not None and is_fluent_themed(host):
+        palette = palette_for(host)
+        return f"""
+QPushButton {{
+    border: none;
+    background: transparent;
+    border-radius: {RADIUS_CONTROL}px;
+    padding: 0px;
+}}
+QPushButton:hover {{ background-color: {css(palette.subtle_hover)}; }}
+QPushButton:pressed {{ background-color: {css(palette.subtle_pressed)}; }}
+"""
+    return _ZONE_EMOJI_BUTTON_STYLE_LIGHT

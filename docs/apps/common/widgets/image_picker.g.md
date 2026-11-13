@@ -626,7 +626,7 @@ class ImagePicker(QWidget):
         button.setFixedSize(32, 32)
         button.setToolTip("Paste image from clipboard (Ctrl+V)")
         button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        button.setStyleSheet(_ZONE_EMOJI_BUTTON_STYLE)
+        button.setStyleSheet(_zone_icon_button_qss(self))
         button.installEventFilter(self)
         if self._mode == ImagePickerMode.SINGLE:
             button.clicked.connect(self._paste_smart_from_clipboard)
@@ -642,7 +642,7 @@ class ImagePicker(QWidget):
         button.setFixedSize(32, 32)
         button.setToolTip("Capture screen region")
         button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        button.setStyleSheet(_ZONE_EMOJI_BUTTON_STYLE)
+        button.setStyleSheet(_zone_icon_button_qss(self))
         button.installEventFilter(self)
         button.clicked.connect(self._capture_screenshot_region)
         self._zone_screenshot_button = button
@@ -791,6 +791,7 @@ class ImagePicker(QWidget):
             sheet = _DROP_NORMAL_STYLE
         if self._drop_area.styleSheet() != sheet:
             self._drop_area.setStyleSheet(sheet)
+        self._refresh_zone_buttons()
 
     def _refresh_single_removal_ui(self) -> None:
         if not hasattr(self, "_preview_label"):
@@ -812,6 +813,14 @@ class ImagePicker(QWidget):
                 self._clear_button.setText("Clear")
                 apply_lucide_button_icon(self._clear_button, CLEAR_BUTTON_ICON)
                 self._clear_button.setToolTip("Clear image")
+
+    def _refresh_zone_buttons(self) -> None:
+        """Keep in-zone camera/paste hover fills on the active Fluent theme."""
+        sheet = _zone_icon_button_qss(self)
+        for attr in ("_zone_paste_button", "_zone_screenshot_button"):
+            button = getattr(self, attr, None)
+            if isinstance(button, QPushButton) and button.styleSheet() != sheet:
+                button.setStyleSheet(sheet)
 
     def _resolve_image_path(self, path: str) -> Path | None:
         if not path.strip():

@@ -123,6 +123,10 @@ def combo_box_qss(palette: FluentPalette, selector: str = 'QComboBox', *, height
 
 Return the Fluent drop-down (combo box) stylesheet with a Lucide chevron.
 
+The popup list uses the same flyout fill/stroke and Settings-like item pills as
+[`menu_qss`](#-function-menu_qss) / [`item_view_qss`](#-function-item_view_qss), including `QComboBoxPrivateContainer` so Windows
+does not keep a native light frame around the dark list.
+
 <details>
 <summary>Code:</summary>
 
@@ -130,10 +134,15 @@ Return the Fluent drop-down (combo box) stylesheet with a Lucide chevron.
 def combo_box_qss(palette: FluentPalette, selector: str = "QComboBox", *, height: int = CONTROL_HEIGHT) -> str:
     # Mix onto the field fill so the PNG is opaque and readable on control chrome.
     arrow = lucide_qss_url("chevron-down", mix(palette.control_fill, palette.text_primary), 12)
+    hover = css(list_item_hover(palette))
+    selected = css(list_item_selected(palette))
+    popup_bg = css(palette.popup_bg)
+    popup_stroke = css(palette.popup_stroke)
+    ink = css(palette.text_primary)
     return f"""
 {selector} {{
     background-color: {css(palette.control_fill)};
-    color: {css(palette.text_primary)};
+    color: {ink};
     border: 1px solid {css(palette.control_stroke)};
     border-bottom-color: {css(palette.control_stroke_bottom)};
     border-radius: {RADIUS_CONTROL}px;
@@ -154,16 +163,32 @@ def combo_box_qss(palette: FluentPalette, selector: str = "QComboBox", *, height
     background: transparent;
 }}
 {selector}::down-arrow {{ image: url("{arrow}"); width: 12px; height: 12px; }}
+QComboBoxPrivateContainer {{
+    background-color: {popup_bg};
+    border: 1px solid {popup_stroke};
+    border-radius: {RADIUS_OVERLAY}px;
+    padding: 0px;
+}}
 {selector} QAbstractItemView {{
-    background-color: {css(palette.popup_bg)};
-    color: {css(palette.text_primary)};
-    border: 1px solid {css(palette.popup_stroke)};
+    background-color: {popup_bg};
+    color: {ink};
+    border: none;
     border-radius: {RADIUS_OVERLAY}px;
     padding: {SPACE_XS}px;
     outline: none;
-    selection-background-color: {css(palette.subtle_hover)};
-    selection-color: {css(palette.text_primary)};
+    selection-background-color: {selected};
+    selection-color: {ink};
 }}
+{selector} QAbstractItemView::item {{
+    border: none;
+    border-radius: {RADIUS_CONTROL}px;
+    padding: 4px 8px;
+    min-height: {max(20, height - 10)}px;
+    color: {ink};
+}}
+{selector} QAbstractItemView::item:hover {{ background: {hover}; }}
+{selector} QAbstractItemView::item:selected {{ background: {selected}; color: {ink}; }}
+{selector} QAbstractItemView::item:selected:hover {{ background: {selected}; }}
 """
 ```
 
@@ -521,6 +546,7 @@ def menu_qss(palette: FluentPalette, selector: str = "QMenu") -> str:
     # Slightly denser than the old 6/24 padding and 32px icons, without the
     # ultra-tight 2px rows that felt cramped in the tray menu.
     menu_icon = 20
+    hover = css(list_item_hover(palette))
     return f"""
 {selector} {{
     background-color: {css(palette.popup_bg)};
@@ -536,7 +562,7 @@ def menu_qss(palette: FluentPalette, selector: str = "QMenu") -> str:
     padding: {SPACE_XS}px {SPACE_L}px {SPACE_XS}px {SPACE_S}px;
     margin: 1px 0px;
 }}
-{selector}::item:selected {{ background: {css(palette.subtle_hover)}; }}
+{selector}::item:selected {{ background: {hover}; }}
 {selector}::item:disabled {{ color: {css(palette.text_disabled)}; }}
 {selector}::icon {{
     width: {menu_icon}px;

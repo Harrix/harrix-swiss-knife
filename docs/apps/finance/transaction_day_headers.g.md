@@ -70,10 +70,12 @@ class DayHeaderDelegate(QStyledItemDelegate):
         host = option.widget if isinstance(option.widget, QWidget) else None
         fluent = palette_for(host)
         fill = index.data(Qt.ItemDataRole.BackgroundRole)
-        if isinstance(fill, QColor):
-            background = fill
-        elif is_month:
+        # Month banners always follow the painting host — model BackgroundRole
+        # used to call palette_for(None) and stayed light under Fluent dark.
+        if is_month:
             background = _month_header_fill(fluent)
+        elif isinstance(fill, QColor):
+            background = fill
         else:
             background = mix(fluent.window_bg, fluent.card_bg)
         ink = mix(fluent.window_bg, fluent.text_primary)
@@ -196,10 +198,12 @@ def paint(
         host = option.widget if isinstance(option.widget, QWidget) else None
         fluent = palette_for(host)
         fill = index.data(Qt.ItemDataRole.BackgroundRole)
-        if isinstance(fill, QColor):
-            background = fill
-        elif is_month:
+        # Month banners always follow the painting host — model BackgroundRole
+        # used to call palette_for(None) and stayed light under Fluent dark.
+        if is_month:
             background = _month_header_fill(fluent)
+        elif isinstance(fill, QColor):
+            background = fill
         else:
             background = mix(fluent.window_bg, fluent.card_bg)
         ink = mix(fluent.window_bg, fluent.text_primary)
@@ -371,7 +375,7 @@ class TransactionDayHeaderProxy(QAbstractProxyModel):
                 return ""
             if role == Qt.ItemDataRole.BackgroundRole:
                 if is_month:
-                    return _month_header_fill(palette_for(None))
+                    return _month_header_fill(FluentTheme.instance().palette())
                 return day_band_color(self._band_index_for_header(proxy_row))
             if role in {Qt.ItemDataRole.FontRole, Qt.ItemDataRole.TextAlignmentRole}:
                 return None
@@ -413,7 +417,7 @@ class TransactionDayHeaderProxy(QAbstractProxyModel):
                 return ""
             if role == Qt.ItemDataRole.BackgroundRole:
                 if section in self._header_month_rows:
-                    return _month_header_fill(palette_for(None))
+                    return _month_header_fill(FluentTheme.instance().palette())
                 return day_band_color(self._band_index_for_header(section))
             return None
         source_row = self._proxy_rows[section]
@@ -753,7 +757,7 @@ def data(self, index: QModelIndex | QPersistentModelIndex, role: int = Qt.ItemDa
                 return ""
             if role == Qt.ItemDataRole.BackgroundRole:
                 if is_month:
-                    return _month_header_fill(palette_for(None))
+                    return _month_header_fill(FluentTheme.instance().palette())
                 return day_band_color(self._band_index_for_header(proxy_row))
             if role in {Qt.ItemDataRole.FontRole, Qt.ItemDataRole.TextAlignmentRole}:
                 return None
@@ -823,7 +827,7 @@ def headerData(  # noqa: N802
                 return ""
             if role == Qt.ItemDataRole.BackgroundRole:
                 if section in self._header_month_rows:
-                    return _month_header_fill(palette_for(None))
+                    return _month_header_fill(FluentTheme.instance().palette())
                 return day_band_color(self._band_index_for_header(section))
             return None
         source_row = self._proxy_rows[section]

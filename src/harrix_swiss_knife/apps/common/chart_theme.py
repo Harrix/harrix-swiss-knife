@@ -105,8 +105,7 @@ def chart_label_face() -> str:
 
     """
     palette = FluentTheme.instance().palette()
-    if palette.dark:
-        return palette.popup_bg.name()
+    # Dark axes already use solid_tertiary/popup; lift the label fill so it reads as a chip.
     return mix(palette.window_bg, palette.card_bg).name()
 
 

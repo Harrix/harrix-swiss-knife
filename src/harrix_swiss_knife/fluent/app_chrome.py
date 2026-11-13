@@ -502,7 +502,11 @@ def _polish_combo_popup(combo: QComboBox, palette: FluentPalette) -> None:
         view.setFrameShape(QFrame.Shape.NoFrame)
     view.setAutoFillBackground(True)
     surface = palette.popup_bg
-    text = palette.text_primary if palette.text_primary.alpha() == 255 else mix(palette.window_bg, palette.text_primary)
+    text = (
+        palette.text_primary
+        if palette.text_primary.alpha() == 255  # noqa: PLR2004
+        else mix(palette.window_bg, palette.text_primary)
+    )
     highlight = list_item_selected(palette)
     tuned = view.palette()
     for group in (QPalette.ColorGroup.Active, QPalette.ColorGroup.Inactive, QPalette.ColorGroup.Disabled):

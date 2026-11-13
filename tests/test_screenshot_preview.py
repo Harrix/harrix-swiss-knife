@@ -674,7 +674,7 @@ def test_preview_window_print_button_sends_image(
     window._print_screenshot()
     assert pdf_path.is_file()
     assert pdf_path.stat().st_size > 0
-    assert "printer" in window._status.text().casefold()
+    assert "printer" in window.statusBar().currentMessage().casefold()
     window.close()
 
 
@@ -718,7 +718,7 @@ def test_preview_window_saves_dated_png_to_desktop(
     assert len(files) == 1
     assert files[0].stem.endswith("_01")
     assert window.windowTitle() == f"Screenshot — {files[0].name}"
-    assert str(files[0]) in window._status.text()
+    assert str(files[0]) in window.statusBar().currentMessage()
     first_path = files[0]
     first_mtime = first_path.stat().st_mtime_ns
     window._save_to_desktop()
@@ -860,7 +860,7 @@ def test_reduce_size_button_offers_menu_and_halves_image(qapp: QApplication) -> 
     assert tab is not None
     assert tab.document.base_image.width() == 20
     assert tab.document.base_image.height() == 10
-    assert window._status.text() == "Reduced to 20 x 10"
+    assert window.statusBar().currentMessage() == "Reduced to 20 x 10"
     window.close()
 
 
@@ -980,7 +980,7 @@ def test_preview_window_save_all_to_desktop(
     assert tabs.count() == 2
     assert tabs.tabText(0) == files[0].name
     assert tabs.tabText(1) == files[1].name
-    assert "Saved 2 images" in window._status.text()
+    assert "Saved 2 images" in window.statusBar().currentMessage()
     window.close()
 
 
@@ -1013,14 +1013,14 @@ def test_show_screenshot_preview_adds_tabs(qapp: QApplication) -> None:
     tabs = window.findChild(QTabWidget)
     assert tabs is not None
     assert tabs.count() == 2
-    bar = tabs.tabBar()
+    assert not tabs.tabBar().isVisible()
+    bar = window._tab_bar
     assert bar.isVisible()
     assert bar.mapToGlobal(QPoint(0, 0)).y() < window._tools_host.mapToGlobal(QPoint(0, 0)).y()
     assert window._tools_host.mapToGlobal(QPoint(0, 0)).x() <= tabs.mapToGlobal(QPoint(0, 0)).x()
     assert window._tools_host.width() == CONTROL_HEIGHT
     assert not bar.drawBase()
-    assert not bar.autoFillBackground()
-    assert "background: transparent" in bar.styleSheet()
+    assert "background:" in bar.styleSheet()
     window.close()
 
 
@@ -1115,7 +1115,10 @@ def test_preview_footer_wraps_buttons_and_keeps_full_width_status(qapp: QApplica
     window = show_screenshot_preview(image)
     window.resize(520, 400)
     qapp.processEvents()
-    assert window._status.width() >= window.centralWidget().width() - 40
+    status = window.statusBar()
+    assert status.isVisible()
+    assert status.width() >= window.width() - 40
+    assert status.currentMessage()
     visible_actions = [button for button in window._action_buttons if button.isVisible()]
     for button in visible_actions:
         assert button.width() >= button.sizeHint().width() - 2

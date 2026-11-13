@@ -21,11 +21,11 @@ from PySide6.QtWidgets import (
     QFormLayout,
     QHBoxLayout,
     QInputDialog,
-    QLabel,
     QLineEdit,
     QMainWindow,
     QPlainTextEdit,
     QSizePolicy,
+    QStatusBar,
     QTabBar,
     QTabWidget,
     QTextEdit,
@@ -63,7 +63,7 @@ from harrix_swiss_knife.fluent.style import (
     list_item_selected,
     subtle_button_qss,
 )
-from harrix_swiss_knife.fluent.theme import bind_theme, palette_for
+from harrix_swiss_knife.fluent.theme import palette_for
 from harrix_swiss_knife.fluent.tokens import CONTROL_HEIGHT, ICON_SIZE_LARGE, SPACE_S, SPACE_XS
 from harrix_swiss_knife.fluent.widgets.buttons import (
     FluentCheckBox,
@@ -146,12 +146,7 @@ _MARKDOWN_AI_ICON = AI_BUTTON_ICON
 _MARKDOWN_OCR_ICON = "scan-text"
 _TABLE_AI_ICON = "table"
 _TRANSLATE_ICON = "languages"
-_STATUS_HINT = (
-    "Tools: arrow / shapes / step / pen / highlight / blur / pixelate / smart eraser / "
-    "text / eyedropper / crop · Pointer selects (Shift+click: several) · drawing tools always draw · "
-    "Delete removes selection · Shift constrains · Undo · Ctrl+wheel, Ctrl++ or Ctrl+- zoom · "
-    "Middle-drag pan · Ctrl+S save to images"
-)
+_STATUS_HINT = "Hover a tool for tips · F1 — keyboard shortcuts"
 _VK_S = 0x53
 _KEY_CYRILLIC_YERU = 0x042B  # Cyrillic yeru (same physical key as Latin S)  # ignore: HP001
 _MIN_WINDOW_WIDTH = 480
@@ -364,14 +359,10 @@ class ScreenshotPreviewWindow(QMainWindow):
         body.addLayout(content, stretch=1)
         root.addLayout(body, stretch=1)
 
-        self._status = QLabel(central)
-        self._status.setWordWrap(True)
-        self._status.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
-        self._status.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-        self._status.setText(_STATUS_HINT)
-        bind_theme(self._status, self._refresh_status_theme)
-        self._refresh_status_theme()
-        root.addWidget(self._status)
+        status = QStatusBar(self)
+        status.setSizeGripEnabled(False)
+        self.setStatusBar(status)
+        self._set_status(_STATUS_HINT)
 
         install_documented_shortcut(
             self,
@@ -507,7 +498,7 @@ class ScreenshotPreviewWindow(QMainWindow):
             and not (event.modifiers() & Qt.KeyboardModifier.ShiftModifier)
             and tab.canvas.delete_selected()
         ):
-            self._status.setText("Annotation deleted · Ctrl+Z undo")
+            self._set_status("Annotation deleted · Ctrl+Z undo")
             event.accept()
             return
         if tab is not None and event.key() == int(Qt.Key.Key_Escape) and tab.canvas.clear_selection():
@@ -627,12 +618,12 @@ class ScreenshotPreviewWindow(QMainWindow):
             return
         tab.canvas.commit_text_edit()
         if not tab.document.apply_resize(width, height):
-            self._status.setText("Size unchanged")
+            self._set_status("Size unchanged")
             return
         tab.canvas.set_document(tab.document)
         tab.canvas.reset_to_original_size()
         image = tab.document.base_image
-        self._status.setText(f"Reduced to {image.width()} x {image.height()}")
+        self._set_status(f"Reduced to {image.width()} x {image.height()}")
 
     def _apply_tool_to_current(self) -> None:
         tab = self._current_tab()
@@ -659,19 +650,19 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._color_pick_return_tool = return_tool
         self._set_tool(AnnotationTool.EYEDROPPER)
         self._color_pick_eyedropper = True
-        self._status.setText("Click a pixel to set the color · Esc to cancel")
+        self._set_status("Click a pixel to set the color · Esc to cancel")
 
     def _bring_forward(self) -> None:
         tab = self._current_tab()
         if tab is None or tab.canvas.is_text_editing or not tab.canvas.bring_forward():
             return
-        self._status.setText("Brought forward")
+        self._set_status("Brought forward")
 
     def _bring_to_front(self) -> None:
         tab = self._current_tab()
         if tab is None or tab.canvas.is_text_editing or not tab.canvas.bring_to_front():
             return
-        self._status.setText("Brought to front")
+        self._set_status("Brought to front")
 
     def _build_help_menu(self) -> None:
         menu_bar = FluentMenuBar(self)
@@ -688,12 +679,12 @@ class ScreenshotPreviewWindow(QMainWindow):
         select = self._tool_buttons.get(AnnotationTool.NONE)
         if select is not None:
             select.setChecked(True)
-        self._status.setText("Crop cancelled")
+        self._set_status("Crop cancelled")
 
     def _cancel_eyedropper_color_pick(self) -> None:
         return_tool = self._color_pick_return_tool
         self._set_tool(return_tool)
-        self._status.setText("Color pick cancelled")
+        self._set_status("Color pick cancelled")
 
     def _close_current_tab(self) -> None:
         index = self._tabs.currentIndex()
@@ -720,13 +711,13 @@ class ScreenshotPreviewWindow(QMainWindow):
         select = self._tool_buttons.get(AnnotationTool.NONE)
         if select is not None:
             select.setChecked(True)
-        self._status.setText("Crop applied" if ok else "Crop cancelled")
+        self._set_status("Crop applied" if ok else "Crop cancelled")
 
     def _copy_annotations(self) -> None:
         tab = self._current_tab()
         if tab is None or tab.canvas.is_text_editing or not tab.canvas.copy_selected():
             return
-        self._status.setText("Copied · Ctrl+V paste")
+        self._set_status("Copied · Ctrl+V paste")
 
     def _copy_to_clipboard(self) -> None:
         tab = self._current_tab()
@@ -735,7 +726,7 @@ class ScreenshotPreviewWindow(QMainWindow):
         clipboard = QApplication.clipboard()
         if clipboard is not None:
             clipboard.setImage(tab.image)
-            self._status.setText("Copied to clipboard")
+            self._set_status("Copied to clipboard")
 
     def _current_tab(self) -> _ScreenshotTab | None:
         widget = self._tabs.currentWidget()
@@ -745,18 +736,18 @@ class ScreenshotPreviewWindow(QMainWindow):
         tab = self._current_tab()
         if tab is None or tab.canvas.is_text_editing or not tab.canvas.cut_selected():
             return
-        self._status.setText("Cut · Ctrl+V paste")
+        self._set_status("Cut · Ctrl+V paste")
 
     def _delete_all_annotations(self) -> None:
         tab = self._current_tab()
         if tab is None or tab.canvas.is_text_editing or not tab.canvas.delete_all():
             return
-        self._status.setText("All annotations deleted · Ctrl+Z undo")
+        self._set_status("All annotations deleted · Ctrl+Z undo")
 
     def _desktop_folder(self) -> Path | None:
         desktop = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DesktopLocation)
         if not desktop:
-            self._status.setText("Desktop folder not found")
+            self._set_status("Desktop folder not found")
             return None
         return Path(desktop) / "Screenshots"
 
@@ -764,19 +755,19 @@ class ScreenshotPreviewWindow(QMainWindow):
         tab = self._current_tab()
         if tab is None or tab.canvas.is_text_editing or not tab.canvas.duplicate_selected():
             return
-        self._status.setText("Duplicated")
+        self._set_status("Duplicated")
 
     def _finish_eyedropper_color_pick(self, color: QColor) -> None:
         return_tool = self._color_pick_return_tool
         self._set_annotation_color(color)
         self._set_tool(return_tool)
-        self._status.setText(f"Color {color.name()}")
+        self._set_status(f"Color {color.name()}")
 
     def _flatten_annotations(self) -> None:
         tab = self._current_tab()
         if tab is None or tab.canvas.is_text_editing or not tab.canvas.flatten_annotations():
             return
-        self._status.setText("Flattened · Ctrl+Z undo")
+        self._set_status("Flattened · Ctrl+Z undo")
 
     def _install_zoom_shortcuts(self) -> None:
         """Zoom with Ctrl++ and Ctrl+-, including Shift on the main plus key."""
@@ -800,20 +791,25 @@ class ScreenshotPreviewWindow(QMainWindow):
             )
             self._zoom_shortcuts.append(shortcut)
 
+    def _on_caption_tab_changed(self, index: int) -> None:
+        if index < 0 or self._tabs.currentIndex() == index:
+            return
+        self._tabs.setCurrentIndex(index)
+
     def _on_color_hovered(self, color: object) -> None:
         tab = self._current_tab()
         if tab is None or tab.canvas.tool != AnnotationTool.EYEDROPPER:
             return
         if self._color_pick_eyedropper:
             if not isinstance(color, QColor) or not color.isValid():
-                self._status.setText("Click a pixel to set the color · Esc to cancel")
+                self._set_status("Click a pixel to set the color · Esc to cancel")
                 return
-            self._status.setText(f"{_format_pixel_color(color)} · click to set the color")
+            self._set_status(f"{_format_pixel_color(color)} · click to set the color")
             return
         if not isinstance(color, QColor) or not color.isValid():
-            self._status.setText("Eyedropper: move over the screenshot · click to copy HEX")
+            self._set_status("Eyedropper: move over the screenshot · click to copy HEX")
             return
-        self._status.setText(f"{_format_pixel_color(color)} · click to copy HEX")
+        self._set_status(f"{_format_pixel_color(color)} · click to copy HEX")
 
     def _on_color_picked(self, color: QColor) -> None:
         if not color.isValid():
@@ -824,7 +820,7 @@ class ScreenshotPreviewWindow(QMainWindow):
         clipboard = QApplication.clipboard()
         if clipboard is not None:
             clipboard.setText(color.name())
-        self._status.setText(f"Copied {_format_pixel_color(color)}")
+        self._set_status(f"Copied {_format_pixel_color(color)}")
         self._show_picked_color(color)
 
     def _on_crop_mode_changed(self, active: bool) -> None:  # noqa: FBT001
@@ -834,24 +830,24 @@ class ScreenshotPreviewWindow(QMainWindow):
             pending = tab is not None and tab.canvas.crop_pending
             self._crop_ok_button.setEnabled(pending)
             if pending:
-                self._status.setText("Crop: move/resize the frame · Enter to apply · Esc to cancel")
+                self._set_status("Crop: adjust frame · Enter apply · Esc cancel")
             else:
-                self._status.setText("Crop: drag a region · snap to edges · Enter OK · Esc Cancel")
+                self._set_status("Crop: drag a region · Enter OK · Esc Cancel")
         else:
-            self._status.setText(_STATUS_HINT)
+            self._set_status(_STATUS_HINT)
             self._refit_tools_host()
 
     def _on_crop_pending_changed(self, pending: bool) -> None:  # noqa: FBT001
         self._crop_ok_button.setEnabled(pending)
         if pending:
-            self._status.setText("Crop: move/resize the frame · Enter to apply · Esc to cancel")
+            self._set_status("Crop: adjust frame · Enter apply · Esc cancel")
 
     def _on_document_changed(self) -> None:
         tab = self._current_tab()
         if tab is None:
             return
         count = len(tab.document.annotations)
-        self._status.setText(f"Annotations: {count} · Click to select · Delete removes · Ctrl+Z undo")
+        self._set_status(f"Annotations: {count} · Delete removes · Ctrl+Z undo")
 
     def _on_tab_changed(self, _index: int) -> None:
         tab = self._current_tab()
@@ -906,7 +902,7 @@ class ScreenshotPreviewWindow(QMainWindow):
         tab = self._current_tab()
         if tab is None or tab.canvas.is_text_editing or not tab.canvas.paste_clipboard():
             return
-        self._status.setText("Pasted")
+        self._set_status("Pasted")
 
     def _pick_color_from_dialog(self) -> None:
         """Set the tool color from the standard color dialog."""
@@ -914,7 +910,7 @@ class ScreenshotPreviewWindow(QMainWindow):
         if not color.isValid():
             return
         self._set_annotation_color(color)
-        self._status.setText(f"Color {color.name()}")
+        self._set_status(f"Color {color.name()}")
 
     def _print_screenshot(self) -> None:
         tab = self._current_tab()
@@ -922,7 +918,7 @@ class ScreenshotPreviewWindow(QMainWindow):
             return
         image = tab.image
         if image.isNull():
-            self._status.setText("Nothing to print")
+            self._set_status("Nothing to print")
             return
         printer = QPrinter(QPrinter.PrinterMode.HighResolution)
         dialog = QPrintDialog(printer, self)
@@ -930,9 +926,9 @@ class ScreenshotPreviewWindow(QMainWindow):
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return
         if not print_screenshot_image(image, printer):
-            self._status.setText("Print failed")
+            self._set_status("Print failed")
             return
-        self._status.setText("Sent to printer")
+        self._set_status("Sent to printer")
 
     def _rebuild_color_menu(self) -> None:
         self._color_menu.clear()
@@ -950,9 +946,9 @@ class ScreenshotPreviewWindow(QMainWindow):
     def _redo(self) -> None:
         tab = self._current_tab()
         if tab is None or tab.canvas.is_text_editing or not tab.canvas.redo():
-            self._status.setText("Nothing to redo")
+            self._set_status("Nothing to redo")
             return
-        self._status.setText("Redone")
+        self._set_status("Redone")
 
     def _refit_tools_host(self) -> None:
         """Keep the left annotation rail one Fluent control wide."""
@@ -967,58 +963,12 @@ class ScreenshotPreviewWindow(QMainWindow):
         if isinstance(self._undo_button, _AnnotationToolButton):
             self._undo_button.refresh_theme()
 
-    def _refresh_status_theme(self) -> None:
-        """Paint the hint strip with Fluent card / selection chrome."""
-        palette = palette_for(self)
-        background = css(list_item_selected(palette))
-        border = css(palette.accent)
-        text = css(palette.accent_text if not palette.dark else palette.text_primary)
-        self._status.setStyleSheet(
-            f"QLabel {{"
-            f" background-color: {background};"
-            f" border: 1px solid {border};"
-            " border-radius: 8px;"
-            " padding: 6px 10px;"
-            f" color: {text};"
-            "}",
-        )
-
-    def _on_caption_tab_changed(self, index: int) -> None:
-        if index < 0 or self._tabs.currentIndex() == index:
-            return
-        self._tabs.setCurrentIndex(index)
-
     def _relabel_untitled_tabs(self) -> None:
         for index in range(self._tabs.count()):
             tab = self._tabs.widget(index)
             if not isinstance(tab, _ScreenshotTab) or tab.saved_name:
                 continue
             self._set_tab_text(index, self._tab_label(None, index + 1))
-
-    def _set_tab_text(self, index: int, text: str) -> None:
-        self._tabs.setTabText(index, text)
-        if 0 <= index < self._tab_bar.count() and self._tab_bar.tabText(index) != text:
-            self._tab_bar.setTabText(index, text)
-
-    def _sync_caption_tab_bar(self) -> None:
-        """Mirror QTabWidget labels/selection onto the caption-hosted tab bar."""
-        bar = self._tab_bar
-        bar.blockSignals(True)
-        try:
-            while bar.count() > self._tabs.count():
-                bar.removeTab(bar.count() - 1)
-            for index in range(self._tabs.count()):
-                text = self._tabs.tabText(index)
-                if index < bar.count():
-                    if bar.tabText(index) != text:
-                        bar.setTabText(index, text)
-                else:
-                    bar.addTab(text)
-            current = self._tabs.currentIndex()
-            if current >= 0 and bar.currentIndex() != current:
-                bar.setCurrentIndex(current)
-        finally:
-            bar.blockSignals(False)
 
     def _resize_custom(self) -> None:
         tab = self._current_tab()
@@ -1038,7 +988,7 @@ class ScreenshotPreviewWindow(QMainWindow):
         image = tab.document.base_image
         target = _half_pixel_size(image.width(), image.height())
         if target is None:
-            self._status.setText("Size unchanged")
+            self._set_status("Size unchanged")
             return
         self._apply_pixel_resize(*target)
 
@@ -1049,7 +999,7 @@ class ScreenshotPreviewWindow(QMainWindow):
         image = tab.document.base_image
         target = _max_side_pixel_size(image.width(), image.height(), _REDUCE_MAX_SIDE)
         if target is None:
-            self._status.setText("Already within 1024 px")
+            self._set_status("Already within 1024 px")
             return
         self._apply_pixel_resize(*target)
 
@@ -1152,9 +1102,9 @@ class ScreenshotPreviewWindow(QMainWindow):
                 return
             saved_paths.append(path)
         if not saved_paths:
-            self._status.setText("No screenshots to save")
+            self._set_status("No screenshots to save")
             return
-        self._status.setText(f"Saved {len(saved_paths)} images to {desktop}")
+        self._set_status(f"Saved {len(saved_paths)} images to {desktop}")
         self._update_window_title()
 
     def _save_as(self, fmt: _ScreenshotFormat = "png") -> None:
@@ -1180,14 +1130,14 @@ class ScreenshotPreviewWindow(QMainWindow):
         try:
             _write_screenshot_file(tab.image, path, fmt)
         except (OSError, RuntimeError, ValueError) as exc:
-            self._status.setText(str(exc))
+            self._set_status(str(exc))
             return
         tab.saved_as_path = path.resolve()
         tab.saved_name = path.name
         _remember_last_save_dir(path.parent)
         index = self._tabs.currentIndex()
         self._set_tab_text(index, path.name)
-        self._status.setText(f"Saved: {path}")
+        self._set_status(f"Saved: {path}")
         self._update_window_title()
 
     def _save_dated(self, folder: Path, fmt: _ScreenshotFormat = "png") -> None:
@@ -1197,7 +1147,7 @@ class ScreenshotPreviewWindow(QMainWindow):
         path = self._save_tab_dated(tab, folder, tab_index=self._tabs.currentIndex(), fmt=fmt)
         if path is None:
             return
-        self._status.setText(f"Saved: {path}")
+        self._set_status(f"Saved: {path}")
         self._update_window_title()
 
     def _save_tab_dated(
@@ -1219,7 +1169,7 @@ class ScreenshotPreviewWindow(QMainWindow):
         try:
             _write_screenshot_file(tab.image, path, fmt)
         except (OSError, RuntimeError, ValueError) as exc:
-            self._status.setText(str(exc))
+            self._set_status(str(exc))
             return None
         resolved = path.resolve()
         tab.saved_paths[folder_key] = resolved
@@ -1251,13 +1201,13 @@ class ScreenshotPreviewWindow(QMainWindow):
         tab = self._current_tab()
         if tab is None or tab.canvas.is_text_editing or not tab.canvas.send_backward():
             return
-        self._status.setText("Sent backward")
+        self._set_status("Sent backward")
 
     def _send_to_back(self) -> None:
         tab = self._current_tab()
         if tab is None or tab.canvas.is_text_editing or not tab.canvas.send_to_back():
             return
-        self._status.setText("Sent to back")
+        self._set_status("Sent to back")
 
     def _set_annotation_color(self, color: QColor) -> None:
         if not color.isValid():
@@ -1286,6 +1236,15 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._save_all_desktop_button.setVisible(not active and multi)
         refresh_win11_caption(self)
 
+    def _set_status(self, text: str) -> None:
+        """Show a one-line hint or result in the window status bar."""
+        self.statusBar().showMessage(text)
+
+    def _set_tab_text(self, index: int, text: str) -> None:
+        self._tabs.setTabText(index, text)
+        if 0 <= index < self._tab_bar.count() and self._tab_bar.tabText(index) != text:
+            self._tab_bar.setTabText(index, text)
+
     def _set_tool(self, tool: AnnotationTool) -> None:
         self._color_pick_eyedropper = False
         button = self._tool_buttons.get(tool)
@@ -1304,12 +1263,9 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._text_bar_host.setVisible(tool == AnnotationTool.TEXT)
         tip = next((item[2] for item in _TOOL_BUTTONS if item[0] == tool), tool.value)
         if tool == AnnotationTool.TEXT:
-            self._status.setText(
-                "Text: click to type on the image · resize the box after commit · "
-                "Ctrl+Enter finish · Esc cancel · double-click to re-edit"
-            )
+            self._set_status("Text: click to type · Ctrl+Enter finish · Esc cancel")
         elif tool != AnnotationTool.CROP:
-            self._status.setText(f"Tool: {tip}")
+            self._set_status(tip)
 
     def _show_keyboard_shortcuts(self) -> None:
         show_keyboard_shortcuts_help(
@@ -1337,15 +1293,35 @@ class ScreenshotPreviewWindow(QMainWindow):
             self._color_dialog = dialog
         dialog.show_color(color)
 
+    def _sync_caption_tab_bar(self) -> None:
+        """Mirror QTabWidget labels/selection onto the caption-hosted tab bar."""
+        bar = self._tab_bar
+        bar.blockSignals(True)  # noqa: FBT003
+        try:
+            while bar.count() > self._tabs.count():
+                bar.removeTab(bar.count() - 1)
+            for index in range(self._tabs.count()):
+                text = self._tabs.tabText(index)
+                if index < bar.count():
+                    if bar.tabText(index) != text:
+                        bar.setTabText(index, text)
+                else:
+                    bar.addTab(text)
+            current = self._tabs.currentIndex()
+            if current >= 0 and bar.currentIndex() != current:
+                bar.setCurrentIndex(current)
+        finally:
+            bar.blockSignals(False)  # noqa: FBT003
+
     def _tab_label(self, saved_name: str | None, number: int) -> str:
         return saved_name or f"Screenshot {number}"
 
     def _undo(self) -> None:
         tab = self._current_tab()
         if tab is None or tab.canvas.is_text_editing or not tab.canvas.undo():
-            self._status.setText("Nothing to undo")
+            self._set_status("Nothing to undo")
             return
-        self._status.setText("Undone")
+        self._set_status("Undone")
 
     def _update_color_button(self) -> None:
         self._color_button.setIcon(_color_swatch_icon(self._annotation_color, ICON_SIZE_LARGE))

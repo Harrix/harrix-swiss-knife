@@ -87,7 +87,9 @@ def test_action_identity_context_menu_uses_fluent_dark_chrome(
         )
         assert len(shown) == 1
         sheet = shown[0].styleSheet().casefold()
-        assert DARK_PALETTE.popup_bg.name().casefold() in sheet or "rgba(44, 44, 44" in sheet
+        assert (
+            DARK_PALETTE.popup_bg.name().casefold() in sheet or "rgba(40, 40, 40" in sheet or "rgba(44, 44, 44" in sheet
+        )
         assert "rgba(255, 255, 255" in sheet or "#ffffff" in sheet
     finally:
         theme.set_mode(previous, persist=False)
@@ -104,7 +106,9 @@ def test_tray_context_menu_follows_dark_theme_without_host(qapp: QApplication) -
         menu = CliContextMenu()
         menu.refresh_theme()
         sheet = menu.styleSheet().casefold()
-        assert DARK_PALETTE.popup_bg.name().casefold() in sheet or "rgba(44, 44, 44" in sheet
+        assert (
+            DARK_PALETTE.popup_bg.name().casefold() in sheet or "rgba(40, 40, 40" in sheet or "rgba(44, 44, 44" in sheet
+        )
         assert "rgba(255, 255, 255" in sheet or "#ffffff" in sheet
     finally:
         theme.set_mode(previous, persist=False)

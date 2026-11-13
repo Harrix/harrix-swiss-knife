@@ -1013,6 +1013,38 @@ def _caption_host(window: QWidget) -> QWidget | None:
     return None
 
 
+def _caption_hosted_tab_bars(window: QWidget) -> list[QTabBar]:
+    """Return caption-row tab bars that are not owned by `window.tabWidget`."""
+    host = _caption_host(window)
+    if host is None:
+        return []
+    owned: QTabBar | None = None
+    tab_widget = getattr(window, "tabWidget", None)
+    if isinstance(tab_widget, QTabWidget):
+        owned = tab_widget.tabBar()
+    bars: list[QTabBar] = []
+    for bar in host.findChildren(QTabBar):
+        if bar is owned:
+            continue
+        if not bar.property(CAPTION_TABS_PROPERTY):
+            continue
+        bars.append(bar)
+    return bars
+
+
+def _caption_hosted_tab_bars_width(window: QWidget) -> int | None:
+    """Return width of caption-hosted tab strips, or `None` before layout."""
+    total = 0
+    for bar in _caption_hosted_tab_bars(window):
+        if not bar.isVisibleTo(window) or bar.count() == 0:
+            continue
+        width = _tab_bar_strip_width(bar)
+        if width is None:
+            return None
+        total += width
+    return total
+
+
 def _caption_icon_tooltip(window: QWidget) -> str:
     title = window.windowTitle().strip()
     if not title or title == _SUITE_NAME:
@@ -1859,6 +1891,39 @@ def _style_caption_chrome(window: QWidget) -> None:
         )
 
 
+def _style_caption_tab_bar(
+    tab_bar: QTabBar,
+    colors: CaptionColors,
+    rgb: str,
+    *,
+    closable: bool,
+    first_tab_pad: bool,
+) -> None:
+    """Apply caption-row tab chrome (optional close buttons)."""
+    tab_bar.setDrawBase(False)
+    tab_bar.setProperty(CAPTION_TABS_PROPERTY, True)  # noqa: FBT003
+    text_height = QFontMetrics(tab_bar.font()).height()
+    pad = max(0, (CAPTION_BUTTON_HEIGHT - text_height - 2 * TAB_INDICATOR_HEIGHT) // 2)
+    close_icon = lucide_qss_url("x", QColor(colors.nav), 12) if closable else ""
+    sheet = (
+        tab_bar_qss(
+            idle=colors.nav,
+            active=colors.title,
+            accent=colors.tab_active,
+            hover=colors.tab_line,
+            pad_v=pad,
+            min_height=CAPTION_BUTTON_HEIGHT - 2 * pad - 2 * TAB_INDICATOR_HEIGHT,
+            close_icon=close_icon,
+            close_hover=colors.tab_hover if closable else "transparent",
+            gap=_CAPTION_TAB_GAP,
+        )
+        + f"QTabBar {{ background: {rgb}; }}"
+    )
+    if first_tab_pad:
+        sheet += f"QTabBar::tab:first {{ margin-left: {_CAPTION_TAB_HPAD}px; }}"
+    _set_style_sheet(tab_bar, sheet)
+
+
 def _svg_bytes(name: str, color: QColor) -> bytes | None:
     stem = _GLYPH_FILES.get(name)
     if stem is None:
@@ -1960,68 +2025,6 @@ def _sync_zoom_glyph(window: QWidget) -> None:
     button = window.findChild(CaptionButton, "captionMaximizeButton")
     if isinstance(button, CaptionButton):
         button.set_glyph("square_multiple" if _window_is_zoomed(window) else "maximize")
-
-
-def _caption_hosted_tab_bars(window: QWidget) -> list[QTabBar]:
-    """Return caption-row tab bars that are not owned by `window.tabWidget`."""
-    host = _caption_host(window)
-    if host is None:
-        return []
-    owned: QTabBar | None = None
-    tab_widget = getattr(window, "tabWidget", None)
-    if isinstance(tab_widget, QTabWidget):
-        owned = tab_widget.tabBar()
-    bars: list[QTabBar] = []
-    for bar in host.findChildren(QTabBar):
-        if bar is owned:
-            continue
-        if not bar.property(CAPTION_TABS_PROPERTY):
-            continue
-        bars.append(bar)
-    return bars
-
-
-def _caption_hosted_tab_bars_width(window: QWidget) -> int | None:
-    """Return width of caption-hosted tab strips, or `None` before layout."""
-    total = 0
-    for bar in _caption_hosted_tab_bars(window):
-        if not bar.isVisibleTo(window) or bar.count() == 0:
-            continue
-        width = _tab_bar_strip_width(bar)
-        if width is None:
-            return None
-        total += width
-    return total
-
-
-def _style_caption_tab_bar(
-    tab_bar: QTabBar,
-    colors: CaptionColors,
-    rgb: str,
-    *,
-    closable: bool,
-    first_tab_pad: bool,
-) -> None:
-    """Apply caption-row tab chrome (optional close buttons)."""
-    tab_bar.setDrawBase(False)
-    tab_bar.setProperty(CAPTION_TABS_PROPERTY, True)  # noqa: FBT003
-    text_height = QFontMetrics(tab_bar.font()).height()
-    pad = max(0, (CAPTION_BUTTON_HEIGHT - text_height - 2 * TAB_INDICATOR_HEIGHT) // 2)
-    close_icon = lucide_qss_url("x", QColor(colors.nav), 12) if closable else ""
-    sheet = tab_bar_qss(
-        idle=colors.nav,
-        active=colors.title,
-        accent=colors.tab_active,
-        hover=colors.tab_line,
-        pad_v=pad,
-        min_height=CAPTION_BUTTON_HEIGHT - 2 * pad - 2 * TAB_INDICATOR_HEIGHT,
-        close_icon=close_icon,
-        close_hover=colors.tab_hover if closable else "transparent",
-        gap=_CAPTION_TAB_GAP,
-    ) + f"QTabBar {{ background: {rgb}; }}"
-    if first_tab_pad:
-        sheet += f"QTabBar::tab:first {{ margin-left: {_CAPTION_TAB_HPAD}px; }}"
-    _set_style_sheet(tab_bar, sheet)
 
 
 def _tab_bar_strip_width(tab_bar: QTabBar) -> int | None:
