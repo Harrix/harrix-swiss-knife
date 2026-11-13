@@ -45,7 +45,7 @@ from harrix_swiss_knife.apps.food.food_log_calories import (
     calculate_food_log_calories,
     parse_food_log_number,
 )
-from harrix_swiss_knife.fluent.theme import mix, palette_for
+from harrix_swiss_knife.fluent.theme import FluentTheme, mix, palette_for
 
 FOOD_LOG_COL_IS_DRINK = 1
 
@@ -148,10 +148,11 @@ class FoodDayHeaderDelegate(QStyledItemDelegate):
         host = option.widget if isinstance(option.widget, QWidget) else None
         fluent = palette_for(host)
         fill = index.data(Qt.ItemDataRole.BackgroundRole)
-        if isinstance(fill, QColor):
-            background = fill
-        elif is_month:
+        # Month banners follow the painting host — avoid palette_for(None) light fills.
+        if is_month:
             background = _month_header_fill(fluent)
+        elif isinstance(fill, QColor):
+            background = fill
         else:
             background = day_band_color(0)
         ink = mix(fluent.window_bg, fluent.text_primary)
@@ -386,7 +387,7 @@ class FoodDayHeaderProxy(QAbstractProxyModel):
                 return self._header_dates.get(proxy_row, "") if index.column() == 0 else ""
             if role == Qt.ItemDataRole.BackgroundRole:
                 if is_month:
-                    return _month_header_fill(palette_for(None))
+                    return _month_header_fill(FluentTheme.instance().palette())
                 return day_band_color(self._header_bands.get(proxy_row, 0))
             return None
         source_index = self.mapToSource(index)
@@ -426,7 +427,7 @@ class FoodDayHeaderProxy(QAbstractProxyModel):
                 return ""
             if role == Qt.ItemDataRole.BackgroundRole:
                 if section in self._header_month_rows:
-                    return _month_header_fill(palette_for(None))
+                    return _month_header_fill(FluentTheme.instance().palette())
                 return day_band_color(self._header_bands.get(section, 0))
             return None
         return source.headerData(self._proxy_rows[section], orientation, role)

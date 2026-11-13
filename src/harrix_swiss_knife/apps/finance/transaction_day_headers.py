@@ -44,7 +44,7 @@ from harrix_swiss_knife.apps.finance.transaction_day_totals import (
     parse_transaction_amount_display,
 )
 from harrix_swiss_knife.apps.finance.transactions_ui_settings import TRANSACTION_COL_TAG
-from harrix_swiss_knife.fluent.theme import mix, palette_for
+from harrix_swiss_knife.fluent.theme import FluentTheme, mix, palette_for
 
 if TYPE_CHECKING:
     from PySide6.QtCore import QPersistentModelIndex
@@ -101,10 +101,12 @@ class DayHeaderDelegate(QStyledItemDelegate):
         host = option.widget if isinstance(option.widget, QWidget) else None
         fluent = palette_for(host)
         fill = index.data(Qt.ItemDataRole.BackgroundRole)
-        if isinstance(fill, QColor):
-            background = fill
-        elif is_month:
+        # Month banners always follow the painting host — model BackgroundRole
+        # used to call palette_for(None) and stayed light under Fluent dark.
+        if is_month:
             background = _month_header_fill(fluent)
+        elif isinstance(fill, QColor):
+            background = fill
         else:
             background = mix(fluent.window_bg, fluent.card_bg)
         ink = mix(fluent.window_bg, fluent.text_primary)
@@ -249,7 +251,7 @@ class TransactionDayHeaderProxy(QAbstractProxyModel):
                 return ""
             if role == Qt.ItemDataRole.BackgroundRole:
                 if is_month:
-                    return _month_header_fill(palette_for(None))
+                    return _month_header_fill(FluentTheme.instance().palette())
                 return day_band_color(self._band_index_for_header(proxy_row))
             if role in {Qt.ItemDataRole.FontRole, Qt.ItemDataRole.TextAlignmentRole}:
                 return None
@@ -291,7 +293,7 @@ class TransactionDayHeaderProxy(QAbstractProxyModel):
                 return ""
             if role == Qt.ItemDataRole.BackgroundRole:
                 if section in self._header_month_rows:
-                    return _month_header_fill(palette_for(None))
+                    return _month_header_fill(FluentTheme.instance().palette())
                 return day_band_color(self._band_index_for_header(section))
             return None
         source_row = self._proxy_rows[section]
