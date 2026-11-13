@@ -230,8 +230,11 @@ def build_contribution_heatmap(
             fontsize=8,
             title="Tasks",
         )
-
-    figure.tight_layout()
+        # Legend is outside the axes on a short figure; tight_layout cannot fit it
+        # and warns about top/bottom margins. Keep a fixed right gutter instead.
+        figure.subplots_adjust(left=0.02, right=0.86, top=0.96, bottom=0.12)
+    else:
+        figure.tight_layout()
     positions, _labels, _width = habit_heatmap_month_separated_positions(start_date, end_date)
     return TickTickHeatmapResult(
         figure=figure,
