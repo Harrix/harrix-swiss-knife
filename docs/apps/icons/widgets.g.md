@@ -1771,8 +1771,9 @@ class IconLabelDelegate(QStyledItemDelegate):
 
         is_fallback = bool(index.data(ROLE_FALLBACK))
         painter.save()
-        # Keep label colors unchanged on selection (highlight is only the tile chrome).
-        title_color = QColor(opt.palette.color(opt.palette.ColorRole.Text))
+        # Fluent ink — do not trust opt.palette.Text (stays black under dark window chrome).
+        fluent = palette_for(widget if isinstance(widget, QWidget) else None)
+        title_color = mix(fluent.window_bg, fluent.text_primary)
         if is_fallback:
             title_color.setAlpha(FALLBACK_TITLE_ALPHA)
         painter.setPen(title_color)
@@ -1804,11 +1805,7 @@ class IconLabelDelegate(QStyledItemDelegate):
         )
 
         if subtitle_text:
-            if widget is not None:
-                fluent = palette_for(widget)
-                muted = mix(fluent.window_bg, fluent.text_secondary) if fluent.dark else QColor(MUTED_TEXT)
-            else:
-                muted = QColor(MUTED_TEXT)
+            muted = mix(fluent.window_bg, fluent.text_secondary) if fluent.dark else QColor(MUTED_TEXT)
             if is_fallback:
                 muted.setAlpha(FALLBACK_SUBTITLE_ALPHA)
             painter.setPen(muted)
@@ -1838,6 +1835,7 @@ class IconLabelDelegate(QStyledItemDelegate):
             else opt.rect
         )
         if is_trademark and icon_rect.isValid():
+            painter.setPen(title_color)
             painter.setFont(title_font)
             painter.drawText(
                 icon_rect.adjusted(0, 4, -4, 0),
@@ -1928,8 +1926,9 @@ def paint(
 
         is_fallback = bool(index.data(ROLE_FALLBACK))
         painter.save()
-        # Keep label colors unchanged on selection (highlight is only the tile chrome).
-        title_color = QColor(opt.palette.color(opt.palette.ColorRole.Text))
+        # Fluent ink — do not trust opt.palette.Text (stays black under dark window chrome).
+        fluent = palette_for(widget if isinstance(widget, QWidget) else None)
+        title_color = mix(fluent.window_bg, fluent.text_primary)
         if is_fallback:
             title_color.setAlpha(FALLBACK_TITLE_ALPHA)
         painter.setPen(title_color)
@@ -1961,11 +1960,7 @@ def paint(
         )
 
         if subtitle_text:
-            if widget is not None:
-                fluent = palette_for(widget)
-                muted = mix(fluent.window_bg, fluent.text_secondary) if fluent.dark else QColor(MUTED_TEXT)
-            else:
-                muted = QColor(MUTED_TEXT)
+            muted = mix(fluent.window_bg, fluent.text_secondary) if fluent.dark else QColor(MUTED_TEXT)
             if is_fallback:
                 muted.setAlpha(FALLBACK_SUBTITLE_ALPHA)
             painter.setPen(muted)
@@ -1995,6 +1990,7 @@ def paint(
             else opt.rect
         )
         if is_trademark and icon_rect.isValid():
+            painter.setPen(title_color)
             painter.setFont(title_font)
             painter.drawText(
                 icon_rect.adjusted(0, 4, -4, 0),

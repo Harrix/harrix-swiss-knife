@@ -1011,8 +1011,9 @@ class IconLabelDelegate(QStyledItemDelegate):
 
         is_fallback = bool(index.data(ROLE_FALLBACK))
         painter.save()
-        # Keep label colors unchanged on selection (highlight is only the tile chrome).
-        title_color = QColor(opt.palette.color(opt.palette.ColorRole.Text))
+        # Fluent ink — do not trust opt.palette.Text (stays black under dark window chrome).
+        fluent = palette_for(widget if isinstance(widget, QWidget) else None)
+        title_color = mix(fluent.window_bg, fluent.text_primary)
         if is_fallback:
             title_color.setAlpha(FALLBACK_TITLE_ALPHA)
         painter.setPen(title_color)
@@ -1044,11 +1045,7 @@ class IconLabelDelegate(QStyledItemDelegate):
         )
 
         if subtitle_text:
-            if widget is not None:
-                fluent = palette_for(widget)
-                muted = mix(fluent.window_bg, fluent.text_secondary) if fluent.dark else QColor(MUTED_TEXT)
-            else:
-                muted = QColor(MUTED_TEXT)
+            muted = mix(fluent.window_bg, fluent.text_secondary) if fluent.dark else QColor(MUTED_TEXT)
             if is_fallback:
                 muted.setAlpha(FALLBACK_SUBTITLE_ALPHA)
             painter.setPen(muted)
@@ -1078,6 +1075,7 @@ class IconLabelDelegate(QStyledItemDelegate):
             else opt.rect
         )
         if is_trademark and icon_rect.isValid():
+            painter.setPen(title_color)
             painter.setFont(title_font)
             painter.drawText(
                 icon_rect.adjusted(0, 4, -4, 0),
@@ -1544,9 +1542,9 @@ def _refresh_frameless_item_view(view: QAbstractItemView) -> None:
         fill = css(list_item_selected(palette))
         hover = css(list_item_hover(palette))
         border = css(mix(palette.window_bg, palette.accent))
-        text = css(mix(palette.window_bg, palette.text_primary))
-        highlight = list_item_selected(palette)
         primary = mix(palette.window_bg, palette.text_primary)
+        text = css(primary)
+        highlight = list_item_selected(palette)
     else:
         fill = SELECTION_BG
         hover = SELECTION_HOVER
@@ -1559,6 +1557,9 @@ def _refresh_frameless_item_view(view: QAbstractItemView) -> None:
     for group in (QPalette.ColorGroup.Active, QPalette.ColorGroup.Inactive, QPalette.ColorGroup.Disabled):
         tuned.setColor(group, QPalette.ColorRole.Highlight, highlight)
         tuned.setColor(group, QPalette.ColorRole.HighlightedText, primary)
+        # IconMode labels read Text / WindowText / ButtonText — keep all three on-theme.
         tuned.setColor(group, QPalette.ColorRole.Text, primary)
+        tuned.setColor(group, QPalette.ColorRole.WindowText, primary)
+        tuned.setColor(group, QPalette.ColorRole.ButtonText, primary)
     view.setPalette(tuned)
     view.viewport().setPalette(tuned)
