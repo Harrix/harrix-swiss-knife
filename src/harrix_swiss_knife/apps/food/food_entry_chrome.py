@@ -63,6 +63,7 @@ _ITEMS_MIN_WIDTH = 240
 _TABLE_MIN_WIDTH = 400
 _SPLITTER_SAVE_DELAY_MS = 400
 _FIELD_LABEL_WIDTH = 90
+_FORM_VALUE_MIN_WIDTH = 160
 _NO_ITEM = "Item: not selected"
 _ITEM_HINT = "Choose a food item in the adjacent panel"
 _ITEM_PREFIX = "Item: "
@@ -325,6 +326,26 @@ def _ensure_item_state_label(host: Any) -> None:
     layout.insertWidget(0, label)
 
 
+def _expand_food_form_value_fields(host: Any) -> None:
+    """Let Weight, kcal/100g, and Date use the leftover row width."""
+    for layout_name, control_name in (
+        ("horizontalLayout_food_weight", "spinBox_food_weight"),
+        ("horizontalLayout_food_kcal", "doubleSpinBox_food_calories"),
+        ("horizontalLayout_food_date", "dateEdit_food"),
+    ):
+        control = getattr(host, control_name, None)
+        layout = getattr(host, layout_name, None)
+        if control is None:
+            continue
+        control.setMinimumWidth(_FORM_VALUE_MIN_WIDTH)
+        control.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        if isinstance(layout, QHBoxLayout):
+            _remove_trailing_stretches(layout)
+            index = layout.indexOf(control)
+            if index >= 0:
+                layout.setStretch(index, 1)
+
+
 def _field_label_spacer(parent: QWidget) -> QWidget:
     spacer = QWidget(parent)
     spacer.setFixedWidth(_FIELD_LABEL_WIDTH)
@@ -464,6 +485,7 @@ def _polish_form_column(host: Any) -> None:
             label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
 
     apply_soft_form_spin_fills(host, ("spinBox_food_weight", "doubleSpinBox_food_calories"))
+    _expand_food_form_value_fields(host)
     refresh_food_item_state_label(host, host.lineEdit_food_manual_name.text() or None)
 
 
@@ -539,19 +561,21 @@ def _restructure_food_form(host: Any) -> None:
     date_row.removeWidget(host.pushButton_food_add)
     host.pushButton_food_add.setParent(gb)
 
+    host.spinBox_food_weight.setMinimumWidth(_FORM_VALUE_MIN_WIDTH)
+    host.spinBox_food_weight.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
     weight_row.addWidget(host.label_field_food_weight)
-    weight_row.addWidget(host.spinBox_food_weight)
+    weight_row.addWidget(host.spinBox_food_weight, 1)
     weight_row.addWidget(host.label_food_weight_unit)
-    weight_row.addStretch(1)
 
+    host.doubleSpinBox_food_calories.setMinimumWidth(_FORM_VALUE_MIN_WIDTH)
+    host.doubleSpinBox_food_calories.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
     kcal_row = QHBoxLayout()
     kcal_row.setObjectName("horizontalLayout_food_kcal")
     host.horizontalLayout_food_kcal = kcal_row
     kcal_row.addWidget(_field_label_spacer(gb))
-    kcal_row.addWidget(host.doubleSpinBox_food_calories)
+    kcal_row.addWidget(host.doubleSpinBox_food_calories, 1)
     kcal_row.addWidget(host.label_food_calories)
     kcal_row.addWidget(host.pushButton_portion_calories)
-    kcal_row.addStretch(1)
 
     drink_row = QHBoxLayout()
     drink_row.setObjectName("horizontalLayout_food_drink")
@@ -565,9 +589,10 @@ def _restructure_food_form(host: Any) -> None:
         widget = item.widget()
         if widget is not None:
             widget.setParent(None)
+    host.dateEdit_food.setMinimumWidth(_FORM_VALUE_MIN_WIDTH)
+    host.dateEdit_food.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
     date_row.addWidget(host.label_field_food_date)
-    date_row.addWidget(host.dateEdit_food)
-    date_row.addStretch(1)
+    date_row.addWidget(host.dateEdit_food, 1)
 
     add_row = QHBoxLayout()
     add_row.setObjectName("horizontalLayout_food_add")
@@ -591,6 +616,16 @@ def _restructure_food_form(host: Any) -> None:
         vlayout.insertLayout(date_index + 1, add_row)
     else:
         vlayout.addLayout(add_row)
+
+
+def _remove_trailing_stretches(layout: QHBoxLayout) -> None:
+    """Drop end-of-row stretches so Expanding value fields can fill the row."""
+    while layout.count() > 0:
+        item = layout.itemAt(layout.count() - 1)
+        if item is None or item.spacerItem() is None:
+            break
+        taken = layout.takeAt(layout.count() - 1)
+        del taken
 
 
 def _set_data_column_visible(
