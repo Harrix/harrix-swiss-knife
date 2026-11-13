@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from PySide6.QtCore import QPoint, QSize, Qt, QTimer
-from PySide6.QtGui import QAction, QFont
+from PySide6.QtGui import QAction, QColor, QFont, QPalette
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QHeaderView,
@@ -24,6 +24,8 @@ from harrix_swiss_knife.apps.common.table_models import (
 )
 from harrix_swiss_knife.apps.common.tracker_layout_chrome import polish_left_field_labels, quiet_group_box
 from harrix_swiss_knife.apps.common.ui_chrome import (
+    SELECTION_BG,
+    SELECTION_TEXT,
     apply_soft_form_spin_fills,
     button_cta_green_qss,
     button_idle_qss,
@@ -337,6 +339,12 @@ def _polish_exercise_list(host: Any) -> None:
     view.setMouseTracking(True)
     view.setWordWrap(False)
     style_fluent_item_view(view)
+    # Soft-blue selection must stay recognizable when focus moves to the form.
+    tuned = view.palette()
+    for group in (QPalette.ColorGroup.Active, QPalette.ColorGroup.Inactive, QPalette.ColorGroup.Disabled):
+        tuned.setColor(group, QPalette.ColorRole.Highlight, QColor(SELECTION_BG))
+        tuned.setColor(group, QPalette.ColorRole.HighlightedText, QColor(SELECTION_TEXT))
+    view.setPalette(tuned)
     label = getattr(host, "label_exercises_list", None)
     if isinstance(label, QLabel):
         label.setText("Exercise")

@@ -10,7 +10,12 @@ from PySide6.QtWidgets import QAbstractItemView, QFrame, QLabel, QVBoxLayout
 from shiboken6 import isValid
 
 from harrix_swiss_knife.apps.common.avif_manager import AvifLabelKey
-from harrix_swiss_knife.apps.common.delegates.name_local_list_delegate import NameLocalListDelegate
+from harrix_swiss_knife.apps.common.delegates.name_local_list_delegate import (
+    MARKER_GAP,
+    MARKER_INSET,
+    MARKER_WIDTH,
+    NameLocalListDelegate,
+)
 from harrix_swiss_knife.apps.common.ui_chrome import media_preview_plate_qss, media_preview_popup_frame_qss
 from harrix_swiss_knife.fluent.theme import bind_theme
 
@@ -308,6 +313,10 @@ def exercise_at_list_icon(list_view: QAbstractItemView, pos: QPoint) -> str | No
         return None
 
     item_rect = list_view.visualRect(index)
+    # Selected rows inset content for the left accent marker (same as the delegate).
+    selection = list_view.selectionModel()
+    if selection is not None and selection.isSelected(index):
+        item_rect = item_rect.adjusted(MARKER_INSET + MARKER_WIDTH + MARKER_GAP, 0, 0, 0)
     icon_rect = NameLocalListDelegate.list_decoration_rect(
         item_rect,
         list_view.iconSize(),
