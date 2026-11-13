@@ -62,6 +62,7 @@ class TickTickTaskStatsWidget(QWidget):
     ) -> None:
         """Build the tab UI; load the TickTick DB when ``autoload`` or ``ensure_loaded``."""
         super().__init__(parent)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self._db_path = db_path
         self._loaded = False
         self._projects: list[TickTickProject] = []
@@ -83,6 +84,9 @@ class TickTickTaskStatsWidget(QWidget):
         self._period_combo = QComboBox()
         self._project_combo = QComboBox()
         self._heatmap_host = QWidget()
+        self._heatmap_host.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self._heatmap_host.setMinimumHeight(200)
+        self._heatmap_host.setMaximumHeight(280)
         self._heatmap_layout = QVBoxLayout(self._heatmap_host)
         self._heatmap_layout.setContentsMargins(0, 0, 0, 0)
 
@@ -95,11 +99,13 @@ class TickTickTaskStatsWidget(QWidget):
         self._day_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self._day_table.setAlternatingRowColors(True)
         self._day_table.verticalHeader().setVisible(False)
+        self._day_table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self._day_table.setMinimumHeight(160)
         header = self._day_table.horizontalHeader()
+        header.setStretchLastSection(False)
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
         header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
-        self._day_table.setMinimumHeight(160)
 
         filters = QHBoxLayout()
         period_caption = QLabel("Period")
@@ -122,7 +128,7 @@ class TickTickTaskStatsWidget(QWidget):
         root.addWidget(self._summary_label)
         root.addWidget(self._source_label)
         root.addLayout(filters)
-        root.addWidget(self._heatmap_host, stretch=2)
+        root.addWidget(self._heatmap_host)
         root.addWidget(self._day_label)
         root.addWidget(self._day_table, stretch=1)
         root.addLayout(button_row)
@@ -212,7 +218,7 @@ class TickTickTaskStatsWidget(QWidget):
             return
 
         width = max(self._heatmap_host.width(), 900)
-        height = max(220, min(320, self.height() // 3 if self.height() else 260))
+        height = max(self._heatmap_host.minimumHeight(), min(self._heatmap_host.maximumHeight(), 240))
         self._heatmap = build_contribution_heatmap(
             self._stats,
             figsize=(width / 100, height / 100),

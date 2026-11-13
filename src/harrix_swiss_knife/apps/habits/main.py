@@ -2007,7 +2007,7 @@ class MainWindow(
         self._habit_dashboard.data_changed.connect(self._on_dashboard_data_changed)
         self._habit_dashboard.sport_habit_assign_requested.connect(self._on_assign_sport_habit)
         self._ticktick_stats_widget = TickTickTaskStatsWidget(self, autoload=False)
-        self.verticalLayout_ticktick_stats.addWidget(self._ticktick_stats_widget)
+        self.verticalLayout_ticktick_stats.addWidget(self._ticktick_stats_widget, stretch=1)
         self.action_habits_refresh.setText(f"🔄 {self.action_habits_refresh.text()}")
         self.action_habits_delete.setText(f"🗑️ {self.action_habits_delete.text()}")
         self.menuCommands.addSeparator()
