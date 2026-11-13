@@ -214,7 +214,12 @@ class HabitDashboardWidget(QWidget):
             cell = WeekDayHeader()
             self._week_headers.append(cell)
             week_row.addWidget(cell, 1)
-        layout.addLayout(week_row)
+        week_row_host = QWidget()
+        week_row_host.setLayout(week_row)
+        week_row_host.setToolTip(
+            "Shared progress for the last seven days (ending today): completed habits ÷ all habits."
+        )
+        layout.addWidget(week_row_host)
 
         self._list_scroll = QScrollArea()
         self._list_scroll.setObjectName("habitDashListScroll")
@@ -260,6 +265,13 @@ class HabitDashboardWidget(QWidget):
         self._stat_total = StatCard("Total check-ins", "⚡", "accent")
         self._stat_rate = StatCard("Monthly check-in rate", "%", "caution")
         self._stat_streak = StatCard("Streak", "🔥", "critical")
+        self._stat_monthly.set_hint("Days with a completed check-in (value > 0) in the visible calendar month.")
+        self._stat_total.set_hint("All-time completed check-in days for this habit.")
+        self._stat_rate.set_hint(
+            "Completed check-ins ÷ days elapsed in the visible month "
+            "(through today when the month is current). Empty and Not done days lower the rate."
+        )
+        self._stat_streak.set_hint("Consecutive completed days ending today or yesterday.")
         stats.addWidget(self._stat_monthly, 0, 0)
         stats.addWidget(self._stat_total, 0, 1)
         stats.addWidget(self._stat_rate, 1, 0)
@@ -597,20 +609,20 @@ class HabitDashboardWidget(QWidget):
     def _on_week_day_comment_requested(self, habit_id: int, day_index: int) -> None:
         if day_index < 0 or day_index >= len(self._week_dates):
             return
-        self._selected_habit_id = habit_id
+        # Opening a note selects the habit so the right pane matches the note context.
+        self._on_habit_selected(habit_id)
         self._edit_day_comment(habit_id, self._week_dates[day_index].isoformat())
 
     def _on_week_day_toggled(self, habit_id: int, day_index: int) -> None:
         if self._db is None or day_index < 0 or day_index >= len(self._week_dates):
             return
-        self._selected_habit_id = habit_id
+        # Mark the row's habit/date only — do not switch the detail pane by accident.
         day = self._week_dates[day_index]
         self._toggle_date(habit_id, day.isoformat())
 
     def _on_week_day_value_set(self, habit_id: int, day_index: int, value: object) -> None:
         if self._db is None or day_index < 0 or day_index >= len(self._week_dates):
             return
-        self._selected_habit_id = habit_id
         day = self._week_dates[day_index]
         self._set_date_value(habit_id, day.isoformat(), value)
 
@@ -709,6 +721,7 @@ class HabitDashboardWidget(QWidget):
             allows_number=_habit_allows_number(habit),
             today=today,
             comment_dates=comment_dates,
+            habit_name=name,
         )
         self._log_title.setText(f"Habit Log on {_month_name(month)}.")
         self._refresh_habit_log(habit_id, month_start, month_end, comment_dates)
@@ -755,10 +768,10 @@ class HabitDashboardWidget(QWidget):
         self.setStyleSheet(f"HabitDashboardWidget {{ background: {surface_css}; }}")
         self._left_pane.setStyleSheet(f"QFrame#habitDashLeft {{ background: {surface_css}; border: none; }}")
         self._right_pane.setStyleSheet(f"QFrame#habitDashRight {{ background: {surface_css}; }}")
-        self._list_title.setStyleSheet(f"color: {primary}; font-weight: 700;")
-        self._detail_name.setStyleSheet(f"color: {primary}; font-weight: 700;")
-        self._log_title.setStyleSheet(f"color: {primary}; font-weight: 700;")
-        self._log_placeholder.setStyleSheet(f"color: {tertiary};")
+        self._list_title.setStyleSheet(f"color: {primary}; font-weight: 600;")
+        self._detail_name.setStyleSheet(f"color: {primary}; font-weight: 600;")
+        self._log_title.setStyleSheet(f"color: {primary}; font-weight: 600;")
+        self._log_placeholder.setStyleSheet(f"color: {tertiary}; padding: 0px;")
         self._all_comments_button.setStyleSheet(
             f"QPushButton {{ background: transparent; border: none; color: {css(palette.accent_text)}; }}"
             f"QPushButton:hover {{ color: {css(palette.accent)}; }}"
@@ -925,12 +938,19 @@ QPushButton#habitDashAddHabitButton {{
         for i, day in enumerate(self._week_dates):
             caption = f"{weekday_short(day.weekday())} {day.day}"
             if total == 0:
+                done = 0
                 ratio = 0.0
             else:
                 date_str = day.isoformat()
                 done = sum(1 for hid in habit_ids if (week_values.get(hid, {}).get(date_str) or 0) > 0)
                 ratio = done / total
-            self._week_headers[i].set_day(caption, ratio, is_today=day == today)
+            self._week_headers[i].set_day(
+                caption,
+                ratio,
+                is_today=day == today,
+                done=done,
+                total=total,
+            )
 
     def _week_comments_for(self, habit_id: int) -> list[bool]:
         """Return whether each visible week day has a comment."""

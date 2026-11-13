@@ -22,11 +22,17 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife.apps.common.ui_chrome import (
+    MUTED_TEXT,
+    SELECTION_BG,
+    SELECTION_BORDER,
+    SELECTION_HOVER,
+    selection_chrome_colors,
+)
 from harrix_swiss_knife.apps.habits.habit_emojis import default_habit_emoji
 from harrix_swiss_knife.fluent.style import push_button_qss
 from harrix_swiss_knife.fluent.theme import bind_theme, css, mix, palette_for
 from harrix_swiss_knife.fluent.tokens import (
-    RADIUS_CARD,
     RADIUS_CONTROL,
     SPACE_M,
     SPACE_S,
@@ -50,6 +56,7 @@ if TYPE_CHECKING:
         QDragMoveEvent,
         QDropEvent,
         QEnterEvent,
+        QFocusEvent,
         QMouseEvent,
         QPaintEvent,
     )
@@ -85,11 +92,14 @@ class CheckCircle(QWidget):
         super().__init__(parent)
         self._value: int | None = None
         self._day: date | None = None
+        self._habit_name = ""
         self._allows_number = False
         self._editable = True
         self._has_comment = False
         self._size = size
-        self.setFixedSize(size, size)
+        # Hit target stays at least 24px even when the drawn circle is smaller.
+        hit = max(size, 24)
+        self.setFixedSize(hit, hit)
         self.setAttribute(Qt.WidgetAttribute.WA_Hover, on=True)
         self._apply_interactive_state()
         self._apply_tooltip()
@@ -175,14 +185,16 @@ class CheckCircle(QWidget):
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.setRenderHint(QPainter.RenderHint.TextAntialiasing)
         if not self._editable:
-            painter.setOpacity(0.35)
+            painter.setOpacity(0.48)
+        # Keep the glyph centered at `_size` inside a possibly larger hit box.
+        side = float(min(self._size, self.width(), self.height()))
+        x = (self.width() - side) / 2.0
+        y = (self.height() - side) / 2.0
         margin = 1.0
-        rect = QRectF(margin, margin, self.width() - 2 * margin, self.height() - 2 * margin)
+        rect = QRectF(x + margin, y + margin, side - 2 * margin, side - 2 * margin)
         paint_habit_day_circle(painter, rect, self._value, font=self.font())
         painter.setOpacity(1.0)
-        _paint_comment_dot(
-            painter, QRectF(0.0, 0.0, float(self.width()), float(self.height())), has_comment=self._has_comment
-        )
+        _paint_comment_dot(painter, rect, has_comment=self._has_comment)
 
     def set_allows_number(self, *, allows_number: bool) -> None:
         """Enable the numeric picker choice when the habit is not boolean."""
@@ -191,6 +203,7 @@ class CheckCircle(QWidget):
     def set_day(self, day: date | None) -> None:
         """Bind this circle to a calendar day for the hover picker label."""
         self._day = day
+        self._apply_tooltip()
 
     def set_editable(self, *, editable: bool) -> None:
         """Enable or disable clicks and the hover picker for this day."""
@@ -204,6 +217,11 @@ class CheckCircle(QWidget):
         self._has_comment = has_comment
         self._apply_tooltip()
         self.update()
+
+    def set_habit_name(self, name: str) -> None:
+        """Attach habit title for tooltips and accessibility."""
+        self._habit_name = name.strip()
+        self._apply_tooltip()
 
     def set_value(self, value: int | None) -> None:
         """Set stored process-habit value (``None`` = no database record)."""
@@ -223,16 +241,23 @@ class CheckCircle(QWidget):
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
 
     def _apply_tooltip(self) -> None:
-        if not self._editable and self._has_comment:
-            self.setToolTip("Future date. Right-click to open the note.")
-            return
+        state = _habit_day_state_label(self._value)
+        parts: list[str] = []
+        if self._habit_name:
+            parts.append(self._habit_name)
+        if self._day is not None:
+            parts.append(self._day.isoformat())
+        parts.append(state)
         if not self._editable:
-            self.setToolTip("Future date")
-            return
-        if self._has_comment:
-            self.setToolTip("Has a note. Right-click to open.")
-            return
-        self.setToolTip("Right-click to create a note.")
+            parts.append("Future date")
+        elif self._has_comment:
+            parts.append("Has a note — right-click to open")
+        else:
+            parts.append("Right-click to create a note")
+        tip = " · ".join(parts)
+        self.setToolTip(tip)
+        self.setAccessibleName(tip)
+        self.setAccessibleDescription(state)
 
 
 class HabitIconBadge(QWidget):
@@ -282,15 +307,19 @@ class HabitRow(QFrame):
         super().__init__(parent)
         self._habit_id = -1
         self._selected = False
+        self._hovered = False
         self._drag_press_pos: QPoint | None = None
         self._drag_from_circle = False
         self.setObjectName("habitRow")
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.setMinimumHeight(64)
+        self.setAttribute(Qt.WidgetAttribute.WA_Hover, on=True)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
         root = QHBoxLayout(self)
-        root.setContentsMargins(SPACE_M, SPACE_S, SPACE_M, SPACE_S)
+        # Left inset leaves room for the selection marker painted in paintEvent.
+        root.setContentsMargins(SPACE_M + 4, SPACE_S, SPACE_M, SPACE_S)
         root.setSpacing(SPACE_M)
 
         self._icon = HabitIconBadge(size=40)
@@ -302,6 +331,7 @@ class HabitRow(QFrame):
         self._name_label = QLabel("")
         self._name_label.setAutoFillBackground(False)
         self._name_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
+        self._name_label.setTextInteractionFlags(Qt.TextInteractionFlag.NoTextInteraction)
         self._meta_label = QLabel("")
         self._meta_label.setAutoFillBackground(False)
         self._meta_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
@@ -310,7 +340,7 @@ class HabitRow(QFrame):
         root.addLayout(text_col, 1)
 
         self._checks_layout = QHBoxLayout()
-        self._checks_layout.setSpacing(6)
+        self._checks_layout.setSpacing(8)
         self._checks: list[CheckCircle] = []
         for day_index in range(7):
             circle = CheckCircle(size=22)
@@ -330,9 +360,31 @@ class HabitRow(QFrame):
             self.context_menu_requested.emit(self._habit_id, event.globalPos())
         super().contextMenuEvent(event)
 
+    def enterEvent(self, event: QEnterEvent) -> None:  # noqa: N802
+        """Show hover wash separately from persistent selection."""
+        self._hovered = True
+        self.update()
+        super().enterEvent(event)
+
+    def focusInEvent(self, event: QFocusEvent) -> None:  # noqa: N802
+        """Repaint when keyboard focus lands on the row."""
+        self.update()
+        super().focusInEvent(event)
+
+    def focusOutEvent(self, event: QFocusEvent) -> None:  # noqa: N802
+        """Clear focus chrome when the row loses keyboard focus."""
+        self.update()
+        super().focusOutEvent(event)
+
     def habit_id(self) -> int:
         """Return bound habit ID."""
         return self._habit_id
+
+    def leaveEvent(self, event: QEvent) -> None:  # noqa: N802
+        """Clear hover wash when the pointer leaves the row."""
+        self._hovered = False
+        self.update()
+        super().leaveEvent(event)
 
     def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         """Open habit editing when double-clicking the row, but not a day circle."""
@@ -374,6 +426,32 @@ class HabitRow(QFrame):
         self._drag_from_circle = False
         super().mouseReleaseEvent(event)
 
+    def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802
+        """Soft-blue selection, hover wash, left marker, and hairline separator."""
+        del event
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        palette = palette_for(self)
+        selected_bg, hover_bg, marker, _text = selection_chrome_colors()
+        if self._selected:
+            fill = QColor(selected_bg if palette.dark else SELECTION_BG)
+        elif self._hovered:
+            fill = QColor(hover_bg if palette.dark else SELECTION_HOVER)
+        else:
+            fill = QColor(0, 0, 0, 0)
+        if fill.alpha() > 0:
+            painter.fillRect(self.rect(), fill)
+        if self._selected:
+            marker_color = QColor(marker if palette.dark else SELECTION_BORDER)
+            painter.fillRect(1, 6, 3, max(8, self.height() - 12), marker_color)
+        if self.hasFocus() and not self._selected:
+            painter.setPen(QPen(palette.focus_stroke_outer, 1))
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+            painter.drawRoundedRect(self.rect().adjusted(1, 1, -2, -2), RADIUS_CONTROL, RADIUS_CONTROL)
+        divider = mix(_card_surface(palette), palette.divider)
+        painter.setPen(QPen(divider, 1))
+        painter.drawLine(0, self.height() - 1, self.width(), self.height() - 1)
+
     def set_habit_data(
         self,
         habit_id: int,
@@ -393,41 +471,36 @@ class HabitRow(QFrame):
         self._selected = selected
         self._icon.set_habit(habit_id, emoji or None)
         self._name_label.setText(name)
+        self._name_label.setToolTip(name)
         self._meta_label.setText(f"⚡ {total_days} Days   🔥 {streak_days} Days")
         comments = list(week_comments) if week_comments is not None else []
         days = list(week_dates) if week_dates is not None else []
         for i, circle in enumerate(self._checks):
             value = week_values[i] if i < len(week_values) else None
+            circle.set_habit_name(name)
             circle.set_value(value)
             circle.set_allows_number(allows_number=allows_number)
             circle.set_has_comment(has_comment=bool(comments[i]) if i < len(comments) else False)
             circle.set_day(days[i] if i < len(days) else None)
         self._apply_style()
+        self.update()
 
     def _apply_style(self) -> None:
         palette = palette_for(self)
-        surface = _card_surface(palette)
-        selected = mix(
-            surface,
-            QColor(palette.accent.red(), palette.accent.green(), palette.accent.blue(), 36),
-        )
-        bg = css(selected if self._selected else surface)
-        divider = css(mix(surface, palette.divider))
         primary = css(_text_primary(palette))
-        secondary = css(_text_secondary(palette))
-        self._name_label.setStyleSheet(f"background: transparent; color: {primary}; font-weight: 700;")
-        self._meta_label.setStyleSheet(f"background: transparent; color: {secondary};")
+        secondary = MUTED_TEXT if not palette.dark else css(_text_secondary(palette))
+        self._name_label.setStyleSheet(f"background: transparent; color: {primary}; font-weight: 600;")
+        self._meta_label.setStyleSheet(f"background: transparent; color: {secondary}; font-size: 12px;")
         self.setStyleSheet(
-            f"""
-            QFrame#habitRow {{
-                background: {bg};
-                border: none;
-                border-bottom: 1px solid {divider};
-                border-radius: 0px;
-            }}
-            QFrame#habitRow QLabel {{
+            """
+            QFrame#habitRow {
                 background: transparent;
-            }}
+                border: none;
+                border-radius: 0px;
+            }
+            QFrame#habitRow QLabel {
+                background: transparent;
+            }
             """
         )
 
@@ -571,6 +644,7 @@ class MonthCalendarGrid(QWidget):
         self._day_values: dict[str, int] = {}
         self._comment_dates: set[str] = set()
         self._allows_number = False
+        self._habit_name = ""
         self._today = _local_today()
 
         root = QVBoxLayout(self)
@@ -652,6 +726,7 @@ class MonthCalendarGrid(QWidget):
         allows_number: bool = False,
         today: date | None = None,
         comment_dates: Iterable[str] | None = None,
+        habit_name: str = "",
     ) -> None:
         """Rebuild grid for year/month with stored values keyed by ``YYYY-MM-DD``."""
         self._year = year
@@ -659,6 +734,7 @@ class MonthCalendarGrid(QWidget):
         self._day_values = dict(day_values or {})
         self._comment_dates = {str(item) for item in comment_dates or []}
         self._allows_number = allows_number
+        self._habit_name = habit_name
         self._today = today or _local_today()
         self._title.setText(f"{_month_short(month)} {year}")
         self._sync_next_month_button()
@@ -769,6 +845,7 @@ class MonthCalendarGrid(QWidget):
                 cell_date = date(self._year, self._month, day)
                 editable = cell_date <= self._today
                 circle = CheckCircle(size=26)
+                circle.set_habit_name(self._habit_name)
                 circle.set_value(self._day_values.get(date_str))
                 circle.set_day(cell_date)
                 circle.set_allows_number(allows_number=self._allows_number)
@@ -781,10 +858,16 @@ class MonthCalendarGrid(QWidget):
                 day_label = QLabel(str(day))
                 day_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
                 day_font = QFont(day_label.font())
-                day_font.setWeight(QFont.Weight.DemiBold)
+                is_today = cell_date == self._today
+                day_font.setWeight(QFont.Weight.Bold if is_today else QFont.Weight.DemiBold)
                 day_label.setFont(day_font)
                 day_palette = palette_for(self)
-                day_color = css(_text_disabled(day_palette)) if not editable else css(_text_secondary(day_palette))
+                if is_today:
+                    day_color = css(day_palette.accent_text)
+                elif not editable:
+                    day_color = css(_text_disabled(day_palette))
+                else:
+                    day_color = css(_text_secondary(day_palette))
                 day_label.setStyleSheet(f"color: {day_color};")
                 cell_layout.addWidget(circle, 0, Qt.AlignmentFlag.AlignHCenter)
                 cell_layout.addWidget(day_label)
@@ -853,7 +936,7 @@ class StatCard(QFrame):
         self.setObjectName("habitStatCard")
         self._accent = accent
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(SPACE_M, 10, SPACE_M, 10)
+        layout.setContentsMargins(SPACE_M, SPACE_S, SPACE_M, SPACE_S)
         layout.setSpacing(SPACE_XS)
 
         top = QHBoxLayout()
@@ -869,6 +952,10 @@ class StatCard(QFrame):
         layout.addWidget(self._value_label)
         bind_theme(self, self._apply_style)
 
+    def set_hint(self, text: str) -> None:
+        """Explain the metric (denominator, streak rules, etc.)."""
+        self.setToolTip(text)
+
     def set_value(self, text: str) -> None:
         """Update the large value text."""
         self._value_label.setText(text)
@@ -878,18 +965,21 @@ class StatCard(QFrame):
         surface = _card_surface(palette)
         stroke = mix(surface, palette.card_stroke)
         icon_color = _stat_accent_color(palette, self._accent)
+        title_color = MUTED_TEXT if not palette.dark else css(_text_secondary(palette))
         self.setStyleSheet(
             f"""
             QFrame#habitStatCard {{
                 background: {css(surface)};
                 border: 1px solid {css(stroke)};
-                border-radius: {RADIUS_CARD}px;
+                border-radius: {RADIUS_CONTROL}px;
             }}
             """
         )
-        self._icon.setStyleSheet(f"color: {css(icon_color)}; font-size: 14px; font-weight: 700;")
-        self._title_label.setStyleSheet(f"color: {css(_text_secondary(palette))};")
-        self._value_label.setStyleSheet(f"color: {css(_text_primary(palette))}; font-weight: 700;")
+        self._icon.setStyleSheet(f"color: {css(icon_color)}; font-size: 13px; font-weight: 600;")
+        self._title_label.setStyleSheet(f"color: {title_color}; font-size: 12px; font-weight: 500;")
+        self._value_label.setStyleSheet(
+            f"color: {css(_text_primary(palette))}; font-size: 18px; font-weight: 700;"
+        )
 
 
 class WeekDayHeader(QWidget):
@@ -898,6 +988,9 @@ class WeekDayHeader(QWidget):
     def __init__(self, parent: QWidget | None = None) -> None:  # noqa: D107
         super().__init__(parent)
         self._is_today = False
+        self._done = 0
+        self._total = 0
+        self._caption = ""
         layout = QVBoxLayout(self)
         layout.setContentsMargins(SPACE_XS, 0, SPACE_XS, 0)
         layout.setSpacing(SPACE_XS)
@@ -910,11 +1003,25 @@ class WeekDayHeader(QWidget):
         layout.addWidget(self._ring, 0, Qt.AlignmentFlag.AlignHCenter)
         bind_theme(self, self._apply_label_style)
 
-    def set_day(self, caption: str, ratio: float, *, is_today: bool) -> None:
-        """Update caption, ring, and today highlight."""
+    def set_day(
+        self,
+        caption: str,
+        ratio: float,
+        *,
+        is_today: bool,
+        done: int = 0,
+        total: int = 0,
+    ) -> None:
+        """Update caption, ring, today highlight, and progress tooltip."""
+        self._caption = caption
         self._label.setText(caption)
         self._ring.set_ratio(ratio)
         self._is_today = is_today
+        self._done = max(0, done)
+        self._total = max(0, total)
+        tip = f"{caption}: {self._done} of {self._total} habits done"
+        self.setToolTip(tip)
+        self._ring.setToolTip(tip)
         self._apply_label_style()
 
     def _apply_label_style(self) -> None:
@@ -1017,6 +1124,18 @@ def habit_day_state(value: int | None) -> HabitDayState:
     return "number"
 
 
+def _habit_day_state_label(value: int | None) -> str:
+    """Human-readable label for tooltips and accessibility."""
+    state = habit_day_state(value)
+    if state == "absent":
+        return "No record"
+    if state == "zero":
+        return "Not done"
+    if state == "one":
+        return "Done"
+    return f"Done ({value})"
+
+
 def habit_drop_insert_index(row_mid_y: Sequence[int], y: int) -> int:
     """Return the insert index for a drop at vertical position `y`.
 
@@ -1055,10 +1174,9 @@ def paint_habit_day_circle(
     on_fill = colors.text_on_accent
 
     if state == "absent":
-        pen = QPen(_track_color(colors), 1.5)
-        pen.setStyle(Qt.PenStyle.DashLine)
-        painter.setPen(pen)
-        painter.setBrush(Qt.BrushStyle.NoBrush)
+        # Calm empty day — soft fill + thin solid ring (not a dashed “special” state).
+        painter.setPen(QPen(_track_color(colors), 1.25))
+        painter.setBrush(_absent_fill(colors))
         painter.drawEllipse(rect)
         return
 
@@ -1183,6 +1301,13 @@ def _month_short(month: int) -> str:
     if 1 <= month <= MONTHS_IN_YEAR:
         return names[month - 1]
     return str(month)
+
+
+def _absent_fill(palette: FluentPalette) -> QColor:
+    """Return a quiet fill for days with no check-in record."""
+    stroke = palette.control_strong_stroke
+    wash = QColor(stroke.red(), stroke.green(), stroke.blue(), 28)
+    return mix(palette.window_bg, wash)
 
 
 def _not_done_fill(palette: FluentPalette) -> QColor:
