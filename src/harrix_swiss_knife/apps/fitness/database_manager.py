@@ -1084,6 +1084,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         exercise_type: str | None = None,
         date_from: str | None = None,
         date_to: str | None = None,
+        search_text: str | None = None,
         limit: int | None = None,
         offset: int = 0,
     ) -> list[list[Any]]:
@@ -1095,6 +1096,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `exercise_type` (`str | None`): Filter by exercise type. Defaults to `None`.
         - `date_from` (`str | None`): Filter from date (YYYY-MM-DD). Defaults to `None`.
         - `date_to` (`str | None`): Filter to date (YYYY-MM-DD). Defaults to `None`.
+        - `search_text` (`str | None`): Substring match on exercise name, local name, or type.
         - `limit` (`int | None`): Limit number of records. Defaults to `None` (no limit).
         - `offset` (`int`): Number of records to skip. Defaults to `0`.
 
@@ -1118,6 +1120,18 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             conditions.append("p.date BETWEEN :date_from AND :date_to")
             params["date_from"] = date_from
             params["date_to"] = date_to
+
+        query = (search_text or "").strip()
+        if query:
+            conditions.append(
+                "("
+                "e.name LIKE :search ESCAPE '\\' "
+                "OR IFNULL(e.name_local, '') LIKE :search ESCAPE '\\' "
+                "OR IFNULL(t.type, '') LIKE :search ESCAPE '\\'"
+                ")"
+            )
+            escaped = query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            params["search"] = f"%{escaped}%"
 
         query_text = """
             SELECT p._id,
