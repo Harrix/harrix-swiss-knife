@@ -84,8 +84,8 @@ class FoodDayHeaderDelegate(QStyledItemDelegate):
             and event.button() == Qt.MouseButton.LeftButton
         ):
             day = _day_key(index.data(DAY_HEADER_DATE_ROLE))
-            button = _header_macros_button_rect(option.rect, option.font, index)
-            if day and button.contains(event.position().toPoint()):
+            layout = _day_header_chrome_layout(option.rect, option.font, index)
+            if day and layout.button_rect.contains(event.position().toPoint()):
                 self.macros_requested.emit(day)
                 return True
         return super().editorEvent(event, model, option, index)
@@ -167,14 +167,8 @@ class FoodDayHeaderDelegate(QStyledItemDelegate):
             painter.restore()
             return
 
-        segments, chip_rect, button = _day_header_right_layout(option.rect, option.font, index)
-        right_width = sum(width for _text, width in segments)
-        if chip_rect is not None:
-            right_width += _CHIP_SIZE + _ELEMENT_GAP
-        right_width += button.width()
-        if button.width() > 0 and (segments or chip_rect is not None):
-            right_width += _ELEMENT_GAP
-        date_width = max(0, text_rect.width() - right_width - 12)
+        chrome = _day_header_chrome_layout(option.rect, option.font, index)
+        date_width = max(0, text_rect.width() - chrome.right_block_width - 12)
 
         painter.setFont(date_font)
         painter.setPen(muted)
@@ -184,39 +178,37 @@ class FoodDayHeaderDelegate(QStyledItemDelegate):
             date_metrics.elidedText(date_text, Qt.TextElideMode.ElideRight, date_width),
         )
 
-        cursor_x = button.left() - _ELEMENT_GAP if button.width() > 0 else text_rect.right()
-        if chip_rect is not None:
+        if chrome.summary_text and chrome.summary_rect.width() > 0:
+            painter.setFont(metrics_font)
+            painter.setPen(ink)
+            painter.drawText(
+                chrome.summary_rect,
+                int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight),
+                QFontMetrics(metrics_font).elidedText(
+                    chrome.summary_text,
+                    Qt.TextElideMode.ElideRight,
+                    chrome.summary_rect.width(),
+                ),
+            )
+
+        if chrome.chip_rect is not None:
             chip_color = _threshold_color(index.data(DAY_HEADER_THRESHOLD_RGB_ROLE))
             if chip_color is not None:
                 painter.save()
                 painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
                 painter.setPen(Qt.PenStyle.NoPen)
                 painter.setBrush(chip_color)
-                painter.drawRoundedRect(chip_rect, _CHIP_RADIUS, _CHIP_RADIUS)
+                painter.drawRoundedRect(chrome.chip_rect, _CHIP_RADIUS, _CHIP_RADIUS)
                 painter.restore()
-            cursor_x = chip_rect.left() - _ELEMENT_GAP
 
-        painter.setFont(metrics_font)
-        painter.setPen(ink)
-        for segment_text, segment_width in reversed(segments):
-            if not segment_text:
-                continue
-            segment_rect = QRect(cursor_x - segment_width, text_rect.top(), segment_width, text_rect.height())
-            painter.drawText(
-                segment_rect,
-                int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight),
-                segment_text,
-            )
-            cursor_x = segment_rect.left() - _ELEMENT_GAP
-
-        if button.width() >= _MIN_BUTTON_SIZE:
+        if chrome.button_rect.width() >= _MIN_BUTTON_SIZE:
             status = _macros_status_from_role(index.data(DAY_HEADER_MACROS_STATUS_ROLE))
             appearance = macros_button_appearance(status)
             button_font = QFont(option.font)
             button_font.setBold(False)
             self._paint_macros_button(
                 painter,
-                button,
+                chrome.button_rect,
                 appearance,
                 button_font,
                 hovered=self._hover_index.isValid() and self._hover_index == index,
@@ -292,8 +284,8 @@ class FoodDayHeaderDelegate(QStyledItemDelegate):
         if not index.isValid() or index.column() != 0 or not bool(index.data(IS_DAY_HEADER_ROLE)):
             self._set_button_hover(view, QModelIndex())
             return
-        _segments, _chip, button = _day_header_right_layout(view.visualRect(index), view.font(), index)
-        if _day_key(index.data(DAY_HEADER_DATE_ROLE)) and button.contains(pos):
+        chrome = _day_header_chrome_layout(view.visualRect(index), view.font(), index)
+        if _day_key(index.data(DAY_HEADER_DATE_ROLE)) and chrome.button_rect.contains(pos):
             self._set_button_hover(view, index)
         else:
             self._set_button_hover(view, QModelIndex())
@@ -350,8 +342,8 @@ def editorEvent(  # noqa: N802
             and event.button() == Qt.MouseButton.LeftButton
         ):
             day = _day_key(index.data(DAY_HEADER_DATE_ROLE))
-            button = _header_macros_button_rect(option.rect, option.font, index)
-            if day and button.contains(event.position().toPoint()):
+            layout = _day_header_chrome_layout(option.rect, option.font, index)
+            if day and layout.button_rect.contains(event.position().toPoint()):
                 self.macros_requested.emit(day)
                 return True
         return super().editorEvent(event, model, option, index)
@@ -461,14 +453,8 @@ def paint(
             painter.restore()
             return
 
-        segments, chip_rect, button = _day_header_right_layout(option.rect, option.font, index)
-        right_width = sum(width for _text, width in segments)
-        if chip_rect is not None:
-            right_width += _CHIP_SIZE + _ELEMENT_GAP
-        right_width += button.width()
-        if button.width() > 0 and (segments or chip_rect is not None):
-            right_width += _ELEMENT_GAP
-        date_width = max(0, text_rect.width() - right_width - 12)
+        chrome = _day_header_chrome_layout(option.rect, option.font, index)
+        date_width = max(0, text_rect.width() - chrome.right_block_width - 12)
 
         painter.setFont(date_font)
         painter.setPen(muted)
@@ -478,39 +464,37 @@ def paint(
             date_metrics.elidedText(date_text, Qt.TextElideMode.ElideRight, date_width),
         )
 
-        cursor_x = button.left() - _ELEMENT_GAP if button.width() > 0 else text_rect.right()
-        if chip_rect is not None:
+        if chrome.summary_text and chrome.summary_rect.width() > 0:
+            painter.setFont(metrics_font)
+            painter.setPen(ink)
+            painter.drawText(
+                chrome.summary_rect,
+                int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight),
+                QFontMetrics(metrics_font).elidedText(
+                    chrome.summary_text,
+                    Qt.TextElideMode.ElideRight,
+                    chrome.summary_rect.width(),
+                ),
+            )
+
+        if chrome.chip_rect is not None:
             chip_color = _threshold_color(index.data(DAY_HEADER_THRESHOLD_RGB_ROLE))
             if chip_color is not None:
                 painter.save()
                 painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
                 painter.setPen(Qt.PenStyle.NoPen)
                 painter.setBrush(chip_color)
-                painter.drawRoundedRect(chip_rect, _CHIP_RADIUS, _CHIP_RADIUS)
+                painter.drawRoundedRect(chrome.chip_rect, _CHIP_RADIUS, _CHIP_RADIUS)
                 painter.restore()
-            cursor_x = chip_rect.left() - _ELEMENT_GAP
 
-        painter.setFont(metrics_font)
-        painter.setPen(ink)
-        for segment_text, segment_width in reversed(segments):
-            if not segment_text:
-                continue
-            segment_rect = QRect(cursor_x - segment_width, text_rect.top(), segment_width, text_rect.height())
-            painter.drawText(
-                segment_rect,
-                int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight),
-                segment_text,
-            )
-            cursor_x = segment_rect.left() - _ELEMENT_GAP
-
-        if button.width() >= _MIN_BUTTON_SIZE:
+        if chrome.button_rect.width() >= _MIN_BUTTON_SIZE:
             status = _macros_status_from_role(index.data(DAY_HEADER_MACROS_STATUS_ROLE))
             appearance = macros_button_appearance(status)
             button_font = QFont(option.font)
             button_font.setBold(False)
             self._paint_macros_button(
                 painter,
-                button,
+                chrome.button_rect,
                 appearance,
                 button_font,
                 hovered=self._hover_index.isValid() and self._hover_index == index,

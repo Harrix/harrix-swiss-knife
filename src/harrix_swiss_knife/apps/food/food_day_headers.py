@@ -7,6 +7,7 @@ plus month summary banners with optional month kcal totals. Headers are not log 
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any, overload
 
 from PySide6.QtCore import (
@@ -69,13 +70,14 @@ _MONTHS_IN_YEAR = 12
 _YYYY_MM_PREFIX_LEN = 7
 _CHIP_SIZE = 8
 _CHIP_RADIUS = 2
-_ELEMENT_GAP = 6
+_ELEMENT_GAP = 8
 _BUTTON_HEIGHT = 22
 _BUTTON_RADIUS = 4
-_BUTTON_TEXT_PAD = 6
+_BUTTON_TEXT_PAD = 8
 _BUTTON_BORDER = 1
 _MIN_BUTTON_SIZE = 8
 _RGB_COMPONENTS = 3
+_DAY_METRICS_POINT_DELTA = 1
 _COSMETIC_ROLES = frozenset(
     {
         int(Qt.ItemDataRole.BackgroundRole),
@@ -116,8 +118,8 @@ class FoodDayHeaderDelegate(QStyledItemDelegate):
             and event.button() == Qt.MouseButton.LeftButton
         ):
             day = _day_key(index.data(DAY_HEADER_DATE_ROLE))
-            button = _header_macros_button_rect(option.rect, option.font, index)
-            if day and button.contains(event.position().toPoint()):
+            layout = _day_header_chrome_layout(option.rect, option.font, index)
+            if day and layout.button_rect.contains(event.position().toPoint()):
                 self.macros_requested.emit(day)
                 return True
         return super().editorEvent(event, model, option, index)
@@ -199,14 +201,8 @@ class FoodDayHeaderDelegate(QStyledItemDelegate):
             painter.restore()
             return
 
-        segments, chip_rect, button = _day_header_right_layout(option.rect, option.font, index)
-        right_width = sum(width for _text, width in segments)
-        if chip_rect is not None:
-            right_width += _CHIP_SIZE + _ELEMENT_GAP
-        right_width += button.width()
-        if button.width() > 0 and (segments or chip_rect is not None):
-            right_width += _ELEMENT_GAP
-        date_width = max(0, text_rect.width() - right_width - 12)
+        chrome = _day_header_chrome_layout(option.rect, option.font, index)
+        date_width = max(0, text_rect.width() - chrome.right_block_width - 12)
 
         painter.setFont(date_font)
         painter.setPen(muted)
@@ -216,39 +212,37 @@ class FoodDayHeaderDelegate(QStyledItemDelegate):
             date_metrics.elidedText(date_text, Qt.TextElideMode.ElideRight, date_width),
         )
 
-        cursor_x = button.left() - _ELEMENT_GAP if button.width() > 0 else text_rect.right()
-        if chip_rect is not None:
+        if chrome.summary_text and chrome.summary_rect.width() > 0:
+            painter.setFont(metrics_font)
+            painter.setPen(ink)
+            painter.drawText(
+                chrome.summary_rect,
+                int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight),
+                QFontMetrics(metrics_font).elidedText(
+                    chrome.summary_text,
+                    Qt.TextElideMode.ElideRight,
+                    chrome.summary_rect.width(),
+                ),
+            )
+
+        if chrome.chip_rect is not None:
             chip_color = _threshold_color(index.data(DAY_HEADER_THRESHOLD_RGB_ROLE))
             if chip_color is not None:
                 painter.save()
                 painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
                 painter.setPen(Qt.PenStyle.NoPen)
                 painter.setBrush(chip_color)
-                painter.drawRoundedRect(chip_rect, _CHIP_RADIUS, _CHIP_RADIUS)
+                painter.drawRoundedRect(chrome.chip_rect, _CHIP_RADIUS, _CHIP_RADIUS)
                 painter.restore()
-            cursor_x = chip_rect.left() - _ELEMENT_GAP
 
-        painter.setFont(metrics_font)
-        painter.setPen(ink)
-        for segment_text, segment_width in reversed(segments):
-            if not segment_text:
-                continue
-            segment_rect = QRect(cursor_x - segment_width, text_rect.top(), segment_width, text_rect.height())
-            painter.drawText(
-                segment_rect,
-                int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight),
-                segment_text,
-            )
-            cursor_x = segment_rect.left() - _ELEMENT_GAP
-
-        if button.width() >= _MIN_BUTTON_SIZE:
+        if chrome.button_rect.width() >= _MIN_BUTTON_SIZE:
             status = _macros_status_from_role(index.data(DAY_HEADER_MACROS_STATUS_ROLE))
             appearance = macros_button_appearance(status)
             button_font = QFont(option.font)
             button_font.setBold(False)
             self._paint_macros_button(
                 painter,
-                button,
+                chrome.button_rect,
                 appearance,
                 button_font,
                 hovered=self._hover_index.isValid() and self._hover_index == index,
@@ -324,8 +318,8 @@ class FoodDayHeaderDelegate(QStyledItemDelegate):
         if not index.isValid() or index.column() != 0 or not bool(index.data(IS_DAY_HEADER_ROLE)):
             self._set_button_hover(view, QModelIndex())
             return
-        _segments, _chip, button = _day_header_right_layout(view.visualRect(index), view.font(), index)
-        if _day_key(index.data(DAY_HEADER_DATE_ROLE)) and button.contains(pos):
+        chrome = _day_header_chrome_layout(view.visualRect(index), view.font(), index)
+        if _day_key(index.data(DAY_HEADER_DATE_ROLE)) and chrome.button_rect.contains(pos):
             self._set_button_hover(view, index)
         else:
             self._set_button_hover(view, QModelIndex())
@@ -699,6 +693,17 @@ class FoodDayHeaderProxy(QAbstractProxyModel):
         QTimer.singleShot(0, self._rebuild_mapping)
 
 
+@dataclass(frozen=True, slots=True)
+class _DayHeaderChromeLayout:
+    """Absolute rects for day-header totals, threshold chip, and macros button."""
+
+    summary_text: str
+    summary_rect: QRect
+    chip_rect: QRect | None
+    button_rect: QRect
+    right_block_width: int
+
+
 class _FoodDayHeaderOrDelegate(QStyledItemDelegate):
     """Paint day/month headers; otherwise forward to the column-0 delegate."""
 
@@ -863,22 +868,72 @@ def _calorie_threshold_tooltip(kcal: float, thresholds: CalorieThresholds) -> st
     return f"Daily total {kcal:.1f} kcal — above medium-high band (> {thresholds.medium_high:.0f} kcal)"
 
 
-def _day_header_right_layout(
+def _day_header_chrome_layout(
     span_rect: QRect,
-    font: QFont,
+    base_font: QFont,
     index: QModelIndex | QPersistentModelIndex,
-) -> tuple[list[tuple[str, int]], QRect | None, QRect]:
-    """Return text segments, optional threshold chip rect, and macros button rect."""
-    metrics = QFontMetrics(font)
-    segments: list[tuple[str, int]] = []
+) -> _DayHeaderChromeLayout:
+    """Lay out day totals, chip, and macros button from the right without overlap.
+
+    Totals use the same bold metrics font as paint, so reserved widths match ink.
+
+    """
+    metrics_font = QFont(base_font)
+    metrics_font.setBold(True)
+    if metrics_font.pointSize() > 0:
+        metrics_font.setPointSize(metrics_font.pointSize() + _DAY_METRICS_POINT_DELTA)
+    metrics = QFontMetrics(metrics_font)
+
+    summary_text = _day_header_summary_text(index)
+    summary_width = metrics.horizontalAdvance(summary_text) if summary_text else 0
+
+    button_font = QFont(base_font)
+    button_font.setBold(False)
+    status = _macros_status_from_role(index.data(DAY_HEADER_MACROS_STATUS_ROLE))
+    appearance = macros_button_appearance(status)
+    button_width = (
+        QFontMetrics(button_font).horizontalAdvance(appearance.label) + (2 * _BUTTON_TEXT_PAD) + _BUTTON_BORDER
+    )
+    button_top = span_rect.top() + max(0, (span_rect.height() - _BUTTON_HEIGHT) // 2)
+    button_left = span_rect.right() - _HEADER_PAD_X - button_width
+    button_rect = QRect(button_left, button_top, button_width, _BUTTON_HEIGHT)
+
+    cursor_x = button_rect.left() - _ELEMENT_GAP
+    chip_rect: QRect | None = None
+    if _threshold_color(index.data(DAY_HEADER_THRESHOLD_RGB_ROLE)) is not None:
+        chip_top = span_rect.top() + max(0, (span_rect.height() - _CHIP_SIZE) // 2)
+        chip_rect = QRect(cursor_x - _CHIP_SIZE, chip_top, _CHIP_SIZE, _CHIP_SIZE)
+        cursor_x = chip_rect.left() - _ELEMENT_GAP
+
+    content_left = span_rect.left() + _HEADER_PAD_X
+    available = max(0, cursor_x - content_left)
+    draw_width = min(summary_width, available) if summary_text else 0
+    summary_rect = QRect(cursor_x - draw_width, span_rect.top(), draw_width, span_rect.height())
+
+    right_block = button_width + _HEADER_PAD_X
+    if chip_rect is not None:
+        right_block += _CHIP_SIZE + _ELEMENT_GAP
+    if summary_text:
+        right_block += min(summary_width, available) + _ELEMENT_GAP
+    return _DayHeaderChromeLayout(
+        summary_text=summary_text,
+        summary_rect=summary_rect,
+        chip_rect=chip_rect,
+        button_rect=button_rect,
+        right_block_width=right_block,
+    )
+
+
+def _day_header_summary_text(index: QModelIndex | QPersistentModelIndex) -> str:
+    """Return compact day totals, e.g. `40.6 kcal · 0.4 L`."""
+    parts: list[str] = []
     kcal_raw = str(index.data(DAY_HEADER_KCAL_ROLE) or "").strip()
     if kcal_raw:
         try:
             kcal_value = float(kcal_raw)
         except ValueError:
             kcal_value = 0.0
-        kcal_text = f"{kcal_value:.1f} kcal"
-        segments.append((kcal_text, metrics.horizontalAdvance(kcal_text)))
+        parts.append(f"{kcal_value:.1f} kcal")
 
     drinks_raw = str(index.data(DAY_HEADER_DRINKS_ROLE) or "").strip()
     if drinks_raw:
@@ -887,16 +942,8 @@ def _day_header_right_layout(
         except ValueError:
             drinks_grams = 0.0
         if drinks_grams > 0:
-            liters_text = f"{drinks_grams / 1000:.1f} L"
-            segments.append((liters_text, metrics.horizontalAdvance(liters_text)))
-
-    button = _header_macros_button_rect(span_rect, font, index)
-    chip_rect: QRect | None = None
-    if _threshold_color(index.data(DAY_HEADER_THRESHOLD_RGB_ROLE)) is not None:
-        cursor_x = button.left() - _ELEMENT_GAP
-        chip_top = span_rect.top() + max(0, (span_rect.height() - _CHIP_SIZE) // 2)
-        chip_rect = QRect(cursor_x - _CHIP_SIZE, chip_top, _CHIP_SIZE, _CHIP_SIZE)
-    return segments, chip_rect, button
+            parts.append(f"{drinks_grams / 1000:.1f} L")
+    return " · ".join(parts)
 
 
 def _day_key(value: object) -> str:
@@ -959,23 +1006,6 @@ def _format_month_kcal_label(kcal_raw: str) -> str:
     except ValueError:
         return f"{text} kcal"
     return f"{value:.1f} kcal"
-
-
-def _header_macros_button_rect(
-    span_rect: QRect,
-    font: QFont,
-    index: QModelIndex | QPersistentModelIndex,
-) -> QRect:
-    """Return the macros button bounds on the right edge of a day header row."""
-    status = _macros_status_from_role(index.data(DAY_HEADER_MACROS_STATUS_ROLE))
-    appearance = macros_button_appearance(status)
-    button_font = QFont(font)
-    button_font.setBold(False)
-    label_width = QFontMetrics(button_font).horizontalAdvance(appearance.label)
-    width = label_width + (2 * _BUTTON_TEXT_PAD) + _BUTTON_BORDER
-    top = span_rect.top() + max(0, (span_rect.height() - _BUTTON_HEIGHT) // 2)
-    left = span_rect.right() - _HEADER_PAD_X - width
-    return QRect(left, top, width, _BUTTON_HEIGHT)
 
 
 def _macros_status_from_role(value: object) -> DayMacrosStatus:
