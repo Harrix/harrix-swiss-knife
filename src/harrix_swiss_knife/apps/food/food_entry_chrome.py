@@ -397,7 +397,6 @@ def _polish_food_log_table(host: Any) -> None:
     table.setTextElideMode(Qt.TextElideMode.ElideRight)
     # Row selection keeps day-band fills coherent; avoid a lone “gray Name cell”.
     table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
-    table.setAllColumnsShowFocus(True)
     _install_column_visibility_menu(host, table)
 
     empty = getattr(host, "label_food_log_empty", None)

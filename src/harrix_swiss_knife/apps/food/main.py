@@ -2720,7 +2720,6 @@ class MainWindow(
     def _init_food_log_table_delegates(self) -> None:
         """Install column delegates for the food log table."""
         self.tableView_food_log.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
-        self.tableView_food_log.setAllColumnsShowFocus(True)
         self._is_drink_delegate = IsDrinkDelegate(self.tableView_food_log)
         self.tableView_food_log.setItemDelegateForColumn(1, self._is_drink_delegate)
 
