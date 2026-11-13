@@ -5,14 +5,13 @@ from __future__ import annotations
 from typing import Any
 
 from PySide6.QtCore import QPoint, QSize, Qt, QTimer
-from PySide6.QtGui import QAction, QFont, QStandardItemModel
+from PySide6.QtGui import QAction, QStandardItemModel
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QHeaderView,
     QLabel,
     QListView,
     QMenu,
-    QSizePolicy,
     QTableView,
 )
 
@@ -20,6 +19,10 @@ from harrix_swiss_knife.apps.common.table_models import (
     bind_column_fill_on_resize,
     columns_fill_viewport,
     user_resized_columns,
+)
+from harrix_swiss_knife.apps.common.day_summary_chrome import (
+    apply_day_summary_caption,
+    apply_day_summary_value,
 )
 from harrix_swiss_knife.apps.common.tracker_layout_chrome import (
     apply_tracker_column_surfaces,
@@ -48,7 +51,7 @@ from harrix_swiss_knife.apps.finance.transactions_ui_settings import (
 )
 from harrix_swiss_knife.fluent.app_chrome import style_fluent_item_view
 from harrix_swiss_knife.fluent.theme import bind_theme, css, mix, palette_for
-from harrix_swiss_knife.fluent.tokens import CONTROL_HEIGHT, ICON_SIZE, SPACE_S, SPACE_XS
+from harrix_swiss_knife.fluent.tokens import CONTROL_HEIGHT, ICON_SIZE, SPACE_M, SPACE_S, SPACE_XS
 from harrix_swiss_knife.qt_lucide_icon import apply_lucide_button_icon
 
 TRANSACTIONS_ROW_HEIGHT = 30
@@ -436,13 +439,18 @@ def _polish_form_column(host: Any) -> None:
     host.verticalLayout_2.setContentsMargins(0, SPACE_XS, 0, 0)
     host.verticalLayout_2.setSpacing(SPACE_XS)
 
+    expenses_grid = getattr(host, "gridLayout_expenses", None)
+    if expenses_grid is not None:
+        expenses_grid.setVerticalSpacing(SPACE_S)
+        expenses_grid.setHorizontalSpacing(SPACE_M)
+
     for name in (
         "label_expense_today_caption",
         "label_expense_yesterday_caption",
     ):
         label = getattr(host, name, None)
         if isinstance(label, QLabel):
-            label.setStyleSheet(muted_caption_qss())
+            apply_day_summary_caption(label)
 
     polish_left_field_labels(
         host,
@@ -479,15 +487,16 @@ def _polish_form_column(host: Any) -> None:
     apply_lucide_button_icon(host.pushButton_add_as_text_with_ai, "sparkles")
     _polish_ai_attach_block(host)
 
-    for label_name in ("label_today_expense", "label_yesterday_expense"):
-        label = getattr(host, label_name, None)
-        if isinstance(label, QLabel):
-            font = QFont(label.font())
-            font.setPointSize(max(10, font.pointSize() if font.pointSize() > 0 else 10))
-            font.setBold(True)
-            label.setFont(font)
-            label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-            label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+    today_value = getattr(host, "label_today_expense", None)
+    if isinstance(today_value, QLabel):
+        apply_day_summary_value(today_value, today=True)
+        today_value.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        today_value.setWordWrap(True)
+    yesterday_value = getattr(host, "label_yesterday_expense", None)
+    if isinstance(yesterday_value, QLabel):
+        apply_day_summary_value(yesterday_value, today=False)
+        yesterday_value.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        yesterday_value.setWordWrap(True)
 
     refresh_category_state_label(host, None)
 

@@ -25,6 +25,7 @@ from harrix_swiss_knife.apps.common.table_models import (
     columns_fill_viewport,
     user_resized_columns,
 )
+from harrix_swiss_knife.apps.common.day_summary_chrome import apply_food_day_summary_label
 from harrix_swiss_knife.apps.common.tracker_layout_chrome import polish_left_field_labels, quiet_group_box
 from harrix_swiss_knife.apps.common.ui_chrome import (
     SELECTION_BG,
@@ -474,18 +475,12 @@ def _polish_form_column(host: Any) -> None:
     host.pushButton_food_analyze_macros.setStyleSheet(button_idle_qss())
     apply_lucide_button_icon(host.pushButton_food_analyze_macros, "chart-pie")
 
-    for label_name in ("label_food_today", "label_food_yesterday"):
-        label = getattr(host, label_name, None)
-        if isinstance(label, QLabel):
-            font = QFont(label.font())
-            if font.pointSize() > 0:
-                font.setPointSize(max(10, min(font.pointSize(), 12)))
-            elif font.pixelSize() > 0:
-                font.setPixelSize(max(13, min(font.pixelSize(), 16)))
-            font.setBold(True)
-            label.setFont(font)
-            label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
-            label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+    today_label = getattr(host, "label_food_today", None)
+    if isinstance(today_label, QLabel):
+        apply_food_day_summary_label(today_label, 0.0, 0, today=True)
+    yesterday_label = getattr(host, "label_food_yesterday", None)
+    if isinstance(yesterday_label, QLabel):
+        apply_food_day_summary_label(yesterday_label, 0.0, 0, today=False)
 
     apply_soft_form_spin_fills(host, ("spinBox_food_weight", "doubleSpinBox_food_calories"))
     _expand_food_form_value_fields(host)

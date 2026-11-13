@@ -85,6 +85,7 @@ from harrix_swiss_knife.apps.common.day_bands import (
     set_day_band,
     set_readable_cell_fill,
 )
+from harrix_swiss_knife.apps.common.day_summary_chrome import apply_food_day_summary_label
 from harrix_swiss_knife.apps.common.db_init import init_tracker_database
 from harrix_swiss_knife.apps.common.delegates.name_local_list_delegate import (
     NAME_LOCAL_ROLE,
@@ -1370,32 +1371,31 @@ class MainWindow(
             logger.error("❌ Database manager is not initialized")
             return
 
-        zero_text = "0 kcal\n0,0 liters"
         if not self._validate_database_connection():
-            self.label_food_today.setText(zero_text)
-            self.label_food_yesterday.setText(zero_text)
+            apply_food_day_summary_label(self.label_food_today, 0.0, 0, today=True)
+            apply_food_day_summary_label(self.label_food_yesterday, 0.0, 0, today=False)
             self._update_macros_status_label()
             return
 
         try:
             yesterday = QDate.currentDate().addDays(-1).toString("yyyy-MM-dd")
-            self.label_food_today.setText(
-                _format_food_day_summary(
-                    self.db_manager.get_food_calories_today(),
-                    self.db_manager.get_drinks_weight_today(),
-                )
+            apply_food_day_summary_label(
+                self.label_food_today,
+                self.db_manager.get_food_calories_today(),
+                self.db_manager.get_drinks_weight_today(),
+                today=True,
             )
-            self.label_food_yesterday.setText(
-                _format_food_day_summary(
-                    self.db_manager.get_food_calories_on_date(yesterday),
-                    self.db_manager.get_drinks_weight_on_date(yesterday),
-                )
+            apply_food_day_summary_label(
+                self.label_food_yesterday,
+                self.db_manager.get_food_calories_on_date(yesterday),
+                self.db_manager.get_drinks_weight_on_date(yesterday),
+                today=False,
             )
             self._update_macros_status_label()
         except Exception:
             logger.exception("Error getting food calories for today and yesterday")
-            self.label_food_today.setText(zero_text)
-            self.label_food_yesterday.setText(zero_text)
+            apply_food_day_summary_label(self.label_food_today, 0.0, 0, today=True)
+            apply_food_day_summary_label(self.label_food_yesterday, 0.0, 0, today=False)
             self._update_macros_status_label()
 
     def update_food_data(self) -> None:
@@ -5584,12 +5584,6 @@ def _align_food_log_cell(item: QStandardItem, column: int) -> None:
         item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
     else:
         item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
-
-
-def _format_food_day_summary(calories: float, drinks_weight: int) -> str:
-    """Format a day box as calories plus drink liters."""
-    drinks_liters = drinks_weight / 1000 if drinks_weight else 0.0
-    return f"{calories:.1f} kcal · {drinks_liters:.1f} L"
 
 
 def _is_food_ai_drop_path(file_path: str) -> bool:

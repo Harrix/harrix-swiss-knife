@@ -12,7 +12,6 @@ from PySide6.QtWidgets import (
     QLabel,
     QListView,
     QMenu,
-    QSizePolicy,
     QTableView,
     QVBoxLayout,
 )
@@ -22,6 +21,7 @@ from harrix_swiss_knife.apps.common.table_models import (
     columns_fill_viewport,
     user_resized_columns,
 )
+from harrix_swiss_knife.apps.common.day_summary_chrome import apply_day_summary_value
 from harrix_swiss_knife.apps.common.tracker_layout_chrome import polish_left_field_labels, quiet_group_box
 from harrix_swiss_knife.apps.common.ui_chrome import (
     SELECTION_BG,
@@ -438,15 +438,12 @@ def _polish_form_column(host: Any) -> None:
 
     count_label = getattr(host, "label_count_sets_today", None)
     if isinstance(count_label, QLabel):
-        font = QFont(count_label.font())
-        if font.pointSize() > 0:
-            font.setPointSize(max(11, min(font.pointSize(), 13)))
-        elif font.pixelSize() > 0:
-            font.setPixelSize(max(14, min(font.pixelSize(), 18)))
-        font.setBold(True)
-        count_label.setFont(font)
+        apply_day_summary_value(count_label, today=True)
         count_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
-        count_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        # Keep cached fonts in sync if the host still uses small-window metrics.
+        default_font = getattr(host, "_default_count_sets_font", None)
+        if default_font is not None:
+            host._default_count_sets_font = QFont(count_label.font())  # noqa: SLF001
 
     empty = getattr(host, "label_process_empty", None)
     if isinstance(empty, QLabel):
