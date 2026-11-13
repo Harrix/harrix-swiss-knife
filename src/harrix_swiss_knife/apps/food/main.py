@@ -194,6 +194,7 @@ from harrix_swiss_knife.apps.food.food_log_calories import (
     FOOD_LOG_COL_CALORIES,
     FOOD_LOG_COL_DATE,
     FOOD_LOG_COL_TOTAL_PER_DAY,
+    FOOD_LOG_COL_WEIGHT,
     apply_food_log_day_spans,
     calculate_food_log_calories,
     calories_per_100g_for_storage,
@@ -1589,6 +1590,7 @@ class MainWindow(
             for col_idx, value in enumerate(row[:7]):
                 item = QStandardItem(str(value) if value is not None else "")
                 set_day_band(item, row_color)
+                _align_food_log_cell(item, col_idx)
 
                 if col_idx == FOOD_LOG_COL_TOTAL_PER_DAY:
                     item.setEditable(False)
@@ -2000,6 +2002,7 @@ class MainWindow(
             for col_idx, value in enumerate(row[:7]):
                 item = QStandardItem(str(value) if value is not None else "")
                 set_day_band(item, row_color)
+                _align_food_log_cell(item, col_idx)
 
                 # Make total per day column non-editable
                 if col_idx == FOOD_LOG_COL_TOTAL_PER_DAY:
@@ -2701,7 +2704,11 @@ class MainWindow(
         self.listView_food_items.setModel(self.food_items_list_model)
         if not self._food_items_list_delegate_installed:
             self.listView_food_items.setItemDelegate(
-                NameLocalListDelegate(self.listView_food_items, layout=NameLocalLayout.LIST)
+                NameLocalListDelegate(
+                    self.listView_food_items,
+                    layout=NameLocalLayout.LIST,
+                    local_font_scale=0.92,
+                )
             )
             self._food_items_list_delegate_installed = True
 
@@ -2712,6 +2719,8 @@ class MainWindow(
 
     def _init_food_log_table_delegates(self) -> None:
         """Install column delegates for the food log table."""
+        self.tableView_food_log.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
+        self.tableView_food_log.setAllColumnsShowFocus(True)
         self._is_drink_delegate = IsDrinkDelegate(self.tableView_food_log)
         self.tableView_food_log.setItemDelegateForColumn(1, self._is_drink_delegate)
 
@@ -5568,6 +5577,14 @@ class MainWindow(
             parent=self,
         )
         toast.present()
+
+
+def _align_food_log_cell(item: QStandardItem, column: int) -> None:
+    """Right-align numeric food-log columns; keep text columns left."""
+    if column in {FOOD_LOG_COL_WEIGHT, FOOD_LOG_COL_CALORIES}:
+        item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+    else:
+        item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
 
 
 def _format_food_day_summary(calories: float, drinks_weight: int) -> str:

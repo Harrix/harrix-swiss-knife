@@ -395,6 +395,9 @@ def _polish_food_log_table(host: Any) -> None:
         header.setSectionsMovable(False)
     table.setWordWrap(False)
     table.setTextElideMode(Qt.TextElideMode.ElideRight)
+    # Row selection keeps day-band fills coherent; avoid a lone “gray Name cell”.
+    table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+    table.setAllColumnsShowFocus(True)
     _install_column_visibility_menu(host, table)
 
     empty = getattr(host, "label_food_log_empty", None)
@@ -432,6 +435,7 @@ def _polish_form_column(host: Any) -> None:
         (
             ("label_field_food_name", "Description:"),
             ("label_field_food_weight", "Weight:"),
+            ("label_field_food_calories", "Calories:"),
             ("label_field_food_date", "Date:"),
         ),
     )
@@ -569,10 +573,13 @@ def _restructure_food_form(host: Any) -> None:
 
     host.doubleSpinBox_food_calories.setMinimumWidth(_FORM_VALUE_MIN_WIDTH)
     host.doubleSpinBox_food_calories.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+    calories_label = QLabel("Calories:", gb)
+    calories_label.setObjectName("label_field_food_calories")
+    host.label_field_food_calories = calories_label
     kcal_row = QHBoxLayout()
     kcal_row.setObjectName("horizontalLayout_food_kcal")
     host.horizontalLayout_food_kcal = kcal_row
-    kcal_row.addWidget(_field_label_spacer(gb))
+    kcal_row.addWidget(calories_label)
     kcal_row.addWidget(host.doubleSpinBox_food_calories, 1)
     kcal_row.addWidget(host.label_food_calories)
     kcal_row.addWidget(host.pushButton_portion_calories)
