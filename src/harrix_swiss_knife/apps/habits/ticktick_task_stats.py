@@ -219,6 +219,12 @@ def day_from_heatmap_click(
     return date_at_heatmap_point(result.positions, x, y)
 
 
+def heatmap_cell_tooltip(day: date, count: int) -> str:
+    """Return hover text for one contribution-calendar cell."""
+    unit = "task" if count == 1 else "tasks"
+    return f"{day.isoformat()}: {count} {unit}"
+
+
 def filter_completions_for_period(
     completions: Sequence[TickTickCompletion],
     start_date: date,

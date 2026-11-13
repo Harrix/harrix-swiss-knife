@@ -25,6 +25,7 @@ from harrix_swiss_knife.apps.habits.ticktick_task_stats import (
     current_streak_days,
     filter_completions_for_period,
     format_period_summary,
+    heatmap_cell_tooltip,
     latest_active_day,
     longest_streak_days,
     resolve_period,
@@ -163,6 +164,13 @@ def test_aggregate_completions_counts_streaks_and_filter() -> None:
             project_id="p2",
         )
     ] == ["C", "D"]
+
+
+def test_heatmap_cell_tooltip_includes_date_and_count() -> None:
+    """Hover text shows the day and completion count."""
+    assert heatmap_cell_tooltip(date(2024, 1, 2), 1) == "2024-01-02: 1 task"
+    assert heatmap_cell_tooltip(date(2024, 1, 2), 3) == "2024-01-02: 3 tasks"
+    assert heatmap_cell_tooltip(date(2024, 1, 2), 0) == "2024-01-02: 0 tasks"
 
 
 def test_latest_active_day_is_most_recent() -> None:

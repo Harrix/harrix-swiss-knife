@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QCursor
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QComboBox,
@@ -15,6 +16,7 @@ from PySide6.QtWidgets import (
     QSizePolicy,
     QTableWidget,
     QTableWidgetItem,
+    QToolTip,
     QVBoxLayout,
     QWidget,
 )
@@ -35,6 +37,7 @@ from harrix_swiss_knife.apps.habits.ticktick_task_stats import (
     build_contribution_heatmap,
     day_from_heatmap_click,
     format_period_summary,
+    heatmap_cell_tooltip,
     latest_active_day,
     resolve_period,
 )
@@ -71,6 +74,7 @@ class TickTickTaskStatsWidget(QWidget):
         self._heatmap: TickTickHeatmapResult | None = None
         self._canvas: FigureCanvas | None = None
         self._selected_day: date | None = None
+        self._hover_day: date | None = None
 
         self._summary_label = QLabel()
         self._summary_label.setWordWrap(True)
@@ -201,6 +205,30 @@ class TickTickTaskStatsWidget(QWidget):
         self._selected_day = day
         self._show_day(day)
 
+    def _on_heatmap_hover(self, event: MouseEvent) -> None:
+        if (
+            self._heatmap is None
+            or self._canvas is None
+            or event.inaxes is None
+            or event.xdata is None
+            or event.ydata is None
+        ):
+            self._clear_heatmap_tooltip()
+            return
+        day = day_from_heatmap_click(self._heatmap, float(event.xdata), float(event.ydata))
+        if day is None:
+            self._clear_heatmap_tooltip()
+            return
+        count = 0 if self._stats is None else int(self._stats.counts_by_day.get(day, 0))
+        tip = heatmap_cell_tooltip(day, count)
+        self._hover_day = day
+        QToolTip.showText(QCursor.pos(), tip, self._canvas)
+
+    def _clear_heatmap_tooltip(self) -> None:
+        if self._hover_day is not None:
+            self._hover_day = None
+            QToolTip.hideText()
+
     def _redraw(self) -> None:
         start_date, end_date = resolve_period(year=self._selected_year())
         self._stats = aggregate_completions(
@@ -290,9 +318,13 @@ class TickTickTaskStatsWidget(QWidget):
 
     def _show_heatmap(self, result: TickTickHeatmapResult) -> None:
         self._release_canvas()
+        self._hover_day = None
         canvas = FigureCanvas(result.figure)
         canvas.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        canvas.setMouseTracking(True)
         canvas.mpl_connect("button_press_event", self._on_heatmap_click)
+        canvas.mpl_connect("motion_notify_event", self._on_heatmap_hover)
+        canvas.mpl_connect("figure_leave_event", lambda _event: self._clear_heatmap_tooltip())
         self._heatmap_layout.addWidget(canvas)
         self._canvas = canvas
         canvas.draw()
