@@ -249,6 +249,13 @@ def format_period_summary(stats: TickTickPeriodStats) -> str:
     )
 
 
+def latest_active_day(stats: TickTickPeriodStats) -> date | None:
+    """Return the most recent day in ``stats`` that has at least one completion."""
+    if not stats.counts_by_day:
+        return None
+    return max(stats.counts_by_day)
+
+
 def longest_streak_days(counts_by_day: dict[date, int], start_date: date, end_date: date) -> int:
     """Return the longest run of consecutive active days inside the period."""
     best = 0

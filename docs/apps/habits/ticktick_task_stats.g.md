@@ -20,6 +20,7 @@ lang: en
 - [🔧 Function `day_from_heatmap_click`](#-function-day_from_heatmap_click)
 - [🔧 Function `filter_completions_for_period`](#-function-filter_completions_for_period)
 - [🔧 Function `format_period_summary`](#-function-format_period_summary)
+- [🔧 Function `latest_active_day`](#-function-latest_active_day)
 - [🔧 Function `longest_streak_days`](#-function-longest_streak_days)
 - [🔧 Function `resolve_period`](#-function-resolve_period)
 
@@ -355,6 +356,26 @@ def format_period_summary(stats: TickTickPeriodStats) -> str:
         f"Current streak: {stats.current_streak} · Longest streak: {stats.longest_streak} · "
         f"Busiest day: {busiest}"
     )
+```
+
+</details>
+
+## 🔧 Function `latest_active_day`
+
+```python
+def latest_active_day(stats: TickTickPeriodStats) -> date | None
+```
+
+Return the most recent day in `[`stats`](../icons/thumb_cache.g.md#%EF%B8%8F-method-stats)` that has at least one completion.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def latest_active_day(stats: TickTickPeriodStats) -> date | None:
+    if not stats.counts_by_day:
+        return None
+    return max(stats.counts_by_day)
 ```
 
 </details>

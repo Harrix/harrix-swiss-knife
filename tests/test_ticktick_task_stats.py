@@ -25,6 +25,7 @@ from harrix_swiss_knife.apps.habits.ticktick_task_stats import (
     current_streak_days,
     filter_completions_for_period,
     format_period_summary,
+    latest_active_day,
     longest_streak_days,
     resolve_period,
 )
@@ -162,6 +163,17 @@ def test_aggregate_completions_counts_streaks_and_filter() -> None:
             project_id="p2",
         )
     ] == ["C", "D"]
+
+
+def test_latest_active_day_is_most_recent() -> None:
+    """Bottom table defaults to the newest day that has completions."""
+    stats = aggregate_completions(
+        _sample_completions(),
+        date(2024, 1, 1),
+        date(2024, 1, 5),
+        today=date(2024, 1, 5),
+    )
+    assert latest_active_day(stats) == date(2024, 1, 5)
 
 
 def test_streak_helpers() -> None:

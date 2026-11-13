@@ -65,7 +65,7 @@ class TickTickTaskStatsWidget(QWidget):
         self._heatmap_layout = QVBoxLayout(self._heatmap_host)
         self._heatmap_layout.setContentsMargins(0, 0, 0, 0)
 
-        self._day_label = QLabel("Click a day on the calendar to list completed tasks.")
+        self._day_label = QLabel("Loading…")
         self._day_label.setStyleSheet(muted_caption_qss())
 
         self._day_table = QTableWidget(0, len(_HEADERS))
@@ -184,6 +184,7 @@ class TickTickTaskStatsWidget(QWidget):
         )
         self._summary_label.setText(format_period_summary(self._stats))
         if self._stats.total_completions == 0:
+            self._selected_day = None
             self._clear_heatmap("No completed tasks in this period.")
             self._fill_day_table([])
             self._day_label.setText("No completed tasks in this period.")
@@ -197,10 +198,14 @@ class TickTickTaskStatsWidget(QWidget):
             dpi=100,
         )
         self._show_heatmap(self._heatmap)
-        if self._selected_day is not None:
-            self._show_day(self._selected_day)
+        day = self._selected_day
+        if day is None or day not in self._stats.completions_by_day:
+            day = latest_active_day(self._stats)
+            self._selected_day = day
+        if day is not None:
+            self._show_day(day)
         else:
-            self._day_label.setText("Click a day on the calendar to list completed tasks.")
+            self._day_label.setText("No completed tasks in this period.")
             self._fill_day_table([])
 
     def _release_canvas(self) -> None:
@@ -312,7 +317,7 @@ def __init__(
         self._heatmap_layout = QVBoxLayout(self._heatmap_host)
         self._heatmap_layout.setContentsMargins(0, 0, 0, 0)
 
-        self._day_label = QLabel("Click a day on the calendar to list completed tasks.")
+        self._day_label = QLabel("Loading…")
         self._day_label.setStyleSheet(muted_caption_qss())
 
         self._day_table = QTableWidget(0, len(_HEADERS))
