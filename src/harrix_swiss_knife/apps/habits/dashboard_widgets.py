@@ -96,11 +96,13 @@ class CheckCircle(QWidget):
         self._allows_number = False
         self._editable = True
         self._has_comment = False
+        self._hovered = False
         self._size = size
         # Hit target stays at least 24px even when the drawn circle is smaller.
         hit = max(size, 24)
         self.setFixedSize(hit, hit)
         self.setAttribute(Qt.WidgetAttribute.WA_Hover, on=True)
+        self.setFocusPolicy(Qt.FocusPolicy.TabFocus)
         self._apply_interactive_state()
         self._apply_tooltip()
 
@@ -136,11 +138,23 @@ class CheckCircle(QWidget):
 
     def enterEvent(self, event: QEnterEvent) -> None:  # noqa: N802
         """Show the day-value picker when hovering an editable circle."""
+        self._hovered = True
+        self.update()
         if self._editable:
             from harrix_swiss_knife.apps.habits.habit_day_picker import HabitDayPickerPopup  # noqa: PLC0415
 
             HabitDayPickerPopup.request_show(self)
         super().enterEvent(event)
+
+    def focusInEvent(self, event: QFocusEvent) -> None:  # noqa: N802
+        """Show keyboard focus chrome on the day circle."""
+        self.update()
+        super().focusInEvent(event)
+
+    def focusOutEvent(self, event: QFocusEvent) -> None:  # noqa: N802
+        """Clear keyboard focus chrome when leaving the day circle."""
+        self.update()
+        super().focusOutEvent(event)
 
     def has_comment(self) -> bool:
         """Return whether this day has a stored comment."""
@@ -156,6 +170,8 @@ class CheckCircle(QWidget):
 
     def leaveEvent(self, event: QEvent) -> None:  # noqa: N802
         """Hide the day-value picker after the pointer leaves the circle."""
+        self._hovered = False
+        self.update()
         from harrix_swiss_knife.apps.habits.habit_day_picker import HabitDayPickerPopup  # noqa: PLC0415
 
         HabitDayPickerPopup.request_hide()
@@ -184,16 +200,24 @@ class CheckCircle(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.setRenderHint(QPainter.RenderHint.TextAntialiasing)
-        if not self._editable:
-            painter.setOpacity(0.48)
         # Keep the glyph centered at `_size` inside a possibly larger hit box.
         side = float(min(self._size, self.width(), self.height()))
         x = (self.width() - side) / 2.0
         y = (self.height() - side) / 2.0
         margin = 1.0
         rect = QRectF(x + margin, y + margin, side - 2 * margin, side - 2 * margin)
-        paint_habit_day_circle(painter, rect, self._value, font=self.font())
-        painter.setOpacity(1.0)
+        emphasize = self._hovered or self.hasFocus()
+        # Future dates mute empty rings only — never wash out Done / Not done.
+        paint_habit_day_circle(
+            painter,
+            rect,
+            self._value,
+            font=self.font(),
+            muted=not self._editable,
+            emphasize=emphasize,
+        )
+        if emphasize and habit_day_state(self._value) != "absent":
+            _paint_day_circle_emphasis(painter, rect)
         _paint_comment_dot(painter, rect, has_comment=self._has_comment)
 
     def set_allows_number(self, *, allows_number: bool) -> None:
@@ -1166,18 +1190,34 @@ def paint_habit_day_circle(
     font: QFont | None = None,
     text: str | None = None,
     palette: FluentPalette | None = None,
+    muted: bool = False,
+    emphasize: bool = False,
 ) -> None:
-    """Draw a dashboard-style day circle for a stored process-habit value."""
+    """Draw a dashboard-style day circle for a stored process-habit value.
+
+    Args:
+
+    - `muted` (`bool`): Quieter empty ring (future / non-editable days).
+      Does not wash Done / Not done glyphs.
+    - `emphasize` (`bool`): Hover or keyboard focus on an empty day.
+
+    """
     colors = palette if palette is not None else _palette_from_painter(painter)
     state = habit_day_state(value)
     size = min(rect.width(), rect.height())
     on_fill = colors.text_on_accent
 
     if state == "absent":
-        # Calm empty day — soft fill + thin solid ring (not a dashed “special” state).
-        painter.setPen(QPen(_track_color(colors), 1.25))
-        painter.setBrush(_absent_fill(colors))
+        # TickTick-like empty mark: one soft disk, no competing fill+border pair.
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(_absent_fill(colors, muted=muted, emphasize=emphasize))
         painter.drawEllipse(rect)
+        if emphasize:
+            ring = QPen(mix(colors.window_bg, colors.accent), 1.25)
+            ring.setCapStyle(Qt.PenCapStyle.RoundCap)
+            painter.setPen(ring)
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+            painter.drawEllipse(rect.adjusted(0.5, 0.5, -0.5, -0.5))
         return
 
     if state == "zero":
@@ -1303,11 +1343,32 @@ def _month_short(month: int) -> str:
     return str(month)
 
 
-def _absent_fill(palette: FluentPalette) -> QColor:
-    """Return a quiet fill for days with no check-in record."""
+def _absent_fill(palette: FluentPalette, *, muted: bool = False, emphasize: bool = False) -> QColor:
+    """Return a quiet fill for days with no check-in record.
+
+    Empty days use a single soft wash (no hard outline) so Done / Not done
+    stay the dominant accents in habit rows and the month calendar.
+
+    """
     stroke = palette.control_strong_stroke
-    wash = QColor(stroke.red(), stroke.green(), stroke.blue(), 28)
+    if emphasize:
+        alpha = 22
+    elif muted:
+        alpha = 10
+    else:
+        alpha = 14
+    wash = QColor(stroke.red(), stroke.green(), stroke.blue(), alpha)
     return mix(palette.window_bg, wash)
+
+
+def _paint_day_circle_emphasis(painter: QPainter, rect: QRectF) -> None:
+    """Draw a light accent ring for hover / keyboard focus on marked days."""
+    palette = _palette_from_painter(painter)
+    ring = QPen(mix(palette.window_bg, palette.accent), 1.25)
+    ring.setCapStyle(Qt.PenCapStyle.RoundCap)
+    painter.setPen(ring)
+    painter.setBrush(Qt.BrushStyle.NoBrush)
+    painter.drawEllipse(rect.adjusted(-1.0, -1.0, 1.0, 1.0))
 
 
 def _not_done_fill(palette: FluentPalette) -> QColor:
