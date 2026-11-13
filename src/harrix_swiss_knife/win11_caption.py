@@ -43,7 +43,7 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife.apps.common.qt_main_window import resolve_window_menu_bar
 from harrix_swiss_knife.fluent.app_chrome import CAPTION_TABS_PROPERTY
-from harrix_swiss_knife.fluent.style import chrome_top_color, tab_bar_qss
+from harrix_swiss_knife.fluent.style import chrome_top_color, lucide_qss_url, tab_bar_qss
 from harrix_swiss_knife.fluent.theme import FluentTheme, bind_theme, is_fluent_themed, mix, palette_for
 from harrix_swiss_knife.fluent.tokens import TAB_INDICATOR_HEIGHT
 from harrix_swiss_knife.installer.icon_assets import apply_window_icon, asset_candidates
@@ -679,6 +679,8 @@ def refresh_win11_caption(window: QWidget) -> None:
     for button in window.findChildren(QToolButton, "themeToggleButton"):
         if button.property("_hskThemeToggle"):
             _sync_theme_toggle_icon(button)
+    _place_caption_title(window)
+    _fit_caption_overflow(window)
 
 
 def try_handle_win11_caption_native_event(
@@ -1207,6 +1209,8 @@ def _fit_caption_fonts(window: QWidget) -> None:
     tab_widget = getattr(window, "tabWidget", None)
     if isinstance(tab_widget, QTabWidget):
         _fit_widget_font(tab_widget.tabBar(), CAPTION_BUTTON_HEIGHT - _CAPTION_FONT_SLACK)
+    for bar in _caption_hosted_tab_bars(window):
+        _fit_widget_font(bar, CAPTION_BUTTON_HEIGHT - _CAPTION_FONT_SLACK)
     menu = resolve_window_menu_bar(window)
     if menu is not None:
         menu.setFixedHeight(CAPTION_BUTTON_HEIGHT)
@@ -1240,6 +1244,10 @@ def _fit_caption_overflow(window: QWidget) -> None:
         tabs_width = _tab_strip_width(getattr(window, "tabWidget", None))
         if tabs_width is None:
             return
+        hosted_tabs = _caption_hosted_tab_bars_width(window)
+        if hosted_tabs is None:
+            return
+        tabs_width += hosted_tabs
         title_width = _caption_title_width(title) if isinstance(title, QLabel) else 0
         menu_width = _menu_bar_width(menu) if isinstance(menu, QMenuBar) else 0
         tools_width = 0
@@ -1808,24 +1816,15 @@ def _style_caption_chrome(window: QWidget) -> None:
                 page = tab_widget.widget(index)
                 if isinstance(page, QWidget):
                     _fill_widget(page, color)
-        tab_bar = tab_widget.tabBar()
-        tab_bar.setDrawBase(False)
-        text_height = QFontMetrics(tab_bar.font()).height()
-        pad = max(0, (CAPTION_BUTTON_HEIGHT - text_height - 2 * TAB_INDICATOR_HEIGHT) // 2)
-        _set_style_sheet(
-            tab_bar,
-            tab_bar_qss(
-                idle=colors.nav,
-                active=colors.title,
-                accent=colors.tab_active,
-                hover=colors.tab_line,
-                pad_v=pad,
-                min_height=CAPTION_BUTTON_HEIGHT - 2 * pad - 2 * TAB_INDICATOR_HEIGHT,
-                gap=_CAPTION_TAB_GAP,
-            )
-            + f"QTabBar {{ background: {rgb}; }}"
-            + f"QTabBar::tab:first {{ margin-left: {_CAPTION_TAB_HPAD}px; }}",
+        _style_caption_tab_bar(
+            tab_widget.tabBar(),
+            colors,
+            rgb,
+            closable=tab_widget.tabsClosable(),
+            first_tab_pad=True,
         )
+    for bar in _caption_hosted_tab_bars(window):
+        _style_caption_tab_bar(bar, colors, rgb, closable=bar.tabsClosable(), first_tab_pad=True)
     menu = resolve_window_menu_bar(window)
     if menu is None:
         return
@@ -1936,6 +1935,8 @@ def _sync_caption_palette(window: QWidget) -> None:
             widget = tab_widget.cornerWidget(corner)
             if widget is not None:
                 _fill_widget(widget, color)
+    for bar in _caption_hosted_tab_bars(window):
+        _fill_widget(bar, color)
     menu = resolve_window_menu_bar(window)
     if menu is not None:
         _fill_widget(menu, color)
@@ -1961,11 +1962,72 @@ def _sync_zoom_glyph(window: QWidget) -> None:
         button.set_glyph("square_multiple" if _window_is_zoomed(window) else "maximize")
 
 
-def _tab_strip_width(tab_widget: QWidget | None) -> int | None:
-    """Return the width of every tab, or `None` before the bar has been laid out."""
-    if not isinstance(tab_widget, QTabWidget) or tab_widget.count() == 0:
+def _caption_hosted_tab_bars(window: QWidget) -> list[QTabBar]:
+    """Return caption-row tab bars that are not owned by `window.tabWidget`."""
+    host = _caption_host(window)
+    if host is None:
+        return []
+    owned: QTabBar | None = None
+    tab_widget = getattr(window, "tabWidget", None)
+    if isinstance(tab_widget, QTabWidget):
+        owned = tab_widget.tabBar()
+    bars: list[QTabBar] = []
+    for bar in host.findChildren(QTabBar):
+        if bar is owned:
+            continue
+        if not bar.property(CAPTION_TABS_PROPERTY):
+            continue
+        bars.append(bar)
+    return bars
+
+
+def _caption_hosted_tab_bars_width(window: QWidget) -> int | None:
+    """Return width of caption-hosted tab strips, or `None` before layout."""
+    total = 0
+    for bar in _caption_hosted_tab_bars(window):
+        if not bar.isVisibleTo(window) or bar.count() == 0:
+            continue
+        width = _tab_bar_strip_width(bar)
+        if width is None:
+            return None
+        total += width
+    return total
+
+
+def _style_caption_tab_bar(
+    tab_bar: QTabBar,
+    colors: CaptionColors,
+    rgb: str,
+    *,
+    closable: bool,
+    first_tab_pad: bool,
+) -> None:
+    """Apply caption-row tab chrome (optional close buttons)."""
+    tab_bar.setDrawBase(False)
+    tab_bar.setProperty(CAPTION_TABS_PROPERTY, True)  # noqa: FBT003
+    text_height = QFontMetrics(tab_bar.font()).height()
+    pad = max(0, (CAPTION_BUTTON_HEIGHT - text_height - 2 * TAB_INDICATOR_HEIGHT) // 2)
+    close_icon = lucide_qss_url("x", QColor(colors.nav), 12) if closable else ""
+    sheet = tab_bar_qss(
+        idle=colors.nav,
+        active=colors.title,
+        accent=colors.tab_active,
+        hover=colors.tab_line,
+        pad_v=pad,
+        min_height=CAPTION_BUTTON_HEIGHT - 2 * pad - 2 * TAB_INDICATOR_HEIGHT,
+        close_icon=close_icon,
+        close_hover=colors.tab_hover if closable else "transparent",
+        gap=_CAPTION_TAB_GAP,
+    ) + f"QTabBar {{ background: {rgb}; }}"
+    if first_tab_pad:
+        sheet += f"QTabBar::tab:first {{ margin-left: {_CAPTION_TAB_HPAD}px; }}"
+    _set_style_sheet(tab_bar, sheet)
+
+
+def _tab_bar_strip_width(tab_bar: QTabBar) -> int | None:
+    """Return the width of every tab on `tab_bar`, or `None` before layout."""
+    if tab_bar.count() == 0:
         return 0
-    tab_bar = tab_widget.tabBar()
     total = 0
     for index in range(tab_bar.count()):
         width = tab_bar.tabRect(index).width()
@@ -1977,6 +2039,13 @@ def _tab_strip_width(tab_widget: QWidget | None) -> int | None:
     if tab_bar.count() > 1:
         total += _CAPTION_TAB_GAP * (tab_bar.count() - 1)
     return total + _CAPTION_TAB_HPAD
+
+
+def _tab_strip_width(tab_widget: QWidget | None) -> int | None:
+    """Return the width of every tab, or `None` before the bar has been laid out."""
+    if not isinstance(tab_widget, QTabWidget) or tab_widget.count() == 0:
+        return 0
+    return _tab_bar_strip_width(tab_widget.tabBar())
 
 
 def _theme_toggle_tooltip(*, dark: bool) -> str:

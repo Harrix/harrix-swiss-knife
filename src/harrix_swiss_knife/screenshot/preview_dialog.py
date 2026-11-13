@@ -51,13 +51,13 @@ from harrix_swiss_knife.apps.common.keyboard_shortcuts import (
 )
 from harrix_swiss_knife.apps.common.qt_main_window import apply_app_window_size_and_position
 from harrix_swiss_knife.fluent.app_chrome import (
+    CAPTION_TABS_PROPERTY,
     install_fluent_app_window,
     install_fluent_dialog_chrome,
     prepare_fluent_app_window,
 )
 from harrix_swiss_knife.fluent.style import (
     css,
-    fluent_tab_bar_qss,
     list_item_hover,
     list_item_selected,
     subtle_button_qss,
@@ -101,7 +101,12 @@ from harrix_swiss_knife.screenshot.text_style import (
 )
 from harrix_swiss_knife.screenshot.text_toolbar import ScreenshotTextToolbar
 from harrix_swiss_knife.screenshot.tool_colors import COLOR_TOOLS, load_tool_colors, save_tool_colors
-from harrix_swiss_knife.win11_caption import install_win11_caption, try_handle_win11_caption_native_event
+from harrix_swiss_knife.win11_caption import (
+    CAPTION_BUTTON_HEIGHT,
+    install_win11_caption,
+    refresh_win11_caption,
+    try_handle_win11_caption_native_event,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -208,16 +213,19 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._tabs.tabCloseRequested.connect(self._close_tab_at)
         self._tabs.currentChanged.connect(self._on_tab_changed)
         tab_bar = self._tabs.tabBar()
-        tab_bar.setParent(central)
         tab_bar.setDrawBase(False)
         tab_bar.setAutoFillBackground(False)
         tab_bar.setExpanding(False)
+        tab_bar.setFixedHeight(CAPTION_BUTTON_HEIGHT)
+        tab_bar.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         tab_bar.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
-        tab_bar.setStyleSheet(
-            fluent_tab_bar_qss(palette_for(self), closable=True, pad_v=SPACE_XS),
-        )
+        tab_bar.setProperty(CAPTION_TABS_PROPERTY, True)  # noqa: FBT003
+        tab_bar.hide()
         self._tab_bar = tab_bar
-        root.addWidget(tab_bar)
+        self._caption_tabs_stretch = QWidget()
+        self._caption_tabs_stretch.setObjectName("captionTabsStretch")
+        self._caption_tabs_stretch.setFixedHeight(CAPTION_BUTTON_HEIGHT)
+        self._caption_tabs_stretch.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
         body = QHBoxLayout()
         body.setSpacing(SPACE_S)
@@ -431,7 +439,7 @@ class ScreenshotPreviewWindow(QMainWindow):
         )
         self._build_help_menu()
         prepare_fluent_app_window(self)
-        install_win11_caption(self)
+        install_win11_caption(self, trailing_widgets=[self._tab_bar, self._caption_tabs_stretch])
         install_fluent_app_window(self)
         self._tab_bar.setDrawBase(False)
         self._tab_bar.setAutoFillBackground(False)
@@ -1235,8 +1243,9 @@ class ScreenshotPreviewWindow(QMainWindow):
         if active:
             self._text_bar_host.hide()
         multi = self._tabs.count() > 1
-        self._tabs.tabBar().setVisible(not active and multi)
+        self._tab_bar.setVisible(not active and multi)
         self._save_all_desktop_button.setVisible(not active and multi)
+        refresh_win11_caption(self)
 
     def _set_tool(self, tool: AnnotationTool) -> None:
         self._color_pick_eyedropper = False
@@ -1306,8 +1315,9 @@ class ScreenshotPreviewWindow(QMainWindow):
 
     def _update_multi_tab_chrome(self) -> None:
         multi = self._tabs.count() > 1
-        self._tabs.tabBar().setVisible(multi)
+        self._tab_bar.setVisible(multi)
         self._save_all_desktop_button.setVisible(multi)
+        refresh_win11_caption(self)
 
     def _update_window_title(self) -> None:
         tab = self._current_tab()
