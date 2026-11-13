@@ -63,6 +63,7 @@ class Ui_MainWindow(object):
 #endif // QT_CONFIG(tooltip)
         self.pushButton_charts_heatmap_next_year.setText(QCoreApplication.translate("MainWindow", u"\u2192", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_charts), QCoreApplication.translate("MainWindow", u"Charts", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_ticktick_stats), QCoreApplication.translate("MainWindow", u"TickTick", None))
         self.menuFile.setTitle(QCoreApplication.translate("MainWindow", u"File", None))
         self.menuCommands.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
         self.menuHelp.setTitle(QCoreApplication.translate("MainWindow", u"Help", None))
@@ -314,6 +315,12 @@ class Ui_MainWindow(object):
         self.horizontalLayout_charts.addWidget(self.splitter_charts)
 
         self.tabWidget.addTab(self.tab_charts, "")
+        self.tab_ticktick_stats = QWidget()
+        self.tab_ticktick_stats.setObjectName(u"tab_ticktick_stats")
+        self.verticalLayout_ticktick_stats = QVBoxLayout(self.tab_ticktick_stats)
+        self.verticalLayout_ticktick_stats.setObjectName(u"verticalLayout_ticktick_stats")
+        self.verticalLayout_ticktick_stats.setContentsMargins(0, 0, 0, 0)
+        self.tabWidget.addTab(self.tab_ticktick_stats, "")
 
         self.horizontalLayout.addWidget(self.tabWidget)
 
@@ -390,6 +397,7 @@ def retranslateUi(self, MainWindow):
 #endif // QT_CONFIG(tooltip)
         self.pushButton_charts_heatmap_next_year.setText(QCoreApplication.translate("MainWindow", u"\u2192", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_charts), QCoreApplication.translate("MainWindow", u"Charts", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_ticktick_stats), QCoreApplication.translate("MainWindow", u"TickTick", None))
         self.menuFile.setTitle(QCoreApplication.translate("MainWindow", u"File", None))
         self.menuCommands.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
         self.menuHelp.setTitle(QCoreApplication.translate("MainWindow", u"Help", None))
@@ -657,6 +665,12 @@ def setupUi(self, MainWindow):
         self.horizontalLayout_charts.addWidget(self.splitter_charts)
 
         self.tabWidget.addTab(self.tab_charts, "")
+        self.tab_ticktick_stats = QWidget()
+        self.tab_ticktick_stats.setObjectName(u"tab_ticktick_stats")
+        self.verticalLayout_ticktick_stats = QVBoxLayout(self.tab_ticktick_stats)
+        self.verticalLayout_ticktick_stats.setObjectName(u"verticalLayout_ticktick_stats")
+        self.verticalLayout_ticktick_stats.setContentsMargins(0, 0, 0, 0)
+        self.tabWidget.addTab(self.tab_ticktick_stats, "")
 
         self.horizontalLayout.addWidget(self.tabWidget)
 

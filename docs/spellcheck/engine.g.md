@@ -160,7 +160,7 @@ class SpellEngine:
 def __init__(self, dictionaries_dir: Path | None = None, user_dict_path: Path | None = None) -> None
 ```
 
-Create an unloaded engine; call [`ensure_loaded`](#%EF%B8%8F-method-ensure_loaded) before lookup.
+Create an unloaded engine; call `ensure_loaded` before lookup.
 
 <details>
 <summary>Code:</summary>

@@ -42,6 +42,19 @@ def test_habits_charts_heatmap_year_buttons_exist(qapp: QApplication) -> None:
     assert ui.pushButton_charts_heatmap_next_year.toolTip() == "Next year"
 
 
+def test_habits_ticktick_tab_is_last(qapp: QApplication) -> None:
+    """TickTick task stats is the last Habits tab after Charts."""
+    assert qapp is not None
+    window = QMainWindow()
+    ui = Ui_MainWindow()
+    ui.setupUi(window)
+    assert ui.tabWidget.count() >= 4
+    last = ui.tabWidget.count() - 1
+    assert ui.tabWidget.widget(last) is ui.tab_ticktick_stats
+    assert ui.tabWidget.tabText(last) == "TickTick"
+    assert ui.tabWidget.indexOf(ui.tab_charts) == last - 1
+
+
 def test_heatmap_year_after_step_walks_available_years() -> None:
     """Prev/next arrows move through years in the Charts filter, never past today."""
     years = [2026, 2024, 2020]

@@ -4,46 +4,45 @@ author-email: anton.b.sergienko@gmail.com
 lang: en
 ---
 
-# 📄 File `ticktick_task_stats_dialog.py`
+# 📄 File `ticktick_task_stats_widget.py`
 
 <details>
 <summary>📖 Contents ⬇️</summary>
 
 ## Contents
 
-- [🏛️ Class `TickTickTaskStatsDialog`](#%EF%B8%8F-class-tickticktaskstatsdialog)
+- [🏛️ Class `TickTickTaskStatsWidget`](#%EF%B8%8F-class-tickticktaskstatswidget)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
-- [🔧 Function `show_ticktick_task_stats_dialog`](#-function-show_ticktick_task_stats_dialog)
+  - [⚙️ Method `ensure_loaded`](#%EF%B8%8F-method-ensure_loaded)
+  - [⚙️ Method `reload`](#%EF%B8%8F-method-reload)
 
 </details>
 
-## 🏛️ Class `TickTickTaskStatsDialog`
+## 🏛️ Class `TickTickTaskStatsWidget`
 
 ```python
-class TickTickTaskStatsDialog(QDialog)
+class TickTickTaskStatsWidget(QWidget)
 ```
 
-Show a GitHub-like completion calendar for local TickTick tasks.
+GitHub-like completion calendar for local TickTick tasks (Habits tab).
 
 <details>
 <summary>Code:</summary>
 
 ```python
-class TickTickTaskStatsDialog(QDialog):
+class TickTickTaskStatsWidget(QWidget):
 
     def __init__(
         self,
         parent: QWidget | None = None,
         *,
         db_path: Path | None = None,
+        autoload: bool = False,
     ) -> None:
-        """Build the dialog and load the first snapshot from ``db_path`` or the default."""
+        """Build the tab UI; load the TickTick DB when ``autoload`` or ``ensure_loaded``."""
         super().__init__(parent)
-        self.setWindowTitle("TickTick task stats")
-        self.setWindowModality(Qt.WindowModality.ApplicationModal)
-        apply_window_icon(self)
-
         self._db_path = db_path
+        self._loaded = False
         self._projects: list[TickTickProject] = []
         self._completions: list[TickTickCompletion] = []
         self._stats: TickTickPeriodStats | None = None
@@ -92,18 +91,13 @@ class TickTickTaskStatsDialog(QDialog):
         filters.addWidget(self._project_combo, stretch=2)
 
         refresh_button = make_lucide_push_button("Refresh", "refresh-cw")
-        refresh_button.clicked.connect(self._reload_from_disk)
-
-        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
-        apply_lucide_dialog_buttons(buttons)
-        buttons.rejected.connect(self.reject)
-
+        refresh_button.clicked.connect(self.reload)
         button_row = QHBoxLayout()
         button_row.addWidget(refresh_button)
         button_row.addStretch()
-        button_row.addWidget(buttons)
 
         root = QVBoxLayout(self)
+        root.setContentsMargins(12, 12, 12, 12)
         root.addWidget(self._summary_label)
         root.addWidget(self._source_label)
         root.addLayout(filters)
@@ -115,7 +109,39 @@ class TickTickTaskStatsDialog(QDialog):
         self._period_combo.currentIndexChanged.connect(self._on_filters_changed)
         self._project_combo.currentIndexChanged.connect(self._on_filters_changed)
 
-        self._reload_from_disk()
+        if autoload:
+            self.reload()
+
+    def ensure_loaded(self) -> None:
+        """Load TickTick data once when the tab is first shown."""
+        if not self._loaded:
+            self.reload()
+
+    def reload(self) -> None:
+        """Copy the live TickTick DB again and refresh filters/heatmap."""
+        self._loaded = True
+        try:
+            projects, completions, source = load_ticktick_snapshot(self._db_path)
+        except TickTickDbError as exc:
+            self._projects = []
+            self._completions = []
+            self._summary_label.setText(str(exc))
+            self._source_label.setText("")
+            self._clear_heatmap("TickTick database is not available.")
+            self._fill_day_table([])
+            self._period_combo.blockSignals(True)  # noqa: FBT003
+            self._project_combo.blockSignals(True)  # noqa: FBT003
+            self._period_combo.clear()
+            self._project_combo.clear()
+            self._period_combo.blockSignals(False)  # noqa: FBT003
+            self._project_combo.blockSignals(False)  # noqa: FBT003
+            return
+
+        self._projects = projects
+        self._completions = completions
+        self._source_label.setText(f"Source: {source}")
+        self._repopulate_filters()
+        self._redraw()
 
     def _clear_heatmap(self, message: str) -> None:
         self._release_canvas()
@@ -186,31 +212,6 @@ class TickTickTaskStatsDialog(QDialog):
                 widget.deleteLater()
         self._canvas = None
 
-    def _reload_from_disk(self) -> None:
-        """Copy the live TickTick DB again and refresh filters/heatmap."""
-        try:
-            projects, completions, source = load_ticktick_snapshot(self._db_path)
-        except TickTickDbError as exc:
-            self._projects = []
-            self._completions = []
-            self._summary_label.setText(str(exc))
-            self._source_label.setText("")
-            self._clear_heatmap("TickTick database is not available.")
-            self._fill_day_table([])
-            self._period_combo.blockSignals(True)  # noqa: FBT003
-            self._project_combo.blockSignals(True)  # noqa: FBT003
-            self._period_combo.clear()
-            self._project_combo.clear()
-            self._period_combo.blockSignals(False)  # noqa: FBT003
-            self._project_combo.blockSignals(False)  # noqa: FBT003
-            return
-
-        self._projects = projects
-        self._completions = completions
-        self._source_label.setText(f"Source: {source}")
-        self._repopulate_filters()
-        self._redraw()
-
     def _repopulate_filters(self) -> None:
         """Fill period/project combos while preserving the previous selection when possible."""
         prev_period = self._period_combo.currentData()
@@ -270,10 +271,10 @@ class TickTickTaskStatsDialog(QDialog):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QWidget | None = None, *, db_path: Path | None = None) -> None
+def __init__(self, parent: QWidget | None = None, *, db_path: Path | None = None, autoload: bool = False) -> None
 ```
 
-Build the dialog and load the first snapshot from ``db_path`` or the default.
+Build the tab UI; load the TickTick DB when ``autoload`` or ``ensure_loaded``.
 
 <details>
 <summary>Code:</summary>
@@ -284,13 +285,11 @@ def __init__(
         parent: QWidget | None = None,
         *,
         db_path: Path | None = None,
+        autoload: bool = False,
     ) -> None:
         super().__init__(parent)
-        self.setWindowTitle("TickTick task stats")
-        self.setWindowModality(Qt.WindowModality.ApplicationModal)
-        apply_window_icon(self)
-
         self._db_path = db_path
+        self._loaded = False
         self._projects: list[TickTickProject] = []
         self._completions: list[TickTickCompletion] = []
         self._stats: TickTickPeriodStats | None = None
@@ -339,18 +338,13 @@ def __init__(
         filters.addWidget(self._project_combo, stretch=2)
 
         refresh_button = make_lucide_push_button("Refresh", "refresh-cw")
-        refresh_button.clicked.connect(self._reload_from_disk)
-
-        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
-        apply_lucide_dialog_buttons(buttons)
-        buttons.rejected.connect(self.reject)
-
+        refresh_button.clicked.connect(self.reload)
         button_row = QHBoxLayout()
         button_row.addWidget(refresh_button)
         button_row.addStretch()
-        button_row.addWidget(buttons)
 
         root = QVBoxLayout(self)
+        root.setContentsMargins(12, 12, 12, 12)
         root.addWidget(self._summary_label)
         root.addWidget(self._source_label)
         root.addLayout(filters)
@@ -362,31 +356,67 @@ def __init__(
         self._period_combo.currentIndexChanged.connect(self._on_filters_changed)
         self._project_combo.currentIndexChanged.connect(self._on_filters_changed)
 
-        self._reload_from_disk()
+        if autoload:
+            self.reload()
 ```
 
 </details>
 
-## 🔧 Function `show_ticktick_task_stats_dialog`
+### ⚙️ Method `ensure_loaded`
 
 ```python
-def show_ticktick_task_stats_dialog(parent: QWidget | None = None, *, db_path: Path | None = None) -> None
+def ensure_loaded(self) -> None
 ```
 
-Open the TickTick task-stats dialog sized like tracker apps.
+Load TickTick data once when the tab is first shown.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def show_ticktick_task_stats_dialog(
-    parent: QWidget | None = None,
-    *,
-    db_path: Path | None = None,
-) -> None:
-    dialog = TickTickTaskStatsDialog(parent, db_path=db_path)
-    apply_app_window_size_and_position(dialog)
-    dialog.exec()
+def ensure_loaded(self) -> None:
+        if not self._loaded:
+            self.reload()
+```
+
+</details>
+
+### ⚙️ Method `reload`
+
+```python
+def reload(self) -> None
+```
+
+Copy the live TickTick DB again and refresh filters/heatmap.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def reload(self) -> None:
+        self._loaded = True
+        try:
+            projects, completions, source = load_ticktick_snapshot(self._db_path)
+        except TickTickDbError as exc:
+            self._projects = []
+            self._completions = []
+            self._summary_label.setText(str(exc))
+            self._source_label.setText("")
+            self._clear_heatmap("TickTick database is not available.")
+            self._fill_day_table([])
+            self._period_combo.blockSignals(True)  # noqa: FBT003
+            self._project_combo.blockSignals(True)  # noqa: FBT003
+            self._period_combo.clear()
+            self._project_combo.clear()
+            self._period_combo.blockSignals(False)  # noqa: FBT003
+            self._project_combo.blockSignals(False)  # noqa: FBT003
+            return
+
+        self._projects = projects
+        self._completions = completions
+        self._source_label.setText(f"Source: {source}")
+        self._repopulate_filters()
+        self._redraw()
 ```
 
 </details>

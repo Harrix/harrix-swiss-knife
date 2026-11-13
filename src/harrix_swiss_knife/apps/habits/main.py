@@ -128,6 +128,7 @@ from harrix_swiss_knife.apps.habits.ticktick_api import (
     iso_to_ticktick_stamp,
     resolve_ticktick_api_token,
 )
+from harrix_swiss_knife.apps.habits.ticktick_task_stats_widget import TickTickTaskStatsWidget
 from harrix_swiss_knife.fluent.app_chrome import style_fluent_table
 from harrix_swiss_knife.fluent.theme import mix, palette_for
 from harrix_swiss_knife.installer.icon_assets import apply_window_icon
@@ -1557,6 +1558,12 @@ class MainWindow(
                 model.deleteLater()
             self.models[key] = None
 
+    def _ensure_ticktick_stats_loaded(self) -> None:
+        """Load TickTick task stats the first time that tab is shown."""
+        widget = getattr(self, "_ticktick_stats_widget", None)
+        if widget is not None:
+            widget.ensure_loaded()
+
     def _export_habits_table(self, *, prefer: Literal["csv", "xlsx"]) -> None:
         """Export the visible process habits table as CSV or Excel."""
         path = export_table_via_dialog(
@@ -1890,6 +1897,9 @@ class MainWindow(
         if widget is self.tab_charts:
             QTimer.singleShot(0, self._set_charts_splitter_size)
             QTimer.singleShot(0, self._refresh_habit_heatmap_from_filters)
+            return
+        if widget is self.tab_ticktick_stats:
+            QTimer.singleShot(0, self._ensure_ticktick_stats_loaded)
 
     def _refresh_after_ticktick_sync(self) -> None:
         """Reload dashboard and tables after TickTick sync writes."""
@@ -1996,6 +2006,8 @@ class MainWindow(
         self.verticalLayout_dashboard.addWidget(self._habit_dashboard)
         self._habit_dashboard.data_changed.connect(self._on_dashboard_data_changed)
         self._habit_dashboard.sport_habit_assign_requested.connect(self._on_assign_sport_habit)
+        self._ticktick_stats_widget = TickTickTaskStatsWidget(self, autoload=False)
+        self.verticalLayout_ticktick_stats.addWidget(self._ticktick_stats_widget)
         self.action_habits_refresh.setText(f"🔄 {self.action_habits_refresh.text()}")
         self.action_habits_delete.setText(f"🗑️ {self.action_habits_delete.text()}")
         self.menuCommands.addSeparator()

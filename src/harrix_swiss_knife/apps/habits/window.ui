@@ -443,6 +443,25 @@
         </property>
        </layout>
       </widget>
+      <widget class="QWidget" name="tab_ticktick_stats">
+       <attribute name="title">
+        <string>TickTick</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_ticktick_stats">
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
+       </layout>
+      </widget>
      </widget>
     </item>
     <property name="leftMargin">

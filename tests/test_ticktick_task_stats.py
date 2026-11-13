@@ -8,7 +8,8 @@ from pathlib import Path
 
 import pytest
 
-from harrix_swiss_knife.actions.common.ticktick_local_db import (
+from harrix_swiss_knife.apps.common.calendar_heatmap import date_at_heatmap_point
+from harrix_swiss_knife.apps.habits.ticktick_local_db import (
     TickTickCompletion,
     TickTickDbError,
     copy_ticktick_db,
@@ -18,7 +19,7 @@ from harrix_swiss_knife.actions.common.ticktick_local_db import (
     open_ticktick_db,
     parse_ticktick_datetime,
 )
-from harrix_swiss_knife.actions.common.ticktick_task_stats import (
+from harrix_swiss_knife.apps.habits.ticktick_task_stats import (
     aggregate_completions,
     available_years,
     current_streak_days,
@@ -27,7 +28,6 @@ from harrix_swiss_knife.actions.common.ticktick_task_stats import (
     longest_streak_days,
     resolve_period,
 )
-from harrix_swiss_knife.apps.common.calendar_heatmap import date_at_heatmap_point
 
 
 def _create_fixture_db(path: Path) -> Path:

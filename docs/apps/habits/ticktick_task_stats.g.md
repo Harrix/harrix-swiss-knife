@@ -163,7 +163,7 @@ def available_years(completions: Sequence[TickTickCompletion], *, today_year: in
 def build_contribution_heatmap(stats: TickTickPeriodStats, *, figsize: tuple[float, float] = (14.0, 3.2), dpi: int = 100) -> TickTickHeatmapResult
 ```
 
-Build a green GitHub-like contribution calendar for `[`stats`](../../apps/icons/thumb_cache.g.md#%EF%B8%8F-method-stats)`.
+Build a green GitHub-like contribution calendar for `[`stats`](../icons/thumb_cache.g.md#%EF%B8%8F-method-stats)`.
 
 <details>
 <summary>Code:</summary>
@@ -340,7 +340,7 @@ def filter_completions_for_period(
 def format_period_summary(stats: TickTickPeriodStats) -> str
 ```
 
-Return a one-line summary for the dialog header.
+Return a one-line summary for the TickTick stats tab header.
 
 <details>
 <summary>Code:</summary>

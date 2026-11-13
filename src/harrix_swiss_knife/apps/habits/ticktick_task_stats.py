@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
     from matplotlib.figure import Figure
 
-    from harrix_swiss_knife.actions.common.ticktick_local_db import TickTickCompletion
+    from harrix_swiss_knife.apps.habits.ticktick_local_db import TickTickCompletion
 
 LAST_365_DAYS_LABEL = "Last 365 days"
 _GRAY = "#e9e9e9"
@@ -238,7 +238,7 @@ def filter_completions_for_period(
 
 
 def format_period_summary(stats: TickTickPeriodStats) -> str:
-    """Return a one-line summary for the dialog header."""
+    """Return a one-line summary for the TickTick stats tab header."""
     busiest = "—"
     if stats.busiest_day is not None and stats.busiest_count > 0:
         busiest = f"{stats.busiest_day.isoformat()} ({stats.busiest_count})"
