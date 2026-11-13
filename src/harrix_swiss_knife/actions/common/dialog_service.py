@@ -1755,6 +1755,15 @@ class ActionDialogService:
             return (current_text if result == QDialog.DialogCode.Accepted else None, result)
         return current_text if result == QDialog.DialogCode.Accepted else None
 
+    def show_ticktick_task_stats(self) -> None:
+        """Show a contribution calendar of completed TickTick tasks from the local DB."""
+        from harrix_swiss_knife.actions.common.ticktick_task_stats_dialog import (  # noqa: PLC0415
+            show_ticktick_task_stats_dialog,
+        )
+
+        dialog_parent = QApplication.activeWindow()
+        show_ticktick_task_stats_dialog(dialog_parent)
+
     def _apply_lucide_dialog_buttons(self, buttons: QDialogButtonBox) -> None:
         """Set Lucide icons on standard QDialogButtonBox buttons."""
         apply_lucide_dialog_buttons(buttons, icon_size=DEFAULT_LUCIDE_BUTTON_ICON_SIZE)

@@ -8,6 +8,7 @@ from harrix_swiss_knife.actions.apps.food import OnFood
 from harrix_swiss_knife.actions.apps.habits import OnHabits
 from harrix_swiss_knife.actions.apps.icons import OnIcons
 from harrix_swiss_knife.actions.apps.snippets import OnSnippets
+from harrix_swiss_knife.actions.apps.ticktick_task_stats import OnShowTickTickTaskStats
 
 __all__ = [
     "OnBeautifyAndOptimizeIcons",
@@ -17,5 +18,6 @@ __all__ = [
     "OnFood",
     "OnHabits",
     "OnIcons",
+    "OnShowTickTickTaskStats",
     "OnSnippets",
 ]

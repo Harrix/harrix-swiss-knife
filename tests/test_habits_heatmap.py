@@ -7,7 +7,7 @@ from datetime import date
 import pytest
 from PySide6.QtWidgets import QApplication, QMainWindow
 
-from harrix_swiss_knife.apps.habits.main import (
+from harrix_swiss_knife.apps.common.calendar_heatmap import (
     HEATMAP_MONTH_GAP,
     habit_heatmap_month_ranges,
     habit_heatmap_month_separated_positions,

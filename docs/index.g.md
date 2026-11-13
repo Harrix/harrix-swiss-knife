@@ -192,6 +192,7 @@ _Figure 1: Screenshot_
 - 🍔 Food tracker
 - ✅ Habit tracker
 - 📋 Quick paste
+- 📅 TickTick task stats
 - 🎨 Vector Icons
 - × Exit
 

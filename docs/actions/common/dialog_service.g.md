@@ -45,6 +45,7 @@ lang: en
   - [⚙️ Method `show_instructions`](#%EF%B8%8F-method-show_instructions)
   - [⚙️ Method `show_text_diff_side_by_side`](#%EF%B8%8F-method-show_text_diff_side_by_side)
   - [⚙️ Method `show_text_multiline`](#%EF%B8%8F-method-show_text_multiline)
+  - [⚙️ Method `show_ticktick_task_stats`](#%EF%B8%8F-method-show_ticktick_task_stats)
 - [🏛️ Class `AndroidBuildDialogResult`](#%EF%B8%8F-class-androidbuilddialogresult)
 - [🏛️ Class `IconChoiceSelection`](#%EF%B8%8F-class-iconchoiceselection)
 
@@ -1699,6 +1700,15 @@ class ActionDialogService:
                 return current_text, result
             return (current_text if result == QDialog.DialogCode.Accepted else None, result)
         return current_text if result == QDialog.DialogCode.Accepted else None
+
+    def show_ticktick_task_stats(self) -> None:
+        """Show a contribution calendar of completed TickTick tasks from the local DB."""
+        from harrix_swiss_knife.actions.common.ticktick_task_stats_dialog import (  # noqa: PLC0415
+            show_ticktick_task_stats_dialog,
+        )
+
+        dialog_parent = QApplication.activeWindow()
+        show_ticktick_task_stats_dialog(dialog_parent)
 
     def _apply_lucide_dialog_buttons(self, buttons: QDialogButtonBox) -> None:
         """Set Lucide icons on standard QDialogButtonBox buttons."""
@@ -3965,6 +3975,29 @@ def show_text_multiline(
                 return current_text, result
             return (current_text if result == QDialog.DialogCode.Accepted else None, result)
         return current_text if result == QDialog.DialogCode.Accepted else None
+```
+
+</details>
+
+### ⚙️ Method `show_ticktick_task_stats`
+
+```python
+def show_ticktick_task_stats(self) -> None
+```
+
+Show a contribution calendar of completed TickTick tasks from the local DB.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def show_ticktick_task_stats(self) -> None:
+        from harrix_swiss_knife.actions.common.ticktick_task_stats_dialog import (  # noqa: PLC0415
+            show_ticktick_task_stats_dialog,
+        )
+
+        dialog_parent = QApplication.activeWindow()
+        show_ticktick_task_stats_dialog(dialog_parent)
 ```
 
 </details>
