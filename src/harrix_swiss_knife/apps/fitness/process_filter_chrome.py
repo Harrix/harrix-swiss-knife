@@ -69,7 +69,7 @@ def install_process_filter_chrome(host: Any) -> None:
         search_edit.setObjectName("lineEdit_process_search")
         host.lineEdit_process_search = search_edit
     search_edit.setMinimumHeight(CONTROL_HEIGHT)
-    search_edit.setClearButtonEnabled(True)  # noqa: FBT003
+    search_edit.setClearButtonEnabled(True)
     install_tracker_filter_shell(
         host,
         object_name_prefix="process",

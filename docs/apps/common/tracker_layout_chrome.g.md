@@ -175,6 +175,9 @@ def show_splitter_hairlines(splitters: Sequence[Any]) -> None
 
 Show a thin idle splitter line; grip width stays Fluent `SPACE_S`.
 
+Only sets the property when needed. Paint reads it on the next natural
+repaint — do not force handle updates from theme refresh paths.
+
 <details>
 <summary>Code:</summary>
 
@@ -183,12 +186,9 @@ def show_splitter_hairlines(splitters: Sequence[Any]) -> None:
     for splitter in splitters:
         if splitter is None:
             continue
+        if splitter.property("_hskQuietSplitter") is False:
+            continue
         splitter.setProperty("_hskQuietSplitter", False)  # noqa: FBT003
-        # Force painted handles to pick up the property on the next polish.
-        for index in range(1, splitter.count()):
-            handle = splitter.handle(index)
-            if handle is not None:
-                handle.update()
 ```
 
 </details>

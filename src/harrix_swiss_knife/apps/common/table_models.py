@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import (
+    QAbstractProxyModel,
     QEvent,
     QModelIndex,
     QObject,
@@ -131,7 +132,7 @@ class _RecordIdCornerMark(QWidget):
 
 
 def append_colored_table_row(
-    proxy: QSortFilterProxyModel,
+    proxy: QAbstractProxyModel,
     row: Sequence[object],
     *,
     id_column: int = -2,

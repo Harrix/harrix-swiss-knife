@@ -79,7 +79,7 @@ Initialize the food input dialog.
 
 Args:
 
-- [`parent`](../finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Parent widget. Defaults to `None`.
+- `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
 - `default_date` (`QDate | None`): Default date for food log entries.
 - `initial_text` (`str | None`): Pre-filled lines from AI. Defaults to `None`.
 - `focus_text_on_show` (`bool`): Ignored; kept for API compatibility.

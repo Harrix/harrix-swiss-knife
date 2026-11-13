@@ -127,7 +127,7 @@ Initialize ComboBoxDelegate.
 
 Args:
 
-- [`parent`](../../finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QObject | None`): Parent object for the delegate.
+- `parent` (`QObject | None`): Parent object for the delegate.
 - `items` (`list[str] | None`): Combo box entries (after optional leading empty item).
 - `editable` (`bool`): Whether the combo allows custom text (tag column).
 - `leading_empty_item` (`bool`): Insert blank item at index 0 before `items`.

@@ -309,7 +309,7 @@ Args:
 - `exercises` (`Sequence[str]`): Exercise names in navigation order.
 - `avif_manager` ([`AvifManager`](../avif_manager.g.md#%EF%B8%8F-class-avifmanager)): Loader for static and animated AVIF files.
 - `current_index` (`int`): Initial exercise index. Defaults to `0`.
-- [`parent`](../../finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Widget whose top-level window is covered.
+- `parent` (`QWidget | None`): Widget whose top-level window is covered.
 - `show_speed_slider` (`bool`): When `True`, show a speed slider for
   animated AVIFs (Fitness lightbox only). Defaults to `False`.
 - `complete_setup` (`bool`): When `False`, skip [`finish_setup`](app_window_lightbox.g.md#%EF%B8%8F-method-finish_setup) so a
@@ -485,7 +485,7 @@ def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
 def show_item(self, index: int) -> None
 ```
 
-Load the exercise AVIF at [`index`](../../finance/transaction_day_headers.g.md#%EF%B8%8F-method-index).
+Load the exercise AVIF at `index`.
 
 <details>
 <summary>Code:</summary>

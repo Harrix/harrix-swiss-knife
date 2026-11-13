@@ -32,7 +32,7 @@ Toast with elapsed timer and user-initiated request cancellation.
 
 Shown as `WindowModal` so only the owner window hierarchy is blocked (sibling
 apps in the same process stay interactive). Prefer passing the active modal
-dialog as [`parent`](apps/finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) so Escape and the close button still work during flows
+dialog as `parent` so Escape and the close button still work during flows
 like New Markdown → Fill with AI; `present()` focuses the toast.
 
 Attributes:
@@ -222,7 +222,7 @@ Initialize cancellable HTTP toast with countdown and close control.
 Args:
 
 - `message` (`str`): Toast text. Defaults to `Request in progress…`.
-- [`parent`](apps/finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Owner widget. Defaults to `None`.
+- `parent` (`QWidget | None`): Owner widget. Defaults to `None`.
 - `owner_modal` (`bool`): Block the owner window while the request runs.
   Defaults to `True`.
 

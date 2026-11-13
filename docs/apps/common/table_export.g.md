@@ -80,7 +80,7 @@ Ask for a path and write the table as CSV or Excel.
 
 Args:
 
-- [`parent`](../finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget`): Dialog parent.
+- `parent` (`QWidget`): Dialog parent.
 - `model` (`QAbstractItemModel | None`): Table to export.
 - `prefer` (`Literal["csv", "xlsx"]`): Format shown first in the dialog. Defaults to `"csv"`.
 - `title` (`str`): Save-dialog title. Defaults to `"Save Table"`.

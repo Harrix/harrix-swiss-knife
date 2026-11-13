@@ -793,7 +793,7 @@ def empty_caption(self) -> str:
 def show_item(self, index: int) -> None
 ```
 
-Load the icon at [`index`](../finance/transaction_day_headers.g.md#%EF%B8%8F-method-index) (SVG live, other formats via raster cache).
+Load the icon at `index` (SVG live, other formats via raster cache).
 
 <details>
 <summary>Code:</summary>

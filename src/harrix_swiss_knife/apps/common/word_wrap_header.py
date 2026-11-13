@@ -22,6 +22,8 @@ _TEXT_INSET = 4
 _HEADER_ICON_SIZE = 16
 _HEADER_ICON_TOP = 4
 _HEADER_ICON_GAP = 2
+_OPAQUE_ALPHA = 255
+_MIN_VISIBLE_SECTIONS_FOR_SEPARATORS = 2
 # Column titles that match amount-style cells (right-aligned content).
 _RIGHT_HEADER_TOKENS = frozenset(
     {
@@ -249,21 +251,9 @@ class WordWrapHeaderView(QHeaderView):
         with contextlib.suppress(Exception):
             palette = FluentTheme.instance().palette()
             color = QColor(palette.accent)
-            if color.alpha() < 255:
+            if color.alpha() < _OPAQUE_ALPHA:
                 color = QColor(css(mix(palette.window_bg, palette.accent)))
         return color
-
-    def _visible_boundary_xs(self) -> list[int]:
-        """Right edges of every visible Interactive section except the last visible."""
-        visible = [logical for logical in range(self.count()) if not self.isSectionHidden(logical)]
-        if len(visible) < 2:
-            return []
-        edges: list[int] = []
-        for logical in visible[:-1]:
-            if self.sectionResizeMode(logical) != QHeaderView.ResizeMode.Interactive:
-                continue
-            edges.append(self.sectionViewportPosition(logical) + self.sectionSize(logical))
-        return edges
 
     def _max_wrapped_height(self) -> int:
         if self.count() == 0:
@@ -330,6 +320,36 @@ class WordWrapHeaderView(QHeaderView):
     def _should_wrap_section(self, logical_index: int) -> bool:
         return self._wrap_first_section or logical_index > 0
 
+    def _visible_boundary_xs(self) -> list[int]:
+        """Right edges of every visible Interactive section except the last visible."""
+        visible = [logical for logical in range(self.count()) if not self.isSectionHidden(logical)]
+        if len(visible) < _MIN_VISIBLE_SECTIONS_FOR_SEPARATORS:
+            return []
+        edges: list[int] = []
+        for logical in visible[:-1]:
+            if self.sectionResizeMode(logical) != QHeaderView.ResizeMode.Interactive:
+                continue
+            edges.append(self.sectionViewportPosition(logical) + self.sectionSize(logical))
+        return edges
+
+
+def header_column_separator_color(widget: QWidget | None = None) -> QColor:
+    """Return a light idle color for header column rules (not selection blue)."""
+    del widget  # reserved for future per-widget palette hooks
+    with contextlib.suppress(Exception):
+        palette = FluentTheme.instance().palette()
+        if palette.dark:
+            wash = QColor(255, 255, 255, 28)
+            return mix(palette.window_bg, wash)
+    # Site separator — a step darker than hairline, still quieter than hover blue.
+    return QColor(SEPARATOR)
+
+
+def header_column_separator_insets(height: int) -> tuple[int, int]:
+    """Return `(y0, y1)` for a short vertical rule centered in the header."""
+    inset = min(_BOUNDARY_INSET_PX, max((height - 8) // 2, 0))
+    return inset, max(inset, height - inset - 1)
+
 
 def install_word_wrap_header(
     table: QTableView,
@@ -394,24 +414,6 @@ def install_word_wrap_headers(
         if table in skipped:
             continue
         install_word_wrap_header(table, wrap_first_section=wrap_first_section)
-
-
-def header_column_separator_color(widget: QWidget | None = None) -> QColor:
-    """Return a light idle color for header column rules (not selection blue)."""
-    del widget  # reserved for future per-widget palette hooks
-    with contextlib.suppress(Exception):
-        palette = FluentTheme.instance().palette()
-        if palette.dark:
-            wash = QColor(255, 255, 255, 28)
-            return mix(palette.window_bg, wash)
-    # Site separator — a step darker than hairline, still quieter than hover blue.
-    return QColor(SEPARATOR)
-
-
-def header_column_separator_insets(height: int) -> tuple[int, int]:
-    """Return `(y0, y1)` for a short vertical rule centered in the header."""
-    inset = min(_BOUNDARY_INSET_PX, max((height - 8) // 2, 0))
-    return inset, max(inset, height - inset - 1)
 
 
 def wrapped_header_text_size(

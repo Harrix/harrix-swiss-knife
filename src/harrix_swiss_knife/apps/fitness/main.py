@@ -214,8 +214,8 @@ from harrix_swiss_knife.apps.fitness.fitness_entry_chrome import (
     refresh_exercise_state_label,
     set_process_empty_visible,
 )
-from harrix_swiss_knife.apps.fitness.fitness_ui_settings import PROCESS_COL_DATE
 from harrix_swiss_knife.apps.fitness.fitness_lightbox import FitnessExerciseLightboxDialog
+from harrix_swiss_knife.apps.fitness.fitness_ui_settings import PROCESS_COL_DATE, PROCESS_COL_QUANTITY
 from harrix_swiss_knife.apps.fitness.layout_chrome import (
     apply_exercises_splitter_sizes,
     install_fitness_layout_chrome,
@@ -588,6 +588,14 @@ class MainWindow(
         self._update_date_filter_controls_enabled()
         self.apply_filter()
 
+    def clear_process_exercise_filter(self) -> None:
+        """Clear only the exercise filter chip."""
+        self.comboBox_filter_exercise.blockSignals(True)  # noqa: FBT003
+        self.comboBox_filter_exercise.setCurrentIndex(0)
+        self.comboBox_filter_exercise.blockSignals(False)  # noqa: FBT003
+        self.update_filter_type_combobox()
+        self.apply_filter()
+
     def clear_process_search_filter(self) -> None:
         """Clear only the history search chip (not catalog Filter exercises)."""
         search_edit = getattr(self, "lineEdit_process_search", None)
@@ -597,14 +605,6 @@ class MainWindow(
         search_edit.clear()
         search_edit.blockSignals(False)  # noqa: FBT003
         self._process_search_timer.stop()
-        self.apply_filter()
-
-    def clear_process_exercise_filter(self) -> None:
-        """Clear only the exercise filter chip."""
-        self.comboBox_filter_exercise.blockSignals(True)  # noqa: FBT003
-        self.comboBox_filter_exercise.setCurrentIndex(0)
-        self.comboBox_filter_exercise.blockSignals(False)  # noqa: FBT003
-        self.update_filter_type_combobox()
         self.apply_filter()
 
     def clear_process_type_filter(self) -> None:
@@ -2010,9 +2010,7 @@ class MainWindow(
                 return
 
             row = source_index.row()
-            exercise_name = parse_exercise_display_name(
-                source_model.data(source_model.index(row, 0)) or ""
-            )
+            exercise_name = parse_exercise_display_name(source_model.data(source_model.index(row, 0)) or "")
             type_name = source_model.data(source_model.index(row, 1)) or ""
             value_with_unit = source_model.data(source_model.index(row, 2)) or ""
             value_str = value_with_unit.split()[0] if value_with_unit else "0"
@@ -4631,7 +4629,7 @@ class MainWindow(
             for col_idx, value in enumerate(row[:4]):
                 item = QStandardItem(str(value) if value is not None else "")
                 set_day_band(item, row_color)
-                if col_idx == 2:
+                if col_idx == PROCESS_COL_QUANTITY:
                     item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
                 else:
                     item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
@@ -5276,7 +5274,7 @@ class MainWindow(
             for col_idx, value in enumerate(row[:4]):  # Only first 4 elements for display
                 item = QStandardItem(str(value) if value is not None else "")
                 set_day_band(item, row_color)
-                if col_idx == 2:  # Quantity
+                if col_idx == PROCESS_COL_QUANTITY:
                     item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
                 else:
                     item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
@@ -6707,9 +6705,7 @@ class MainWindow(
         rows: list[list] = self._fetch_process_rows(limit, 0)
         transformed_data: list[list] = self._transform_process_data(rows, append_state=False)
 
-        sort_proxy = self._create_colored_process_table_model(
-            transformed_data, self.table_config["process"][2]
-        )
+        sort_proxy = self._create_colored_process_table_model(transformed_data, self.table_config["process"][2])
         self.tableView_process.setModel(sort_proxy)
         # Filters / incompatible sorts: flat list with Date visible.
         if self._process_uses_flat_history():
@@ -6817,13 +6813,6 @@ class MainWindow(
             source = model.sourceModel()
             return source if source is not None else model
         return model
-
-    def _on_process_header_sort_clicked(self, _section: int) -> None:
-        """Reload process history when sort mode flips between grouped and flat."""
-        want_flat = self._process_uses_flat_history()
-        is_flat = not isinstance(self.tableView_process.model(), ProcessDayHeaderProxy)
-        if want_flat != is_flat:
-            self._load_process_page(reset=True)
 
     def _on_chart_exercise_list_double_clicked(self, _index: QModelIndex) -> None:
         """Handle double-click on chart exercise list to open Sets tab.
@@ -6981,6 +6970,13 @@ class MainWindow(
             self._update_list_view_exercise_icon(name)
             if self._workouts_widget is not None:
                 self._workouts_widget.update_exercise_icon(name, self._get_exercise_icon(name))
+
+    def _on_process_header_sort_clicked(self, _section: int) -> None:
+        """Reload process history when sort mode flips between grouped and flat."""
+        want_flat = self._process_uses_flat_history()
+        is_flat = not isinstance(self.tableView_process.model(), ProcessDayHeaderProxy)
+        if want_flat != is_flat:
+            self._load_process_page(reset=True)
 
     def _on_process_scroll(self, value: int) -> None:
         """Trigger loading more process rows when scrolled near the bottom."""
@@ -7585,29 +7581,6 @@ class MainWindow(
             return True
         return self.checkBox_use_date_filter.isChecked()
 
-    def _process_sort_requires_flat(self) -> bool:
-        """Return True when header sort is incompatible with date day/month grouping."""
-        from harrix_swiss_knife.apps.common.table_models import (  # noqa: PLC0415
-            get_stored_table_header_sort,
-        )
-
-        stored = get_stored_table_header_sort(self.tableView_process)
-        if stored is None:
-            return False
-        section, _order = stored
-        # Default SQL order and Date column keep consecutive date runs.
-        return section != PROCESS_COL_DATE
-
-    def _process_uses_flat_history(self) -> bool:
-        """Return True for flat history (Date column) instead of day/month grouping."""
-        return self._process_filter_is_active() or self._process_sort_requires_flat()
-
-    def _schedule_process_search_filter(self, *_args: object) -> None:
-        """Debounce history search so typing does not reload on every key."""
-        self._update_clear_filter_button_visibility()
-        sync_process_filter_button(self)
-        self._process_search_timer.start()
-
     @requires_database()
     def _process_set_items(self, rows: list[ParsedSetRow], date_str: str) -> None:
         """Insert parsed set rows for `date_str` and refresh the UI."""
@@ -7661,6 +7634,19 @@ class MainWindow(
             )
             toast.present()
 
+    def _process_sort_requires_flat(self) -> bool:
+        """Return `True` when header sort is incompatible with date day/month grouping."""
+        from harrix_swiss_knife.apps.common.table_models import (  # noqa: PLC0415
+            get_stored_table_header_sort,
+        )
+
+        stored = get_stored_table_header_sort(self.tableView_process)
+        if stored is None:
+            return False
+        section, _order = stored
+        # Default SQL order and Date column keep consecutive date runs.
+        return section != PROCESS_COL_DATE
+
     def _process_table_available_width(self) -> int:
         """Return a usable process-table width, including while the window is hidden."""
         viewport_width = self.tableView_process.viewport().width()
@@ -7675,6 +7661,10 @@ class MainWindow(
             if len(sizes) > process_pane and sizes[process_pane] > 0:
                 return sizes[process_pane]
         return max(self.width() // 2, 0)
+
+    def _process_uses_flat_history(self) -> bool:
+        """Return `True` for flat history (Date column) instead of day/month grouping."""
+        return self._process_filter_is_active() or self._process_sort_requires_flat()
 
     def _pump_exercise_add_queue(self) -> None:
         """Start the next queued add when AI, media, and the previous job are idle."""
@@ -7956,6 +7946,12 @@ class MainWindow(
             return
         delay_ms = 800 if self._exercise_add_queue or self._exercise_add_busy else 250
         self._exercise_catalog_refresh_timer.start(delay_ms)
+
+    def _schedule_process_search_filter(self, *_args: object) -> None:
+        """Debounce history search so typing does not reload on every key."""
+        self._update_clear_filter_button_visibility()
+        sync_process_filter_button(self)
+        self._process_search_timer.start()
 
     def _scroll_table_to_exercise(self, table_name: str, exercise_name: str) -> bool:
         """Select and scroll to the first row for `exercise_name` in `table_name`."""

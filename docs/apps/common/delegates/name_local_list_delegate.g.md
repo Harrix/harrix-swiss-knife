@@ -96,30 +96,47 @@ class NameLocalListDelegate(QStyledItemDelegate):
 
         main_text = opt.text
         name_local = self._name_local(index)
+        selected = bool(opt.state & QStyle.StateFlag.State_Selected)
+        hovered = bool(opt.state & QStyle.StateFlag.State_MouseOver)
+        focused = bool(opt.state & QStyle.StateFlag.State_HasFocus)
+
+        if self._layout == NameLocalLayout.LIST:
+            self._paint_list_chrome(painter, option, selected=selected, hovered=hovered, focused=focused)
+            content_rect = self._list_content_rect(option.rect, selected=selected)
+            decoration_rect, text_rect = self._list_layout_rects_for(content_rect, opt)
+            # Keep thumbnails crisp — Selected icon mode looks like a disabled plate.
+            if not opt.icon.isNull() and decoration_rect.isValid():
+                opt.icon.paint(
+                    painter,
+                    decoration_rect,
+                    Qt.AlignmentFlag.AlignCenter,
+                    QIcon.Mode.Normal,
+                    QIcon.State.Off,
+                )
+            host = self._host_widget(option)
+            fluent = palette_for(host)
+            text_color = mix(fluent.window_bg, fluent.text_primary)
+            self._paint_labels(painter, opt.font, main_text, name_local, text_rect, text_color)
+            return
 
         widget = option.widget
         style = widget.style() if widget is not None else QApplication.style()
-
-        # Panel draws stylesheet selection/hover backgrounds and item separators.
         style.drawPrimitive(QStyle.PrimitiveElement.PE_PanelItemViewItem, opt, painter, widget)
-
-        if self._layout == NameLocalLayout.LIST:
-            decoration_rect, text_rect = self._list_layout_rects(opt)
-        else:
-            decoration_rect = style.subElementRect(QStyle.SubElement.SE_ItemViewItemDecoration, opt, widget)
-            text_rect = style.subElementRect(QStyle.SubElement.SE_ItemViewItemText, opt, widget)
-            if not text_rect.isValid():
-                text_rect = option.rect.adjusted(4, 2, -4, -2)
+        decoration_rect = style.subElementRect(QStyle.SubElement.SE_ItemViewItemDecoration, opt, widget)
+        text_rect = style.subElementRect(QStyle.SubElement.SE_ItemViewItemText, opt, widget)
+        if not text_rect.isValid():
+            text_rect = option.rect.adjusted(4, 2, -4, -2)
 
         if not opt.icon.isNull() and decoration_rect.isValid():
-            mode = QIcon.Mode.Selected if opt.state & QStyle.StateFlag.State_Selected else QIcon.Mode.Normal
-            opt.icon.paint(painter, decoration_rect, Qt.AlignmentFlag.AlignCenter, mode, QIcon.State.Off)
+            opt.icon.paint(
+                painter,
+                decoration_rect,
+                Qt.AlignmentFlag.AlignCenter,
+                QIcon.Mode.Normal,
+                QIcon.State.Off,
+            )
 
-        if opt.state & QStyle.StateFlag.State_Selected:
-            text_color = opt.palette.highlightedText().color()
-        else:
-            text_color = opt.palette.text().color()
-
+        text_color = opt.palette.text().color()
         self._paint_labels(painter, opt.font, main_text, name_local, text_rect, text_color)
 
     def sizeHint(  # noqa: N802
@@ -144,18 +161,32 @@ class NameLocalListDelegate(QStyledItemDelegate):
             hint.setHeight(hint.height() + local_height + _LINE_GAP)
         return hint
 
-    def _list_layout_rects(self, option: QStyleOptionViewItem) -> tuple[QRect, QRect]:
+    def _host_widget(self, option: QStyleOptionViewItem) -> QWidget | None:
+        widget = option.widget
+        return widget if isinstance(widget, QWidget) else None
+
+    def _list_content_rect(self, item_rect: QRect, *, selected: bool) -> QRect:
+        if not selected:
+            return item_rect
+        shift = MARKER_INSET + MARKER_WIDTH + MARKER_GAP
+        return item_rect.adjusted(shift, 0, 0, 0)
+
+    def _list_layout_rects_for(
+        self,
+        item_rect: QRect,
+        option: QStyleOptionViewItem,
+    ) -> tuple[QRect, QRect]:
         """Compact icon + text rects for list rows (tighter than default style gaps)."""
         decoration_rect = self.list_decoration_rect(
-            option.rect,
+            item_rect,
             option.decorationSize,
             has_icon=not option.icon.isNull(),
         )
         if not decoration_rect.isValid():
-            content = option.rect.adjusted(_LIST_EDGE_PAD, _LIST_EDGE_PAD, -_LIST_EDGE_PAD, -_LIST_EDGE_PAD)
+            content = item_rect.adjusted(_LIST_EDGE_PAD, _LIST_EDGE_PAD, -_LIST_EDGE_PAD, -_LIST_EDGE_PAD)
             return QRect(), content
 
-        content = option.rect.adjusted(_LIST_EDGE_PAD, _LIST_EDGE_PAD, -_LIST_EDGE_PAD, -_LIST_EDGE_PAD)
+        content = item_rect.adjusted(_LIST_EDGE_PAD, _LIST_EDGE_PAD, -_LIST_EDGE_PAD, -_LIST_EDGE_PAD)
         text_x = decoration_rect.right() + _LIST_ICON_TEXT_GAP
         text_rect = QRect(text_x, content.y(), max(0, content.right() - text_x), content.height())
         return decoration_rect, text_rect
@@ -262,6 +293,49 @@ class NameLocalListDelegate(QStyledItemDelegate):
             local_metrics.elidedText(name_local, Qt.TextElideMode.ElideRight, local_rect.width()),
         )
         painter.restore()
+
+    def _paint_list_chrome(
+        self,
+        painter: QPainter,
+        option: QStyleOptionViewItem,
+        *,
+        selected: bool,
+        hovered: bool,
+        focused: bool,
+    ) -> None:
+        """Soft-blue selection + left accent marker (Finance category list language)."""
+        host = self._host_widget(option)
+        fluent = palette_for(host)
+        if selected:
+            accent_fill = QColor(fluent.accent)
+            accent_fill.setAlpha(36 if fluent.dark else 28)
+            background = mix(fluent.window_bg, accent_fill)
+        elif hovered:
+            background = list_item_hover(fluent)
+        else:
+            background = QColor(0, 0, 0, 0)
+
+        painter.save()
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
+        if background.alpha() > 0:
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(background)
+            painter.drawRoundedRect(option.rect.adjusted(1, 1, -1, -1), RADIUS_CONTROL, RADIUS_CONTROL)
+
+        if selected:
+            marker = QRect(
+                option.rect.left() + MARKER_INSET,
+                option.rect.top() + 4,
+                MARKER_WIDTH,
+                max(8, option.rect.height() - 8),
+            )
+            painter.fillRect(marker, fluent.accent)
+
+        if focused and not selected:
+            painter.setPen(QPen(fluent.focus_stroke_outer, 1))
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+            painter.drawRoundedRect(option.rect.adjusted(1, 1, -2, -2), RADIUS_CONTROL, RADIUS_CONTROL)
+        painter.restore()
 ```
 
 </details>
@@ -344,30 +418,47 @@ def paint(
 
         main_text = opt.text
         name_local = self._name_local(index)
+        selected = bool(opt.state & QStyle.StateFlag.State_Selected)
+        hovered = bool(opt.state & QStyle.StateFlag.State_MouseOver)
+        focused = bool(opt.state & QStyle.StateFlag.State_HasFocus)
+
+        if self._layout == NameLocalLayout.LIST:
+            self._paint_list_chrome(painter, option, selected=selected, hovered=hovered, focused=focused)
+            content_rect = self._list_content_rect(option.rect, selected=selected)
+            decoration_rect, text_rect = self._list_layout_rects_for(content_rect, opt)
+            # Keep thumbnails crisp — Selected icon mode looks like a disabled plate.
+            if not opt.icon.isNull() and decoration_rect.isValid():
+                opt.icon.paint(
+                    painter,
+                    decoration_rect,
+                    Qt.AlignmentFlag.AlignCenter,
+                    QIcon.Mode.Normal,
+                    QIcon.State.Off,
+                )
+            host = self._host_widget(option)
+            fluent = palette_for(host)
+            text_color = mix(fluent.window_bg, fluent.text_primary)
+            self._paint_labels(painter, opt.font, main_text, name_local, text_rect, text_color)
+            return
 
         widget = option.widget
         style = widget.style() if widget is not None else QApplication.style()
-
-        # Panel draws stylesheet selection/hover backgrounds and item separators.
         style.drawPrimitive(QStyle.PrimitiveElement.PE_PanelItemViewItem, opt, painter, widget)
-
-        if self._layout == NameLocalLayout.LIST:
-            decoration_rect, text_rect = self._list_layout_rects(opt)
-        else:
-            decoration_rect = style.subElementRect(QStyle.SubElement.SE_ItemViewItemDecoration, opt, widget)
-            text_rect = style.subElementRect(QStyle.SubElement.SE_ItemViewItemText, opt, widget)
-            if not text_rect.isValid():
-                text_rect = option.rect.adjusted(4, 2, -4, -2)
+        decoration_rect = style.subElementRect(QStyle.SubElement.SE_ItemViewItemDecoration, opt, widget)
+        text_rect = style.subElementRect(QStyle.SubElement.SE_ItemViewItemText, opt, widget)
+        if not text_rect.isValid():
+            text_rect = option.rect.adjusted(4, 2, -4, -2)
 
         if not opt.icon.isNull() and decoration_rect.isValid():
-            mode = QIcon.Mode.Selected if opt.state & QStyle.StateFlag.State_Selected else QIcon.Mode.Normal
-            opt.icon.paint(painter, decoration_rect, Qt.AlignmentFlag.AlignCenter, mode, QIcon.State.Off)
+            opt.icon.paint(
+                painter,
+                decoration_rect,
+                Qt.AlignmentFlag.AlignCenter,
+                QIcon.Mode.Normal,
+                QIcon.State.Off,
+            )
 
-        if opt.state & QStyle.StateFlag.State_Selected:
-            text_color = opt.palette.highlightedText().color()
-        else:
-            text_color = opt.palette.text().color()
-
+        text_color = opt.palette.text().color()
         self._paint_labels(painter, opt.font, main_text, name_local, text_rect, text_color)
 ```
 

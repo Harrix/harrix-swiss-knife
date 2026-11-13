@@ -102,7 +102,7 @@ Initialize the report amount delegate.
 
 Args:
 
-- [`parent`](../transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): The parent widget. Defaults to `None`.
+- `parent` (`QWidget | None`): The parent widget. Defaults to `None`.
 - `is_bold` (`bool`): Whether to display text in bold. Defaults to `False`.
 
 <details>
@@ -156,7 +156,7 @@ Args:
 
 - `painter` (`QPainter`): The painter used for drawing.
 - `option` (`QStyleOptionViewItem`): The style options for the item.
-- [`index`](../transaction_day_headers.g.md#%EF%B8%8F-method-index) (`QModelIndex`): The model index of the item being painted.
+- `index` (`QModelIndex`): The model index of the item being painted.
 
 <details>
 <summary>Code:</summary>

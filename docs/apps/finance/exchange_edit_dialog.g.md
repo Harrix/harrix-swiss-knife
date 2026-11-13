@@ -250,7 +250,7 @@ Initialize the dialog.
 
 Args:
 
-- [`parent`](transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Parent widget. Defaults to `None`.
+- `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
 - `exchange_data` (`dict | None`): Dictionary with exchange data. Defaults to `None`.
 - `currencies` (`list[str] | None`): List of currency codes. Defaults to `None`.
 

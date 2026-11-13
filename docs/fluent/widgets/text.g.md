@@ -203,7 +203,7 @@ Args:
 
 - `text` (`str`): Visible text.
 - `url` (`str`): Target URL opened with the system handler.
-- [`parent`](../../apps/finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Optional parent.
+- `parent` (`QWidget | None`): Optional parent.
 
 <details>
 <summary>Code:</summary>

@@ -69,9 +69,7 @@ _FLEX_COLUMN_WEIGHTS: dict[int, int] = {
     PROCESS_COL_EXERCISE: 5,
     PROCESS_COL_TYPE: 2,
 }
-GOAL_REMAINDER_TOOLTIP = (
-    "Remaining toward today's daily goal in this exercise's units — not the number of sets"
-)
+GOAL_REMAINDER_TOOLTIP = "Remaining toward today's daily goal in this exercise's units — not the number of sets"
 
 
 def apply_process_column_visibility(host: Any) -> None:
@@ -193,10 +191,10 @@ def set_process_empty_visible(host: Any, *, visible: bool) -> None:
     """Show or hide the process-history empty state."""
     label = getattr(host, "label_process_empty", None)
     if isinstance(label, QLabel):
-        label.setVisible(visible)  # noqa: FBT003
+        label.setVisible(visible)
     table = getattr(host, "tableView_process", None)
     if table is not None:
-        table.setVisible(not visible)  # noqa: FBT003
+        table.setVisible(not visible)
 
 
 def _apply_day_header_column_policy(table: QTableView) -> None:

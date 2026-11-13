@@ -314,7 +314,7 @@ class ReportOperations:
             text = index.data(Qt.ItemDataRole.UserRole)
             if isinstance(text, str) and text.strip():
                 return text
-        return REPORT_TYPES[0][1]
+        return REPORT_TYPES[0][2]
 
     @staticmethod
     def _set_monthly_summary_header_icons(
@@ -341,14 +341,16 @@ class ReportOperations:
                 reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Stretch)
 
     def _setup_report_type_list(self) -> None:
-        """Populate `listView_report_type` and select the first report type."""
+        """Populate `listView_report_type` with colored Lucide icons."""
         model = QStandardItemModel(self.listView_report_type)
-        for icon, report_type in REPORT_TYPES:
-            item = QStandardItem(f"{icon} {report_type}")
+        for lucide_name, color, report_type in REPORT_TYPES:
+            item = QStandardItem(report_type)
+            item.setIcon(create_lucide_icon(lucide_name, ICON_SIZE, color=color))
             item.setData(report_type, Qt.ItemDataRole.UserRole)
             item.setEditable(False)
             model.appendRow(item)
         self.listView_report_type.setModel(model)
+        self.listView_report_type.setIconSize(QSize(ICON_SIZE, ICON_SIZE))
         self.listView_report_type.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.listView_report_type.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         if model.rowCount() > 0:

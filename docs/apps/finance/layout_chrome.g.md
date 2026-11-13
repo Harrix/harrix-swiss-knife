@@ -11,8 +11,56 @@ lang: en
 
 ## Contents
 
+- [🔧 Function `apply_exchange_rates_table_column_widths`](#-function-apply_exchange_rates_table_column_widths)
 - [🔧 Function `install_finance_layout_chrome`](#-function-install_finance_layout_chrome)
 - [🔧 Function `persist_finance_tabs_splitter_sizes`](#-function-persist_finance_tabs_splitter_sizes)
+
+</details>
+
+## 🔧 Function `apply_exchange_rates_table_column_widths`
+
+```python
+def apply_exchange_rates_table_column_widths(table: QTableView, *, force: bool = False) -> None
+```
+
+Give Rate the leftover width; keep From/To/Date compact so values fit.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def apply_exchange_rates_table_column_widths(table: QTableView, *, force: bool = False) -> None:
+    bind_column_fill_on_resize(table, apply_exchange_rates_table_column_widths)
+    if not table.isVisible() or user_resized_columns(table):
+        return
+    header = table.horizontalHeader()
+    if header.count() < _RATES_COLUMN_COUNT or table.property("hskColumnFillGuard"):
+        return
+    viewport_w = table.viewport().width()
+    if viewport_w <= 0:
+        return
+    if not force and columns_fill_viewport(table):
+        return
+
+    rate_w = max(
+        viewport_w - _RATES_FROM_WIDTH - _RATES_TO_WIDTH - _RATES_DATE_WIDTH,
+        _RATES_RATE_MIN_WIDTH,
+    )
+    widths = {
+        _RATES_COL_FROM: _RATES_FROM_WIDTH,
+        _RATES_COL_TO: _RATES_TO_WIDTH,
+        _RATES_COL_RATE: rate_w,
+        _RATES_COL_DATE: _RATES_DATE_WIDTH,
+    }
+    header.setStretchLastSection(False)
+    table.setProperty("hskColumnFillGuard", 1)
+    try:
+        for column, width in widths.items():
+            header.setSectionResizeMode(column, header.ResizeMode.Interactive)
+            table.setColumnWidth(column, width)
+    finally:
+        table.setProperty("hskColumnFillGuard", 0)
+```
 
 </details>
 

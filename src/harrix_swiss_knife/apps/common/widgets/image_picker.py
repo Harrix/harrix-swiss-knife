@@ -41,7 +41,7 @@ from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import (
 )
 from harrix_swiss_knife.fluent.style import drop_zone_qss as fluent_drop_zone_qss
 from harrix_swiss_knife.fluent.style import soft_drop_zone_qss as fluent_soft_drop_zone_qss
-from harrix_swiss_knife.fluent.theme import bind_theme, css, is_fluent_themed, mix, palette_for
+from harrix_swiss_knife.fluent.theme import bind_theme, is_fluent_themed, palette_for
 from harrix_swiss_knife.fluent.tokens import RADIUS_CONTROL
 from harrix_swiss_knife.qt_lucide_icon import (
     CLEAR_BUTTON_ICON,
@@ -461,6 +461,7 @@ class ImagePicker(QWidget):
         """When `True`, use a soft hairline strip idle; focus/drag still use dashed accent.
 
         Compact AI attach rows default to this so Finance and Food stay aligned.
+
         """
         self._quiet_idle = quiet
         self._refresh_drop_style()

@@ -28,6 +28,7 @@ lang: en
 - [🔧 Function `push_button_qss`](#-function-push_button_qss)
 - [🔧 Function `scroll_bar_qss`](#-function-scroll_bar_qss)
 - [🔧 Function `semantic_button_qss`](#-function-semantic_button_qss)
+- [🔧 Function `soft_drop_zone_qss`](#-function-soft_drop_zone_qss)
 - [🔧 Function `spin_box_qss`](#-function-spin_box_qss)
 - [🔧 Function `subtle_button_qss`](#-function-subtle_button_qss)
 - [🔧 Function `tab_bar_qss`](#-function-tab_bar_qss)
@@ -643,6 +644,48 @@ Return a Fluent button for `accent`, `mint`, `info`, `success`, or `danger`.
 def semantic_button_qss(palette: FluentPalette, kind: str, selector: str = "QPushButton") -> str:
     fill, ink = _semantic_button_colors(palette, kind)
     return filled_button_qss(palette, fill, ink, selector)
+```
+
+</details>
+
+## 🔧 Function `soft_drop_zone_qss`
+
+```python
+def soft_drop_zone_qss(palette: FluentPalette, selector: str, *, padding: str = '0px') -> str
+```
+
+Return a compact idle drop strip: hairline stroke + soft fill (Fluent).
+
+Used for AI attach rows (Finance/Food): quieter than a permanent dashed card,
+but still readable as a drop target. Focus/drag keep `drop_zone_qss(focused=…)`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def soft_drop_zone_qss(
+    palette: FluentPalette,
+    selector: str,
+    *,
+    padding: str = "0px",
+) -> str:
+    stroke = mix(palette.window_bg, palette.control_stroke_bottom)
+    fill = mix(palette.window_bg, palette.control_alt_fill)
+    muted = mix(palette.window_bg, palette.text_secondary)
+    return f"""
+{selector} {{
+    border: 1px solid {css(stroke)};
+    border-radius: {RADIUS_CONTROL}px;
+    padding: {padding};
+    background-color: {css(fill)};
+    color: {css(muted)};
+}}
+{selector} QLabel {{
+    border: none;
+    background: transparent;
+    color: {css(muted)};
+}}
+""".strip()
 ```
 
 </details>

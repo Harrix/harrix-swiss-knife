@@ -543,7 +543,7 @@ Create a code input.
 
 Args:
 
-- [`parent`](../../apps/finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Optional parent.
+- `parent` (`QWidget | None`): Optional parent.
 - `length` (`int`): Number of characters. Defaults to `6`.
 - `digits_only` (`bool`): Accept only digits (else letters and digits).
 
@@ -1370,7 +1370,7 @@ Create a number box.
 
 Args:
 
-- [`parent`](../../apps/finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Optional parent.
+- `parent` (`QWidget | None`): Optional parent.
 - `minimum` / `maximum` (`float`): Allowed range.
 - [`step`](../../installer/log.g.md#%EF%B8%8F-method-step) (`float`): Increment for buttons, wheel, and arrow keys.
 - `decimals` (`int`): Digits after the decimal point.

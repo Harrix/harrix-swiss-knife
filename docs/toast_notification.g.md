@@ -37,7 +37,7 @@ Args:
 - `message` (`str`): The text to be displayed in the notification.
 - `duration` (`int`, optional): Time in milliseconds before the notification
   automatically closes. Defaults to `1000`.
-- [`parent`](apps/finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget`, optional): The parent widget. Defaults to `None`.
+- `parent` (`QWidget`, optional): The parent widget. Defaults to `None`.
 
 <details>
 <summary>Code:</summary>
@@ -75,7 +75,7 @@ Args:
 - `message` (`str`): The text to be displayed in the notification.
 - `duration` (`int`, optional): Time in milliseconds before the notification
   automatically closes. Defaults to `1000`.
-- [`parent`](apps/finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`, optional): The parent widget. Defaults to `None`.
+- `parent` (`QWidget | None`, optional): The parent widget. Defaults to `None`.
 
 <details>
 <summary>Code:</summary>

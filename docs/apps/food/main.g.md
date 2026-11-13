@@ -3987,24 +3987,37 @@ class MainWindow(
         self._start_bothub_worker(prompt_text, on_success, images=images_data or None)
 
     @requires_database()
-    def _set_date_for_selected_food_log_records(self, record_ids: list[int]) -> None:
-        """Set the same date on several food log rows after user picks a date in a dialog."""
-        min_rows_for_bulk_date = 2
-        if len(record_ids) < min_rows_for_bulk_date or self.db_manager is None:
+    def _set_date_for_selected_food_log_records(
+        self,
+        record_ids: list[int],
+        *,
+        initial_date: str | None = None,
+    ) -> None:
+        """Change date for one or more food log rows after the user picks a date."""
+        if not record_ids or self.db_manager is None:
             return
         if not self._validate_database_connection():
             return
 
+        count = len(record_ids)
         dialog = QDialog(self)
-        dialog.setWindowTitle("Set date for selected food log records")
+        dialog.setWindowTitle("Change date" if count == 1 else "Change date for selected food log records")
         dialog_layout = QVBoxLayout(dialog)
         dialog_layout.addWidget(
-            QLabel(f"New date for {len(record_ids)} food log records:", dialog),
+            QLabel(
+                "New date for this food log record:" if count == 1 else f"New date for {count} food log records:",
+                dialog,
+            ),
         )
         date_edit = QDateEdit(dialog)
-        date_edit.setCalendarPopup(True)
         date_edit.setDisplayFormat("yyyy-MM-dd")
-        date_edit.setDate(self.dateEdit_food.date())
+        default_date = self.dateEdit_food.date()
+        if initial_date:
+            parsed = QDate.fromString(str(initial_date).strip()[:10], "yyyy-MM-dd")
+            if parsed.isValid():
+                default_date = parsed
+        date_edit.setDate(default_date)
+        attach_date_edit_quick_controls(date_edit)
         dialog_layout.addWidget(date_edit)
 
         buttons = QDialogButtonBox(
@@ -4372,13 +4385,15 @@ class MainWindow(
         add_separator(context_menu)
         recalc_calories_ai_action = context_menu.addAction("🤖 Recalculate calories with AI")
 
-        bulk_date_action = None
-        ids_for_date_change: list[int] = []
-        if multiple_rows_selected:
-            ids_for_date_change = list(selected_food_log_ids)
-            if len(ids_for_date_change) > 1:
-                add_separator(context_menu)
-                bulk_date_action = add_labeled_action(context_menu, LABEL_SET_DATE_SELECTED, ICON_SET_DATE_SELECTED)
+        change_date_action = None
+        ids_for_date_change: list[int] = list(selected_food_log_ids)
+        if not ids_for_date_change:
+            single_id = self._get_selected_row_id("food_log")
+            if single_id is not None:
+                ids_for_date_change = [single_id]
+        if ids_for_date_change:
+            add_separator(context_menu)
+            change_date_action = add_labeled_action(context_menu, LABEL_SET_DATE_SELECTED, ICON_SET_DATE_SELECTED)
 
         add_separator(context_menu)
         refresh_action = add_refresh_action(context_menu)
@@ -4452,8 +4467,11 @@ class MainWindow(
                     self._delete_selected_food_log_rows(selected_food_log_ids)
                 else:
                     self.delete_record("food_log")
-            elif bulk_date_action is not None and action == bulk_date_action:
-                self._set_date_for_selected_food_log_records(ids_for_date_change)
+            elif change_date_action is not None and action == change_date_action:
+                self._set_date_for_selected_food_log_records(
+                    ids_for_date_change,
+                    initial_date=date_value or None,
+                )
             elif action == export_action:
                 self.on_export_csv()
             elif action == export_excel_action:

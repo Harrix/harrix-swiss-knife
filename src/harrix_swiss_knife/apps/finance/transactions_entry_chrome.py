@@ -174,6 +174,15 @@ def install_transactions_entry_chrome(host: Any) -> None:
         host._transactions_entry_theme_bound = True  # noqa: SLF001
 
 
+def persist_transactions_splitter_sizes(host: Any) -> None:
+    """Save current Transactions-tab splitter sizes."""
+    if getattr(host, "_is_closing", False) or not hasattr(host, "splitter"):
+        return
+    sizes = host.splitter.sizes()
+    if len(sizes) == EXPECTED_SPLITTER_LEN and all(size > 0 for size in sizes):
+        save_splitter_sizes([int(size) for size in sizes])
+
+
 def refresh_category_icons_for_theme(host: Any) -> None:
     """Repaint category Lucide icons after light/dark chrome changes."""
     view = getattr(host, "listView_categories", None)
@@ -204,30 +213,6 @@ def refresh_category_icons_for_theme(host: Any) -> None:
         viewport.update()
 
 
-def _leaf_standard_item_model(model: object) -> QStandardItemModel | None:
-    """Unwrap proxy layers until a `QStandardItemModel` is found."""
-    current: object | None = model
-    seen: set[int] = set()
-    while current is not None and id(current) not in seen:
-        seen.add(id(current))
-        if isinstance(current, QStandardItemModel):
-            return current
-        source_fn = getattr(current, "sourceModel", None)
-        if not callable(source_fn):
-            break
-        current = source_fn()
-    return None
-
-
-def persist_transactions_splitter_sizes(host: Any) -> None:
-    """Save current Transactions-tab splitter sizes."""
-    if getattr(host, "_is_closing", False) or not hasattr(host, "splitter"):
-        return
-    sizes = host.splitter.sizes()
-    if len(sizes) == EXPECTED_SPLITTER_LEN and all(size > 0 for size in sizes):
-        save_splitter_sizes([int(size) for size in sizes])
-
-
 def refresh_category_state_label(host: Any, display_name: str | None = None) -> None:
     """Update `label_category_now` with a Fluent status string."""
     text = category_state_text(display_name)
@@ -238,6 +223,24 @@ def refresh_category_state_label(host: Any, display_name: str | None = None) -> 
     host.label_category_now.setProperty("hskCategorySelected", selected)
     host.label_category_now.style().unpolish(host.label_category_now)
     host.label_category_now.style().polish(host.label_category_now)
+
+
+def _apply_day_header_column_policy(table: QTableView) -> None:
+    """Hide Date/Total while grouped; show Date (keep Total hidden) when flat/filtered."""
+    model = table.model()
+    if model is None:
+        return
+    from harrix_swiss_knife.apps.finance.transaction_day_headers import (  # noqa: PLC0415
+        TransactionDayHeaderProxy,
+    )
+
+    grouped = isinstance(model, TransactionDayHeaderProxy)
+    hide_columns = GROUPED_HIDDEN_COLUMNS if grouped else ALWAYS_HIDDEN_COLUMNS
+    for column in range(model.columnCount()):
+        if column in hide_columns:
+            table.setColumnHidden(column, True)  # noqa: FBT003
+        elif column == TRANSACTION_COL_DATE and not grouped:
+            table.setColumnHidden(column, False)  # noqa: FBT003
 
 
 def _configure_transactions_splitter(host: Any) -> None:
@@ -288,24 +291,6 @@ def _configure_transactions_splitter(host: Any) -> None:
         host._transactions_splitter_save_bound = True  # noqa: SLF001
 
 
-def _apply_day_header_column_policy(table: QTableView) -> None:
-    """Hide Date/Total while grouped; show Date (keep Total hidden) when flat/filtered."""
-    model = table.model()
-    if model is None:
-        return
-    from harrix_swiss_knife.apps.finance.transaction_day_headers import (  # noqa: PLC0415
-        TransactionDayHeaderProxy,
-    )
-
-    grouped = isinstance(model, TransactionDayHeaderProxy)
-    hide_columns = GROUPED_HIDDEN_COLUMNS if grouped else ALWAYS_HIDDEN_COLUMNS
-    for column in range(model.columnCount()):
-        if column in hide_columns:
-            table.setColumnHidden(column, True)  # noqa: FBT003
-        elif column == TRANSACTION_COL_DATE and not grouped:
-            table.setColumnHidden(column, False)  # noqa: FBT003
-
-
 def _hide_day_header_source_columns(table: QTableView) -> None:
     """Backward-compatible alias for the grouped/flat column policy."""
     _apply_day_header_column_policy(table)
@@ -341,6 +326,21 @@ def _install_column_visibility_menu(host: Any, table: QTableView) -> None:
         host._transactions_column_menu_bound = True  # noqa: SLF001
 
     apply_transactions_column_visibility(host)
+
+
+def _leaf_standard_item_model(model: object) -> QStandardItemModel | None:
+    """Unwrap proxy layers until a `QStandardItemModel` is found."""
+    current: object | None = model
+    seen: set[int] = set()
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        if isinstance(current, QStandardItemModel):
+            return current
+        source_fn = getattr(current, "sourceModel", None)
+        if not callable(source_fn):
+            break
+        current = source_fn()
+    return None
 
 
 def _polish_ai_attach_block(host: Any) -> None:

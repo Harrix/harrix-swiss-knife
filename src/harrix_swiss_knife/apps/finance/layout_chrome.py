@@ -56,6 +56,7 @@ _RATES_FROM_WIDTH = 48
 _RATES_TO_WIDTH = 48
 _RATES_DATE_WIDTH = 100
 _RATES_RATE_MIN_WIDTH = 96
+_RATES_COLUMN_COUNT = 4
 
 
 def apply_exchange_rates_table_column_widths(table: QTableView, *, force: bool = False) -> None:
@@ -64,7 +65,7 @@ def apply_exchange_rates_table_column_widths(table: QTableView, *, force: bool =
     if not table.isVisible() or user_resized_columns(table):
         return
     header = table.horizontalHeader()
-    if header.count() < 4 or table.property("hskColumnFillGuard"):
+    if header.count() < _RATES_COLUMN_COUNT or table.property("hskColumnFillGuard"):
         return
     viewport_w = table.viewport().width()
     if viewport_w <= 0:

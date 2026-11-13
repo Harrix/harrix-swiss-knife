@@ -118,7 +118,7 @@ Build the warning dialog.
 
 Args:
 
-- [`parent`](../finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Parent widget.
+- `parent` (`QWidget | None`): Parent widget.
 - `name` (`str`): English name of the existing exercise.
 - `name_local` (`str`): Local name of the existing exercise.
 - `avif_manager` (`AvifManager | None`): Loader for the exercise animation.
@@ -216,7 +216,7 @@ Show the duplicate-exercise warning with both names and animation.
 
 Args:
 
-- [`parent`](../finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Parent widget.
+- `parent` (`QWidget | None`): Parent widget.
 - `name` (`str`): English name of the existing exercise.
 - `name_local` (`str`): Local name of the existing exercise.
 - `avif_manager` (`AvifManager | None`): Loader for the exercise animation.

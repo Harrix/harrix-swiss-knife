@@ -11,10 +11,100 @@ lang: en
 
 ## Contents
 
+- [🔧 Function `apply_process_column_visibility`](#-function-apply_process_column_visibility)
+- [🔧 Function `apply_process_table_column_widths`](#-function-apply_process_table_column_widths)
 - [🔧 Function `exercise_state_text`](#-function-exercise_state_text)
 - [🔧 Function `install_fitness_entry_chrome`](#-function-install_fitness_entry_chrome)
 - [🔧 Function `persist_sets_splitter_sizes`](#-function-persist_sets_splitter_sizes)
 - [🔧 Function `refresh_exercise_state_label`](#-function-refresh_exercise_state_label)
+- [🔧 Function `set_process_empty_visible`](#-function-set_process_empty_visible)
+
+</details>
+
+## 🔧 Function `apply_process_column_visibility`
+
+```python
+def apply_process_column_visibility(host: Any) -> None
+```
+
+Re-apply persisted column visibility after the process table model is ready.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def apply_process_column_visibility(host: Any) -> None:
+    table = host.tableView_process
+    flags = load_column_visibility()
+    for key, column, _label in TOGGLEABLE_COLUMNS:
+        visible = flags.get(key, True)
+        if column < 0:
+            _set_record_id_visible(table, visible=visible, persist=False)
+        else:
+            _set_data_column_visible(table, column, visible=visible, persist=False, refill=False)
+    _apply_day_header_column_policy(table)
+    from harrix_swiss_knife.apps.fitness.process_day_headers import (  # noqa: PLC0415
+        ProcessDayHeaderProxy,
+        apply_process_day_header_spans,
+    )
+
+    if isinstance(table.model(), ProcessDayHeaderProxy):
+        apply_process_day_header_spans(table)
+    else:
+        table.clearSpans()
+    apply_process_table_column_widths(table, force=True)
+```
+
+</details>
+
+## 🔧 Function `apply_process_table_column_widths`
+
+```python
+def apply_process_table_column_widths(table_view: QTableView, *, force: bool = False) -> None
+```
+
+Fill the viewport among visible process columns, then keep them Interactive.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def apply_process_table_column_widths(table_view: QTableView, *, force: bool = False) -> None:
+    bind_column_fill_on_resize(table_view, apply_process_table_column_widths)
+    if not table_view.isVisible() or user_resized_columns(table_view):
+        return
+    header = table_view.horizontalHeader()
+    count = header.count()
+    if count <= 0 or table_view.property("hskColumnFillGuard"):
+        return
+    viewport_w = table_view.viewport().width()
+    if viewport_w <= 0:
+        return
+    if not force and columns_fill_viewport(table_view):
+        return
+
+    visible = [i for i in range(count) if not table_view.isColumnHidden(i)]
+    if not visible:
+        return
+
+    header.setStretchLastSection(False)
+    header.setMinimumSectionSize(min(header.minimumSectionSize(), 24))
+    min_size = header.minimumSectionSize()
+    widths = _visible_process_column_widths(
+        viewport_w,
+        count,
+        visible=visible,
+        min_size=min_size,
+    )
+
+    table_view.setProperty("hskColumnFillGuard", 1)
+    try:
+        for column in range(count):
+            header.setSectionResizeMode(column, header.ResizeMode.Interactive)
+            table_view.setColumnWidth(column, widths[column] if column in set(visible) else 0)
+    finally:
+        table_view.setProperty("hskColumnFillGuard", 0)
+```
 
 </details>
 
@@ -58,6 +148,7 @@ Polish the Sets form, exercise list, splitter, and process table chrome.
 ```python
 def install_fitness_entry_chrome(host: Any) -> None:
     _ensure_exercise_list_header(host)
+    _ensure_process_empty_label(host)
     _polish_form_column(host)
     _polish_exercise_list(host)
     _polish_exercise_state_label(host)
@@ -119,6 +210,29 @@ def refresh_exercise_state_label(host: Any, display_name: str | None = None) -> 
     host.label_exercise.setProperty("hskExerciseSelected", selected)
     host.label_exercise.style().unpolish(host.label_exercise)
     host.label_exercise.style().polish(host.label_exercise)
+```
+
+</details>
+
+## 🔧 Function `set_process_empty_visible`
+
+```python
+def set_process_empty_visible(host: Any, *, visible: bool) -> None
+```
+
+Show or hide the process-history empty state.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_process_empty_visible(host: Any, *, visible: bool) -> None:
+    label = getattr(host, "label_process_empty", None)
+    if isinstance(label, QLabel):
+        label.setVisible(visible)
+    table = getattr(host, "tableView_process", None)
+    if table is not None:
+        table.setVisible(not visible)
 ```
 
 </details>

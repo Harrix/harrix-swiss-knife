@@ -64,6 +64,9 @@ _MONTH_MIN_HEIGHT = 36
 _MONTH_WASH_ALPHA_DARK = 28
 _PROXY_DAY_HEADER = -1
 _PROXY_MONTH_HEADER = -2
+_YYYY_MM_PARTS = 2
+_MONTHS_IN_YEAR = 12
+_YYYY_MM_PREFIX_LEN = 7
 # Theme day-band refresh paints fills only — must not rebuild headers per cell.
 _COSMETIC_ROLES = frozenset(
     {
@@ -419,9 +422,6 @@ class TransactionDayHeaderProxy(QAbstractProxyModel):
             return self.current_month_key_override
         return QDate.currentDate().toString("yyyy-MM")
 
-    def _is_header_row(self, proxy_row: int) -> bool:
-        return 0 <= proxy_row < len(self._proxy_rows) and self._proxy_rows[proxy_row] < 0
-
     def _forward_source_data_changed(
         self,
         top_left: QModelIndex,
@@ -439,6 +439,9 @@ class TransactionDayHeaderProxy(QAbstractProxyModel):
                 self.dataChanged.emit(left, right, role_args)
             else:
                 self.dataChanged.emit(left, right)
+
+    def _is_header_row(self, proxy_row: int) -> bool:
+        return 0 <= proxy_row < len(self._proxy_rows) and self._proxy_rows[proxy_row] < 0
 
     def _on_source_data_changed(
         self,
@@ -707,10 +710,10 @@ def _format_header_total(total_raw: str, host: QWidget | None, *, has_income: bo
 def _format_month_banner_label(month_key: str, *, is_current: bool) -> str:
     label = month_key
     parts = month_key.split("-")
-    if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit():
+    if len(parts) == _YYYY_MM_PARTS and parts[0].isdigit() and parts[1].isdigit():
         year = int(parts[0])
         month = int(parts[1])
-        if 1 <= month <= 12:
+        if 1 <= month <= _MONTHS_IN_YEAR:
             date = QDate(year, month, 1)
             label = QLocale(QLocale.Language.English).toString(date, "MMMM yyyy")
     if is_current:
@@ -774,7 +777,7 @@ def _month_header_fill(fluent: Any) -> QColor:
 
 def _month_key(date_str: str) -> str:
     text = (date_str or "").strip()
-    return text[:7] if len(text) >= 7 and text[4] == "-" else ""
+    return text[:_YYYY_MM_PREFIX_LEN] if len(text) >= _YYYY_MM_PREFIX_LEN and text[4] == "-" else ""
 
 
 def _with_header_currency(formatted: str, host: QWidget | None) -> str:

@@ -589,7 +589,7 @@ Initialize the ExerciseSelectionDialog.
 
 Args:
 
-- [`parent`](../../finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Parent widget.
+- `parent` (`QWidget | None`): Parent widget.
 - `exercises` (`list[str]`): List of exercise names to display.
 - `pixmap_provider` (`Callable[[str], QPixmap | None]`): Returns a still
   preview pixmap for a given exercise name.

@@ -209,7 +209,7 @@ Args:
 - `db_filename` (`str`): Path to SQLite database file.
 - `check_from_first_transaction` (`bool`): If `True`, check from first transaction;
   if `False`, check from last exchange rate. Defaults to `True`.
-- [`parent`](transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QObject | None`): Optional Qt parent. Prefer `None` and keep a
+- `parent` (`QObject | None`): Optional Qt parent. Prefer `None` and keep a
   strong Python reference: parenting to a Fluent window is unsafe because
   theme refresh can destroy window-owned QObjects while the thread runs
   (Qt 6.12 `qFatal`).

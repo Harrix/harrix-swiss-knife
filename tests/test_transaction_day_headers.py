@@ -183,7 +183,7 @@ def test_day_header_labels_expenses_when_income_present() -> None:
     assert _format_header_income("1500.00", None) == "Income: +1 500.₀₀"
 
 
-def test_flat_filtered_mode_shows_date_hides_total(qapp: QApplication) -> None:
+def test_flat_filtered_mode_shows_date_hides_total(qapp: QApplication) -> None:  # noqa: ARG001
     from harrix_swiss_knife.apps.finance.transactions_entry_chrome import (  # noqa: PLC0415
         _apply_day_header_column_policy,
     )

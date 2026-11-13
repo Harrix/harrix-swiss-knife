@@ -675,7 +675,7 @@ def delete_all(self) -> bool:
 def delete_at(self, index: int) -> bool
 ```
 
-Remove the annotation at [`index`](../apps/finance/transaction_day_headers.g.md#%EF%B8%8F-method-index) and record undo. Return whether it was deleted.
+Remove the annotation at `index` and record undo. Return whether it was deleted.
 
 <details>
 <summary>Code:</summary>

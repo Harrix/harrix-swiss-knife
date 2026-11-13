@@ -34,6 +34,7 @@ lang: en
 - [🔧 Function `make_ai_lucide_push_button`](#-function-make_ai_lucide_push_button)
 - [🔧 Function `make_lucide_push_button`](#-function-make_lucide_push_button)
 - [🔧 Function `make_search_icon_label`](#-function-make_search_icon_label)
+- [🔧 Function `neutral_lucide_color`](#-function-neutral_lucide_color)
 - [🔧 Function `set_action_text_with_lucide_icon`](#-function-set_action_text_with_lucide_icon)
 - [🔧 Function `style_accept_button`](#-function-style_accept_button)
 - [🔧 Function `style_cancel_button`](#-function-style_cancel_button)
@@ -618,7 +619,7 @@ def lucide_color_for(name: str) -> str:
     mapped = LUCIDE_ICON_COLORS.get(name)
     dark = _fluent_is_dark()
     if mapped is None:
-        return LUCIDE_COLOR_LIGHT if dark else LUCIDE_COLOR_DARK
+        return neutral_lucide_color()
     if dark and mapped == LUCIDE_COLOR_TURQUOISE:
         return LUCIDE_COLOR_CYAN
     return mapped
@@ -763,6 +764,24 @@ def make_search_icon_label(
     label.setFixedSize(box_size, box_size)
     label.setAlignment(Qt.AlignmentFlag.AlignCenter)
     return label
+```
+
+</details>
+
+## 🔧 Function `neutral_lucide_color`
+
+```python
+def neutral_lucide_color() -> str
+```
+
+Return a chrome-neutral Lucide stroke for light or Fluent dark theme.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def neutral_lucide_color() -> str:
+    return LUCIDE_COLOR_LIGHT if _fluent_is_dark() else LUCIDE_COLOR_DARK
 ```
 
 </details>

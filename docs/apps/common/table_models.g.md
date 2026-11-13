@@ -97,7 +97,7 @@ def lessThan(  # noqa: N802
 ## 🔧 Function `append_colored_table_row`
 
 ```python
-def append_colored_table_row(proxy: QSortFilterProxyModel, row: Sequence[object], *, id_column: int = -2, color_column: int = -1) -> None
+def append_colored_table_row(proxy: QAbstractProxyModel, row: Sequence[object], *, id_column: int = -2, color_column: int = -1) -> None
 ```
 
 Append one colored row to an existing proxy created by [`create_colored_table_proxy_model`](#-function-create_colored_table_proxy_model).
@@ -107,7 +107,7 @@ Append one colored row to an existing proxy created by [`create_colored_table_pr
 
 ```python
 def append_colored_table_row(
-    proxy: QSortFilterProxyModel,
+    proxy: QAbstractProxyModel,
     row: Sequence[object],
     *,
     id_column: int = -2,

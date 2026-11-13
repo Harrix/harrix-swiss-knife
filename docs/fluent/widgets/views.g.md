@@ -188,7 +188,7 @@ Create an empty card grid.
 
 Args:
 
-- [`parent`](../../apps/finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Optional parent.
+- `parent` (`QWidget | None`): Optional parent.
 - `spacing` (`int`): Gap between cards. Defaults to `CARD_GRID_SPACING`.
 - `base_width` (`int`): Preferred column width before squeeze (command cards
   or icon tiles).
@@ -1212,7 +1212,7 @@ def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
 def set_current(self, index: int) -> None
 ```
 
-Show slide [`index`](../../apps/finance/transaction_day_headers.g.md#%EF%B8%8F-method-index).
+Show slide `index`.
 
 <details>
 <summary>Code:</summary>
@@ -1937,7 +1937,7 @@ Create a virtual list.
 
 Args:
 
-- [`parent`](../../apps/finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Optional parent.
+- `parent` (`QWidget | None`): Optional parent.
 - `count` (`int`): Number of rows.
 - `provider` (`Callable[[int], str] | None`): Returns the text of a row.
 

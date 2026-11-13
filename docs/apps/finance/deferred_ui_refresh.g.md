@@ -122,7 +122,7 @@ Initialize scheduler.
 
 Args:
 
-- [`parent`](transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QObject | None`): Qt parent (usually the Finance window).
+- `parent` (`QObject | None`): Qt parent (usually the Finance window).
 - `on_flush` (`Callable[..., None]`): Called as
   `on_flush(categories_may_change=…, reload_transactions=…)`.
 - `interval_ms` (`int`): Debounce interval. Defaults to `400`.

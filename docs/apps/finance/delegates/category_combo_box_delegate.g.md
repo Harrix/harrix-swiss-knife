@@ -118,6 +118,8 @@ class CategoryComboBoxDelegate(ComboBoxDelegate):
         if 0 <= item_index < len(self._category_lucides):
             lucide = self._category_lucides[item_index]
         icon = category_lucide_icon(emoji, lucide_name=lucide) if (emoji or lucide) else QIcon()
+        model.setData(index, emoji, ICON_ROLE)
+        model.setData(index, lucide, ICON_LUCIDE_ROLE)
         model.setData(index, icon, Qt.ItemDataRole.DecorationRole)
 ```
 
@@ -133,7 +135,7 @@ Initialize CategoryComboBoxDelegate.
 
 Args:
 
-- [`parent`](../transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QObject | None`): Parent object.
+- `parent` (`QObject | None`): Parent object.
 - `categories`: Display labels with optional `(label, emoji, lucide)`.
 
 <details>
@@ -271,6 +273,8 @@ def setModelData(  # noqa: N802
         if 0 <= item_index < len(self._category_lucides):
             lucide = self._category_lucides[item_index]
         icon = category_lucide_icon(emoji, lucide_name=lucide) if (emoji or lucide) else QIcon()
+        model.setData(index, emoji, ICON_ROLE)
+        model.setData(index, lucide, ICON_LUCIDE_ROLE)
         model.setData(index, icon, Qt.ItemDataRole.DecorationRole)
 ```
 

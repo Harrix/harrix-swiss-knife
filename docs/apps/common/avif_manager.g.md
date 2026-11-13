@@ -957,7 +957,7 @@ Initialize the AVIF manager.
 Args:
 
 - `avif_dir` (`Path | str`): Directory path containing AVIF files.
-- [`parent`](../finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QObject | None`): Optional Qt parent. Defaults to `None`.
+- `parent` (`QObject | None`): Optional Qt parent. Defaults to `None`.
 
 <details>
 <summary>Code:</summary>

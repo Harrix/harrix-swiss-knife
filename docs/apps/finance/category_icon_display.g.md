@@ -12,6 +12,7 @@ lang: en
 ## Contents
 
 - [🔧 Function `category_display_label`](#-function-category_display_label)
+- [🔧 Function `category_lucide_color`](#-function-category_lucide_color)
 - [🔧 Function `category_lucide_icon`](#-function-category_lucide_icon)
 - [🔧 Function `lucide_name_for_category_icon`](#-function-lucide_name_for_category_icon)
 - [🔧 Function `resolve_category_lucide_name`](#-function-resolve_category_lucide_name)
@@ -43,13 +44,38 @@ def category_display_label(name: str, *, income: bool = False, name_local: str =
 
 </details>
 
+## 🔧 Function `category_lucide_color`
+
+```python
+def category_lucide_color(lucide_name: str) -> str
+```
+
+Return a stable chromatic stroke for category Lucide ID [`lucide_name`](../common/lucide_picker_dialog.g.md#%EF%B8%8F-method-lucide_name).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def category_lucide_color(lucide_name: str) -> str:
+    name = lucide_name.strip()
+    if not name:
+        return _CATEGORY_CYAN
+    mapped = CATEGORY_LUCIDE_COLORS.get(name)
+    if mapped is not None:
+        return mapped
+    digest = hashlib.sha256(name.encode("utf-8")).digest()
+    return _CATEGORY_COLOR_PALETTE[digest[0] % len(_CATEGORY_COLOR_PALETTE)]
+```
+
+</details>
+
 ## 🔧 Function `category_lucide_icon`
 
 ```python
 def category_lucide_icon(emoji: str = '', size: int = _CATEGORY_ICON_SIZE, *, lucide_name: str = '') -> QIcon
 ```
 
-Return a neutral Lucide `QIcon` for a category.
+Return a colored Lucide `QIcon` for a category.
 
 Prefers an explicit [`lucide_name`](../common/lucide_picker_dialog.g.md#%EF%B8%8F-method-lucide_name) override from `categories.icon_lucide`.
 Otherwise resolves from the DB emoji via [`lucide_name_for_category_icon`](#-function-lucide_name_for_category_icon).
@@ -67,7 +93,7 @@ def category_lucide_icon(
     name = resolve_category_lucide_name(emoji=emoji, lucide_name=lucide_name)
     if name is None:
         return QIcon()
-    return create_lucide_icon(name, size, color=LUCIDE_COLOR_DARK)
+    return create_lucide_icon(name, size, color=category_lucide_color(name))
 ```
 
 </details>

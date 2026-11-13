@@ -364,7 +364,7 @@ def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
 def set_current(self, index: int) -> None
 ```
 
-Select [`index`](../../apps/finance/transaction_day_headers.g.md#%EF%B8%8F-method-index) with a snap animation.
+Select `index` with a snap animation.
 
 <details>
 <summary>Code:</summary>

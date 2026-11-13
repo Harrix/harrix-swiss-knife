@@ -1199,7 +1199,7 @@ class FluentWatermark(QWidget):
 def __init__(self, text: str, parent: QWidget, *, opacity: int = 22, gap: int = 120) -> None
 ```
 
-Create a watermark over [`parent`](../../apps/finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (mouse events pass through).
+Create a watermark over `parent` (mouse events pass through).
 
 <details>
 <summary>Code:</summary>

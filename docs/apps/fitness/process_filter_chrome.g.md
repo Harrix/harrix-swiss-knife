@@ -14,6 +14,7 @@ lang: en
 - [🔧 Function `advanced_process_filter_count`](#-function-advanced_process_filter_count)
 - [🔧 Function `advanced_process_filter_is_active`](#-function-advanced_process_filter_is_active)
 - [🔧 Function `install_process_filter_chrome`](#-function-install_process_filter_chrome)
+- [🔧 Function `process_history_search_text`](#-function-process_history_search_text)
 - [🔧 Function `refresh_process_filter_chips`](#-function-refresh_process_filter_chips)
 - [🔧 Function `selected_process_filter_value`](#-function-selected_process_filter_value)
 - [🔧 Function `sync_process_filter_button`](#-function-sync_process_filter_button)
@@ -26,7 +27,7 @@ lang: en
 def advanced_process_filter_count(host: Any) -> int
 ```
 
-Return how many process filters are applied (exercise, type, date).
+Return how many process filters are applied (search, exercise, type, date).
 
 <details>
 <summary>Code:</summary>
@@ -34,6 +35,8 @@ Return how many process filters are applied (exercise, type, date).
 ```python
 def advanced_process_filter_count(host: Any) -> int:
     count = 0
+    if process_history_search_text(host):
+        count += 1
     if selected_process_filter_value(host.comboBox_filter_exercise.currentText()):
         count += 1
     if selected_process_filter_value(host.comboBox_filter_type.currentText()):
@@ -69,7 +72,7 @@ def advanced_process_filter_is_active(host: Any) -> bool:
 def install_process_filter_chrome(host: Any) -> None
 ```
 
-Rebuild the process filter strip: exercise/type always on, dates behind Filter.
+Rebuild the process filter strip: search + exercise/type, dates behind Filter.
 
 <details>
 <summary>Code:</summary>
@@ -97,11 +100,18 @@ def install_process_filter_chrome(host: Any) -> None:
         host.dateEdit_filter_to,
         host.checkBox_use_date_filter,
     )
+    search_edit = getattr(host, "lineEdit_process_search", None)
+    if not isinstance(search_edit, QLineEdit):
+        search_edit = QLineEdit(host.groupBox_filter)
+        search_edit.setObjectName("lineEdit_process_search")
+        host.lineEdit_process_search = search_edit
+    search_edit.setMinimumHeight(CONTROL_HEIGHT)
+    search_edit.setClearButtonEnabled(True)
     install_tracker_filter_shell(
         host,
         object_name_prefix="process",
-        search_edit=None,
-        search_placeholder="",
+        search_edit=search_edit,
+        search_placeholder="Search sets…",
         toolbar_widgets=(host.comboBox_filter_exercise, host.comboBox_filter_type),
         advanced_rows=(
             (
@@ -113,6 +123,27 @@ def install_process_filter_chrome(host: Any) -> None:
         vertical_layout=host.verticalLayout_process,
         table_widget=host.tableView_process,
     )
+```
+
+</details>
+
+## 🔧 Function `process_history_search_text`
+
+```python
+def process_history_search_text(host: Any) -> str
+```
+
+Return the process-history search query (independent of catalog filter).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def process_history_search_text(host: Any) -> str:
+    edit = getattr(host, "lineEdit_process_search", None)
+    if not isinstance(edit, QLineEdit):
+        return ""
+    return edit.text().strip()
 ```
 
 </details>
@@ -131,6 +162,9 @@ Rebuild closable chips for active process filters.
 ```python
 def refresh_process_filter_chips(host: Any) -> None:
     chips: list[tuple[str, Any]] = []
+    search = process_history_search_text(host)
+    if search:
+        chips.append((f"Search: {search}", host.clear_process_search_filter))
     exercise = selected_process_filter_value(host.comboBox_filter_exercise.currentText())
     if exercise:
         chips.append((exercise, host.clear_process_exercise_filter))

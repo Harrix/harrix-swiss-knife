@@ -283,7 +283,7 @@ Args:
 - `list_view` (`QAbstractItemView`): Exercise list or other view with icons.
 - `get_avif_manager` (`Callable`): Returns the current [`AvifManager`](../avif_manager.g.md#%EF%B8%8F-class-avifmanager) (may be `None`).
 - `preview_size` (`QSize | None`): Popup size. Defaults to `_PREVIEW_EDGE` square.
-- [`parent`](../../finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QObject | None`): Qt parent. Prefer a longer-lived owner than `list_view`.
+- `parent` (`QObject | None`): Qt parent. Prefer a longer-lived owner than `list_view`.
 - `exercise_at` (`Callable | None`): Viewport-position resolver. Defaults to list-icon hit-test.
 
 <details>
@@ -524,6 +524,10 @@ def exercise_at_list_icon(list_view: QAbstractItemView, pos: QPoint) -> str | No
         return None
 
     item_rect = list_view.visualRect(index)
+    # Selected rows inset content for the left accent marker (same as the delegate).
+    selection = list_view.selectionModel()
+    if selection is not None and selection.isSelected(index):
+        item_rect = item_rect.adjusted(MARKER_INSET + MARKER_WIDTH + MARKER_GAP, 0, 0, 0)
     icon_rect = NameLocalListDelegate.list_decoration_rect(
         item_rect,
         list_view.iconSize(),

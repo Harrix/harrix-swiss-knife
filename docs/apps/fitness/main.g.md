@@ -17,6 +17,7 @@ lang: en
   - [⚙️ Method `clear_filter`](#%EF%B8%8F-method-clear_filter)
   - [⚙️ Method `clear_process_date_filter`](#%EF%B8%8F-method-clear_process_date_filter)
   - [⚙️ Method `clear_process_exercise_filter`](#%EF%B8%8F-method-clear_process_exercise_filter)
+  - [⚙️ Method `clear_process_search_filter`](#%EF%B8%8F-method-clear_process_search_filter)
   - [⚙️ Method `clear_process_type_filter`](#%EF%B8%8F-method-clear_process_type_filter)
   - [⚙️ Method `closeEvent`](#%EF%B8%8F-method-closeevent)
   - [⚙️ Method `delete_record`](#%EF%B8%8F-method-delete_record)
@@ -188,13 +189,17 @@ class MainWindow(
         self._dumbbell_exercise_names_cache: set[str] | None = None
 
         # Table models dictionary
-        self.models: dict[str, QSortFilterProxyModel | None] = {
+        self.models: dict[str, QAbstractProxyModel | None] = {
             "process": None,
             "exercises": None,
             "types": None,
             "weight": None,
             "statistics": None,
         }
+        self._process_search_timer = QTimer(self)
+        self._process_search_timer.setSingleShot(True)
+        self._process_search_timer.setInterval(400)
+        self._process_search_timer.timeout.connect(self.apply_filter)
         # Process table display mode flag
         initial_count, load_more_count = get_apps_list_limits(self._app_config)
         self.count_records_to_show: int = initial_count
@@ -308,10 +313,12 @@ class MainWindow(
 
         Clears all filter selections and resets date ranges to default values:
 
-        - Clears exercise and type selections
+        - Clears history search, exercise and type selections
         - Disables date filtering
         - Resets date range to the last month
         - Refreshes the table view
+
+        Does not reset the new-set form, catalog selection, or splitter sizes.
 
         """
         widgets = (
@@ -335,6 +342,13 @@ class MainWindow(
         for widget in widgets:
             widget.blockSignals(False)  # noqa: FBT003
 
+        search_edit = getattr(self, "lineEdit_process_search", None)
+        if search_edit is not None:
+            search_edit.blockSignals(True)  # noqa: FBT003
+            search_edit.clear()
+            search_edit.blockSignals(False)  # noqa: FBT003
+
+        self._process_search_timer.stop()
         self._update_date_filter_controls_enabled()
         self._update_clear_filter_button_visibility()
         refresh_process_filter_chips(self)
@@ -354,6 +368,17 @@ class MainWindow(
         self.comboBox_filter_exercise.setCurrentIndex(0)
         self.comboBox_filter_exercise.blockSignals(False)  # noqa: FBT003
         self.update_filter_type_combobox()
+        self.apply_filter()
+
+    def clear_process_search_filter(self) -> None:
+        """Clear only the history search chip (not catalog Filter exercises)."""
+        search_edit = getattr(self, "lineEdit_process_search", None)
+        if search_edit is None:
+            return
+        search_edit.blockSignals(True)  # noqa: FBT003
+        search_edit.clear()
+        search_edit.blockSignals(False)  # noqa: FBT003
+        self._process_search_timer.stop()
         self.apply_filter()
 
     def clear_process_type_filter(self) -> None:
@@ -1750,34 +1775,22 @@ class MainWindow(
         if not current.isValid():
             # If no selection, keep current form state
             return
+        if bool(current.data(IS_DAY_HEADER_ROLE)) or bool(current.data(IS_MONTH_HEADER_ROLE)):
+            return
 
         try:
-            model = self.models["process"]
-            if not model:
+            source_index, source_model = map_process_index_to_source(current)
+            if not source_index.isValid() or source_model is None:
                 return
 
-            row = current.row()
-
-            # Get data from the selected row
-            exercise_name = parse_exercise_display_name(model.data(model.index(row, 0)) or "")  # Exercise column
-            type_name = model.data(model.index(row, 1)) or ""  # Type column
-            value_with_unit = model.data(model.index(row, 2)) or ""  # Quantity column (e.g., "100 times")
-
-            # Extract numeric value from "value unit" format
+            row = source_index.row()
+            exercise_name = parse_exercise_display_name(source_model.data(source_model.index(row, 0)) or "")
+            type_name = source_model.data(source_model.index(row, 1)) or ""
+            value_with_unit = source_model.data(source_model.index(row, 2)) or ""
             value_str = value_with_unit.split()[0] if value_with_unit else "0"
 
-            # Update exercise selection in list view
             if exercise_name:
                 self._select_exercise_in_list(exercise_name)
-
-                # This will trigger on_exercise_selection_changed_list() which updates:
-                # - label_exercise
-                # - label_unit
-                # - label_last_date_count_today
-                # - comboBox_type options
-                # - AVIF image
-
-                # Wait for the exercise selection to complete, then update specific fields
                 QTimer.singleShot(
                     50, lambda: self._update_form_from_process_selection(exercise_name, type_name, value_str)
                 )
@@ -4229,33 +4242,7 @@ class MainWindow(
         """Size process columns so they fill the visible table viewport."""
         if not hasattr(self, "tableView_process") or not self.tableView_process.model():
             return
-
-        header = self.tableView_process.horizontalHeader()
-        column_count = header.count()
-        if column_count < 1:
-            return
-
-        # Exercise / Type / Quantity are interactive; Date stretches to fill.
-        last_column = column_count - 1
-        for i in range(last_column):
-            header.setSectionResizeMode(i, header.ResizeMode.Interactive)
-        header.setSectionResizeMode(last_column, header.ResizeMode.Stretch)
-        header.setStretchLastSection(True)
-
-        available_width = self._process_table_available_width()
-        if available_width <= 0:
-            return
-
-        # Preferred shares for the non-stretch columns (Date takes the rest).
-        proportions = [0.40, 0.25, 0.20]
-        used_width = 0
-        for i, prop in enumerate(proportions):
-            if i >= last_column:
-                break
-            width = max(60, int(available_width * prop))
-            self.tableView_process.setColumnWidth(i, width)
-            used_width += width
-        self.tableView_process.setColumnWidth(last_column, max(60, available_width - used_width))
+        apply_process_column_visibility(self)
 
     def _append_exercise_name_to_list_view(self, exercise: str, *, load_icon: bool) -> None:
         """Append one exercise to the Sets list when it is not already present."""
@@ -4265,10 +4252,11 @@ class MainWindow(
             return
         name_local = self.db_manager.get_exercise_name_local(exercise) if self.db_manager else ""
         favorite_names = self.db_manager.get_favorite_exercise_names() if self.db_manager else set()
+        goal_extra = self._get_exercise_today_goal_info(exercise)
         display_text = format_favorite_exercise_label(
             exercise,
             favorite=exercise in favorite_names,
-            extra=self._get_exercise_today_goal_info(exercise),
+            extra=goal_extra,
             dumbbell=exercise in self._cached_dumbbell_exercise_names(),
         )
         item = QStandardItem(display_text)
@@ -4279,6 +4267,7 @@ class MainWindow(
         item.setData(exercise, Qt.ItemDataRole.UserRole)
         if name_local.strip():
             item.setData(name_local.strip(), NAME_LOCAL_ROLE)
+        item.setToolTip(GOAL_REMAINDER_TOOLTIP if goal_extra else "")
         self.exercises_list_model.appendRow(item)
 
     def _append_exercise_to_catalog_views(self, exercise: str) -> None:
@@ -4361,17 +4350,19 @@ class MainWindow(
                 item.setIcon(icon)
 
         def _apply_item_meta(item: QStandardItem, exercise: str) -> None:
+            goal_extra = goal_infos.get(exercise, "")
             item.setText(
                 format_favorite_exercise_label(
                     exercise,
                     favorite=exercise in favorite_names,
-                    extra=goal_infos.get(exercise, ""),
+                    extra=goal_extra,
                     dumbbell=exercise in dumbbell_names,
                 )
             )
             item.setData(exercise, Qt.ItemDataRole.UserRole)
             name_local = name_locals.get(exercise, "").strip()
             item.setData(name_local or None, NAME_LOCAL_ROLE)
+            item.setToolTip(GOAL_REMAINDER_TOOLTIP if goal_extra else "")
             _fill_icon(item, exercise)
 
         for target_row, exercise in enumerate(exercise_names):
@@ -4412,6 +4403,10 @@ class MainWindow(
             for col_idx, value in enumerate(row[:4]):
                 item = QStandardItem(str(value) if value is not None else "")
                 set_day_band(item, row_color)
+                if col_idx == PROCESS_COL_QUANTITY:
+                    item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+                else:
+                    item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
 
                 if col_idx == id_col_date and str(value) == today:
                     font = item.font()
@@ -4887,6 +4882,10 @@ class MainWindow(
         self.dateEdit_filter_from.dateChanged.connect(self.apply_filter)
         self.dateEdit_filter_to.dateChanged.connect(self.apply_filter)
         self.pushButton_clear_filter.clicked.connect(self.clear_filter)
+        search_edit = getattr(self, "lineEdit_process_search", None)
+        if search_edit is not None:
+            install_line_edit_search_chrome(search_edit, clear_tooltip="Clear search")
+            search_edit.textChanged.connect(self._schedule_process_search_filter)
 
         # Exercise type combobox for statistics sync
         self.comboBox_type.currentIndexChanged.connect(self.on_exercise_type_changed)
@@ -5049,6 +5048,10 @@ class MainWindow(
             for col_idx, value in enumerate(row[:4]):  # Only first 4 elements for display
                 item = QStandardItem(str(value) if value is not None else "")
                 set_day_band(item, row_color)
+                if col_idx == PROCESS_COL_QUANTITY:
+                    item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+                else:
+                    item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
 
                 # Check if this is today's record and make it bold
                 today = QDateTime.currentDateTime().toString("yyyy-MM-dd")
@@ -5965,11 +5968,13 @@ class MainWindow(
         use_date_filter: bool = self.checkBox_use_date_filter.isChecked()
         exercise = selected_process_filter_value(self.comboBox_filter_exercise.currentText())
         exercise_type = selected_process_filter_value(self.comboBox_filter_type.currentText())
+        search = process_history_search_text(self)
         return {
             "exercise_name": exercise or None,
             "exercise_type": exercise_type or None,
             "date_from": self.dateEdit_filter_from.date().toString("yyyy-MM-dd") if use_date_filter else None,
             "date_to": self.dateEdit_filter_to.date().toString("yyyy-MM-dd") if use_date_filter else None,
+            "search_text": search or None,
         }
 
     def _get_selected_chart_exercise(self) -> str:
@@ -6173,7 +6178,7 @@ class MainWindow(
         """Initialize the exercises list view with a model and connect signals."""
         self.exercises_list_model = QStandardItemModel()
         self.listView_exercises.setModel(self.exercises_list_model)
-        self.listView_exercises.setIconSize(QSize(self.icon_size, self.icon_size))
+        self.listView_exercises.setIconSize(QSize(EXERCISE_LIST_ICON_SIZE, EXERCISE_LIST_ICON_SIZE))
         self.listView_exercises.setItemDelegate(
             NameLocalListDelegate(self.listView_exercises, layout=NameLocalLayout.LIST)
         )
@@ -6450,9 +6455,11 @@ class MainWindow(
 
         def append_rows(rows: list[list]) -> None:
             transformed_data: list[list] = self._transform_process_data(rows, append_state=True)
-            proxy = cast("QSortFilterProxyModel", self.models["process"])
-            source_model = cast("QStandardItemModel", proxy.sourceModel())
+            proxy = self.models["process"]
+            source_model = cast("QStandardItemModel", ultimate_process_source(proxy))
             self._append_process_rows_to_model(source_model, transformed_data)
+            if isinstance(self.tableView_process.model(), ProcessDayHeaderProxy):
+                apply_process_day_header_spans(self.tableView_process)
 
         self._process_pagination.load_more(
             load_more_count=self.process_load_more_count,
@@ -6472,11 +6479,20 @@ class MainWindow(
         rows: list[list] = self._fetch_process_rows(limit, 0)
         transformed_data: list[list] = self._transform_process_data(rows, append_state=False)
 
-        self.models["process"] = self._create_colored_process_table_model(
-            transformed_data, self.table_config["process"][2]
-        )
-        self.tableView_process.setModel(self.models["process"])
+        sort_proxy = self._create_colored_process_table_model(transformed_data, self.table_config["process"][2])
+        self.tableView_process.setModel(sort_proxy)
+        # Filters / incompatible sorts: flat list with Date visible.
+        if self._process_uses_flat_history():
+            self.tableView_process.clearSpans()
+            self.models["process"] = sort_proxy
+        else:
+            day_proxy = install_process_day_headers(self.tableView_process, sort_proxy)
+            self.models["process"] = day_proxy
         self._setup_process_table_header()
+        set_process_empty_visible(
+            self,
+            visible=self._process_filter_is_active() and len(rows) == 0,
+        )
 
         self._process_pagination.record_first_page(
             len(rows),
@@ -6565,7 +6581,9 @@ class MainWindow(
         if table_key == "statistics":
             return self.tableView_statistics.model()
         model = self.models.get(table_key)
-        if isinstance(model, QSortFilterProxyModel):
+        if table_key == "process" and model is not None:
+            return ultimate_process_source(model)
+        if isinstance(model, QAbstractProxyModel):
             source = model.sourceModel()
             return source if source is not None else model
         return model
@@ -6726,6 +6744,13 @@ class MainWindow(
             self._update_list_view_exercise_icon(name)
             if self._workouts_widget is not None:
                 self._workouts_widget.update_exercise_icon(name, self._get_exercise_icon(name))
+
+    def _on_process_header_sort_clicked(self, _section: int) -> None:
+        """Reload process history when sort mode flips between grouped and flat."""
+        want_flat = self._process_uses_flat_history()
+        is_flat = not isinstance(self.tableView_process.model(), ProcessDayHeaderProxy)
+        if want_flat != is_flat:
+            self._load_process_page(reset=True)
 
     def _on_process_scroll(self, value: int) -> None:
         """Trigger loading more process rows when scrolled near the bottom."""
@@ -7321,7 +7346,9 @@ class MainWindow(
             QTimer.singleShot(0, self._decode_next_deferred_exercise_icon)
 
     def _process_filter_is_active(self) -> bool:
-        """Return whether any process table filter is currently applied."""
+        """Return whether any process history filter/search is currently applied."""
+        if process_history_search_text(self):
+            return True
         if selected_process_filter_value(self.comboBox_filter_exercise.currentText()):
             return True
         if selected_process_filter_value(self.comboBox_filter_type.currentText()):
@@ -7381,6 +7408,19 @@ class MainWindow(
             )
             toast.present()
 
+    def _process_sort_requires_flat(self) -> bool:
+        """Return `True` when header sort is incompatible with date day/month grouping."""
+        from harrix_swiss_knife.apps.common.table_models import (  # noqa: PLC0415
+            get_stored_table_header_sort,
+        )
+
+        stored = get_stored_table_header_sort(self.tableView_process)
+        if stored is None:
+            return False
+        section, _order = stored
+        # Default SQL order and Date column keep consecutive date runs.
+        return section != PROCESS_COL_DATE
+
     def _process_table_available_width(self) -> int:
         """Return a usable process-table width, including while the window is hidden."""
         viewport_width = self.tableView_process.viewport().width()
@@ -7395,6 +7435,10 @@ class MainWindow(
             if len(sizes) > process_pane and sizes[process_pane] > 0:
                 return sizes[process_pane]
         return max(self.width() // 2, 0)
+
+    def _process_uses_flat_history(self) -> bool:
+        """Return `True` for flat history (Date column) instead of day/month grouping."""
+        return self._process_filter_is_active() or self._process_sort_requires_flat()
 
     def _pump_exercise_add_queue(self) -> None:
         """Start the next queued add when AI, media, and the previous job are idle."""
@@ -7677,6 +7721,12 @@ class MainWindow(
         delay_ms = 800 if self._exercise_add_queue or self._exercise_add_busy else 250
         self._exercise_catalog_refresh_timer.start(delay_ms)
 
+    def _schedule_process_search_filter(self, *_args: object) -> None:
+        """Debounce history search so typing does not reload on every key."""
+        self._update_clear_filter_button_visibility()
+        sync_process_filter_button(self)
+        self._process_search_timer.start()
+
     def _scroll_table_to_exercise(self, table_name: str, exercise_name: str) -> bool:
         """Select and scroll to the first row for `exercise_name` in `table_name`."""
         if table_name not in self.table_config or not exercise_name:
@@ -7851,24 +7901,37 @@ class MainWindow(
         self.spinBox_count.setValue(amount)
 
     @requires_database()
-    def _set_date_for_selected_process_records(self, record_ids: list[int]) -> None:
-        """Set the same date on several process rows after user picks a date in a dialog."""
-        min_rows_for_bulk_date = 2
-        if len(record_ids) < min_rows_for_bulk_date or self.db_manager is None:
+    def _set_date_for_selected_process_records(
+        self,
+        record_ids: list[int],
+        *,
+        initial_date: str | None = None,
+    ) -> None:
+        """Change date for one or more process rows after the user picks a date."""
+        if not record_ids or self.db_manager is None:
             return
         if not self._validate_database_connection():
             return
 
+        count = len(record_ids)
         dialog = QDialog(self)
-        dialog.setWindowTitle("Set date for selected process records")
+        dialog.setWindowTitle("Change date" if count == 1 else "Change date for selected process records")
         dialog_layout = QVBoxLayout(dialog)
         dialog_layout.addWidget(
-            QLabel(f"New date for {len(record_ids)} process records:", dialog),
+            QLabel(
+                "New date for this process record:" if count == 1 else f"New date for {count} process records:",
+                dialog,
+            ),
         )
         date_edit = QDateEdit(dialog)
-        date_edit.setCalendarPopup(True)
         date_edit.setDisplayFormat("yyyy-MM-dd")
-        date_edit.setDate(self.dateEdit.date())
+        default_date = self.dateEdit.date()
+        if initial_date:
+            parsed = QDate.fromString(str(initial_date).strip()[:10], "yyyy-MM-dd")
+            if parsed.isValid():
+                default_date = parsed
+        date_edit.setDate(default_date)
+        attach_date_edit_quick_controls(date_edit)
         dialog_layout.addWidget(date_edit)
 
         buttons = QDialogButtonBox(
@@ -7967,10 +8030,14 @@ class MainWindow(
 
     def _setup_process_table_header(self) -> None:
         """Configure process table header and column widths."""
-        self.tableView_process.verticalHeader().setVisible(True)
-        self._adjust_process_table_columns()
+        apply_process_column_visibility(self)
         enable_table_header_sorting(self.tableView_process)
         apply_stored_table_header_sort(self.tableView_process)
+        if not getattr(self, "_process_sort_reload_bound", False):
+            self.tableView_process.horizontalHeader().sectionClicked.connect(
+                self._on_process_header_sort_clicked,
+            )
+            self._process_sort_reload_bound = True
 
     def _setup_seconds_count_inputs(self) -> None:
         self._count_input_is_seconds = False
@@ -8298,10 +8365,18 @@ class MainWindow(
         type_value = ""
         date_value = ""
 
-        if index.isValid() and model is not None:
-            exercise_raw = model.data(model.index(index.row(), 0))
-            type_raw = model.data(model.index(index.row(), 1))
-            date_raw = model.data(model.index(index.row(), 3))
+        if (
+            index.isValid()
+            and model is not None
+            and not bool(index.data(IS_DAY_HEADER_ROLE))
+            and not bool(index.data(IS_MONTH_HEADER_ROLE))
+        ):
+            source_index, source_model = map_process_index_to_source(index)
+            data_model = source_model if source_index.isValid() and source_model is not None else model
+            data_row = source_index.row() if source_index.isValid() else index.row()
+            exercise_raw = data_model.data(data_model.index(data_row, 0))
+            type_raw = data_model.data(data_model.index(data_row, 1))
+            date_raw = data_model.data(data_model.index(data_row, PROCESS_COL_DATE))
             exercise_value = parse_exercise_display_name(str(exercise_raw) if exercise_raw is not None else "")
             type_value = str(type_raw).strip() if type_raw is not None else ""
             date_value = str(date_raw).strip() if date_raw is not None else ""
@@ -8312,12 +8387,15 @@ class MainWindow(
                 )
 
         selected_process_ids = self._get_selected_row_ids("process")
-        bulk_date_action = None
-        ids_for_date_change: list[int] = []
-        if len(selected_process_ids) > 1:
-            ids_for_date_change = list(selected_process_ids)
+        change_date_action = None
+        ids_for_date_change: list[int] = list(selected_process_ids)
+        if not ids_for_date_change:
+            single_id = self._get_selected_row_id("process")
+            if single_id is not None:
+                ids_for_date_change = [single_id]
+        if ids_for_date_change:
             add_separator(context_menu)
-            bulk_date_action = add_labeled_action(context_menu, LABEL_SET_DATE_SELECTED, ICON_SET_DATE_SELECTED)
+            change_date_action = add_labeled_action(context_menu, LABEL_SET_DATE_SELECTED, ICON_SET_DATE_SELECTED)
 
         add_separator(context_menu)
         refresh_action = add_refresh_action(context_menu)
@@ -8369,8 +8447,11 @@ class MainWindow(
                 self.delete_record("process")
             else:
                 logger.debug("⚠️ Context menu: No row selected for deletion")
-        elif bulk_date_action is not None and action == bulk_date_action:
-            self._set_date_for_selected_process_records(ids_for_date_change)
+        elif change_date_action is not None and action == change_date_action:
+            self._set_date_for_selected_process_records(
+                ids_for_date_change,
+                initial_date=date_value or None,
+            )
 
     def _show_record_congratulations(self, exercise: str, record_info: dict) -> None:
         """Show congratulations message for new records.
@@ -8944,11 +9025,10 @@ class MainWindow(
             new_height = max(int(self._default_label_exercise_avif_height / 2), 1)
             self.label_exercise_avif.setMinimumHeight(new_height)
             self.label_exercise_avif.setMaximumHeight(new_height)
-            self.label_count_sets_today.setFont(self._small_count_sets_font)
         else:
             self.label_exercise_avif.setMinimumHeight(self._default_label_exercise_avif_min_height)
             self.label_exercise_avif.setMaximumHeight(self._default_label_exercise_avif_max_height)
-            self.label_count_sets_today.setFont(self._default_count_sets_font)
+        # Keep Sets-today number compact (chrome-sized); do not reapply the old 20pt dashboard font.
 
         self.label_exercise_avif.updateGeometry()
         if self.avif_manager:
@@ -9151,13 +9231,17 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
         self._dumbbell_exercise_names_cache: set[str] | None = None
 
         # Table models dictionary
-        self.models: dict[str, QSortFilterProxyModel | None] = {
+        self.models: dict[str, QAbstractProxyModel | None] = {
             "process": None,
             "exercises": None,
             "types": None,
             "weight": None,
             "statistics": None,
         }
+        self._process_search_timer = QTimer(self)
+        self._process_search_timer.setSingleShot(True)
+        self._process_search_timer.setInterval(400)
+        self._process_search_timer.timeout.connect(self.apply_filter)
         # Process table display mode flag
         initial_count, load_more_count = get_apps_list_limits(self._app_config)
         self.count_records_to_show: int = initial_count
@@ -9292,10 +9376,12 @@ Reset all process-table filters.
 
 Clears all filter selections and resets date ranges to default values:
 
-- Clears exercise and type selections
+- Clears history search, exercise and type selections
 - Disables date filtering
 - Resets date range to the last month
 - Refreshes the table view
+
+Does not reset the new-set form, catalog selection, or splitter sizes.
 
 <details>
 <summary>Code:</summary>
@@ -9323,6 +9409,13 @@ def clear_filter(self) -> None:
         for widget in widgets:
             widget.blockSignals(False)  # noqa: FBT003
 
+        search_edit = getattr(self, "lineEdit_process_search", None)
+        if search_edit is not None:
+            search_edit.blockSignals(True)  # noqa: FBT003
+            search_edit.clear()
+            search_edit.blockSignals(False)  # noqa: FBT003
+
+        self._process_search_timer.stop()
         self._update_date_filter_controls_enabled()
         self._update_clear_filter_button_visibility()
         refresh_process_filter_chips(self)
@@ -9370,6 +9463,31 @@ def clear_process_exercise_filter(self) -> None:
         self.comboBox_filter_exercise.setCurrentIndex(0)
         self.comboBox_filter_exercise.blockSignals(False)  # noqa: FBT003
         self.update_filter_type_combobox()
+        self.apply_filter()
+```
+
+</details>
+
+### ⚙️ Method `clear_process_search_filter`
+
+```python
+def clear_process_search_filter(self) -> None
+```
+
+Clear only the history search chip (not catalog Filter exercises).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def clear_process_search_filter(self) -> None:
+        search_edit = getattr(self, "lineEdit_process_search", None)
+        if search_edit is None:
+            return
+        search_edit.blockSignals(True)  # noqa: FBT003
+        search_edit.clear()
+        search_edit.blockSignals(False)  # noqa: FBT003
+        self._process_search_timer.stop()
         self.apply_filter()
 ```
 
@@ -11110,34 +11228,22 @@ def on_process_selection_changed(self, current: QModelIndex, _previous: QModelIn
         if not current.isValid():
             # If no selection, keep current form state
             return
+        if bool(current.data(IS_DAY_HEADER_ROLE)) or bool(current.data(IS_MONTH_HEADER_ROLE)):
+            return
 
         try:
-            model = self.models["process"]
-            if not model:
+            source_index, source_model = map_process_index_to_source(current)
+            if not source_index.isValid() or source_model is None:
                 return
 
-            row = current.row()
-
-            # Get data from the selected row
-            exercise_name = parse_exercise_display_name(model.data(model.index(row, 0)) or "")  # Exercise column
-            type_name = model.data(model.index(row, 1)) or ""  # Type column
-            value_with_unit = model.data(model.index(row, 2)) or ""  # Quantity column (e.g., "100 times")
-
-            # Extract numeric value from "value unit" format
+            row = source_index.row()
+            exercise_name = parse_exercise_display_name(source_model.data(source_model.index(row, 0)) or "")
+            type_name = source_model.data(source_model.index(row, 1)) or ""
+            value_with_unit = source_model.data(source_model.index(row, 2)) or ""
             value_str = value_with_unit.split()[0] if value_with_unit else "0"
 
-            # Update exercise selection in list view
             if exercise_name:
                 self._select_exercise_in_list(exercise_name)
-
-                # This will trigger on_exercise_selection_changed_list() which updates:
-                # - label_exercise
-                # - label_unit
-                # - label_last_date_count_today
-                # - comboBox_type options
-                # - AVIF image
-
-                # Wait for the exercise selection to complete, then update specific fields
                 QTimer.singleShot(
                     50, lambda: self._update_form_from_process_selection(exercise_name, type_name, value_str)
                 )
@@ -12049,7 +12155,7 @@ React to `QTabWidget` index change.
 
 Args:
 
-- [`index`](../finance/transaction_day_headers.g.md#%EF%B8%8F-method-index) (`int`): The index of the newly selected tab.
+- `index` (`int`): The index of the newly selected tab.
 
 <details>
 <summary>Code:</summary>

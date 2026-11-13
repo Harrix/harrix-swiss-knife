@@ -726,7 +726,10 @@ class ExchangeRatesOperations:
         self.models["exchange_rates"] = self._create_colored_table_model(
             transformed_data, self.table_config["exchange_rates"][2]
         )
-        self._set_table_model_and_stretch_columns(self.tableView_exchange_rates, self.models["exchange_rates"])
+        self.tableView_exchange_rates.setModel(self.models["exchange_rates"])
+        enable_table_header_sorting(self.tableView_exchange_rates)
+        apply_stored_table_header_sort(self.tableView_exchange_rates)
+        apply_exchange_rates_table_column_widths(self.tableView_exchange_rates, force=True)
         self._setup_exchange_rates_table_delegates()
 
         self._exchange_rates_pagination.record_first_page(len(rows), limit)

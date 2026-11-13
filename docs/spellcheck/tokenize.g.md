@@ -72,9 +72,9 @@ def iter_word_spans(text: str) -> list[tuple[int, int, str]]:
 def word_at_index(text: str, index: int) -> tuple[int, int, str] | None
 ```
 
-Return the word span covering [`index`](../apps/finance/transaction_day_headers.g.md#%EF%B8%8F-method-index), or `None` if there is none.
+Return the word span covering `index`, or `None` if there is none.
 
-When [`index`](../apps/finance/transaction_day_headers.g.md#%EF%B8%8F-method-index) sits on a boundary (typical caret after a word), the word to the
+When `index` sits on a boundary (typical caret after a word), the word to the
 left is preferred.
 
 <details>

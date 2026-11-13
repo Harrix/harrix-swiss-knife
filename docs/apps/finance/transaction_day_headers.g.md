@@ -13,6 +13,7 @@ lang: en
 
 - [🏛️ Class `DayHeaderDelegate`](#%EF%B8%8F-class-dayheaderdelegate)
   - [⚙️ Method `paint`](#%EF%B8%8F-method-paint)
+  - [⚙️ Method `sizeHint`](#%EF%B8%8F-method-sizehint)
 - [🏛️ Class `TransactionDayHeaderProxy`](#%EF%B8%8F-class-transactiondayheaderproxy)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `columnCount`](#%EF%B8%8F-method-columncount)
@@ -42,7 +43,7 @@ lang: en
 class DayHeaderDelegate(QStyledItemDelegate)
 ```
 
-Paint a compact day header (date left, day total above Amount) for spanned rows.
+Paint day/month headers (date left, totals above Amount) for spanned rows.
 
 <details>
 <summary>Code:</summary>
@@ -56,55 +57,111 @@ class DayHeaderDelegate(QStyledItemDelegate):
         option: QStyleOptionViewItem,
         index: QModelIndex | QPersistentModelIndex,
     ) -> None:
-        """Draw the day header chrome, or fall through for ordinary cells."""
-        if not bool(index.data(IS_DAY_HEADER_ROLE)):
+        """Draw the day/month header chrome, or fall through for ordinary cells."""
+        is_day = bool(index.data(IS_DAY_HEADER_ROLE))
+        is_month = bool(index.data(IS_MONTH_HEADER_ROLE))
+        if not is_day and not is_month:
             super().paint(painter, option, index)
             return
 
         date_text = str(index.data(DAY_HEADER_DATE_ROLE) or "")
         total_raw = str(index.data(DAY_HEADER_TOTAL_ROLE) or "")
+        income_raw = str(index.data(DAY_HEADER_INCOME_ROLE) or "")
         host = option.widget if isinstance(option.widget, QWidget) else None
         fluent = palette_for(host)
         fill = index.data(Qt.ItemDataRole.BackgroundRole)
-        background = fill if isinstance(fill, QColor) else mix(fluent.window_bg, fluent.card_bg)
+        if isinstance(fill, QColor):
+            background = fill
+        elif is_month:
+            background = _month_header_fill(fluent)
+        else:
+            background = mix(fluent.window_bg, fluent.card_bg)
         ink = mix(fluent.window_bg, fluent.text_primary)
         muted = mix(fluent.window_bg, fluent.text_secondary)
         hairline = mix(fluent.window_bg, fluent.divider)
-        hairline.setAlpha(_SEPARATOR_ALPHA)
+        hairline.setAlpha(_MONTH_SEPARATOR_ALPHA if is_month else _SEPARATOR_ALPHA)
 
         painter.save()
         painter.fillRect(option.rect, background)
-        if index.row() > 0:
+        # Month: stronger top rule (no accent bar — that reads as selection chrome).
+        if is_month or index.row() > 0:
             painter.setPen(QPen(hairline, 1))
             painter.drawLine(option.rect.topLeft(), option.rect.topRight())
 
-        font = QFont(option.font)
-        font.setBold(True)
-        painter.setFont(font)
-        metrics = QFontMetrics(font)
-        # Align the day total with the Amount column so it does not sit over Tag.
+        date_font = QFont(option.font)
+        date_font.setBold(True)
+        total_font = QFont(option.font)
+        total_font.setBold(True)
+        if total_font.pointSize() > 0:
+            total_font.setPointSize(total_font.pointSize() + (2 if is_month else 1))
+        date_metrics = QFontMetrics(date_font)
+        total_metrics = QFontMetrics(total_font)
+        # Align day totals with the Amount column so they do not sit over Tag.
         total_right = _day_header_total_right(host, option.rect)
         text_left = option.rect.left() + _HEADER_PAD_X
         text_right = max(text_left, total_right - _HEADER_PAD_X)
         text_rect = QRect(text_left, option.rect.top(), text_right - text_left, option.rect.height())
 
-        total_display = _format_header_total(total_raw, host)
-        total_width = metrics.horizontalAdvance(total_display) if total_display else 0
-        date_width = max(0, text_rect.width() - total_width - 12)
-        painter.setPen(ink)
+        income_display = _format_header_income(income_raw, host)
+        # Month banners always spell out Expenses when both sides exist.
+        expense_display = _format_header_total(
+            total_raw,
+            host,
+            has_income=bool(income_display) or is_month,
+        )
+        expense_width = total_metrics.horizontalAdvance(expense_display) if expense_display else 0
+        income_width = total_metrics.horizontalAdvance(income_display) if income_display else 0
+        totals_gap = _HEADER_TOTAL_GAP if expense_display and income_display else 0
+        totals_width = expense_width + income_width + totals_gap
+        date_width = max(0, text_rect.width() - totals_width - 12)
+        painter.setFont(date_font)
+        painter.setPen(ink if is_month else muted)
         painter.drawText(
             text_rect,
             int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft),
-            metrics.elidedText(date_text, Qt.TextElideMode.ElideRight, date_width),
+            date_metrics.elidedText(date_text, Qt.TextElideMode.ElideRight, date_width),
         )
-        if total_display:
-            painter.setPen(muted if total_display.startswith("-") else ink)
+        cursor_right = text_rect.right()
+        painter.setFont(total_font)
+        if expense_display:
+            painter.setPen(ink if "-" in expense_display or is_month else fluent.success)
+            expense_rect = QRect(
+                cursor_right - expense_width,
+                text_rect.top(),
+                expense_width,
+                text_rect.height(),
+            )
             painter.drawText(
-                text_rect,
+                expense_rect,
                 int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight),
-                total_display,
+                expense_display,
+            )
+            cursor_right = expense_rect.left() - totals_gap
+        if income_display:
+            painter.setPen(fluent.success)
+            income_rect = QRect(
+                cursor_right - income_width,
+                text_rect.top(),
+                income_width,
+                text_rect.height(),
+            )
+            painter.drawText(
+                income_rect,
+                int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight),
+                income_display,
             )
         painter.restore()
+
+    def sizeHint(  # noqa: N802
+        self,
+        option: QStyleOptionViewItem,
+        index: QModelIndex | QPersistentModelIndex,
+    ) -> QSize:
+        """Make month banners slightly taller than day headers."""
+        hint = super().sizeHint(option, index)
+        if bool(index.data(IS_MONTH_HEADER_ROLE)):
+            return QSize(hint.width(), max(hint.height(), _MONTH_MIN_HEIGHT))
+        return hint
 ```
 
 </details>
@@ -115,7 +172,7 @@ class DayHeaderDelegate(QStyledItemDelegate):
 def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex) -> None
 ```
 
-Draw the day header chrome, or fall through for ordinary cells.
+Draw the day/month header chrome, or fall through for ordinary cells.
 
 <details>
 <summary>Code:</summary>
@@ -127,54 +184,124 @@ def paint(
         option: QStyleOptionViewItem,
         index: QModelIndex | QPersistentModelIndex,
     ) -> None:
-        if not bool(index.data(IS_DAY_HEADER_ROLE)):
+        is_day = bool(index.data(IS_DAY_HEADER_ROLE))
+        is_month = bool(index.data(IS_MONTH_HEADER_ROLE))
+        if not is_day and not is_month:
             super().paint(painter, option, index)
             return
 
         date_text = str(index.data(DAY_HEADER_DATE_ROLE) or "")
         total_raw = str(index.data(DAY_HEADER_TOTAL_ROLE) or "")
+        income_raw = str(index.data(DAY_HEADER_INCOME_ROLE) or "")
         host = option.widget if isinstance(option.widget, QWidget) else None
         fluent = palette_for(host)
         fill = index.data(Qt.ItemDataRole.BackgroundRole)
-        background = fill if isinstance(fill, QColor) else mix(fluent.window_bg, fluent.card_bg)
+        if isinstance(fill, QColor):
+            background = fill
+        elif is_month:
+            background = _month_header_fill(fluent)
+        else:
+            background = mix(fluent.window_bg, fluent.card_bg)
         ink = mix(fluent.window_bg, fluent.text_primary)
         muted = mix(fluent.window_bg, fluent.text_secondary)
         hairline = mix(fluent.window_bg, fluent.divider)
-        hairline.setAlpha(_SEPARATOR_ALPHA)
+        hairline.setAlpha(_MONTH_SEPARATOR_ALPHA if is_month else _SEPARATOR_ALPHA)
 
         painter.save()
         painter.fillRect(option.rect, background)
-        if index.row() > 0:
+        # Month: stronger top rule (no accent bar — that reads as selection chrome).
+        if is_month or index.row() > 0:
             painter.setPen(QPen(hairline, 1))
             painter.drawLine(option.rect.topLeft(), option.rect.topRight())
 
-        font = QFont(option.font)
-        font.setBold(True)
-        painter.setFont(font)
-        metrics = QFontMetrics(font)
-        # Align the day total with the Amount column so it does not sit over Tag.
+        date_font = QFont(option.font)
+        date_font.setBold(True)
+        total_font = QFont(option.font)
+        total_font.setBold(True)
+        if total_font.pointSize() > 0:
+            total_font.setPointSize(total_font.pointSize() + (2 if is_month else 1))
+        date_metrics = QFontMetrics(date_font)
+        total_metrics = QFontMetrics(total_font)
+        # Align day totals with the Amount column so they do not sit over Tag.
         total_right = _day_header_total_right(host, option.rect)
         text_left = option.rect.left() + _HEADER_PAD_X
         text_right = max(text_left, total_right - _HEADER_PAD_X)
         text_rect = QRect(text_left, option.rect.top(), text_right - text_left, option.rect.height())
 
-        total_display = _format_header_total(total_raw, host)
-        total_width = metrics.horizontalAdvance(total_display) if total_display else 0
-        date_width = max(0, text_rect.width() - total_width - 12)
-        painter.setPen(ink)
+        income_display = _format_header_income(income_raw, host)
+        # Month banners always spell out Expenses when both sides exist.
+        expense_display = _format_header_total(
+            total_raw,
+            host,
+            has_income=bool(income_display) or is_month,
+        )
+        expense_width = total_metrics.horizontalAdvance(expense_display) if expense_display else 0
+        income_width = total_metrics.horizontalAdvance(income_display) if income_display else 0
+        totals_gap = _HEADER_TOTAL_GAP if expense_display and income_display else 0
+        totals_width = expense_width + income_width + totals_gap
+        date_width = max(0, text_rect.width() - totals_width - 12)
+        painter.setFont(date_font)
+        painter.setPen(ink if is_month else muted)
         painter.drawText(
             text_rect,
             int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft),
-            metrics.elidedText(date_text, Qt.TextElideMode.ElideRight, date_width),
+            date_metrics.elidedText(date_text, Qt.TextElideMode.ElideRight, date_width),
         )
-        if total_display:
-            painter.setPen(muted if total_display.startswith("-") else ink)
+        cursor_right = text_rect.right()
+        painter.setFont(total_font)
+        if expense_display:
+            painter.setPen(ink if "-" in expense_display or is_month else fluent.success)
+            expense_rect = QRect(
+                cursor_right - expense_width,
+                text_rect.top(),
+                expense_width,
+                text_rect.height(),
+            )
             painter.drawText(
-                text_rect,
+                expense_rect,
                 int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight),
-                total_display,
+                expense_display,
+            )
+            cursor_right = expense_rect.left() - totals_gap
+        if income_display:
+            painter.setPen(fluent.success)
+            income_rect = QRect(
+                cursor_right - income_width,
+                text_rect.top(),
+                income_width,
+                text_rect.height(),
+            )
+            painter.drawText(
+                income_rect,
+                int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight),
+                income_display,
             )
         painter.restore()
+```
+
+</details>
+
+### ⚙️ Method `sizeHint`
+
+```python
+def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex) -> QSize
+```
+
+Make month banners slightly taller than day headers.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def sizeHint(  # noqa: N802
+        self,
+        option: QStyleOptionViewItem,
+        index: QModelIndex | QPersistentModelIndex,
+    ) -> QSize:
+        hint = super().sizeHint(option, index)
+        if bool(index.data(IS_MONTH_HEADER_ROLE)):
+            return QSize(hint.width(), max(hint.height(), _MONTH_MIN_HEIGHT))
+        return hint
 ```
 
 </details>
@@ -185,7 +312,7 @@ def paint(
 class TransactionDayHeaderProxy(QAbstractProxyModel)
 ```
 
-Proxy that inserts a day header row before each consecutive date group.
+Proxy that inserts day and month header rows into the transaction list.
 
 <details>
 <summary>Code:</summary>
@@ -198,11 +325,17 @@ class TransactionDayHeaderProxy(QAbstractProxyModel):
     def __init__(self, parent: QObject | None = None) -> None:
         """Create an empty day-header proxy."""
         super().__init__(parent)
-        self._proxy_rows: list[int] = []  # source row, or -1 for a header
+        self._proxy_rows: list[int] = []  # source row, or negative sentinel for a header
         self._header_dates: dict[int, str] = {}
         self._header_totals: dict[int, str] = {}
+        self._header_incomes: dict[int, str] = {}
         self._header_bands: dict[int, int] = {}
+        self._header_month_rows: set[int] = set()
+        self._header_current_month_rows: set[int] = set()
         self._source_to_proxy: dict[int, int] = {}
+        self._rebuild_scheduled = False
+        # Tests can pin the “current” month without freezing the clock.
+        self.current_month_key_override: str | None = None
 
     def columnCount(self, parent: QModelIndex | QPersistentModelIndex | None = None) -> int:  # noqa: N802
         """Match the source column count."""
@@ -217,12 +350,19 @@ class TransactionDayHeaderProxy(QAbstractProxyModel):
             return None
         proxy_row = index.row()
         if self._is_header_row(proxy_row):
+            is_month = proxy_row in self._header_month_rows
             if role == IS_DAY_HEADER_ROLE:
-                return True
+                return not is_month
+            if role == IS_MONTH_HEADER_ROLE:
+                return is_month
+            if role == DAY_HEADER_IS_CURRENT_MONTH_ROLE:
+                return proxy_row in self._header_current_month_rows
             if role == DAY_HEADER_DATE_ROLE:
                 return self._header_dates.get(proxy_row, "")
             if role == DAY_HEADER_TOTAL_ROLE:
                 return self._header_totals.get(proxy_row, "")
+            if role == DAY_HEADER_INCOME_ROLE:
+                return self._header_incomes.get(proxy_row, "")
             if role == Qt.ItemDataRole.DisplayRole:
                 if index.column() == 0:
                     return self._header_dates.get(proxy_row, "")
@@ -230,6 +370,8 @@ class TransactionDayHeaderProxy(QAbstractProxyModel):
                     return self._header_totals.get(proxy_row, "")
                 return ""
             if role == Qt.ItemDataRole.BackgroundRole:
+                if is_month:
+                    return _month_header_fill(palette_for(None))
                 return day_band_color(self._band_index_for_header(proxy_row))
             if role in {Qt.ItemDataRole.FontRole, Qt.ItemDataRole.TextAlignmentRole}:
                 return None
@@ -258,7 +400,7 @@ class TransactionDayHeaderProxy(QAbstractProxyModel):
         orientation: Qt.Orientation,
         role: int = Qt.ItemDataRole.DisplayRole,
     ) -> Any:
-        """Forward horizontal headers; leave vertical IDs empty on day headers."""
+        """Forward horizontal headers; leave vertical IDs empty on day/month headers."""
         source = self.sourceModel()
         if source is None:
             return None
@@ -270,6 +412,8 @@ class TransactionDayHeaderProxy(QAbstractProxyModel):
             if role == Qt.ItemDataRole.DisplayRole:
                 return ""
             if role == Qt.ItemDataRole.BackgroundRole:
+                if section in self._header_month_rows:
+                    return _month_header_fill(palette_for(None))
                 return day_band_color(self._band_index_for_header(section))
             return None
         source_row = self._proxy_rows[section]
@@ -326,10 +470,9 @@ class TransactionDayHeaderProxy(QAbstractProxyModel):
     def rebuild(self) -> None:
         """Rebuild header insertion from the current source row order."""
         self._rebuild_mapping()
-        self.mapping_reset.emit()
 
     def rowCount(self, parent: QModelIndex | QPersistentModelIndex | None = None) -> int:  # noqa: N802
-        """Return data rows plus inserted day headers."""
+        """Return data rows plus inserted day/month headers."""
         if parent is not None and parent.isValid():
             return 0
         return len(self._proxy_rows)
@@ -360,8 +503,64 @@ class TransactionDayHeaderProxy(QAbstractProxyModel):
         source.sort(column, order)
         self._rebuild_mapping()
 
+    def _append_day_header(
+        self,
+        *,
+        date_str: str,
+        total_text: str,
+        income_text: str,
+        band_index: int,
+    ) -> None:
+        header_row = len(self._proxy_rows)
+        self._proxy_rows.append(_PROXY_DAY_HEADER)
+        self._header_dates[header_row] = date_str
+        self._header_totals[header_row] = total_text
+        self._header_incomes[header_row] = income_text
+        self._header_bands[header_row] = band_index
+
+    def _append_month_header(
+        self,
+        *,
+        month_key: str,
+        expense_text: str,
+        income_text: str,
+        is_current: bool,
+    ) -> None:
+        header_row = len(self._proxy_rows)
+        self._proxy_rows.append(_PROXY_MONTH_HEADER)
+        self._header_month_rows.add(header_row)
+        if is_current:
+            self._header_current_month_rows.add(header_row)
+        self._header_dates[header_row] = _format_month_banner_label(month_key, is_current=is_current)
+        self._header_totals[header_row] = expense_text
+        self._header_incomes[header_row] = income_text
+        self._header_bands[header_row] = 0
+
     def _band_index_for_header(self, proxy_row: int) -> int:
         return self._header_bands.get(proxy_row, 0)
+
+    def _current_month_key(self) -> str:
+        if self.current_month_key_override:
+            return self.current_month_key_override
+        return QDate.currentDate().toString("yyyy-MM")
+
+    def _forward_source_data_changed(
+        self,
+        top_left: QModelIndex,
+        bottom_right: QModelIndex,
+        roles: list[int] | None,
+    ) -> None:
+        role_args: list[int] = list(roles) if roles else []
+        for source_row in range(top_left.row(), bottom_right.row() + 1):
+            proxy_row = self._source_to_proxy.get(source_row)
+            if proxy_row is None:
+                continue
+            left = self.index(proxy_row, top_left.column())
+            right = self.index(proxy_row, bottom_right.column())
+            if role_args:
+                self.dataChanged.emit(left, right, role_args)
+            else:
+                self.dataChanged.emit(left, right)
 
     def _is_header_row(self, proxy_row: int) -> bool:
         return 0 <= proxy_row < len(self._proxy_rows) and self._proxy_rows[proxy_row] < 0
@@ -370,30 +569,37 @@ class TransactionDayHeaderProxy(QAbstractProxyModel):
         self,
         top_left: QModelIndex,
         bottom_right: QModelIndex,
-        _roles: list[int] | None = None,
+        roles: list[int] | None = None,
     ) -> None:
-        if top_left.column() <= TRANSACTION_COL_DATE <= bottom_right.column() or (
-            top_left.column() <= TRANSACTION_COL_TOTAL_PER_DAY <= bottom_right.column()
-        ):
-            self._rebuild_mapping()
+        role_values = [int(role) for role in roles] if roles else []
+        # Theme refresh paints Background/Foreground on every cell, including Date
+        # and Total. Rebuilding headers for each cell freezes the UI.
+        if role_values and set(role_values) <= _COSMETIC_ROLES:
+            self._forward_source_data_changed(top_left, bottom_right, role_values)
             return
-        for source_row in range(top_left.row(), bottom_right.row() + 1):
-            proxy_row = self._source_to_proxy.get(source_row)
-            if proxy_row is None:
-                continue
-            left = self.index(proxy_row, top_left.column())
-            right = self.index(proxy_row, bottom_right.column())
-            self.dataChanged.emit(left, right)
+        if (
+            top_left.column() <= TRANSACTION_COL_DATE <= bottom_right.column()
+            or top_left.column() <= TRANSACTION_COL_TOTAL_PER_DAY <= bottom_right.column()
+            or top_left.column() <= TRANSACTION_COL_AMOUNT <= bottom_right.column()
+            or top_left.column() <= TRANSACTION_COL_CATEGORY <= bottom_right.column()
+        ):
+            self._schedule_rebuild()
+            return
+        self._forward_source_data_changed(top_left, bottom_right, role_values)
 
     def _on_source_reset(self, *_args: object) -> None:
-        self._rebuild_mapping()
+        self._schedule_rebuild()
 
     def _rebuild_mapping(self) -> None:
+        self._rebuild_scheduled = False
         self.beginResetModel()
         self._proxy_rows = []
         self._header_dates = {}
         self._header_totals = {}
+        self._header_incomes = {}
         self._header_bands = {}
+        self._header_month_rows = set()
+        self._header_current_month_rows = set()
         self._source_to_proxy = {}
         source = self.sourceModel()
         if source is None:
@@ -401,25 +607,60 @@ class TransactionDayHeaderProxy(QAbstractProxyModel):
             self.mapping_reset.emit()
             return
 
-        previous_date = object()
+        income_by_date = _income_totals_by_date(source)
+        expense_by_month, income_by_month = _month_flow_totals(source, income_by_date)
+        current_month = self._current_month_key()
+        current_expense = expense_by_month.get(current_month, 0.0)
+        current_income = income_by_month.get(current_month, 0.0)
+        # Skip an empty current-month banner when history starts in an earlier month.
+        if source.rowCount() > 0 and (current_expense > 0 or current_income > 0):
+            self._append_month_header(
+                month_key=current_month,
+                expense_text=_expense_text_from_major(current_expense),
+                income_text=_income_text_from_major(current_income),
+                is_current=True,
+            )
+
+        previous_date: object = object()
+        previous_month: str | None = None
         band_index = 0
         for source_row in range(source.rowCount()):
             date_value = source.index(source_row, TRANSACTION_COL_DATE).data(Qt.ItemDataRole.DisplayRole)
-            date_str = "" if date_value is None else str(date_value)
+            date_str = "" if date_value is None else str(date_value).strip()
+            month_key = _month_key(date_str)
             if date_str and date_str != previous_date:
+                if month_key and month_key != previous_month:
+                    # Above the newest day of this month (= calendar last day in DESC order).
+                    if month_key != current_month:
+                        self._append_month_header(
+                            month_key=month_key,
+                            expense_text=_expense_text_from_major(expense_by_month.get(month_key, 0.0)),
+                            income_text=_income_text_from_major(income_by_month.get(month_key, 0.0)),
+                            is_current=False,
+                        )
+                    previous_month = month_key
                 total_value = source.index(source_row, TRANSACTION_COL_TOTAL_PER_DAY).data(Qt.ItemDataRole.DisplayRole)
                 total_text = "" if total_value is None else str(total_value)
-                header_row = len(self._proxy_rows)
-                self._proxy_rows.append(-1)
-                self._header_dates[header_row] = date_str
-                self._header_totals[header_row] = total_text
-                self._header_bands[header_row] = band_index
+                income_major = income_by_date.get(date_str, 0.0)
+                income_text = f"{income_major:.2f}" if income_major > 0 else ""
+                self._append_day_header(
+                    date_str=date_str,
+                    total_text=total_text,
+                    income_text=income_text,
+                    band_index=band_index,
+                )
                 band_index = 1 - band_index
                 previous_date = date_str
             self._source_to_proxy[source_row] = len(self._proxy_rows)
             self._proxy_rows.append(source_row)
         self.endResetModel()
         self.mapping_reset.emit()
+
+    def _schedule_rebuild(self) -> None:
+        if self._rebuild_scheduled:
+            return
+        self._rebuild_scheduled = True
+        QTimer.singleShot(0, self._rebuild_mapping)
 ```
 
 </details>
@@ -438,11 +679,17 @@ Create an empty day-header proxy.
 ```python
 def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
-        self._proxy_rows: list[int] = []  # source row, or -1 for a header
+        self._proxy_rows: list[int] = []  # source row, or negative sentinel for a header
         self._header_dates: dict[int, str] = {}
         self._header_totals: dict[int, str] = {}
+        self._header_incomes: dict[int, str] = {}
         self._header_bands: dict[int, int] = {}
+        self._header_month_rows: set[int] = set()
+        self._header_current_month_rows: set[int] = set()
         self._source_to_proxy: dict[int, int] = {}
+        self._rebuild_scheduled = False
+        # Tests can pin the “current” month without freezing the clock.
+        self.current_month_key_override: str | None = None
 ```
 
 </details>
@@ -485,12 +732,19 @@ def data(self, index: QModelIndex | QPersistentModelIndex, role: int = Qt.ItemDa
             return None
         proxy_row = index.row()
         if self._is_header_row(proxy_row):
+            is_month = proxy_row in self._header_month_rows
             if role == IS_DAY_HEADER_ROLE:
-                return True
+                return not is_month
+            if role == IS_MONTH_HEADER_ROLE:
+                return is_month
+            if role == DAY_HEADER_IS_CURRENT_MONTH_ROLE:
+                return proxy_row in self._header_current_month_rows
             if role == DAY_HEADER_DATE_ROLE:
                 return self._header_dates.get(proxy_row, "")
             if role == DAY_HEADER_TOTAL_ROLE:
                 return self._header_totals.get(proxy_row, "")
+            if role == DAY_HEADER_INCOME_ROLE:
+                return self._header_incomes.get(proxy_row, "")
             if role == Qt.ItemDataRole.DisplayRole:
                 if index.column() == 0:
                     return self._header_dates.get(proxy_row, "")
@@ -498,6 +752,8 @@ def data(self, index: QModelIndex | QPersistentModelIndex, role: int = Qt.ItemDa
                     return self._header_totals.get(proxy_row, "")
                 return ""
             if role == Qt.ItemDataRole.BackgroundRole:
+                if is_month:
+                    return _month_header_fill(palette_for(None))
                 return day_band_color(self._band_index_for_header(proxy_row))
             if role in {Qt.ItemDataRole.FontRole, Qt.ItemDataRole.TextAlignmentRole}:
                 return None
@@ -543,7 +799,7 @@ def flags(self, index: QModelIndex | QPersistentModelIndex) -> Qt.ItemFlag:
 def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.ItemDataRole.DisplayRole) -> Any
 ```
 
-Forward horizontal headers; leave vertical IDs empty on day headers.
+Forward horizontal headers; leave vertical IDs empty on day/month headers.
 
 <details>
 <summary>Code:</summary>
@@ -566,6 +822,8 @@ def headerData(  # noqa: N802
             if role == Qt.ItemDataRole.DisplayRole:
                 return ""
             if role == Qt.ItemDataRole.BackgroundRole:
+                if section in self._header_month_rows:
+                    return _month_header_fill(palette_for(None))
                 return day_band_color(self._band_index_for_header(section))
             return None
         source_row = self._proxy_rows[section]
@@ -720,7 +978,6 @@ Rebuild header insertion from the current source row order.
 ```python
 def rebuild(self) -> None:
         self._rebuild_mapping()
-        self.mapping_reset.emit()
 ```
 
 </details>
@@ -731,7 +988,7 @@ def rebuild(self) -> None:
 def rowCount(self, parent: QModelIndex | QPersistentModelIndex | None = None) -> int
 ```
 
-Return data rows plus inserted day headers.
+Return data rows plus inserted day/month headers.
 
 <details>
 <summary>Code:</summary>
@@ -805,7 +1062,7 @@ def sort(self, column: int, order: Qt.SortOrder = Qt.SortOrder.AscendingOrder) -
 def apply_transaction_day_header_spans(view: QTableView) -> None
 ```
 
-Span each day-header row across all columns so one cell paints the banner.
+Span each day/month header row across all columns so one cell paints the banner.
 
 <details>
 <summary>Code:</summary>
@@ -821,7 +1078,7 @@ def apply_transaction_day_header_spans(view: QTableView) -> None:
         return
     for row in range(model.rowCount()):
         index = model.index(row, 0)
-        if bool(model.data(index, IS_DAY_HEADER_ROLE)):
+        if bool(model.data(index, IS_DAY_HEADER_ROLE)) or bool(model.data(index, IS_MONTH_HEADER_ROLE)):
             view.setSpan(row, 0, 1, columns)
 ```
 
@@ -833,7 +1090,7 @@ def apply_transaction_day_header_spans(view: QTableView) -> None:
 def install_transaction_day_headers(view: QTableView, sort_proxy: QAbstractItemModel) -> TransactionDayHeaderProxy
 ```
 
-Wrap `sort_proxy` with day headers and show it on `view`.
+Wrap `sort_proxy` with day/month headers and show it on `view`.
 
 <details>
 <summary>Code:</summary>

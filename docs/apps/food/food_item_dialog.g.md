@@ -259,7 +259,7 @@ Initialize the dialog.
 
 Args:
 
-- [`parent`](../finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Parent widget. Defaults to `None`.
+- `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
 - `food_item_data` (`FoodItemByNameRow | FoodLogItemByNameRow | None`): Row used to prefill
   the form. For create mode, may be [`FoodLogItemByNameRow`](database_manager.g.md#%EF%B8%8F-class-foodlogitembynamerow) from the latest log entry.
 - `is_create` (`bool`): When `True`, dialog is for creating a new food item. Defaults to `False`.

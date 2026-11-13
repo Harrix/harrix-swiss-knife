@@ -16,6 +16,7 @@ lang: en
   - [⚙️ Method `leaveEvent`](#%EF%B8%8F-method-leaveevent)
   - [⚙️ Method `minimumSizeHint`](#%EF%B8%8F-method-minimumsizehint)
   - [⚙️ Method `mouseMoveEvent`](#%EF%B8%8F-method-mousemoveevent)
+  - [⚙️ Method `mousePressEvent`](#%EF%B8%8F-method-mousepressevent)
   - [⚙️ Method `paintEvent`](#%EF%B8%8F-method-paintevent)
   - [⚙️ Method `paintSection`](#%EF%B8%8F-method-paintsection)
   - [⚙️ Method `refresh_wrapped_height`](#%EF%B8%8F-method-refresh_wrapped_height)
@@ -23,6 +24,8 @@ lang: en
   - [⚙️ Method `setModel`](#%EF%B8%8F-method-setmodel)
   - [⚙️ Method `sizeHint`](#%EF%B8%8F-method-sizehint)
   - [⚙️ Method `viewportEvent`](#%EF%B8%8F-method-viewportevent)
+- [🔧 Function `header_column_separator_color`](#-function-header_column_separator_color)
+- [🔧 Function `header_column_separator_insets`](#-function-header_column_separator_insets)
 - [🔧 Function `install_word_wrap_header`](#-function-install_word_wrap_header)
 - [🔧 Function `install_word_wrap_headers`](#-function-install_word_wrap_headers)
 - [🔧 Function `wrapped_header_text_size`](#-function-wrapped_header_text_size)
@@ -66,7 +69,7 @@ class WordWrapHeaderView(QHeaderView):
         self._wrap_first_section = wrap_first_section
         self._updating_height = False
         self._hover_boundary_x: int | None = None
-        self.setDefaultAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.setDefaultAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         self.setTextElideMode(Qt.TextElideMode.ElideNone)
         self.setMouseTracking(True)
         self.viewport().setMouseTracking(True)
@@ -83,29 +86,61 @@ class WordWrapHeaderView(QHeaderView):
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         """Show a vertical mark and resize cursor on the boundary between columns."""
-        super().mouseMoveEvent(event)
+        # While dragging a section edge, do not snap — let QHeaderView resize.
+        if event.buttons() & Qt.MouseButton.LeftButton:
+            super().mouseMoveEvent(event)
+            return
         boundary = self._boundary_x_at(int(event.position().x()))
+        # Snap to the edge so QHeaderView's native handle hit-test still works.
+        if boundary is not None:
+            snapped = QMouseEvent(
+                event.type(),
+                QPointF(float(boundary), event.position().y()),
+                event.globalPosition(),
+                event.button(),
+                event.buttons(),
+                event.modifiers(),
+            )
+            super().mouseMoveEvent(snapped)
+        else:
+            super().mouseMoveEvent(event)
         self._set_hover_boundary(boundary)
         if boundary is not None:
             self.setCursor(Qt.CursorShape.SplitHCursor)
         elif self.cursor().shape() == Qt.CursorShape.SplitHCursor:
             self.unsetCursor()
 
+    def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        """Start column resize from a wider grip than the native handle."""
+        if event.button() == Qt.MouseButton.LeftButton:
+            boundary = self._boundary_x_at(int(event.position().x()))
+            if boundary is not None:
+                snapped = QMouseEvent(
+                    event.type(),
+                    QPointF(float(boundary), event.position().y()),
+                    event.globalPosition(),
+                    event.button(),
+                    event.buttons(),
+                    event.modifiers(),
+                )
+                super().mousePressEvent(snapped)
+                return
+        super().mousePressEvent(event)
+
     def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802
-        """Paint wrapped titles, then the hovered column boundary."""
+        """Paint wrapped titles, idle column rules, then the hovered splitter."""
         super().paintEvent(event)
-        if self._hover_boundary_x is None:
+        boundaries = self._visible_boundary_xs()
+        if not boundaries:
             return
         painter = QPainter(self.viewport())
-        grip = MUTED_TEXT
-        with contextlib.suppress(Exception):
-            palette = FluentTheme.instance().palette()
-            grip = css(mix(palette.window_bg, palette.text_secondary))
-        painter.setPen(QPen(QColor(grip), 1))
-        x = self._hover_boundary_x
-        height = self.viewport().height()
-        inset = min(_BOUNDARY_INSET_PX, max((height - 8) // 2, 0))
-        painter.drawLine(x, inset, x, max(inset, height - inset - 1))
+        idle = header_column_separator_color(self)
+        hover = self._hover_boundary_color()
+        y0, y1 = header_column_separator_insets(self.viewport().height())
+        for x in boundaries:
+            color = hover if self._hover_boundary_x == x else idle
+            painter.setPen(QPen(color, 1))
+            painter.drawLine(x, y0, x, y1)
         painter.end()
 
     def paintSection(self, painter: QPainter, rect: QRect, logical_index: int) -> None:  # noqa: N802
@@ -132,11 +167,17 @@ class WordWrapHeaderView(QHeaderView):
         painter.setPen(QPen(hairline, 1))
         painter.drawLine(rect.bottomLeft(), rect.bottomRight())
 
+        alignment = self._section_alignment(logical_index)
         icon = self._section_icon(logical_index)
         text_top = 2
         if not icon.isNull():
             pixmap = icon.pixmap(_HEADER_ICON_SIZE, _HEADER_ICON_SIZE)
-            icon_x = rect.x() + (rect.width() - pixmap.width()) // 2
+            if alignment & Qt.AlignmentFlag.AlignRight:
+                icon_x = rect.right() - _TEXT_INSET - pixmap.width()
+            elif alignment & Qt.AlignmentFlag.AlignHCenter:
+                icon_x = rect.x() + (rect.width() - pixmap.width()) // 2
+            else:
+                icon_x = rect.x() + _TEXT_INSET
             icon_y = rect.y() + _HEADER_ICON_TOP
             painter.drawPixmap(icon_x, icon_y, pixmap)
             text_top = _HEADER_ICON_TOP + pixmap.height() + _HEADER_ICON_GAP
@@ -146,7 +187,7 @@ class WordWrapHeaderView(QHeaderView):
             painter.setPen(ink)
             painter.drawText(
                 rect.adjusted(_TEXT_INSET, text_top, -_TEXT_INSET, -2),
-                int(HEADER_TEXT_FLAGS),
+                int(alignment | HEADER_WRAP_FLAG),
                 text,
             )
         painter.restore()
@@ -188,16 +229,20 @@ class WordWrapHeaderView(QHeaderView):
 
     def _boundary_x_at(self, viewport_x: int) -> int | None:
         """Return the position of an interactive section edge near the pointer."""
-        last = self.count() - 1
-        for logical in range(self.count()):
-            if self.isSectionHidden(logical) or logical == last:
-                continue
-            if self.sectionResizeMode(logical) != QHeaderView.ResizeMode.Interactive:
-                continue
-            right = self.sectionViewportPosition(logical) + self.sectionSize(logical)
-            if abs(viewport_x - right) <= _BOUNDARY_GRIP_PX:
-                return right
+        for x in self._visible_boundary_xs():
+            if abs(viewport_x - x) <= _BOUNDARY_GRIP_PX:
+                return x
         return None
+
+    def _hover_boundary_color(self) -> QColor:
+        """Brand blue for the hovered column splitter (matches app splitters)."""
+        color = QColor(SELECTION_BORDER)
+        with contextlib.suppress(Exception):
+            palette = FluentTheme.instance().palette()
+            color = QColor(palette.accent)
+            if color.alpha() < _OPAQUE_ALPHA:
+                color = QColor(css(mix(palette.window_bg, palette.accent)))
+        return color
 
     def _max_wrapped_height(self) -> int:
         if self.count() == 0:
@@ -223,6 +268,24 @@ class WordWrapHeaderView(QHeaderView):
     def _on_section_resized(self, _logical_index: int, _old_size: int, _new_size: int) -> None:
         self.refresh_wrapped_height()
 
+    def _section_alignment(self, logical_index: int) -> Qt.AlignmentFlag:
+        """Match header text to cell alignment (text left, amounts right)."""
+        model = self.model()
+        if model is not None:
+            stored = model.headerData(logical_index, self.orientation(), Qt.ItemDataRole.TextAlignmentRole)
+            if isinstance(stored, Qt.AlignmentFlag):
+                return stored
+            if isinstance(stored, int) and not isinstance(stored, bool) and stored != 0:
+                return Qt.AlignmentFlag(stored)
+        if _header_title_is_numeric(self._section_text(logical_index)):
+            return Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+        default = self.defaultAlignment()
+        if not (default & Qt.AlignmentFlag.AlignHorizontal_Mask):
+            default |= Qt.AlignmentFlag.AlignLeft
+        if not (default & Qt.AlignmentFlag.AlignVertical_Mask):
+            default |= Qt.AlignmentFlag.AlignVCenter
+        return default
+
     def _section_icon(self, logical_index: int) -> QIcon:
         model = self.model()
         if model is None:
@@ -245,6 +308,18 @@ class WordWrapHeaderView(QHeaderView):
 
     def _should_wrap_section(self, logical_index: int) -> bool:
         return self._wrap_first_section or logical_index > 0
+
+    def _visible_boundary_xs(self) -> list[int]:
+        """Right edges of every visible Interactive section except the last visible."""
+        visible = [logical for logical in range(self.count()) if not self.isSectionHidden(logical)]
+        if len(visible) < _MIN_VISIBLE_SECTIONS_FOR_SEPARATORS:
+            return []
+        edges: list[int] = []
+        for logical in visible[:-1]:
+            if self.sectionResizeMode(logical) != QHeaderView.ResizeMode.Interactive:
+                continue
+            edges.append(self.sectionViewportPosition(logical) + self.sectionSize(logical))
+        return edges
 ```
 
 </details>
@@ -260,7 +335,7 @@ Create a wrapping header.
 Args:
 
 - `orientation` (`Qt.Orientation`): Header orientation.
-- [`parent`](../finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Parent widget. Defaults to `None`.
+- `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
 - `wrap_width` (`int | None`): Preferred wrap width for compact columns. Defaults to `None`.
 - `wrap_first_section` (`bool`): Also wrap the first section. Defaults to `False`.
 
@@ -281,7 +356,7 @@ def __init__(
         self._wrap_first_section = wrap_first_section
         self._updating_height = False
         self._hover_boundary_x: int | None = None
-        self.setDefaultAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.setDefaultAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         self.setTextElideMode(Qt.TextElideMode.ElideNone)
         self.setMouseTracking(True)
         self.viewport().setMouseTracking(True)
@@ -340,13 +415,60 @@ Show a vertical mark and resize cursor on the boundary between columns.
 
 ```python
 def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802
-        super().mouseMoveEvent(event)
+        # While dragging a section edge, do not snap — let QHeaderView resize.
+        if event.buttons() & Qt.MouseButton.LeftButton:
+            super().mouseMoveEvent(event)
+            return
         boundary = self._boundary_x_at(int(event.position().x()))
+        # Snap to the edge so QHeaderView's native handle hit-test still works.
+        if boundary is not None:
+            snapped = QMouseEvent(
+                event.type(),
+                QPointF(float(boundary), event.position().y()),
+                event.globalPosition(),
+                event.button(),
+                event.buttons(),
+                event.modifiers(),
+            )
+            super().mouseMoveEvent(snapped)
+        else:
+            super().mouseMoveEvent(event)
         self._set_hover_boundary(boundary)
         if boundary is not None:
             self.setCursor(Qt.CursorShape.SplitHCursor)
         elif self.cursor().shape() == Qt.CursorShape.SplitHCursor:
             self.unsetCursor()
+```
+
+</details>
+
+### ⚙️ Method `mousePressEvent`
+
+```python
+def mousePressEvent(self, event: QMouseEvent) -> None
+```
+
+Start column resize from a wider grip than the native handle.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        if event.button() == Qt.MouseButton.LeftButton:
+            boundary = self._boundary_x_at(int(event.position().x()))
+            if boundary is not None:
+                snapped = QMouseEvent(
+                    event.type(),
+                    QPointF(float(boundary), event.position().y()),
+                    event.globalPosition(),
+                    event.button(),
+                    event.buttons(),
+                    event.modifiers(),
+                )
+                super().mousePressEvent(snapped)
+                return
+        super().mousePressEvent(event)
 ```
 
 </details>
@@ -357,7 +479,7 @@ def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802
 def paintEvent(self, event: QPaintEvent) -> None
 ```
 
-Paint wrapped titles, then the hovered column boundary.
+Paint wrapped titles, idle column rules, then the hovered splitter.
 
 <details>
 <summary>Code:</summary>
@@ -365,18 +487,17 @@ Paint wrapped titles, then the hovered column boundary.
 ```python
 def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802
         super().paintEvent(event)
-        if self._hover_boundary_x is None:
+        boundaries = self._visible_boundary_xs()
+        if not boundaries:
             return
         painter = QPainter(self.viewport())
-        grip = MUTED_TEXT
-        with contextlib.suppress(Exception):
-            palette = FluentTheme.instance().palette()
-            grip = css(mix(palette.window_bg, palette.text_secondary))
-        painter.setPen(QPen(QColor(grip), 1))
-        x = self._hover_boundary_x
-        height = self.viewport().height()
-        inset = min(_BOUNDARY_INSET_PX, max((height - 8) // 2, 0))
-        painter.drawLine(x, inset, x, max(inset, height - inset - 1))
+        idle = header_column_separator_color(self)
+        hover = self._hover_boundary_color()
+        y0, y1 = header_column_separator_insets(self.viewport().height())
+        for x in boundaries:
+            color = hover if self._hover_boundary_x == x else idle
+            painter.setPen(QPen(color, 1))
+            painter.drawLine(x, y0, x, y1)
         painter.end()
 ```
 
@@ -415,11 +536,17 @@ def paintSection(self, painter: QPainter, rect: QRect, logical_index: int) -> No
         painter.setPen(QPen(hairline, 1))
         painter.drawLine(rect.bottomLeft(), rect.bottomRight())
 
+        alignment = self._section_alignment(logical_index)
         icon = self._section_icon(logical_index)
         text_top = 2
         if not icon.isNull():
             pixmap = icon.pixmap(_HEADER_ICON_SIZE, _HEADER_ICON_SIZE)
-            icon_x = rect.x() + (rect.width() - pixmap.width()) // 2
+            if alignment & Qt.AlignmentFlag.AlignRight:
+                icon_x = rect.right() - _TEXT_INSET - pixmap.width()
+            elif alignment & Qt.AlignmentFlag.AlignHCenter:
+                icon_x = rect.x() + (rect.width() - pixmap.width()) // 2
+            else:
+                icon_x = rect.x() + _TEXT_INSET
             icon_y = rect.y() + _HEADER_ICON_TOP
             painter.drawPixmap(icon_x, icon_y, pixmap)
             text_top = _HEADER_ICON_TOP + pixmap.height() + _HEADER_ICON_GAP
@@ -429,7 +556,7 @@ def paintSection(self, painter: QPainter, rect: QRect, logical_index: int) -> No
             painter.setPen(ink)
             painter.drawText(
                 rect.adjusted(_TEXT_INSET, text_top, -_TEXT_INSET, -2),
-                int(HEADER_TEXT_FLAGS),
+                int(alignment | HEADER_WRAP_FLAG),
                 text,
             )
         painter.restore()
@@ -542,6 +669,50 @@ def viewportEvent(self, event: QEvent) -> bool:  # noqa: N802
 
 </details>
 
+## 🔧 Function `header_column_separator_color`
+
+```python
+def header_column_separator_color(widget: QWidget | None = None) -> QColor
+```
+
+Return a light idle color for header column rules (not selection blue).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def header_column_separator_color(widget: QWidget | None = None) -> QColor:
+    del widget  # reserved for future per-widget palette hooks
+    with contextlib.suppress(Exception):
+        palette = FluentTheme.instance().palette()
+        if palette.dark:
+            wash = QColor(255, 255, 255, 28)
+            return mix(palette.window_bg, wash)
+    # Site separator — a step darker than hairline, still quieter than hover blue.
+    return QColor(SEPARATOR)
+```
+
+</details>
+
+## 🔧 Function `header_column_separator_insets`
+
+```python
+def header_column_separator_insets(height: int) -> tuple[int, int]
+```
+
+Return `(y0, y1)` for a short vertical rule centered in the header.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def header_column_separator_insets(height: int) -> tuple[int, int]:
+    inset = min(_BOUNDARY_INSET_PX, max((height - 8) // 2, 0))
+    return inset, max(inset, height - inset - 1)
+```
+
+</details>
+
 ## 🔧 Function `install_word_wrap_header`
 
 ```python
@@ -587,10 +758,11 @@ def install_word_wrap_header(
         header.setHighlightSections(current.highlightSections())
         header.setStretchLastSection(current.stretchLastSection())
         header.setSortIndicatorShown(current.isSortIndicatorShown())
-        header.setDefaultAlignment(current.defaultAlignment())
         header.setMinimumSectionSize(current.minimumSectionSize())
         header.setDefaultSectionSize(current.defaultSectionSize())
         header.setSectionsMovable(current.sectionsMovable())
+    # Prefer left-aligned titles that match cell text; Amount-like columns go right.
+    header.setDefaultAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
     header.setTextElideMode(Qt.TextElideMode.ElideNone)
     table.setHorizontalHeader(header)
     # New headers start on the system light palette; restore Fluent dark chrome.
@@ -609,7 +781,7 @@ def install_word_wrap_header(
 def install_word_wrap_headers(parent: QWidget, *, skip: set[QTableView] | frozenset[QTableView] | None = None, wrap_first_section: bool = True) -> None
 ```
 
-Install wrapping headers on every `QTableView` under [`parent`](../finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent).
+Install wrapping headers on every `QTableView` under `parent`.
 
 <details>
 <summary>Code:</summary>

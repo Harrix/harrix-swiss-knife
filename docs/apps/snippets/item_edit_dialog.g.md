@@ -99,7 +99,7 @@ Build the form.
 
 Args:
 
-- [`parent`](../finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Parent widget. Defaults to `None`.
+- `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
 - `title` (`str`): Window title.
 - `zone` (`str`): Snippet zone; symbols and colors show a hint field.
 - `initial_value` (`str`): Prefill for the value. Defaults to `""`.

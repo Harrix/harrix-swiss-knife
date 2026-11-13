@@ -9,7 +9,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import QApplication, QTableView
 
-from harrix_swiss_knife.apps.finance.delegates.amount_delegate import _total_per_day_alignment
+from harrix_swiss_knife.apps.finance.delegates.amount_delegate import AmountDelegate, _total_per_day_alignment
 from harrix_swiss_knife.apps.finance.number_utils import NBSP
 from harrix_swiss_knife.apps.finance.transaction_day_totals import (
     TRANSACTION_COL_AMOUNT,
@@ -67,15 +67,13 @@ def test_income_category_uses_display_marker() -> None:
 
 
 def test_amount_delegate_treats_unsigned_as_income(qapp: QApplication) -> None:  # noqa: ARG001
-    from harrix_swiss_knife.apps.finance.delegates.amount_delegate import AmountDelegate
-
     model = QStandardItemModel()
     model.setColumnCount(4)
     model.appendRow([QStandardItem(""), QStandardItem(""), QStandardItem("1500.00"), QStandardItem("Salary")])
     model.appendRow([QStandardItem(""), QStandardItem(""), QStandardItem("-10.00"), QStandardItem("Food")])
     delegate = AmountDelegate(category_column=3, amount_column=2)
-    assert delegate._is_income_amount(model.index(0, 2), "1500.00")  # noqa: SLF001
-    assert not delegate._is_income_amount(model.index(1, 2), "-10.00")  # noqa: SLF001
+    assert delegate._is_income_amount(model.index(0, 2), "1500.00")
+    assert not delegate._is_income_amount(model.index(1, 2), "-10.00")
 
 
 def test_income_does_not_count_toward_day_total() -> None:

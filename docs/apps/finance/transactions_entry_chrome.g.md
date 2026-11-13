@@ -16,6 +16,7 @@ lang: en
 - [🔧 Function `category_state_text`](#-function-category_state_text)
 - [🔧 Function `install_transactions_entry_chrome`](#-function-install_transactions_entry_chrome)
 - [🔧 Function `persist_transactions_splitter_sizes`](#-function-persist_transactions_splitter_sizes)
+- [🔧 Function `refresh_category_icons_for_theme`](#-function-refresh_category_icons_for_theme)
 - [🔧 Function `refresh_category_state_label`](#-function-refresh_category_state_label)
 
 </details>
@@ -41,12 +42,16 @@ def apply_transactions_column_visibility(host: Any) -> None:
             _set_record_id_visible(table, visible=visible, persist=False)
         else:
             _set_data_column_visible(table, column, visible=visible, persist=False, refill=False)
-    _hide_day_header_source_columns(table)
+    _apply_day_header_column_policy(table)
     from harrix_swiss_knife.apps.finance.transaction_day_headers import (  # noqa: PLC0415
+        TransactionDayHeaderProxy,
         apply_transaction_day_header_spans,
     )
 
-    apply_transaction_day_header_spans(table)
+    if isinstance(table.model(), TransactionDayHeaderProxy):
+        apply_transaction_day_header_spans(table)
+    else:
+        table.clearSpans()
     apply_transactions_table_column_widths(table, force=True)
 ```
 
@@ -158,6 +163,7 @@ def install_transactions_entry_chrome(host: Any) -> None:
             _polish_form_column(host)
             _polish_category_list(host)
             _polish_entry_surfaces(host)
+            refresh_category_icons_for_theme(host)
 
         bind_theme(host, _refresh_theme)
         host._transactions_entry_theme_bound = True  # noqa: SLF001
@@ -183,6 +189,49 @@ def persist_transactions_splitter_sizes(host: Any) -> None:
     sizes = host.splitter.sizes()
     if len(sizes) == EXPECTED_SPLITTER_LEN and all(size > 0 for size in sizes):
         save_splitter_sizes([int(size) for size in sizes])
+```
+
+</details>
+
+## 🔧 Function `refresh_category_icons_for_theme`
+
+```python
+def refresh_category_icons_for_theme(host: Any) -> None
+```
+
+Repaint category Lucide icons after light/dark chrome changes.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def refresh_category_icons_for_theme(host: Any) -> None:
+    view = getattr(host, "listView_categories", None)
+    if view is not None:
+        viewport = view.viewport()
+        if viewport is not None:
+            viewport.update()
+
+    table = getattr(host, "tableView_transactions", None)
+    if table is None:
+        return
+    source = _leaf_standard_item_model(table.model())
+    if source is None:
+        return
+    for row in range(source.rowCount()):
+        item = source.item(row, TRANSACTION_COL_CATEGORY)
+        if item is None:
+            continue
+        emoji = item.data(ICON_ROLE)
+        lucide = item.data(ICON_LUCIDE_ROLE)
+        emoji_text = "" if emoji is None else str(emoji)
+        lucide_text = "" if lucide is None else str(lucide)
+        if not emoji_text and not lucide_text:
+            continue
+        item.setIcon(category_lucide_icon(emoji_text, lucide_name=lucide_text))
+    viewport = table.viewport()
+    if viewport is not None:
+        viewport.update()
 ```
 
 </details>

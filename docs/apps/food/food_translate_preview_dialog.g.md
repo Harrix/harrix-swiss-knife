@@ -161,7 +161,7 @@ Initialize the preview dialog.
 
 Args:
 
-- [`parent`](../finance/transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Parent window.
+- `parent` (`QWidget | None`): Parent window.
 - `names` (`list[str]`): Russian names sent to the AI.
 - `translations` (`dict[str, str]`): Parsed AI translations keyed by name.
 - `unique_names_limit` (`int`): Max unique names per BotHub batch from config.

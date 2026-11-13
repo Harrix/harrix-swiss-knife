@@ -130,7 +130,7 @@ Initialize DescriptionDelegate.
 
 Args:
 
-- [`parent`](../transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QObject | None`): Parent object for the delegate.
+- `parent` (`QObject | None`): Parent object for the delegate.
 
 <details>
 <summary>Code:</summary>
@@ -152,7 +152,7 @@ Create a line edit editor for the description column.
 
 Args:
 
-- [`parent`](../transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget`): Parent widget.
+- `parent` (`QWidget`): Parent widget.
 - `_option` (`QStyleOptionViewItem`): Style option.
 - `_index` (`QModelIndex | QPersistentModelIndex`): Model index.
 
@@ -222,7 +222,7 @@ Set the current value in the editor.
 Args:
 
 - `editor` (`QWidget`): The editor widget.
-- [`index`](../transaction_day_headers.g.md#%EF%B8%8F-method-index) (`QModelIndex | QPersistentModelIndex`): Model index.
+- `index` (`QModelIndex | QPersistentModelIndex`): Model index.
 
 <details>
 <summary>Code:</summary>
@@ -249,7 +249,7 @@ Args:
 
 - `editor` (`QWidget`): The editor widget.
 - `model` (`QAbstractItemModel`): The data model.
-- [`index`](../transaction_day_headers.g.md#%EF%B8%8F-method-index) (`QModelIndex | QPersistentModelIndex`): Model index.
+- `index` (`QModelIndex | QPersistentModelIndex`): Model index.
 
 <details>
 <summary>Code:</summary>

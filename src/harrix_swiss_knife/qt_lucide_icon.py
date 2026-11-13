@@ -655,11 +655,6 @@ def lucide_color_for(name: str) -> str:
     return mapped
 
 
-def neutral_lucide_color() -> str:
-    """Return a chrome-neutral Lucide stroke for light or Fluent dark theme."""
-    return LUCIDE_COLOR_LIGHT if _fluent_is_dark() else LUCIDE_COLOR_DARK
-
-
 def lucide_name_for_chrome_emoji(emoji: str) -> str | None:
     """Return the Lucide ID for a chrome emoji, or `None` when unmapped."""
     if emoji in CHROME_EMOJI_TO_LUCIDE:
@@ -738,6 +733,11 @@ def make_search_icon_label(
     label.setFixedSize(box_size, box_size)
     label.setAlignment(Qt.AlignmentFlag.AlignCenter)
     return label
+
+
+def neutral_lucide_color() -> str:
+    """Return a chrome-neutral Lucide stroke for light or Fluent dark theme."""
+    return LUCIDE_COLOR_LIGHT if _fluent_is_dark() else LUCIDE_COLOR_DARK
 
 
 def set_action_text_with_lucide_icon(

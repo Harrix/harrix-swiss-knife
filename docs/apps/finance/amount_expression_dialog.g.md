@@ -158,7 +158,7 @@ Initialize the expression dialog.
 
 Args:
 
-- [`parent`](transaction_day_headers.g.md#%EF%B8%8F-method-parent): Parent widget.
+- `parent`: Parent widget.
 - `initial_expression`: Prefill for the expression field.
 - `minimum` / `maximum`: Allowed result range (matches the amount spin box).
 

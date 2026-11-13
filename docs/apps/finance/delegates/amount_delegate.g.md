@@ -113,7 +113,7 @@ class AmountDelegate(QStyledItemDelegate):
             symbol = self._currency_symbol(index)
             display_text = with_currency(amount_text, symbol)
 
-            is_income = self._is_income_row(index)
+            is_income = self._is_income_amount(index, raw_value)
             if self.total_per_day:
                 alignment = int(_total_per_day_alignment(index.data(Qt.ItemDataRole.TextAlignmentRole)))
             else:
@@ -136,7 +136,8 @@ class AmountDelegate(QStyledItemDelegate):
                 painter.setPen(option.palette.color(QPalette.ColorRole.Text))
 
             top_pad = 3 if alignment & Qt.AlignmentFlag.AlignTop else 0
-            painter.drawText(option.rect.adjusted(5, top_pad, -5, 0), alignment, display_text)
+            # Extra right inset so amounts do not crowd the Category column.
+            painter.drawText(option.rect.adjusted(5, top_pad, -10, 0), alignment, display_text)
             painter.restore()
         except Exception:
             super().paint(painter, option, index)
@@ -206,6 +207,21 @@ class AmountDelegate(QStyledItemDelegate):
         except Exception:
             return _INCOME_TEXT
 
+    def _is_income_amount(self, index: QModelIndex | QPersistentModelIndex, raw_value: object) -> bool:
+        """Return whether this amount should use income (green) chrome.
+
+        Transactions store expenses with a leading minus and incomes unsigned.
+        Category `(Income)` remains the primary signal; the sign is a fallback so
+        incomes stay green even when the marker is missing after edits.
+
+        """
+        if self.category_column is None:
+            return False
+        if self._is_income_row(index):
+            return True
+        text = str(raw_value or "").strip()
+        return bool(text) and not text.startswith("-")
+
     def _is_income_row(self, index: QModelIndex | QPersistentModelIndex) -> bool:
         if self.category_column is None:
             return False
@@ -228,7 +244,7 @@ Initialize the amount delegate.
 
 Args:
 
-- [`parent`](../transaction_day_headers.g.md#%EF%B8%8F-method-parent) (`QWidget | None`): Parent widget.
+- `parent` (`QWidget | None`): Parent widget.
 - `db_manager` (`object | None`): Database manager for currency symbols.
 - `currency_column` (`int | None`): Column with a currency code for the symbol.
 - `use_default_currency` (`bool`): Use the project default currency symbol.
@@ -344,7 +360,7 @@ def paint(
             symbol = self._currency_symbol(index)
             display_text = with_currency(amount_text, symbol)
 
-            is_income = self._is_income_row(index)
+            is_income = self._is_income_amount(index, raw_value)
             if self.total_per_day:
                 alignment = int(_total_per_day_alignment(index.data(Qt.ItemDataRole.TextAlignmentRole)))
             else:
@@ -367,7 +383,8 @@ def paint(
                 painter.setPen(option.palette.color(QPalette.ColorRole.Text))
 
             top_pad = 3 if alignment & Qt.AlignmentFlag.AlignTop else 0
-            painter.drawText(option.rect.adjusted(5, top_pad, -5, 0), alignment, display_text)
+            # Extra right inset so amounts do not crowd the Category column.
+            painter.drawText(option.rect.adjusted(5, top_pad, -10, 0), alignment, display_text)
             painter.restore()
         except Exception:
             super().paint(painter, option, index)
