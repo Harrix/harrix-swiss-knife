@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QObject, QRect, QSize, Qt
 from PySide6.QtGui import QColor, QFont, QFontMetrics, QIcon, QPen
-from PySide6.QtWidgets import QApplication, QStyle, QStyledItemDelegate, QStyleOptionViewItem
+from PySide6.QtWidgets import QApplication, QStyle, QStyledItemDelegate, QStyleOptionViewItem, QWidget
 
 from harrix_swiss_knife.fluent.style import list_item_hover
 from harrix_swiss_knife.fluent.theme import mix, palette_for
@@ -16,7 +16,6 @@ from harrix_swiss_knife.fluent.tokens import RADIUS_CONTROL
 if TYPE_CHECKING:
     from PySide6.QtCore import QModelIndex, QPersistentModelIndex
     from PySide6.QtGui import QPainter
-    from PySide6.QtWidgets import QWidget
 
 NAME_LOCAL_ROLE = Qt.ItemDataRole.UserRole + 1
 _NAME_LOCAL_COLOR = QColor("#888888")
