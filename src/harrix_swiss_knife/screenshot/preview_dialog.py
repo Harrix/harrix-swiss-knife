@@ -26,6 +26,7 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QPlainTextEdit,
     QSizePolicy,
+    QTabBar,
     QTabWidget,
     QTextEdit,
     QVBoxLayout,
@@ -212,16 +213,24 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._tabs.setStyleSheet("QTabWidget::pane { border: none; background: transparent; }")
         self._tabs.tabCloseRequested.connect(self._close_tab_at)
         self._tabs.currentChanged.connect(self._on_tab_changed)
-        tab_bar = self._tabs.tabBar()
-        tab_bar.setDrawBase(False)
-        tab_bar.setAutoFillBackground(False)
-        tab_bar.setExpanding(False)
-        tab_bar.setFixedHeight(CAPTION_BUTTON_HEIGHT)
-        tab_bar.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
-        tab_bar.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
-        tab_bar.setProperty(CAPTION_TABS_PROPERTY, True)  # noqa: FBT003
-        tab_bar.hide()
-        self._tab_bar = tab_bar
+        # Keep the widget's own bar hidden. QTabWidget still owns/layout that bar;
+        # putting it in the caption lets resize overwrite geometry over the title.
+        inner_bar = self._tabs.tabBar()
+        inner_bar.hide()
+        inner_bar.setFixedHeight(0)
+        self._tab_bar = QTabBar()
+        self._tab_bar.setObjectName("screenshotCaptionTabs")
+        self._tab_bar.setDrawBase(False)
+        self._tab_bar.setAutoFillBackground(False)
+        self._tab_bar.setExpanding(False)
+        self._tab_bar.setTabsClosable(True)
+        self._tab_bar.setFixedHeight(CAPTION_BUTTON_HEIGHT)
+        self._tab_bar.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+        self._tab_bar.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
+        self._tab_bar.setProperty(CAPTION_TABS_PROPERTY, True)  # noqa: FBT003
+        self._tab_bar.hide()
+        self._tab_bar.currentChanged.connect(self._on_caption_tab_changed)
+        self._tab_bar.tabCloseRequested.connect(self._close_tab_at)
         self._caption_tabs_stretch = QWidget()
         self._caption_tabs_stretch.setObjectName("captionTabsStretch")
         self._caption_tabs_stretch.setFixedHeight(CAPTION_BUTTON_HEIGHT)
@@ -974,12 +983,42 @@ class ScreenshotPreviewWindow(QMainWindow):
             "}",
         )
 
+    def _on_caption_tab_changed(self, index: int) -> None:
+        if index < 0 or self._tabs.currentIndex() == index:
+            return
+        self._tabs.setCurrentIndex(index)
+
     def _relabel_untitled_tabs(self) -> None:
         for index in range(self._tabs.count()):
             tab = self._tabs.widget(index)
             if not isinstance(tab, _ScreenshotTab) or tab.saved_name:
                 continue
-            self._tabs.setTabText(index, self._tab_label(None, index + 1))
+            self._set_tab_text(index, self._tab_label(None, index + 1))
+
+    def _set_tab_text(self, index: int, text: str) -> None:
+        self._tabs.setTabText(index, text)
+        if 0 <= index < self._tab_bar.count() and self._tab_bar.tabText(index) != text:
+            self._tab_bar.setTabText(index, text)
+
+    def _sync_caption_tab_bar(self) -> None:
+        """Mirror QTabWidget labels/selection onto the caption-hosted tab bar."""
+        bar = self._tab_bar
+        bar.blockSignals(True)
+        try:
+            while bar.count() > self._tabs.count():
+                bar.removeTab(bar.count() - 1)
+            for index in range(self._tabs.count()):
+                text = self._tabs.tabText(index)
+                if index < bar.count():
+                    if bar.tabText(index) != text:
+                        bar.setTabText(index, text)
+                else:
+                    bar.addTab(text)
+            current = self._tabs.currentIndex()
+            if current >= 0 and bar.currentIndex() != current:
+                bar.setCurrentIndex(current)
+        finally:
+            bar.blockSignals(False)
 
     def _resize_custom(self) -> None:
         tab = self._current_tab()
@@ -1147,7 +1186,7 @@ class ScreenshotPreviewWindow(QMainWindow):
         tab.saved_name = path.name
         _remember_last_save_dir(path.parent)
         index = self._tabs.currentIndex()
-        self._tabs.setTabText(index, path.name)
+        self._set_tab_text(index, path.name)
         self._status.setText(f"Saved: {path}")
         self._update_window_title()
 
@@ -1186,7 +1225,7 @@ class ScreenshotPreviewWindow(QMainWindow):
         tab.saved_paths[folder_key] = resolved
         tab.saved_name = resolved.name
         if 0 <= tab_index < self._tabs.count():
-            self._tabs.setTabText(tab_index, resolved.name)
+            self._set_tab_text(tab_index, resolved.name)
         return resolved
 
     def _save_temp_png(self) -> str | None:
@@ -1314,6 +1353,7 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._color_button.setToolTip(f"Color ({self._annotation_color.name()})")
 
     def _update_multi_tab_chrome(self) -> None:
+        self._sync_caption_tab_bar()
         multi = self._tabs.count() > 1
         self._tab_bar.setVisible(multi)
         self._save_all_desktop_button.setVisible(multi)
