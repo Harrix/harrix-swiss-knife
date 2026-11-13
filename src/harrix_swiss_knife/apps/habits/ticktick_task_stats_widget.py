@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import calendar
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
@@ -13,13 +15,14 @@ from PySide6.QtWidgets import (
     QHeaderView,
     QLabel,
     QSizePolicy,
+    QSpinBox,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
     QWidget,
 )
 
-from harrix_swiss_knife.apps.common.chart_hover import install_chart_hover
+from harrix_swiss_knife.apps.common.chart_hover import create_chart_canvas, install_chart_hover
 from harrix_swiss_knife.apps.common.ui_chrome import muted_caption_qss
 from harrix_swiss_knife.apps.habits.ticktick_local_db import (
     TickTickCompletion,
@@ -28,12 +31,26 @@ from harrix_swiss_knife.apps.habits.ticktick_local_db import (
     load_ticktick_snapshot,
 )
 from harrix_swiss_knife.apps.habits.ticktick_task_stats import (
+    CHART_MODE_BY_MONTH,
+    CHART_MODE_BY_YEAR,
+    CHART_MODE_COMPARE_LAST,
+    CHART_MODE_COMPARE_SAME,
+    CHART_MODE_HEATMAP,
+    CHART_MODE_LABELS,
     LAST_365_DAYS_LABEL,
+    ChartMode,
     TickTickHeatmapResult,
     TickTickPeriodStats,
     aggregate_completions,
     available_years,
+    build_compare_months_chart,
     build_contribution_heatmap,
+    build_month_counts_chart,
+    build_year_counts_chart,
+    compare_last_months_series,
+    compare_same_months_series,
+    counts_by_month,
+    counts_by_year,
     day_from_heatmap_click,
     format_period_summary,
     heatmap_cell_tooltip,
@@ -47,9 +64,15 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from matplotlib.backend_bases import MouseEvent
+    from matplotlib.figure import Figure
 
 _ALL_PROJECTS = "__all__"
 _HEADERS = ("Time", "Task", "List")
+_DEFAULT_COMPARE_COUNT = 12
+_HEATMAP_MIN_HEIGHT = 200
+_HEATMAP_MAX_HEIGHT = 280
+_CHART_MIN_HEIGHT = 320
+_CHART_MAX_HEIGHT = 520
 
 
 class TickTickTaskStatsWidget(QWidget):
@@ -83,14 +106,27 @@ class TickTickTaskStatsWidget(QWidget):
         self._source_label.setWordWrap(True)
         self._source_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
 
+        self._chart_mode_combo = QComboBox()
+        for mode, label in CHART_MODE_LABELS:
+            self._chart_mode_combo.addItem(label, mode)
+
         self._period_combo = QComboBox()
         self._project_combo = QComboBox()
-        self._heatmap_host = QWidget()
-        self._heatmap_host.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        self._heatmap_host.setMinimumHeight(200)
-        self._heatmap_host.setMaximumHeight(280)
-        self._heatmap_layout = QVBoxLayout(self._heatmap_host)
-        self._heatmap_layout.setContentsMargins(0, 0, 0, 0)
+        self._count_spin = QSpinBox()
+        self._count_spin.setRange(1, 36)
+        self._count_spin.setValue(_DEFAULT_COMPARE_COUNT)
+        self._count_caption = QLabel("Months")
+        self._count_caption.setStyleSheet(muted_caption_qss())
+        self._same_month_combo = QComboBox()
+        for month_index in range(1, 13):
+            self._same_month_combo.addItem(calendar.month_name[month_index], month_index)
+        self._same_month_caption = QLabel("Month")
+        self._same_month_caption.setStyleSheet(muted_caption_qss())
+
+        self._chart_host = QWidget()
+        self._chart_host.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self._chart_layout = QVBoxLayout(self._chart_host)
+        self._chart_layout.setContentsMargins(0, 0, 0, 0)
 
         self._day_label = QLabel("Loading…")
         self._day_label.setStyleSheet(muted_caption_qss())
@@ -107,14 +143,26 @@ class TickTickTaskStatsWidget(QWidget):
         self.configure_day_table_columns()
 
         filters = QHBoxLayout()
+        chart_caption = QLabel("Chart")
+        chart_caption.setStyleSheet(muted_caption_qss())
         period_caption = QLabel("Period")
         period_caption.setStyleSheet(muted_caption_qss())
+        self._period_caption = period_caption
         project_caption = QLabel("List")
         project_caption.setStyleSheet(muted_caption_qss())
+        filters.addWidget(chart_caption)
+        filters.addWidget(self._chart_mode_combo, stretch=1)
         filters.addWidget(period_caption)
         filters.addWidget(self._period_combo, stretch=1)
         filters.addWidget(project_caption)
         filters.addWidget(self._project_combo, stretch=2)
+
+        self._compare_filters = QHBoxLayout()
+        self._compare_filters.addWidget(self._count_caption)
+        self._compare_filters.addWidget(self._count_spin)
+        self._compare_filters.addWidget(self._same_month_caption)
+        self._compare_filters.addWidget(self._same_month_combo, stretch=1)
+        self._compare_filters.addStretch()
 
         refresh_button = make_lucide_push_button("Refresh", "refresh-cw")
         refresh_button.clicked.connect(self.reload)
@@ -127,13 +175,20 @@ class TickTickTaskStatsWidget(QWidget):
         root.addWidget(self._summary_label)
         root.addWidget(self._source_label)
         root.addLayout(filters)
-        root.addWidget(self._heatmap_host)
+        root.addLayout(self._compare_filters)
+        root.addWidget(self._chart_host, stretch=2)
         root.addWidget(self._day_label)
         root.addWidget(self._day_table, stretch=1)
         root.addLayout(button_row)
 
+        self._chart_mode_combo.currentIndexChanged.connect(self._on_chart_mode_changed)
         self._period_combo.currentIndexChanged.connect(self._on_filters_changed)
         self._project_combo.currentIndexChanged.connect(self._on_filters_changed)
+        self._count_spin.valueChanged.connect(self._on_filters_changed)
+        self._same_month_combo.currentIndexChanged.connect(self._on_filters_changed)
+
+        self._sync_mode_controls()
+        self._set_same_month_to_current()
 
         if autoload:
             self.reload()
@@ -166,7 +221,7 @@ class TickTickTaskStatsWidget(QWidget):
             self._completions = []
             self._summary_label.setText(str(exc))
             self._source_label.setText("")
-            self._clear_heatmap("TickTick database is not available.")
+            self._clear_chart("TickTick database is not available.")
             self._fill_day_table([])
             self._period_combo.blockSignals(True)  # noqa: FBT003
             self._project_combo.blockSignals(True)  # noqa: FBT003
@@ -182,12 +237,19 @@ class TickTickTaskStatsWidget(QWidget):
         self._repopulate_filters()
         self._redraw()
 
-    def _clear_heatmap(self, message: str) -> None:
+    def _chart_mode(self) -> ChartMode:
+        data = self._chart_mode_combo.currentData()
+        for mode, _label in CHART_MODE_LABELS:
+            if data == mode:
+                return mode
+        return CHART_MODE_HEATMAP
+
+    def _clear_chart(self, message: str) -> None:
         self._release_canvas()
         label = QLabel(message)
         label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         label.setStyleSheet(muted_caption_qss())
-        self._heatmap_layout.addWidget(label)
+        self._chart_layout.addWidget(label)
         self._heatmap = None
 
     def _fill_day_table(self, rows: list[TickTickCompletion]) -> None:
@@ -200,6 +262,20 @@ class TickTickTaskStatsWidget(QWidget):
             self._day_table.setItem(index, 1, task_item)
             self._day_table.setItem(index, 2, list_item)
         self.configure_day_table_columns()
+
+    def _figure_size(self) -> tuple[float, float]:
+        width = max(self._chart_host.width(), 900)
+        if self._chart_mode() == CHART_MODE_HEATMAP:
+            height = max(_HEATMAP_MIN_HEIGHT, min(_HEATMAP_MAX_HEIGHT, 240))
+        else:
+            height = max(_CHART_MIN_HEIGHT, min(self._chart_host.height(), _CHART_MAX_HEIGHT))
+            height = max(height, 360)
+        return (width / 100, height / 100)
+
+    def _on_chart_mode_changed(self) -> None:
+        self._selected_day = None
+        self._sync_mode_controls()
+        self._redraw()
 
     def _on_filters_changed(self) -> None:
         self._selected_day = None
@@ -215,26 +291,92 @@ class TickTickTaskStatsWidget(QWidget):
         self._show_day(day)
 
     def _redraw(self) -> None:
+        mode = self._chart_mode()
+        project_id = self._selected_project_id()
+        if mode == CHART_MODE_HEATMAP:
+            self._redraw_heatmap(project_id)
+            return
+        self._day_label.setVisible(False)
+        self._day_table.setVisible(False)
+        self._heatmap = None
+        if mode == CHART_MODE_BY_YEAR:
+            self._redraw_by_year(project_id)
+        elif mode == CHART_MODE_BY_MONTH:
+            self._redraw_by_month(project_id)
+        elif mode == CHART_MODE_COMPARE_LAST:
+            self._redraw_compare_last(project_id)
+        else:
+            self._redraw_compare_same(project_id)
+
+    def _redraw_by_month(self, project_id: str | None) -> None:
+        months = self._count_spin.value()
+        month_counts = counts_by_month(self._completions, months, project_id=project_id)
+        total = sum(count for _start, count in month_counts)
+        self._summary_label.setText(f"Completions in last {months} months: {total}")
+        if total == 0:
+            self._clear_chart("No completed tasks in this period.")
+            return
+        self._show_figure(build_month_counts_chart(month_counts, figsize=self._figure_size()))
+
+    def _redraw_by_year(self, project_id: str | None) -> None:
+        year_counts = counts_by_year(self._completions, project_id=project_id)
+        total = sum(count for _year, count in year_counts)
+        self._summary_label.setText(f"Completions across years: {total}")
+        if total == 0:
+            self._clear_chart("No completed tasks.")
+            return
+        self._show_figure(build_year_counts_chart(year_counts, figsize=self._figure_size()))
+
+    def _redraw_compare_last(self, project_id: str | None) -> None:
+        months = self._count_spin.value()
+        series = compare_last_months_series(self._completions, months, project_id=project_id)
+        total = sum(item.points[-1][1] for item in series if item.points)
+        self._summary_label.setText(f"Compare last {months} months · Completions shown: {total}")
+        if total == 0:
+            self._clear_chart(f"No data for the last {months} months.")
+            return
+        title = f"Completed tasks (last {months} months comparison)"
+        self._show_figure(build_compare_months_chart(series, title=title, figsize=self._figure_size()))
+
+    def _redraw_compare_same(self, project_id: str | None) -> None:
+        years = self._count_spin.value()
+        month = int(self._same_month_combo.currentData() or 1)
+        month_name = calendar.month_name[month]
+        series = compare_same_months_series(
+            self._completions,
+            month,
+            years,
+            project_id=project_id,
+        )
+        total = sum(item.points[-1][1] for item in series if item.points)
+        self._summary_label.setText(f"{month_name} across last {years} years · Completions shown: {total}")
+        if total == 0:
+            self._clear_chart(f"No data for {month_name.lower()} in the last {years} years.")
+            return
+        title = f"Completed tasks ({month_name} comparison — last {years} years)"
+        self._show_figure(build_compare_months_chart(series, title=title, figsize=self._figure_size()))
+
+    def _redraw_heatmap(self, project_id: str | None) -> None:
+        self._day_label.setVisible(True)
+        self._day_table.setVisible(True)
         start_date, end_date = resolve_period(year=self._selected_year())
         self._stats = aggregate_completions(
             self._completions,
             start_date,
             end_date,
-            project_id=self._selected_project_id(),
+            project_id=project_id,
         )
         self._summary_label.setText(format_period_summary(self._stats))
         if self._stats.total_completions == 0:
             self._selected_day = None
-            self._clear_heatmap("No completed tasks in this period.")
+            self._clear_chart("No completed tasks in this period.")
             self._fill_day_table([])
             self._day_label.setText("No completed tasks in this period.")
             return
 
-        width = max(self._heatmap_host.width(), 900)
-        height = max(self._heatmap_host.minimumHeight(), min(self._heatmap_host.maximumHeight(), 240))
         self._heatmap = build_contribution_heatmap(
             self._stats,
-            figsize=(width / 100, height / 100),
+            figsize=self._figure_size(),
             dpi=100,
         )
         self._show_heatmap(self._heatmap)
@@ -249,8 +391,8 @@ class TickTickTaskStatsWidget(QWidget):
             self._fill_day_table([])
 
     def _release_canvas(self) -> None:
-        while self._heatmap_layout.count():
-            item = self._heatmap_layout.takeAt(0)
+        while self._chart_layout.count():
+            item = self._chart_layout.takeAt(0)
             widget = item.widget()
             if widget is not None:
                 widget.setParent(None)
@@ -293,6 +435,12 @@ class TickTickTaskStatsWidget(QWidget):
         data = self._period_combo.currentData()
         return int(data) if data is not None else None
 
+    def _set_same_month_to_current(self) -> None:
+        current_month = datetime.now().astimezone().month
+        index = self._same_month_combo.findData(current_month)
+        if index >= 0:
+            self._same_month_combo.setCurrentIndex(index)
+
     def _show_day(self, day: date) -> None:
         rows = []
         if self._stats is not None:
@@ -300,6 +448,14 @@ class TickTickTaskStatsWidget(QWidget):
         count = len(rows)
         self._day_label.setText(f"{day.isoformat()} — {count} completed task{'s' if count != 1 else ''}")
         self._fill_day_table(rows)
+
+    def _show_figure(self, figure: Figure) -> None:
+        self._release_canvas()
+        canvas = create_chart_canvas(figure)
+        canvas.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self._chart_layout.addWidget(canvas)
+        self._canvas = canvas
+        canvas.draw()
 
     def _show_heatmap(self, result: TickTickHeatmapResult) -> None:
         self._release_canvas()
@@ -317,6 +473,40 @@ class TickTickTaskStatsWidget(QWidget):
             return heatmap_cell_tooltip(day, count)
 
         install_chart_hover(canvas, resolve_tooltip=resolve_tooltip)
-        self._heatmap_layout.addWidget(canvas)
+        self._chart_layout.addWidget(canvas)
         self._canvas = canvas
         canvas.draw()
+
+    def _sync_mode_controls(self) -> None:
+        mode = self._chart_mode()
+        is_heatmap = mode == CHART_MODE_HEATMAP
+        is_by_month = mode == CHART_MODE_BY_MONTH
+        is_compare_last = mode == CHART_MODE_COMPARE_LAST
+        is_compare_same = mode == CHART_MODE_COMPARE_SAME
+        show_count = is_by_month or is_compare_last or is_compare_same
+        show_same_month = is_compare_same
+
+        self._period_caption.setVisible(is_heatmap)
+        self._period_combo.setVisible(is_heatmap)
+        self._count_caption.setVisible(show_count)
+        self._count_spin.setVisible(show_count)
+        self._same_month_caption.setVisible(show_same_month)
+        self._same_month_combo.setVisible(show_same_month)
+
+        if is_compare_same:
+            self._count_caption.setText("Years")
+            self._count_spin.setRange(1, 20)
+        elif is_by_month or is_compare_last:
+            self._count_caption.setText("Months")
+            self._count_spin.setRange(1, 36)
+
+        if is_heatmap:
+            self._chart_host.setMinimumHeight(_HEATMAP_MIN_HEIGHT)
+            self._chart_host.setMaximumHeight(_HEATMAP_MAX_HEIGHT)
+            self._chart_host.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        else:
+            self._chart_host.setMinimumHeight(_CHART_MIN_HEIGHT)
+            self._chart_host.setMaximumHeight(16777215)
+            self._chart_host.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self._day_label.setVisible(is_heatmap)
+        self._day_table.setVisible(is_heatmap)

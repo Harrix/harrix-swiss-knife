@@ -22,12 +22,18 @@ from harrix_swiss_knife.apps.habits.ticktick_local_db import (
 from harrix_swiss_knife.apps.habits.ticktick_task_stats import (
     aggregate_completions,
     available_years,
+    compare_last_months_series,
+    compare_same_months_series,
+    counts_by_month,
+    counts_by_year,
+    cumulative_month_points,
     current_streak_days,
     filter_completions_for_period,
     format_period_summary,
     heatmap_cell_tooltip,
     latest_active_day,
     longest_streak_days,
+    month_starts_going_back,
     resolve_period,
 )
 
@@ -216,3 +222,87 @@ def test_date_at_heatmap_point_picks_nearest_cell() -> None:
     assert date_at_heatmap_point(positions, 0.2, 0.2) == date(2024, 1, 1)
     assert date_at_heatmap_point(positions, 1.2, 0.2) == date(2024, 1, 2)
     assert date_at_heatmap_point(positions, 10.0, 10.0) is None
+
+
+def _multi_month_completions() -> list[TickTickCompletion]:
+    return [
+        TickTickCompletion("1", "A", datetime(2024, 1, 2, 10, 0, 0), "p1", "Inbox", 2),  # noqa: DTZ001
+        TickTickCompletion("2", "B", datetime(2024, 1, 5, 11, 0, 0), "p1", "Inbox", 2),  # noqa: DTZ001
+        TickTickCompletion("3", "C", datetime(2024, 2, 1, 9, 0, 0), "p2", "Work", 2),  # noqa: DTZ001
+        TickTickCompletion("4", "D", datetime(2023, 11, 10, 9, 0, 0), "p1", "Inbox", 2),  # noqa: DTZ001
+        TickTickCompletion("5", "E", datetime(2023, 1, 15, 9, 0, 0), "p1", "Inbox", 2),  # noqa: DTZ001
+    ]
+
+
+def test_counts_by_year_fills_gaps() -> None:
+    """Year totals include empty years between the first completion and today."""
+    rows = counts_by_year(_multi_month_completions(), today=date(2024, 2, 10))
+    assert rows == [(2023, 2), (2024, 3)]
+
+
+def test_counts_by_month_last_n() -> None:
+    """Month totals cover the newest N months oldest→newest."""
+    rows = counts_by_month(_multi_month_completions(), 3, today=date(2024, 2, 10))
+    assert [start for start, _count in rows] == [
+        date(2023, 12, 1),
+        date(2024, 1, 1),
+        date(2024, 2, 1),
+    ]
+    assert [count for _start, count in rows] == [0, 2, 1]
+
+
+def test_month_starts_going_back_newest_first() -> None:
+    """Month windows walk backward from the current month."""
+    assert month_starts_going_back(3, today=date(2024, 2, 10)) == [
+        date(2024, 2, 1),
+        date(2024, 1, 1),
+        date(2023, 12, 1),
+    ]
+
+
+def test_cumulative_month_points_extends_to_end_day() -> None:
+    """Cumulative series steps on active days and holds to the requested end day."""
+    points = cumulative_month_points(
+        _multi_month_completions(),
+        2024,
+        1,
+        end_day=10,
+    )
+    assert points == [(2, 1), (5, 2), (10, 2)]
+
+
+def test_compare_last_months_marks_current() -> None:
+    """Last-months series is newest first; current month is red and labeled."""
+    series = compare_last_months_series(
+        _multi_month_completions(),
+        2,
+        today=date(2024, 2, 10),
+    )
+    assert len(series) == 2
+    assert series[0].is_current is True
+    assert series[0].color == "red"
+    assert "(Current)" in series[0].label
+    assert series[0].points[-1] == (10, 1)
+    assert series[1].points[-1][1] == 2
+
+
+def test_compare_same_months_across_years() -> None:
+    """Same-month mode overlays January across years and skips a future month."""
+    series = compare_same_months_series(
+        _multi_month_completions(),
+        1,
+        3,
+        today=date(2024, 2, 10),
+    )
+    assert [item.year for item in series] == [2024, 2023, 2022]
+    assert series[0].points[-1][1] == 2
+    assert series[1].points[-1][1] == 1
+    assert series[2].points == []
+
+    future = compare_same_months_series(
+        _multi_month_completions(),
+        12,
+        2,
+        today=date(2024, 2, 10),
+    )
+    assert [item.year for item in future] == [2023]
