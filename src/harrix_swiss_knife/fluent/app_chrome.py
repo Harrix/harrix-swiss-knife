@@ -481,9 +481,12 @@ def _paint_viewport(view: QAbstractItemView, color: QColor, text: QColor) -> Non
     """Fill the scroll viewport so empty rows are not the system white."""
     viewport = view.viewport()
     tuned = viewport.palette()
-    for group in (QPalette.ColorGroup.Active, QPalette.ColorGroup.Inactive):
+    for group in (QPalette.ColorGroup.Active, QPalette.ColorGroup.Inactive, QPalette.ColorGroup.Disabled):
         tuned.setColor(group, QPalette.ColorRole.Base, color)
+        # Item delegates read Text / WindowText / ButtonText — keep all three on-theme.
         tuned.setColor(group, QPalette.ColorRole.Text, text)
+        tuned.setColor(group, QPalette.ColorRole.WindowText, text)
+        tuned.setColor(group, QPalette.ColorRole.ButtonText, text)
     viewport.setPalette(tuned)
     viewport.setAutoFillBackground(True)
     view.setPalette(tuned)
@@ -755,16 +758,22 @@ def _style_table(table: QTableView, palette: FluentPalette) -> None:
     _paint_viewport(table, surface, text)
     # Custom headers (word-wrap) paint from the palette, not from the section QSS.
     ink = mix(palette.window_bg, palette.text_secondary)
+    # Record-id column uses primary ink — secondary on small digits reads as black in dark.
+    id_ink = mix(palette.window_bg, palette.text_primary)
     tuned = header.palette()
-    for group in (QPalette.ColorGroup.Active, QPalette.ColorGroup.Inactive):
+    for group in (QPalette.ColorGroup.Active, QPalette.ColorGroup.Inactive, QPalette.ColorGroup.Disabled):
         for role in (QPalette.ColorRole.Button, QPalette.ColorRole.Window, QPalette.ColorRole.Base):
             tuned.setColor(group, role, surface)
         for role in (QPalette.ColorRole.ButtonText, QPalette.ColorRole.WindowText, QPalette.ColorRole.Text):
             tuned.setColor(group, role, ink)
     header.setPalette(tuned)
     header.viewport().setPalette(tuned)
-    vertical.setPalette(tuned)
-    vertical.viewport().setPalette(tuned)
+    id_tuned = QPalette(tuned)
+    for group in (QPalette.ColorGroup.Active, QPalette.ColorGroup.Inactive, QPalette.ColorGroup.Disabled):
+        for role in (QPalette.ColorRole.ButtonText, QPalette.ColorRole.WindowText, QPalette.ColorRole.Text):
+            id_tuned.setColor(group, role, id_ink)
+    vertical.setPalette(id_tuned)
+    vertical.viewport().setPalette(id_tuned)
     corner = table_corner_button(table)
     if corner is not None:
         corner.setPalette(tuned)

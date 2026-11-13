@@ -88,11 +88,15 @@ def test_refresh_day_bands_updates_rows_and_ids(qapp: QApplication) -> None:
     theme.set_mode(ThemeMode.DARK, persist=False)
     refresh_day_bands(table)
     assert name.background().color().rgb() == day_band_color(1).rgb()
+    assert name.foreground().color().lightness() >= 200
     header = model.verticalHeaderItem(0)
     assert header is not None
     assert header.data(DAY_BAND_ROLE) == 1
     assert header.background().color().rgb() == day_band_color(1).rgb()
-    assert isinstance(table.verticalHeader(), DayBandVerticalHeader)
+    assert header.foreground().color().lightness() >= 200
+    vertical = table.verticalHeader()
+    assert isinstance(vertical, DayBandVerticalHeader)
+    assert vertical._section_ink(0).lightness() >= 200
     theme.set_mode(previous, persist=False)
     table.close()
 
@@ -167,6 +171,20 @@ def test_set_day_band_adapts_plain_pastel_in_dark(qapp: QApplication) -> None:
     item = QStandardItem("row")
     set_day_band(item, QColor(200, 255, 200))
     assert item.background().color().lightness() < 140
+    assert item.foreground().color().lightness() >= 200
+    theme.set_mode(previous, persist=False)
+
+
+def test_set_readable_cell_fill_sets_light_ink_in_dark(qapp: QApplication) -> None:
+    """Chromatic dark fills still get light foreground for table text."""
+    assert qapp is not None
+    theme = FluentTheme.instance()
+    previous = theme.mode()
+    theme.set_mode(ThemeMode.DARK, persist=False)
+    item = QStandardItem("12.00")
+    set_readable_cell_fill(item, QColor.fromHsv(120, 80, 240))
+    assert item.background().color().value() <= 100
+    assert item.foreground().color().lightness() >= 200
     theme.set_mode(previous, persist=False)
 
 

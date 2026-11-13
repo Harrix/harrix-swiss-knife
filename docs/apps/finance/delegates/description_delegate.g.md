@@ -15,6 +15,7 @@ lang: en
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `createEditor`](#%EF%B8%8F-method-createeditor)
   - [⚙️ Method `helpEvent`](#%EF%B8%8F-method-helpevent)
+  - [⚙️ Method `paint`](#%EF%B8%8F-method-paint)
   - [⚙️ Method `setEditorData`](#%EF%B8%8F-method-seteditordata)
   - [⚙️ Method `setModelData`](#%EF%B8%8F-method-setmodeldata)
 
@@ -86,6 +87,25 @@ class DescriptionDelegate(QStyledItemDelegate):
             return False
         QToolTip.showText(event.globalPos(), tip, view)
         return True
+
+    def paint(
+        self,
+        painter: QPainter,
+        option: QStyleOptionViewItem,
+        index: QModelIndex | QPersistentModelIndex,
+    ) -> None:
+        """Paint description text with Fluent ink when the model fg is stuck dark."""
+        opt = QStyleOptionViewItem(option)
+        self.initStyleOption(opt, index)
+        selected = bool(opt.state & QStyle.StateFlag.State_Selected)
+        host = opt.widget if isinstance(opt.widget, QWidget) else None
+        fluent = palette_for(host)
+        # Soft-blue selection keeps dark HighlightedText; only fix unselected rows.
+        if fluent.dark and not selected and _foreground_too_dark(index, opt):
+            ink = mix(fluent.window_bg, fluent.text_primary)
+            opt.palette.setColor(QPalette.ColorRole.Text, ink)
+            opt.palette.setColor(QPalette.ColorRole.WindowText, ink)
+        super().paint(painter, opt, index)
 
     def setEditorData(self, editor: QWidget, index: QModelIndex | QPersistentModelIndex) -> None:  # noqa: N802
         """Set the current value in the editor.
@@ -207,6 +227,39 @@ def helpEvent(  # noqa: N802
             return False
         QToolTip.showText(event.globalPos(), tip, view)
         return True
+```
+
+</details>
+
+### ⚙️ Method `paint`
+
+```python
+def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex) -> None
+```
+
+Paint description text with Fluent ink when the model fg is stuck dark.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def paint(
+        self,
+        painter: QPainter,
+        option: QStyleOptionViewItem,
+        index: QModelIndex | QPersistentModelIndex,
+    ) -> None:
+        opt = QStyleOptionViewItem(option)
+        self.initStyleOption(opt, index)
+        selected = bool(opt.state & QStyle.StateFlag.State_Selected)
+        host = opt.widget if isinstance(opt.widget, QWidget) else None
+        fluent = palette_for(host)
+        # Soft-blue selection keeps dark HighlightedText; only fix unselected rows.
+        if fluent.dark and not selected and _foreground_too_dark(index, opt):
+            ink = mix(fluent.window_bg, fluent.text_primary)
+            opt.palette.setColor(QPalette.ColorRole.Text, ink)
+            opt.palette.setColor(QPalette.ColorRole.WindowText, ink)
+        super().paint(painter, opt, index)
 ```
 
 </details>

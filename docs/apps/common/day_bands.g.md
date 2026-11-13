@@ -99,7 +99,8 @@ class DayBandVerticalHeader(QHeaderView):
         if model is not None:
             value = model.headerData(logical_index, Qt.Orientation.Vertical, Qt.ItemDataRole.DisplayRole)
             text = "" if value is None else str(value)
-        painter.setPen(self.palette().color(QPalette.ColorRole.ButtonText))
+        # Fluent ink — do not trust ButtonText (stays light-theme dark under dark bands).
+        painter.setPen(self._section_ink(logical_index))
         painter.setFont(self.font())
         painter.drawText(rect, int(Qt.AlignmentFlag.AlignCenter), text)
         painter.restore()
@@ -113,6 +114,17 @@ class DayBandVerticalHeader(QHeaderView):
             if isinstance(brush, QColor):
                 return brush
         return self.palette().color(QPalette.ColorRole.Button)
+
+    def _section_ink(self, logical_index: int) -> QColor:
+        """Return on-theme ID text, preferring the row's stored day-band foreground."""
+        model = self.model()
+        if model is not None:
+            brush = model.headerData(logical_index, Qt.Orientation.Vertical, Qt.ItemDataRole.ForegroundRole)
+            if isinstance(brush, QBrush) and brush.style() != Qt.BrushStyle.NoBrush:
+                return brush.color()
+            if isinstance(brush, QColor) and brush.isValid():
+                return brush
+        return _band_ink()
 ```
 
 </details>
@@ -156,7 +168,8 @@ def paintSection(self, painter: QPainter, rect: QRect, logical_index: int) -> No
         if model is not None:
             value = model.headerData(logical_index, Qt.Orientation.Vertical, Qt.ItemDataRole.DisplayRole)
             text = "" if value is None else str(value)
-        painter.setPen(self.palette().color(QPalette.ColorRole.ButtonText))
+        # Fluent ink — do not trust ButtonText (stays light-theme dark under dark bands).
+        painter.setPen(self._section_ink(logical_index))
         painter.setFont(self.font())
         painter.drawText(rect, int(Qt.AlignmentFlag.AlignCenter), text)
         painter.restore()
@@ -409,6 +422,7 @@ def set_readable_cell_fill(item: QStandardItem, light: QColor, *, band_index: in
         return
     clear_day_band(item)
     item.setBackground(QBrush(fill))
+    item.setForeground(QBrush(_band_ink()))
 ```
 
 </details>

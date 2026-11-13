@@ -7,14 +7,14 @@ import re
 from typing import Any, cast
 
 from PySide6.QtCore import QAbstractItemModel, QLocale, QModelIndex, QPersistentModelIndex, Qt
-from PySide6.QtGui import QBrush, QColor, QFont, QPainter, QPalette
+from PySide6.QtGui import QBrush, QColor, QFont, QPainter
 from PySide6.QtWidgets import QDoubleSpinBox, QStyledItemDelegate, QStyleOptionViewItem, QWidget
 
 from harrix_swiss_knife.apps.common.ui_chrome import BUTTON_SUCCESS_BG
 from harrix_swiss_knife.apps.common.ui_helpers import apply_white_editor_background
 from harrix_swiss_knife.apps.finance.number_utils import format_amount, with_currency
 from harrix_swiss_knife.apps.finance.transaction_day_totals import is_income_category_display
-from harrix_swiss_knife.fluent.theme import palette_for
+from harrix_swiss_knife.fluent.theme import mix, palette_for
 from harrix_swiss_knife.qt_compact_spin_box import CompactDoubleSpinBox
 
 logger = logging.getLogger(__name__)
@@ -125,7 +125,10 @@ class AmountDelegate(QStyledItemDelegate):
             if is_income:
                 painter.setPen(self._income_pen_color(option))
             else:
-                painter.setPen(option.palette.color(QPalette.ColorRole.Text))
+                # Fluent ink — do not trust option.palette.Text under dark chrome.
+                host = option.widget if isinstance(option.widget, QWidget) else None
+                fluent = palette_for(host)
+                painter.setPen(mix(fluent.window_bg, fluent.text_primary))
 
             top_pad = 3 if alignment & Qt.AlignmentFlag.AlignTop else 0
             # Extra right inset so amounts do not crowd the Category column.

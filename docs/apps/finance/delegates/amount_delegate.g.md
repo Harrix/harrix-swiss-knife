@@ -133,7 +133,10 @@ class AmountDelegate(QStyledItemDelegate):
             if is_income:
                 painter.setPen(self._income_pen_color(option))
             else:
-                painter.setPen(option.palette.color(QPalette.ColorRole.Text))
+                # Fluent ink — do not trust option.palette.Text under dark chrome.
+                host = option.widget if isinstance(option.widget, QWidget) else None
+                fluent = palette_for(host)
+                painter.setPen(mix(fluent.window_bg, fluent.text_primary))
 
             top_pad = 3 if alignment & Qt.AlignmentFlag.AlignTop else 0
             # Extra right inset so amounts do not crowd the Category column.
@@ -380,7 +383,10 @@ def paint(
             if is_income:
                 painter.setPen(self._income_pen_color(option))
             else:
-                painter.setPen(option.palette.color(QPalette.ColorRole.Text))
+                # Fluent ink — do not trust option.palette.Text under dark chrome.
+                host = option.widget if isinstance(option.widget, QWidget) else None
+                fluent = palette_for(host)
+                painter.setPen(mix(fluent.window_bg, fluent.text_primary))
 
             top_pad = 3 if alignment & Qt.AlignmentFlag.AlignTop else 0
             # Extra right inset so amounts do not crowd the Category column.
