@@ -402,6 +402,8 @@ def _polish_form_column(host: Any) -> None:
 
     for control_name in (
         "spinBox_count",
+        "spinBox_count_minutes",
+        "spinBox_count_seconds",
         "comboBox_type",
         "dateEdit",
         "pushButton_add",

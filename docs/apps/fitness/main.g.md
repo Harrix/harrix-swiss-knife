@@ -8046,6 +8046,8 @@ class MainWindow(
         alignment = self.spinBox_count.alignment()
         parent = self.spinBox_count.parentWidget()
 
+        count_height = max(self.spinBox_count.minimumHeight(), self.spinBox_count.sizeHint().height())
+
         self.spinBox_count_minutes = QSpinBox(parent)
         self.spinBox_count_minutes.setObjectName("spinBox_count_minutes")
         self.spinBox_count_minutes.setFont(font)
@@ -8053,6 +8055,7 @@ class MainWindow(
         self.spinBox_count_minutes.setAlignment(alignment)
         self.spinBox_count_minutes.setRange(0, 10000)
         self.spinBox_count_minutes.setSuffix(" min")
+        self.spinBox_count_minutes.setMinimumHeight(count_height)
         self.spinBox_count_minutes.hide()
 
         self.spinBox_count_seconds = QSpinBox(parent)
@@ -8062,6 +8065,7 @@ class MainWindow(
         self.spinBox_count_seconds.setAlignment(alignment)
         self.spinBox_count_seconds.setRange(0, 59)
         self.spinBox_count_seconds.setSuffix(" sec")
+        self.spinBox_count_seconds.setMinimumHeight(count_height)
         self.spinBox_count_seconds.hide()
 
         unit_index = self.horizontalLayout_14.indexOf(self.label_unit)
