@@ -116,7 +116,15 @@ class NameLocalListDelegate(QStyledItemDelegate):
             host = self._host_widget(option)
             fluent = palette_for(host)
             text_color = mix(fluent.window_bg, fluent.text_primary)
-            self._paint_labels(painter, opt.font, main_text, name_local, text_rect, text_color)
+            self._paint_labels(
+                painter,
+                opt.font,
+                main_text,
+                name_local,
+                text_rect,
+                text_color,
+                local_color=self._local_ink(host),
+            )
             return
 
         widget = option.widget
@@ -137,7 +145,15 @@ class NameLocalListDelegate(QStyledItemDelegate):
             )
 
         text_color = opt.palette.text().color()
-        self._paint_labels(painter, opt.font, main_text, name_local, text_rect, text_color)
+        self._paint_labels(
+            painter,
+            opt.font,
+            main_text,
+            name_local,
+            text_rect,
+            text_color,
+            local_color=self._local_ink(self._host_widget(option)),
+        )
 
     def sizeHint(  # noqa: N802
         self,
@@ -206,6 +222,13 @@ class NameLocalListDelegate(QStyledItemDelegate):
         local_font.setPointSizeF(max(_NAME_LOCAL_MIN_POINT_SIZE, point * self._local_font_scale))
         return local_font
 
+    def _local_ink(self, host: QWidget | None) -> QColor:
+        """Secondary line ink: design muted on light, theme secondary on dark."""
+        fluent = palette_for(host)
+        if fluent.dark:
+            return mix(fluent.window_bg, fluent.text_secondary)
+        return QColor(MUTED_TEXT)
+
     def _name_local(self, index: QModelIndex | QPersistentModelIndex) -> str | None:
         value = index.data(NAME_LOCAL_ROLE)
         if value is None:
@@ -221,7 +244,10 @@ class NameLocalListDelegate(QStyledItemDelegate):
         name_local: str | None,
         text_rect: QRect,
         text_color: QColor,
+        *,
+        local_color: QColor | None = None,
     ) -> None:
+        secondary = local_color if local_color is not None else _NAME_LOCAL_COLOR
         main_metrics = QFontMetrics(font)
         painter.save()
 
@@ -258,7 +284,7 @@ class NameLocalListDelegate(QStyledItemDelegate):
                 center_flags,
                 main_metrics.elidedText(main_text, Qt.TextElideMode.ElideRight, main_rect.width()),
             )
-            painter.setPen(_NAME_LOCAL_COLOR)
+            painter.setPen(secondary)
             painter.setFont(local_font)
             painter.drawText(
                 local_rect,
@@ -285,7 +311,7 @@ class NameLocalListDelegate(QStyledItemDelegate):
             left_flags,
             main_metrics.elidedText(main_text, Qt.TextElideMode.ElideRight, main_rect.width()),
         )
-        painter.setPen(_NAME_LOCAL_COLOR)
+        painter.setPen(secondary)
         painter.setFont(local_font)
         painter.drawText(
             local_rect,
@@ -438,7 +464,15 @@ def paint(
             host = self._host_widget(option)
             fluent = palette_for(host)
             text_color = mix(fluent.window_bg, fluent.text_primary)
-            self._paint_labels(painter, opt.font, main_text, name_local, text_rect, text_color)
+            self._paint_labels(
+                painter,
+                opt.font,
+                main_text,
+                name_local,
+                text_rect,
+                text_color,
+                local_color=self._local_ink(host),
+            )
             return
 
         widget = option.widget
@@ -459,7 +493,15 @@ def paint(
             )
 
         text_color = opt.palette.text().color()
-        self._paint_labels(painter, opt.font, main_text, name_local, text_rect, text_color)
+        self._paint_labels(
+            painter,
+            opt.font,
+            main_text,
+            name_local,
+            text_rect,
+            text_color,
+            local_color=self._local_ink(self._host_widget(option)),
+        )
 ```
 
 </details>

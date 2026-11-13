@@ -1354,6 +1354,7 @@ class MainWindow(
             for col_idx, value in enumerate(row[:7]):
                 item = QStandardItem(str(value) if value is not None else "")
                 set_day_band(item, row_color)
+                _align_food_log_cell(item, col_idx)
 
                 if col_idx == FOOD_LOG_COL_TOTAL_PER_DAY:
                     item.setEditable(False)
@@ -1765,6 +1766,7 @@ class MainWindow(
             for col_idx, value in enumerate(row[:7]):
                 item = QStandardItem(str(value) if value is not None else "")
                 set_day_band(item, row_color)
+                _align_food_log_cell(item, col_idx)
 
                 # Make total per day column non-editable
                 if col_idx == FOOD_LOG_COL_TOTAL_PER_DAY:
@@ -2466,7 +2468,11 @@ class MainWindow(
         self.listView_food_items.setModel(self.food_items_list_model)
         if not self._food_items_list_delegate_installed:
             self.listView_food_items.setItemDelegate(
-                NameLocalListDelegate(self.listView_food_items, layout=NameLocalLayout.LIST)
+                NameLocalListDelegate(
+                    self.listView_food_items,
+                    layout=NameLocalLayout.LIST,
+                    local_font_scale=0.92,
+                )
             )
             self._food_items_list_delegate_installed = True
 
@@ -2477,6 +2483,7 @@ class MainWindow(
 
     def _init_food_log_table_delegates(self) -> None:
         """Install column delegates for the food log table."""
+        self.tableView_food_log.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
         self._is_drink_delegate = IsDrinkDelegate(self.tableView_food_log)
         self.tableView_food_log.setItemDelegateForColumn(1, self._is_drink_delegate)
 

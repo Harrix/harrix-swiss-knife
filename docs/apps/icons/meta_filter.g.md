@@ -109,7 +109,7 @@ def build_meta_list_html(
 def build_variants_header_html(family: IconFamily, icons: Sequence[IconFamily], *, chrome: MetaChrome | None = None) -> str
 ```
 
-Return rich-text header with chip-style meta links when values are shared.
+Return rich-text header with grouped title, meta, and tags.
 
 <details>
 <summary>Code:</summary>
@@ -122,28 +122,24 @@ def build_variants_header_html(
     chrome: MetaChrome | None = None,
 ) -> str:
     style = chrome or light_meta_chrome()
+    label = f"color:{style.id_color};font-size:11px;font-weight:600;margin:0 0 2px 0;"
+    section = "margin-top:10px;"
     lines = [
-        f'<div style="font-weight:600;">{html.escape(family.title)}</div>',
-        f'<div style="color:{style.id_color};font-size:11px;">{html.escape(family.id)}</div>',
+        f'<div style="font-weight:600;font-size:13px;">{html.escape(family.title)}</div>',
+        f'<div style="color:{style.id_color};font-size:11px;margin-top:2px;">{html.escape(family.id)}</div>',
+        f'<div style="{section}"><div style="{label}">Date</div>',
+        f"<div>{build_meta_date_html(icons, family.date, chrome=style)}</div></div>",
     ]
-    if family.date.strip():
-        lines.append(
-            f'<div style="margin-top:4px;">Date: {build_meta_date_html(icons, family.date, chrome=style)}</div>',
-        )
     categories = [item.strip() for item in family.categories if item.strip()]
-    if categories:
-        lines.append(
-            '<div style="margin-top:2px;">Categories: '
-            f"{build_meta_list_html(icons, META_KIND_CATEGORY, categories, chrome=style)}</div>",
-        )
-    else:
-        lines.append('<div style="margin-top:2px;">Categories: —</div>')
+    categories_html = build_meta_list_html(icons, META_KIND_CATEGORY, categories, chrome=style) if categories else "—"
+    lines.append(
+        f'<div style="{section}"><div style="{label}">Categories</div><div>{categories_html}</div></div>',
+    )
     tags = [item.strip() for item in family.tags if item.strip()]
-    if tags:
-        tags_html = build_meta_list_html(icons, META_KIND_TAG, tags, chrome=style)
-        lines.append(f'<div style="margin-top:2px;">Tags: {tags_html}</div>')
-    else:
-        lines.append('<div style="margin-top:2px;">Tags: —</div>')
+    tags_html = build_meta_list_html(icons, META_KIND_TAG, tags, chrome=style) if tags else "—"
+    lines.append(
+        f'<div style="{section}"><div style="{label}">Tags</div><div style="line-height:1.55;">{tags_html}</div></div>',
+    )
     return "".join(lines)
 ```
 

@@ -350,13 +350,11 @@ def test_habit_row_day_value_set_signal(qapp: QApplication) -> None:
 
     row.set_habit_data(7, "Walk", 0, 0, [None] * 7, selected=False, allows_number=False)
     assert all(not circle.allows_number() for circle in row.findChildren(CheckCircle))
-    assert "border-bottom" in row.styleSheet()
-    idle_style = row.styleSheet()
-    assert "background:" in idle_style
+    # Selection / separators are painted in paintEvent; QSS stays a transparent plate.
+    assert "background: transparent" in row.styleSheet()
+    assert "QFrame#habitRow QLabel" in row.styleSheet()
     row.set_habit_data(7, "Walk", 0, 0, [None] * 7, selected=True, allows_number=False)
-    selected_style = row.styleSheet()
-    assert selected_style != idle_style
-    assert "QFrame#habitRow QLabel" in selected_style
+    assert "background: transparent" in row.styleSheet()
 
 
 def test_habit_dashboard_list_scrolls(qapp: QApplication) -> None:
@@ -419,7 +417,7 @@ def test_check_circle_future_date_not_editable(qapp: QApplication) -> None:
 
     circle.set_editable(editable=False)
     assert not circle.is_editable()
-    assert circle.toolTip() == "Future date"
+    assert "Future date" in circle.toolTip()
     QTest.mouseClick(circle, Qt.MouseButton.LeftButton)
     assert received == []
 
@@ -457,7 +455,7 @@ def test_month_calendar_blocks_future_dates(qapp: QApplication) -> None:
     future = [circle for circle in grid.findChildren(CheckCircle) if circle.value() == 0]
     assert len(future) == 1
     assert not future[0].is_editable()
-    assert future[0].toolTip() == "Future date"
+    assert "Future date" in future[0].toolTip()
 
     next_btn = next(button for button in grid.findChildren(QPushButton) if button.toolTip() == "Next month")
     assert not next_btn.isEnabled()

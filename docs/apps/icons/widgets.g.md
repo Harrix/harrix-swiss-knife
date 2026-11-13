@@ -645,7 +645,7 @@ class DraggableIconList(QListWidget):
         item.setData(ROLE_NUMBER, int(number) if number > 0 else 0)
         date_text = entry.family.date.strip() if self._sort_mode == GRID_SORT_DATE else ""
         item.setData(ROLE_DATE, date_text)
-        tip = f"{entry.family.id}\n{entry.svg_path.name}"
+        tip = f"{entry.family.title}\n{entry.family.id}\n{entry.svg_path}"
         if number > 0:
             tip = f"#{number}\n{tip}"
         if date_text:
@@ -653,7 +653,7 @@ class DraggableIconList(QListWidget):
         if getattr(entry.family, "trademark", False):
             tip += "\n\n⚠️ Editorial Use Only / Trademarked Character"
         if entry.is_fallback:
-            tip = f"{tip}\nFallback: family has no selected variant kind"
+            tip = f"{tip}\nFallback: family has no selected variant kind for this View"
         item.setToolTip(tip)
         grid = self.gridSize()
         if grid.isValid() and grid.width() > 0 and grid.height() > 0:
@@ -1778,6 +1778,7 @@ class IconLabelDelegate(QStyledItemDelegate):
         painter.setPen(title_color)
 
         title_font = QFont(opt.font)
+        title_font.setWeight(QFont.Weight.DemiBold)
         subtitle_font = _filename_label_font(opt.font)
 
         painter.setFont(title_font)
@@ -1805,7 +1806,7 @@ class IconLabelDelegate(QStyledItemDelegate):
         if subtitle_text:
             if widget is not None:
                 fluent = palette_for(widget)
-                muted = mix(fluent.window_bg, fluent.text_secondary)
+                muted = mix(fluent.window_bg, fluent.text_secondary) if fluent.dark else QColor(MUTED_TEXT)
             else:
                 muted = QColor(MUTED_TEXT)
             if is_fallback:
@@ -1934,6 +1935,7 @@ def paint(
         painter.setPen(title_color)
 
         title_font = QFont(opt.font)
+        title_font.setWeight(QFont.Weight.DemiBold)
         subtitle_font = _filename_label_font(opt.font)
 
         painter.setFont(title_font)
@@ -1961,7 +1963,7 @@ def paint(
         if subtitle_text:
             if widget is not None:
                 fluent = palette_for(widget)
-                muted = mix(fluent.window_bg, fluent.text_secondary)
+                muted = mix(fluent.window_bg, fluent.text_secondary) if fluent.dark else QColor(MUTED_TEXT)
             else:
                 muted = QColor(MUTED_TEXT)
             if is_fallback:

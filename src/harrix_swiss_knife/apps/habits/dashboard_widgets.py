@@ -236,16 +236,16 @@ class CheckCircle(QWidget):
         self._apply_tooltip()
         self.update()
 
+    def set_habit_name(self, name: str) -> None:
+        """Attach habit title for tooltips and accessibility."""
+        self._habit_name = name.strip()
+        self._apply_tooltip()
+
     def set_has_comment(self, *, has_comment: bool) -> None:
         """Mark whether a comment exists for this day."""
         self._has_comment = has_comment
         self._apply_tooltip()
         self.update()
-
-    def set_habit_name(self, name: str) -> None:
-        """Attach habit title for tooltips and accessibility."""
-        self._habit_name = name.strip()
-        self._apply_tooltip()
 
     def set_value(self, value: int | None) -> None:
         """Set stored process-habit value (``None`` = no database record)."""
@@ -1001,9 +1001,7 @@ class StatCard(QFrame):
         )
         self._icon.setStyleSheet(f"color: {css(icon_color)}; font-size: 13px; font-weight: 600;")
         self._title_label.setStyleSheet(f"color: {title_color}; font-size: 12px; font-weight: 500;")
-        self._value_label.setStyleSheet(
-            f"color: {css(_text_primary(palette))}; font-size: 18px; font-weight: 700;"
-        )
+        self._value_label.setStyleSheet(f"color: {css(_text_primary(palette))}; font-size: 18px; font-weight: 700;")
 
 
 class WeekDayHeader(QWidget):
@@ -1146,18 +1144,6 @@ def habit_day_state(value: int | None) -> HabitDayState:
     if value == 1:
         return "one"
     return "number"
-
-
-def _habit_day_state_label(value: int | None) -> str:
-    """Human-readable label for tooltips and accessibility."""
-    state = habit_day_state(value)
-    if state == "absent":
-        return "No record"
-    if state == "zero":
-        return "Not done"
-    if state == "one":
-        return "Done"
-    return f"Done ({value})"
 
 
 def habit_drop_insert_index(row_mid_y: Sequence[int], y: int) -> int:
@@ -1326,23 +1312,6 @@ def weekday_short(weekday: int) -> str:
     return names[weekday % 7]
 
 
-def _card_surface(palette: FluentPalette) -> QColor:
-    """Return an opaque card/list surface for the current palette."""
-    return mix(palette.window_bg, palette.card_bg)
-
-
-def _local_today() -> date:
-    """Return today's date in the local timezone."""
-    return datetime.now(UTC).astimezone().date()
-
-
-def _month_short(month: int) -> str:
-    names = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
-    if 1 <= month <= MONTHS_IN_YEAR:
-        return names[month - 1]
-    return str(month)
-
-
 def _absent_fill(palette: FluentPalette, *, muted: bool = False, emphasize: bool = False) -> QColor:
     """Return a quiet fill for days with no check-in record.
 
@@ -1361,14 +1330,33 @@ def _absent_fill(palette: FluentPalette, *, muted: bool = False, emphasize: bool
     return mix(palette.window_bg, wash)
 
 
-def _paint_day_circle_emphasis(painter: QPainter, rect: QRectF) -> None:
-    """Draw a light accent ring for hover / keyboard focus on marked days."""
-    palette = _palette_from_painter(painter)
-    ring = QPen(mix(palette.window_bg, palette.accent), 1.25)
-    ring.setCapStyle(Qt.PenCapStyle.RoundCap)
-    painter.setPen(ring)
-    painter.setBrush(Qt.BrushStyle.NoBrush)
-    painter.drawEllipse(rect.adjusted(-1.0, -1.0, 1.0, 1.0))
+def _card_surface(palette: FluentPalette) -> QColor:
+    """Return an opaque card/list surface for the current palette."""
+    return mix(palette.window_bg, palette.card_bg)
+
+
+def _habit_day_state_label(value: int | None) -> str:
+    """Human-readable label for tooltips and accessibility."""
+    state = habit_day_state(value)
+    if state == "absent":
+        return "No record"
+    if state == "zero":
+        return "Not done"
+    if state == "one":
+        return "Done"
+    return f"Done ({value})"
+
+
+def _local_today() -> date:
+    """Return today's date in the local timezone."""
+    return datetime.now(UTC).astimezone().date()
+
+
+def _month_short(month: int) -> str:
+    names = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+    if 1 <= month <= MONTHS_IN_YEAR:
+        return names[month - 1]
+    return str(month)
 
 
 def _not_done_fill(palette: FluentPalette) -> QColor:
@@ -1392,6 +1380,16 @@ def _paint_comment_dot(painter: QPainter, rect: QRectF, *, has_comment: bool) ->
     dot = max(6.5, side * 0.36)
     inset = pen_width / 2.0
     painter.drawEllipse(QRectF(rect.right() - dot - inset, rect.top() + inset, dot, dot))
+
+
+def _paint_day_circle_emphasis(painter: QPainter, rect: QRectF) -> None:
+    """Draw a light accent ring for hover / keyboard focus on marked days."""
+    palette = _palette_from_painter(painter)
+    ring = QPen(mix(palette.window_bg, palette.accent), 1.25)
+    ring.setCapStyle(Qt.PenCapStyle.RoundCap)
+    painter.setPen(ring)
+    painter.setBrush(Qt.BrushStyle.NoBrush)
+    painter.drawEllipse(rect.adjusted(-1.0, -1.0, 1.0, 1.0))
 
 
 def _palette_from_painter(painter: QPainter) -> FluentPalette:

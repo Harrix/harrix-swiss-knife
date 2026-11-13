@@ -70,30 +70,26 @@ def build_variants_header_html(
     *,
     chrome: MetaChrome | None = None,
 ) -> str:
-    """Return rich-text header with chip-style meta links when values are shared."""
+    """Return rich-text header with grouped title, meta, and tags."""
     style = chrome or light_meta_chrome()
+    label = f"color:{style.id_color};font-size:11px;font-weight:600;margin:0 0 2px 0;"
+    section = "margin-top:10px;"
     lines = [
-        f'<div style="font-weight:600;">{html.escape(family.title)}</div>',
-        f'<div style="color:{style.id_color};font-size:11px;">{html.escape(family.id)}</div>',
+        f'<div style="font-weight:600;font-size:13px;">{html.escape(family.title)}</div>',
+        f'<div style="color:{style.id_color};font-size:11px;margin-top:2px;">{html.escape(family.id)}</div>',
+        f'<div style="{section}"><div style="{label}">Date</div>',
+        f"<div>{build_meta_date_html(icons, family.date, chrome=style)}</div></div>",
     ]
-    if family.date.strip():
-        lines.append(
-            f'<div style="margin-top:4px;">Date: {build_meta_date_html(icons, family.date, chrome=style)}</div>',
-        )
     categories = [item.strip() for item in family.categories if item.strip()]
-    if categories:
-        lines.append(
-            '<div style="margin-top:2px;">Categories: '
-            f"{build_meta_list_html(icons, META_KIND_CATEGORY, categories, chrome=style)}</div>",
-        )
-    else:
-        lines.append('<div style="margin-top:2px;">Categories: —</div>')
+    categories_html = build_meta_list_html(icons, META_KIND_CATEGORY, categories, chrome=style) if categories else "—"
+    lines.append(
+        f'<div style="{section}"><div style="{label}">Categories</div><div>{categories_html}</div></div>',
+    )
     tags = [item.strip() for item in family.tags if item.strip()]
-    if tags:
-        tags_html = build_meta_list_html(icons, META_KIND_TAG, tags, chrome=style)
-        lines.append(f'<div style="margin-top:2px;">Tags: {tags_html}</div>')
-    else:
-        lines.append('<div style="margin-top:2px;">Tags: —</div>')
+    tags_html = build_meta_list_html(icons, META_KIND_TAG, tags, chrome=style) if tags else "—"
+    lines.append(
+        f'<div style="{section}"><div style="{label}">Tags</div><div style="line-height:1.55;">{tags_html}</div></div>',
+    )
     return "".join(lines)
 
 
@@ -187,11 +183,15 @@ def _meta_value_html(icons: Sequence[IconFamily], kind: str, value: str, *, chro
     total = count_families_for_meta(icons, kind, value)
     if total <= 1:
         # Unique values are plain text — only shared (filterable) values get a chip.
-        return f'<span style="color:{chrome.plain};margin:0 2px 2px 0;">{escaped}</span>'
+        return f'<span style="color:{chrome.plain};margin:0 4px 3px 0;display:inline-block;">{escaped}</span>'
     href = html.escape(meta_link_href(kind, value), quote=True)
+    # Count = families in the open catalog that share this value (click filters the grid).
     count = html.escape(f"({total})")
     chip = (
         f"background-color:{chrome.chip_bg};color:{chrome.chip_fg};text-decoration:none;"
-        "border-radius:8px;padding:1px 6px;margin:0 2px 2px 0;"
+        "border-radius:4px;padding:1px 5px;margin:0 4px 3px 0;display:inline-block;"
     )
-    return f'<a href="{href}" style="{chip}">{escaped} <span style="color:{chrome.chip_count};">{count}</span></a>'
+    return (
+        f'<a href="{href}" style="{chip}" title="Filter by this value">'
+        f'{escaped} <span style="color:{chrome.chip_count};">{count}</span></a>'
+    )

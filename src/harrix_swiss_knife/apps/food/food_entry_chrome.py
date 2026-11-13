@@ -544,6 +544,16 @@ def _polish_items_list(host: Any) -> None:
         search.setMinimumHeight(CONTROL_HEIGHT)
 
 
+def _remove_trailing_stretches(layout: QHBoxLayout) -> None:
+    """Drop end-of-row stretches so Expanding value fields can fill the row."""
+    while layout.count() > 0:
+        item = layout.itemAt(layout.count() - 1)
+        if item is None or item.spacerItem() is None:
+            break
+        taken = layout.takeAt(layout.count() - 1)
+        del taken
+
+
 def _restructure_food_form(host: Any) -> None:
     """Split the generated food form into one control row per field; Add food spans the column."""
     if getattr(host, "_food_form_restructured", False):
@@ -622,16 +632,6 @@ def _restructure_food_form(host: Any) -> None:
         vlayout.insertLayout(date_index + 1, add_row)
     else:
         vlayout.addLayout(add_row)
-
-
-def _remove_trailing_stretches(layout: QHBoxLayout) -> None:
-    """Drop end-of-row stretches so Expanding value fields can fill the row."""
-    while layout.count() > 0:
-        item = layout.itemAt(layout.count() - 1)
-        if item is None or item.spacerItem() is None:
-            break
-        taken = layout.takeAt(layout.count() - 1)
-        del taken
 
 
 def _set_data_column_visible(

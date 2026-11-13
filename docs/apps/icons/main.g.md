@@ -727,11 +727,15 @@ class MainWindow(QMainWindow, AppWindowMixin):
         toolbar_widget = QWidget()
         toolbar_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         toolbar = QHBoxLayout(toolbar_widget)
-        toolbar.setContentsMargins(0, 0, 0, 0)
+        toolbar.setContentsMargins(SPACE_S, SPACE_XS, SPACE_S, SPACE_XS)
+        toolbar.setSpacing(SPACE_S)
         toolbar.addWidget(QLabel("Folder"), alignment=Qt.AlignmentFlag.AlignVCenter)
         self.folder_combo = QComboBox()
         self.folder_combo.setMinimumWidth(220)
         self.folder_combo.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.folder_combo.setToolTip(
+            "Open icons library root. This is separate from the Folders filter in the left pane.",
+        )
         self.folder_combo.currentIndexChanged.connect(self._on_folder_combo_changed)
         toolbar.addWidget(self.folder_combo, stretch=1)
 
@@ -766,17 +770,23 @@ class MainWindow(QMainWindow, AppWindowMixin):
 
         self.search_edit = QLineEdit()
         self.search_edit.setPlaceholderText("Search icons (title, tags, id)…")
+        self.search_edit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         install_line_edit_search_chrome(self.search_edit, clear_tooltip="Clear search")
         self.search_edit.textChanged.connect(self._schedule_search_filter)
         self.search_edit.returnPressed.connect(self._apply_filters)
         # View combo is taller because of preview icons; match the rest of the row to it.
-        toolbar_h = max(self.variant_view_combo.sizeHint().height(), VIEW_COMBO_ICON_SIZE + 8)
-        toolbar.addWidget(self.search_edit, stretch=1)
+        toolbar_h = max(
+            CONTROL_HEIGHT,
+            self.variant_view_combo.sizeHint().height(),
+            VIEW_COMBO_ICON_SIZE + 8,
+        )
+        toolbar.addWidget(self.search_edit, stretch=2)
 
         self.refresh_btn = make_lucide_push_button("Refresh catalog", "refresh-cw")
         self.refresh_btn.setText("")
         self.refresh_btn.setToolTip("Refresh catalog")
         self.refresh_btn.setAccessibleName("Refresh catalog")
+        self.refresh_btn.setStyleSheet(button_idle_qss())
         self.refresh_btn.clicked.connect(self._on_refresh_catalog)
         toolbar.addWidget(self.refresh_btn)
 
@@ -793,6 +803,17 @@ class MainWindow(QMainWindow, AppWindowMixin):
 
         splitter = FluentSplitter(Qt.Orientation.Horizontal)
         self._main_splitter = splitter
+        left_column = QWidget()
+        left_column_layout = QVBoxLayout(left_column)
+        left_column_layout.setContentsMargins(0, 0, 0, 0)
+        left_column_layout.setSpacing(SPACE_XS)
+        self._sidebar_filter_hint = QLabel("Folder and category filters are exclusive.")
+        self._sidebar_filter_hint.setWordWrap(True)
+        self._sidebar_filter_hint.setToolTip(
+            "Choosing a folder clears the category filter, and choosing a category clears "
+            "the folder filter. All means no filter from that source.",
+        )
+        left_column_layout.addWidget(self._sidebar_filter_hint)
         left_splitter = FluentSplitter(Qt.Orientation.Vertical)
         self._left_splitter = left_splitter
         left_splitter.setMinimumWidth(160)
@@ -805,34 +826,28 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.folder_tree.setUniformRowHeights(True)
         self.folder_tree.setIconSize(QSize(FOLDER_TREE_ICON_SIZE, FOLDER_TREE_ICON_SIZE))
         self.folder_tree.setIndentation(12)
+        self.folder_tree.setTextElideMode(Qt.TextElideMode.ElideRight)
         self.folder_tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.folder_tree.customContextMenuRequested.connect(self._on_folder_tree_context_menu)
         self.folder_tree.currentItemChanged.connect(self._on_folder_tree_changed)
         self.folder_tree.itemClicked.connect(self._on_folder_item_clicked)
-        left_splitter.addWidget(
-            self._sidebar_panel(
-                "Folders",
-                self.folder_tree,
-                hint="Folder and category filters are exclusive.",
-            ),
-        )
+        self.folder_tree.setToolTip("Filter icons by repository folder. Separate from the library Folder combo above.")
+        left_splitter.addWidget(self._sidebar_panel("Folders", self.folder_tree))
 
         self.category_list = CategoryDropList()
         self.category_list.setIconSize(QSize(CATEGORY_LIST_ICON_SIZE, CATEGORY_LIST_ICON_SIZE))
+        self.category_list.setTextElideMode(Qt.TextElideMode.ElideRight)
+        self.category_list.setToolTip("Filter icons by category. Clears the folder filter when applied.")
         self.category_list.currentTextChanged.connect(self._on_category_changed)
         self.category_list.itemClicked.connect(self._on_category_item_clicked)
         self.category_list.families_dropped.connect(self._on_families_dropped_on_category)
-        left_splitter.addWidget(
-            self._sidebar_panel(
-                "Categories",
-                self.category_list,
-                hint="Choosing a category clears the folder filter.",
-            ),
-        )
+        left_splitter.addWidget(self._sidebar_panel("Categories", self.category_list))
 
         left_splitter.setStretchFactor(0, 1)
         left_splitter.setStretchFactor(1, 1)
-        splitter.addWidget(left_splitter)
+        left_column_layout.addWidget(left_splitter, stretch=1)
+        bind_theme(left_column, self._refresh_sidebar_filter_hint)
+        splitter.addWidget(left_column)
 
         center = QWidget()
         center_layout = QVBoxLayout(center)
@@ -852,6 +867,10 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._meta_filter_bar.hide()
         center_layout.addWidget(self._meta_filter_bar)
         self.count_label = QLabel("")
+        self.count_label.setToolTip(
+            "Tiles are the visible grid entries for the current View. "
+            "Families are logical icons. Catalog total is everything in the open library.",
+        )
         center_layout.addWidget(self.count_label)
         bind_theme(center, self._refresh_center_chrome)
         self.icon_list = DraggableIconList(
@@ -881,9 +900,13 @@ class MainWindow(QMainWindow, AppWindowMixin):
         empty_buttons = QHBoxLayout()
         empty_buttons.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._empty_state_primary_btn = QPushButton("Open folder…")
+        self._empty_state_primary_btn.setMinimumHeight(CONTROL_HEIGHT)
+        self._empty_state_primary_btn.setStyleSheet(button_idle_qss())
         self._empty_state_primary_btn.clicked.connect(self._on_empty_state_primary)
         empty_buttons.addWidget(self._empty_state_primary_btn)
         self._empty_state_secondary_btn = QPushButton("Clear")
+        self._empty_state_secondary_btn.setMinimumHeight(CONTROL_HEIGHT)
+        self._empty_state_secondary_btn.setStyleSheet(button_idle_qss())
         self._empty_state_secondary_btn.clicked.connect(self._on_empty_state_secondary)
         empty_buttons.addWidget(self._empty_state_secondary_btn)
         empty_layout.addLayout(empty_buttons)
@@ -2915,6 +2938,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
                         self._default_category_family_ids[name] = families[0].id
                 item = QListWidgetItem(name)
                 item.setIcon(self._category_pixmap_icon(name))
+                item.setToolTip(name)
                 self.category_list.addItem(item)
         select_row = 0
         if previous and is_favorites_category(previous) and FAVORITES_CATEGORY in names:
@@ -2951,6 +2975,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
             item = QTreeWidgetItem([name])
             item.setData(0, Qt.ItemDataRole.UserRole, prefix)
             item.setIcon(0, folder_icon)
+            item.setToolTip(0, prefix)
             parent = items.get(parent_path)
             if parent is None:
                 self.folder_tree.addTopLevelItem(item)
@@ -3075,14 +3100,19 @@ class MainWindow(QMainWindow, AppWindowMixin):
             "#metaFilterBar {"
             f" background-color: {css(fill)};"
             f" border: 1px solid {css(stroke)};"
-            " border-radius: 8px;"
+            " border-radius: 4px;"
             "}"
             "#metaFilterBar QLabel {"
             f" color: {css(palette.accent_text)};"
             " font-weight: 500;"
             "}",
         )
-        self.count_label.setStyleSheet(f"color: {css(mix(palette.window_bg, palette.text_secondary))};")
+        self.count_label.setStyleSheet(muted_caption_qss(bold=False))
+        if self._empty_state_label is not None:
+            self._empty_state_label.setStyleSheet(muted_caption_qss(bold=False))
+        for btn in (self._empty_state_primary_btn, self._empty_state_secondary_btn):
+            if btn is not None:
+                btn.setStyleSheet(button_idle_qss())
 
     def _refresh_icons_theme_chrome(self) -> None:
         """Reload visible thumbs so dark-theme contrast plates follow theme flips."""
@@ -3090,6 +3120,13 @@ class MainWindow(QMainWindow, AppWindowMixin):
             return
         self._loaded_rows.clear()
         self._schedule_viewport_pixmaps()
+
+    def _refresh_sidebar_filter_hint(self) -> None:
+        """Keep the single exclusive-filter caption readable on theme change."""
+        hint = getattr(self, "_sidebar_filter_hint", None)
+        if hint is None:
+            return
+        hint.setStyleSheet(muted_caption_qss(bold=False, extra=f"padding: 0px {SPACE_S}px;"))
 
     def _refresh_variant_view_icons(self) -> None:
         """Update example icons already shown in the View combobox."""
@@ -3256,29 +3293,21 @@ class MainWindow(QMainWindow, AppWindowMixin):
     @staticmethod
     def _sidebar_panel(title: str, widget: QWidget, *, hint: str | None = None) -> QWidget:
         """Return a labeled sidebar pane for the left vertical splitter."""
+        del hint  # Kept for call-site compatibility; exclusivity copy lives above the splitter.
         panel = QWidget()
         layout = QVBoxLayout(panel)
-        layout.setContentsMargins(8, 8, 4, 4)
-        layout.setSpacing(4)
+        layout.setContentsMargins(SPACE_S, SPACE_XS, SPACE_XS, SPACE_XS)
+        layout.setSpacing(SPACE_XS)
         title_label = QLabel(title)
         title_font = title_label.font()
         title_font.setBold(True)
         title_label.setFont(title_font)
         layout.addWidget(title_label)
-        hint_label: QLabel | None = None
-        if hint:
-            hint_label = QLabel(hint)
-            hint_label.setWordWrap(True)
-            hint_label.setStyleSheet("font-size: 11px;")
-            layout.addWidget(hint_label)
 
         def refresh_sidebar_chrome() -> None:
             palette = palette_for(panel)
             primary = css(mix(palette.window_bg, palette.text_primary))
-            secondary = css(mix(palette.window_bg, palette.text_secondary))
             title_label.setStyleSheet(f"color: {primary}; font-weight: 600;")
-            if hint_label is not None:
-                hint_label.setStyleSheet(f"color: {secondary}; font-size: 11px;")
 
         bind_theme(panel, refresh_sidebar_chrome)
         layout.addWidget(widget, stretch=1)
