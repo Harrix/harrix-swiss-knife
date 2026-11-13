@@ -41,7 +41,7 @@ from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import (
 )
 from harrix_swiss_knife.fluent.style import drop_zone_qss as fluent_drop_zone_qss
 from harrix_swiss_knife.fluent.style import soft_drop_zone_qss as fluent_soft_drop_zone_qss
-from harrix_swiss_knife.fluent.theme import bind_theme, is_fluent_themed, palette_for
+from harrix_swiss_knife.fluent.theme import bind_theme, css, is_fluent_themed, palette_for
 from harrix_swiss_knife.fluent.tokens import RADIUS_CONTROL
 from harrix_swiss_knife.qt_lucide_icon import (
     CLEAR_BUTTON_ICON,
@@ -84,15 +84,17 @@ _DEFAULT_MULTI_HINT = "Drag and drop images here, or paste (Ctrl+V)"
 
 _HINT_LABEL_STYLE = "border: none; background: transparent; color: #888;"
 
-_ZONE_EMOJI_BUTTON_STYLE = """
-QPushButton {
+# Non-Fluent fallback (Markdown / light-only hosts). Fluent uses `_zone_icon_button_qss`.
+_ZONE_EMOJI_BUTTON_STYLE_LIGHT = f"""
+QPushButton {{
     border: none;
     background: transparent;
-}
-QPushButton:hover {
+    border-radius: {RADIUS_CONTROL}px;
+    padding: 0px;
+}}
+QPushButton:hover {{
     background-color: #e0e0e0;
-    border-radius: 4px;
-}
+}}
 """
 
 _SCREENSHOT_BUTTON_ICON = "camera"
@@ -102,6 +104,23 @@ _DROP_FOCUSED_STYLE = drop_zone_qss(selector="#ImagePickerDropArea", focused=Tru
 _DROP_SELECTED_STYLE = drop_zone_qss(selector="#ImagePickerDropArea", selected=True, padding="0px")
 
 _IMAGE_FILTER = "Images (*.png *.jpg *.jpeg *.gif *.bmp *.svg *.webp *.avif);;All files (*)"
+
+
+def _zone_icon_button_qss(host: QWidget | None = None) -> str:
+    """Return QSS for in-zone camera/paste icons (Fluent subtle hover in dark)."""
+    if host is not None and is_fluent_themed(host):
+        palette = palette_for(host)
+        return f"""
+QPushButton {{
+    border: none;
+    background: transparent;
+    border-radius: {RADIUS_CONTROL}px;
+    padding: 0px;
+}}
+QPushButton:hover {{ background-color: {css(palette.subtle_hover)}; }}
+QPushButton:pressed {{ background-color: {css(palette.subtle_pressed)}; }}
+"""
+    return _ZONE_EMOJI_BUTTON_STYLE_LIGHT
 
 
 class ImagePicker(QWidget):
@@ -678,7 +697,7 @@ class ImagePicker(QWidget):
         button.setFixedSize(32, 32)
         button.setToolTip("Paste image from clipboard (Ctrl+V)")
         button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        button.setStyleSheet(_ZONE_EMOJI_BUTTON_STYLE)
+        button.setStyleSheet(_zone_icon_button_qss(self))
         button.installEventFilter(self)
         if self._mode == ImagePickerMode.SINGLE:
             button.clicked.connect(self._paste_smart_from_clipboard)
@@ -694,7 +713,7 @@ class ImagePicker(QWidget):
         button.setFixedSize(32, 32)
         button.setToolTip("Capture screen region")
         button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        button.setStyleSheet(_ZONE_EMOJI_BUTTON_STYLE)
+        button.setStyleSheet(_zone_icon_button_qss(self))
         button.installEventFilter(self)
         button.clicked.connect(self._capture_screenshot_region)
         self._zone_screenshot_button = button
@@ -843,6 +862,15 @@ class ImagePicker(QWidget):
             sheet = _DROP_NORMAL_STYLE
         if self._drop_area.styleSheet() != sheet:
             self._drop_area.setStyleSheet(sheet)
+        self._refresh_zone_buttons()
+
+    def _refresh_zone_buttons(self) -> None:
+        """Keep in-zone camera/paste hover fills on the active Fluent theme."""
+        sheet = _zone_icon_button_qss(self)
+        for attr in ("_zone_paste_button", "_zone_screenshot_button"):
+            button = getattr(self, attr, None)
+            if isinstance(button, QPushButton) and button.styleSheet() != sheet:
+                button.setStyleSheet(sheet)
 
     def _refresh_single_removal_ui(self) -> None:
         if not hasattr(self, "_preview_label"):
