@@ -88,6 +88,26 @@ def test_install_word_wrap_header_replaces_default_header(qapp: QApplication) ->
     assert first.height() == expected.height()
 
 
+def test_install_word_wrap_header_preserves_section_resize_modes(qapp: QApplication) -> None:
+    """Replacing the header must keep Stretch / ResizeToContents column modes."""
+    assert qapp is not None
+    table = QTableView()
+    model = QStandardItemModel()
+    model.setHorizontalHeaderLabels(["Time", "Task", "List"])
+    table.setModel(model)
+    old = table.horizontalHeader()
+    old.setStretchLastSection(False)
+    old.setSectionResizeMode(0, old.ResizeMode.ResizeToContents)
+    old.setSectionResizeMode(1, old.ResizeMode.Stretch)
+    old.setSectionResizeMode(2, old.ResizeMode.ResizeToContents)
+
+    header = install_word_wrap_header(table)
+    assert header.sectionResizeMode(0) == header.ResizeMode.ResizeToContents
+    assert header.sectionResizeMode(1) == header.ResizeMode.Stretch
+    assert header.sectionResizeMode(2) == header.ResizeMode.ResizeToContents
+    assert header.stretchLastSection() is False
+
+
 def test_install_word_wrap_header_keeps_dark_fluent_chrome(qapp: QApplication) -> None:
     """Replacing the header must not leave a white light-mode section strip."""
     assert qapp is not None

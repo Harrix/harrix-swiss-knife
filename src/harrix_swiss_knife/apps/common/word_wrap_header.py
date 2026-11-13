@@ -376,6 +376,13 @@ def install_word_wrap_header(
     if isinstance(current, WordWrapHeaderView):
         return current
 
+    resize_modes: list[QHeaderView.ResizeMode] = []
+    section_sizes: list[int] = []
+    if current is not None:
+        for index in range(current.count()):
+            resize_modes.append(current.sectionResizeMode(index))
+            section_sizes.append(current.sectionSize(index))
+
     header = WordWrapHeaderView(
         Qt.Orientation.Horizontal,
         table,
@@ -394,6 +401,11 @@ def install_word_wrap_header(
     header.setDefaultAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
     header.setTextElideMode(Qt.TextElideMode.ElideNone)
     table.setHorizontalHeader(header)
+    # setHorizontalHeader resets section modes; restore Stretch / Fixed / etc.
+    for index, mode in enumerate(resize_modes):
+        header.setSectionResizeMode(index, mode)
+        if mode in {QHeaderView.ResizeMode.Fixed, QHeaderView.ResizeMode.Interactive}:
+            header.resizeSection(index, section_sizes[index])
     # New headers start on the system light palette; restore Fluent dark chrome.
     if is_fluent_themed(table):
         from harrix_swiss_knife.fluent.app_chrome import style_fluent_table  # noqa: PLC0415

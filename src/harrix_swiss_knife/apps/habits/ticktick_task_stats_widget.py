@@ -96,6 +96,7 @@ class TickTickTaskStatsWidget(QWidget):
         self._day_label.setStyleSheet(muted_caption_qss())
 
         self._day_table = QTableWidget(0, len(_HEADERS))
+        self._day_table.setObjectName("ticktickDayTable")
         self._day_table.setHorizontalHeaderLabels(list(_HEADERS))
         self._day_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self._day_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
@@ -103,11 +104,7 @@ class TickTickTaskStatsWidget(QWidget):
         self._day_table.verticalHeader().setVisible(False)
         self._day_table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self._day_table.setMinimumHeight(160)
-        header = self._day_table.horizontalHeader()
-        header.setStretchLastSection(False)
-        header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
-        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
-        header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+        self.configure_day_table_columns()
 
         filters = QHBoxLayout()
         period_caption = QLabel("Period")
@@ -140,6 +137,19 @@ class TickTickTaskStatsWidget(QWidget):
 
         if autoload:
             self.reload()
+
+    @property
+    def day_table(self) -> QTableWidget:
+        """Completed-tasks table for the selected heatmap day."""
+        return self._day_table
+
+    def configure_day_table_columns(self) -> None:
+        """Time/List hug content; Task stretches to fill the table width."""
+        header = self._day_table.horizontalHeader()
+        header.setStretchLastSection(False)
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
 
     def ensure_loaded(self) -> None:
         """Load TickTick data once when the tab is first shown."""
@@ -189,6 +199,7 @@ class TickTickTaskStatsWidget(QWidget):
             self._day_table.setItem(index, 0, time_item)
             self._day_table.setItem(index, 1, task_item)
             self._day_table.setItem(index, 2, list_item)
+        self.configure_day_table_columns()
 
     def _on_filters_changed(self) -> None:
         self._selected_day = None

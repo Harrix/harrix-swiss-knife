@@ -2054,12 +2054,15 @@ class MainWindow(
         # Habit form buttons are polished by habits_entry_chrome / layout_chrome.
         apply_leading_chrome_buttons(self)
 
-        self._install_word_wrap_table_headers(skip={self.tableView_process_habits})
+        self._install_word_wrap_table_headers(
+            skip={self.tableView_process_habits, self._ticktick_stats_widget.day_table},
+        )
         install_word_wrap_header(
             self.tableView_process_habits,
             wrap_width=PROCESS_HABIT_VALUE_COLUMN_MIN_WIDTH,
             wrap_first_section=False,
         )
+        self._ticktick_stats_widget.configure_day_table_columns()
         style_fluent_table(self.tableView_process_habits)
         enable_table_header_sorting(self.tableView_process_habits)
 
