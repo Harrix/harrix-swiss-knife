@@ -131,7 +131,7 @@ def install_food_log_filter_chrome(host: Any) -> None:
         vertical_layout=host.verticalLayout_food_log,
         table_widget=host.tableView_food_log,
     )
-    host.lineEdit_filter_name.setToolTip("Filters the Name column only")
+    host.lineEdit_filter_name.setToolTip("Filters Name and English Name")
 ```
 
 </details>

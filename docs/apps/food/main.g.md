@@ -85,7 +85,7 @@ Attributes:
   containing `food_log`.
 - `db_manager` (`database_manager.DatabaseManager | None`): Database
   connection manager. Defaults to `None` until initialized.
-- `models` (`dict[str, QSortFilterProxyModel | None]`): Dictionary of table models keyed
+- `models` (`dict[str, QAbstractItemModel | None]`): Dictionary of table models keyed
   by table name. All values default to `None` until tables are loaded.
 - `table_config` (`dict[str, tuple[QTableView, str, list[str]]]`): Configuration for each
   table, mapping table names to tuples of (table view widget, model key, column headers).
@@ -148,7 +148,7 @@ class MainWindow(
         self.food_items_list_model: QStandardItemModel | None = None
 
         # Table models dictionary
-        self.models: dict[str, QSortFilterProxyModel | None] = {
+        self.models: dict[str, QAbstractItemModel | None] = {
             "food_log": None,
             "kcal_per_day": None,
         }
@@ -164,6 +164,8 @@ class MainWindow(
         self._food_log_pagination = ScrollPagination()
         self._food_log_dates_with_totals: set[str] = set()
         self._food_log_date_color_map: dict[str, QColor] = {}
+        self._food_day_header_macros_bound = False
+        self._food_items_list_delegate_installed = False
 
         # Dialog state to prevent multiple dialogs
         self._food_item_dialog_open: bool = False
@@ -727,18 +729,16 @@ class MainWindow(
     def on_food_log_table_cell_clicked(self, index: QModelIndex) -> None:
         """Handle food log table cell click and populate form fields with row data."""
         try:
-            proxy_model = self.models["food_log"]
-            if proxy_model is None:
+            if not index.isValid() or is_food_day_or_month_header(index):
                 return
-            source_model = proxy_model.sourceModel()
-            if not isinstance(source_model, QStandardItemModel):
+            source_index, source_model = map_food_log_index_to_source(index)
+            if not isinstance(source_model, QStandardItemModel) or not source_index.isValid():
                 return
 
-            row_id = source_model.verticalHeaderItem(index.row())
+            row = source_index.row()
+            row_id = source_model.verticalHeaderItem(row)
             if not row_id:
                 return
-
-            row = index.row()
             name = source_model.item(row, 0).text() if source_model.item(row, 0) else ""
             is_drink_item = source_model.item(row, 1)
             is_drink = parse_is_drink_cell(is_drink_item.data(Qt.ItemDataRole.EditRole)) if is_drink_item else False
@@ -1197,16 +1197,16 @@ class MainWindow(
             proxy_model = self.models["food_log"]
             if proxy_model is None:
                 return
-            source_model = proxy_model.sourceModel()
-            if not isinstance(source_model, QStandardItemModel):
-                return
 
             current_index = self.tableView_food_log.currentIndex()
-            if not current_index.isValid():
+            if not current_index.isValid() or is_food_day_or_month_header(current_index):
                 message_box.warning(self, "Error", "No row selected")
                 return
 
-            row = current_index.row()
+            source_index, source_model = map_food_log_index_to_source(current_index)
+            if not isinstance(source_model, QStandardItemModel) or not source_index.isValid():
+                return
+            row = source_index.row()
 
             # Get data from the table model directly
             name = source_model.item(row, 0).text() if source_model.item(row, 0) else ""
@@ -1288,47 +1288,17 @@ class MainWindow(
             logger.exception("Error adding food item from log record")
 
     def _adjust_food_log_table_columns(self) -> None:
-        """Size food-log columns so English name fills the leftover width like Fitness tables."""
+        """Size food-log columns and keep header sorting enabled."""
         if not hasattr(self, "tableView_food_log") or not self.tableView_food_log.model():
             return
-        # Hidden tabs report a dummy width; wait until Food is actually shown.
         if not self.tableView_food_log.isVisible():
             return
 
-        available_width = self.tableView_food_log.viewport().width()
-        if available_width <= 0:
-            return
-
-        food_log_header = self.tableView_food_log.horizontalHeader()
-        food_log_header.setStretchLastSection(False)
-
-        # Fixed shares; English Name gets the remainder; Total per day keeps its button width.
-        proportions = (
-            (0, 0.18),  # Name
-            (1, 0.06),  # Is Drink
-            (2, 0.08),  # Weight
-            (3, 0.14),  # kcal/100g
-            (4, 0.11),  # Date
-        )
-        total_width = food_log_total_column_width(self.tableView_food_log.font())
-        used_width = total_width
-        for column in range(food_log_header.count()):
-            if column == FOOD_LOG_COL_NAME_EN:
-                food_log_header.setSectionResizeMode(column, food_log_header.ResizeMode.Stretch)
-            else:
-                food_log_header.setSectionResizeMode(column, food_log_header.ResizeMode.Interactive)
-
-        for column, prop in proportions:
-            width = max(40, int(available_width * prop))
-            self.tableView_food_log.setColumnWidth(column, width)
-            used_width += width
-        self.tableView_food_log.setColumnWidth(FOOD_LOG_COL_TOTAL_PER_DAY, total_width)
-        self.tableView_food_log.setColumnWidth(
-            FOOD_LOG_COL_NAME_EN,
-            max(80, available_width - used_width),
-        )
+        apply_food_log_column_visibility(self)
+        apply_food_log_table_column_widths(self.tableView_food_log, force=True)
         enable_table_header_sorting(self.tableView_food_log)
         apply_stored_table_header_sort(self.tableView_food_log)
+        food_log_header = self.tableView_food_log.horizontalHeader()
         if isinstance(food_log_header, WordWrapHeaderView):
             food_log_header.refresh_wrapped_height()
 
@@ -1456,60 +1426,30 @@ class MainWindow(
         message_box.warning(self, "Error", "Failed to update selected food log rows")
 
     def _apply_food_items_filter(self, text: str) -> None:
-        """Reorder food items: matches first (opaque), non-matches dimmed below."""
+        """Hide catalog rows that do not match the search query (preserve list order)."""
         model = self.food_items_list_model
         if model is None:
             return
 
         selected_name = self._get_current_selected_food_item()
-        selection_model = self.listView_food_items.selectionModel()
-        if selection_model is not None:
-            selection_model.blockSignals(True)  # noqa: FBT003
-        model.blockSignals(True)  # noqa: FBT003
-        try:
-            taken_rows: list[list[QStandardItem]] = []
-            while model.rowCount() > 0:
-                taken_rows.append(model.takeRow(0))
-
-            texts = [row[0].text() if row and row[0] is not None else "" for row in taken_rows]
-            query = text.strip()
-            if query:
-                matched_indexes, unmatched_indexes = partition_food_item_indexes_by_filter(texts, query)
-                ordered_indexes = matched_indexes + unmatched_indexes
-                unmatched_set = set(unmatched_indexes)
-            else:
-                ordered_indexes = sorted(
-                    range(len(taken_rows)),
-                    key=lambda index: (
-                        int(taken_rows[index][0].data(_FOOD_ITEM_ORDER_ROLE) or index)
-                        if taken_rows[index] and taken_rows[index][0] is not None
-                        else index
-                    ),
-                )
-                unmatched_set = set()
-
-            dim_brush = QBrush(_FOOD_ITEM_FILTER_DIM)
-            default_brush = QBrush()
-            for source_index in ordered_indexes:
-                row_items = taken_rows[source_index]
-                item = row_items[0] if row_items else None
-                if item is not None:
-                    item.setForeground(dim_brush if source_index in unmatched_set else default_brush)
-                model.appendRow(row_items)
-
-            for row in range(model.rowCount()):
-                self.listView_food_items.setRowHidden(row, False)  # noqa: FBT003
-        finally:
-            model.blockSignals(False)  # noqa: FBT003
-            if selection_model is not None:
-                selection_model.blockSignals(False)  # noqa: FBT003
+        query = text.strip()
+        for row in range(model.rowCount()):
+            item = model.item(row)
+            if item is None:
+                self.listView_food_items.setRowHidden(row, bool(query))
+                continue
+            name_text = str(item.data(Qt.ItemDataRole.DisplayRole) or item.text())
+            local_text = str(item.data(NAME_LOCAL_ROLE) or "").strip()
+            matches = (not query) or text_matches_autocomplete(name_text, query)
+            if not matches and local_text:
+                matches = text_matches_autocomplete(local_text, query)
+            self.listView_food_items.setRowHidden(row, bool(query) and not matches)
 
         if selected_name:
             self._reselect_food_item_by_name(selected_name)
 
     def _apply_food_log_daily_total_colors(self, model: QStandardItemModel) -> None:
-        """Color Total-per-day cells from `food_calorie_thresholds` in config."""
-        thresholds = calorie_thresholds_from_config(self._app_config)
+        """Clear legacy Total-per-day fills; day-header chips show threshold bands."""
         model.blockSignals(True)  # noqa: FBT003
         try:
             for row in range(model.rowCount()):
@@ -1518,23 +1458,9 @@ class MainWindow(
                     continue
                 anchor = model.item(row, 0)
                 date_brush = anchor.background() if anchor is not None else QBrush()
-                total_text = total_item.text().strip()
-                if not total_text:
-                    total_item.setBackground(date_brush)
-                    clear_day_band(total_item)
-                    font = total_item.font()
-                    font.setBold(False)
-                    total_item.setFont(font)
-                    continue
-                try:
-                    band = calorie_band_rgb(float(total_text), thresholds)
-                except (TypeError, ValueError):
-                    total_item.setBackground(date_brush)
-                    clear_day_band(total_item)
-                    continue
-                set_readable_cell_fill(total_item, QColor(*band))
+                total_item.setBackground(date_brush)
                 font = total_item.font()
-                font.setBold(True)
+                font.setBold(False)
                 total_item.setFont(font)
         finally:
             model.blockSignals(False)  # noqa: FBT003
@@ -1764,8 +1690,9 @@ class MainWindow(
         self.pushButton_food_stats_macros_fat.clicked.connect(self.on_food_stats_macros_fat)
         self.pushButton_food_stats_macros_carb.clicked.connect(self.on_food_stats_macros_carb)
 
-        # Connect food name input for real-time filtering
-        self.lineEdit_food_manual_name.textChanged.connect(self._filter_food_items)
+        catalog_search = getattr(self, "lineEdit_food_items_search", None)
+        if isinstance(catalog_search, QLineEdit):
+            catalog_search.textChanged.connect(self._filter_food_items)
 
         # Connect drink checkbox for button appearance update
         self.checkBox_food_is_drink.toggled.connect(self._update_add_button_appearance)
@@ -1827,7 +1754,6 @@ class MainWindow(
         """
         model = QStandardItemModel()
         model.setHorizontalHeaderLabels(headers)
-        thresholds = calorie_thresholds_from_config(self._app_config)
 
         for row_idx, row in enumerate(data):
             # Extract color information (last element) and ID
@@ -1843,16 +1769,6 @@ class MainWindow(
                 # Make total per day column non-editable
                 if col_idx == FOOD_LOG_COL_TOTAL_PER_DAY:
                     item.setEditable(False)
-                    total_text = str(value).strip() if value is not None else ""
-                    if total_text:
-                        try:
-                            band = calorie_band_rgb(float(total_text), thresholds)
-                            set_readable_cell_fill(item, QColor(*band))
-                            font = item.font()
-                            font.setBold(True)
-                            item.setFont(font)
-                        except (TypeError, ValueError):
-                            pass
 
                 # Check if this is today's record and make it bold
                 today = QDateTime.currentDateTime().toString("yyyy-MM-dd")
@@ -2080,7 +1996,7 @@ class MainWindow(
     def _export_food_log_table(self, *, prefer: Literal["csv", "xlsx"]) -> None:
         """Export the food log source model as CSV or Excel."""
         proxy = self.models.get("food_log")
-        model = proxy.sourceModel() if isinstance(proxy, QSortFilterProxyModel) else proxy
+        model = ultimate_food_log_source(proxy)
         export_table_via_dialog(self, model, prefer=prefer, sheet_name="Food log")
 
     def _export_kcal_per_day_table(self, *, prefer: Literal["csv", "xlsx"] = "xlsx") -> None:
@@ -2191,21 +2107,17 @@ class MainWindow(
             return
         self._start_day_macros_queue(targets)
 
-    def _filter_food_items(self, text: str) -> None:
-        """Filter food items list based on input text.
-
-        Matches stay opaque at the top. Non-matches stay visible below them in a
-        dimmed color so the catalog is never hidden.
-
-        Args:
-
-        - `text` (`str`): Filter text from lineEdit_food_manual_name.
-
-        """
-        if not text.strip():
+    def _filter_food_items(self, text: str = "") -> None:
+        """Filter the food items catalog from the items search field."""
+        query = text.strip()
+        if not query:
+            search = getattr(self, "lineEdit_food_items_search", None)
+            if isinstance(search, QLineEdit):
+                query = search.text().strip()
+        if not query.strip():
             self._show_all_food_items()
             return
-        self._apply_food_items_filter(text)
+        self._apply_food_items_filter(query)
 
     def _filter_food_log_by_column(self, column: int, value: str) -> None:
         """Apply a toolbar filter from a context-menu cell value."""
@@ -2360,6 +2272,10 @@ class MainWindow(
             limit = 1000
         return max(1, limit)
 
+    def _food_log_uses_flat_history(self) -> bool:
+        """Return whether the food log shows a flat list (filters active)."""
+        return self._food_log_filter_is_active()
+
     def _get_current_selected_food_item(self) -> str | None:
         """Get the currently selected food item name from the list view.
 
@@ -2374,7 +2290,8 @@ class MainWindow(
             if current_index.isValid():
                 item = self.food_items_list_model.itemFromIndex(current_index)
                 if item:
-                    return extract_food_name_from_display(item.text())
+                    display = item.data(Qt.ItemDataRole.DisplayRole) or item.text()
+                    return extract_food_name_from_display(str(display))
 
         return None
 
@@ -2413,18 +2330,16 @@ class MainWindow(
             if selection_model is None:
                 return targets
 
-            source_model = proxy_model.sourceModel()
-            if not isinstance(source_model, QStandardItemModel):
-                return targets
-
             seen_source_rows: set[int] = set()
             proxy_indexes = list(selection_model.selectedIndexes())
             current_index = table_view.currentIndex()
             if not proxy_indexes and current_index.isValid():
                 proxy_indexes = [current_index]
             for proxy_index in proxy_indexes:
-                source_index = proxy_model.mapToSource(proxy_index)
-                if not source_index.isValid():
+                if is_food_day_or_month_header(proxy_index):
+                    continue
+                source_index, source_model = map_food_log_index_to_source(proxy_index)
+                if not isinstance(source_model, QStandardItemModel) or not source_index.isValid():
                     continue
                 row = source_index.row()
                 if row in seen_source_rows:
@@ -2439,6 +2354,55 @@ class MainWindow(
         except (KeyError, ValueError, TypeError, AttributeError):
             return []
         return targets
+
+    def _get_selected_row_id(self, table_name: str) -> int | None:
+        """Map food-log selection through day-header proxies."""
+        if table_name != "food_log":
+            return super()._get_selected_row_id(table_name)
+        try:
+            table_view, model_key, _ = self.table_config[table_name]
+            if self.models.get(model_key) is None:
+                return None
+            index = table_view.currentIndex()
+            if not index.isValid() or is_food_day_or_month_header(index):
+                return None
+            source_index, source_model = map_food_log_index_to_source(index)
+            if not isinstance(source_model, QStandardItemModel) or not source_index.isValid():
+                return None
+            vertical_header_item = source_model.verticalHeaderItem(source_index.row())
+            return int(vertical_header_item.text()) if vertical_header_item else None
+        except (KeyError, ValueError, TypeError, AttributeError):
+            return None
+
+    def _get_selected_row_ids(self, table_name: str) -> list[int]:
+        """Map food-log multi-select through day-header proxies."""
+        if table_name != "food_log":
+            return super()._get_selected_row_ids(table_name)
+        ids: list[int] = []
+        try:
+            table_view, model_key, _ = self.table_config[table_name]
+            if self.models.get(model_key) is None:
+                return ids
+            selection_model = table_view.selectionModel()
+            if selection_model is None:
+                return ids
+            seen_source_rows: set[int] = set()
+            for proxy_index in selection_model.selectedIndexes():
+                if is_food_day_or_month_header(proxy_index):
+                    continue
+                source_index, source_model = map_food_log_index_to_source(proxy_index)
+                if not isinstance(source_model, QStandardItemModel) or not source_index.isValid():
+                    continue
+                row = source_index.row()
+                if row in seen_source_rows:
+                    continue
+                seen_source_rows.add(row)
+                vertical_header_item = source_model.verticalHeaderItem(row)
+                if vertical_header_item:
+                    ids.append(int(vertical_header_item.text()))
+        except (KeyError, ValueError, TypeError, AttributeError):
+            return []
+        return ids
 
     def _import_food_log_transfer_file(self, path: Path) -> bool:
         """Open the add-food preview for a transfer JSON file. Return `True` if opened."""
@@ -2500,6 +2464,11 @@ class MainWindow(
         """Initialize the food items list view with a model and connect signals."""
         self.food_items_list_model = QStandardItemModel()
         self.listView_food_items.setModel(self.food_items_list_model)
+        if not self._food_items_list_delegate_installed:
+            self.listView_food_items.setItemDelegate(
+                NameLocalListDelegate(self.listView_food_items, layout=NameLocalLayout.LIST)
+            )
+            self._food_items_list_delegate_installed = True
 
         # Connect selection change signal after model is set
         selection_model = self.listView_food_items.selectionModel()
@@ -2593,9 +2562,19 @@ class MainWindow(
         return str(raw or "").strip()[:10]
 
     def _layout_food_log_day_totals(self) -> None:
-        """Merge each day's total, then fit and restyle the macros button under it."""
-        apply_food_log_day_spans(self.tableView_food_log)
-        apply_food_log_macros_row_heights(self.tableView_food_log)
+        """Fit day totals or header spans, then refresh macros controls."""
+        view = self.tableView_food_log
+        model = view.model()
+        if isinstance(model, FoodDayHeaderProxy):
+            apply_food_day_header_spans(view)
+            self._refresh_food_log_macros_buttons()
+            return
+        if self._food_log_uses_flat_history():
+            view.clearSpans()
+            self._refresh_food_log_macros_buttons()
+            return
+        apply_food_log_day_spans(view)
+        apply_food_log_macros_row_heights(view)
         self._refresh_food_log_macros_buttons()
 
     def _load_food_log_page(self, *, reset: bool = True) -> None:
@@ -2619,12 +2598,29 @@ class MainWindow(
             append_state=False,
             db_totals=not self._food_log_partial_day_filter_is_active(),
         )
-        self.models["food_log"] = self._create_colored_food_log_table_model(
-            transformed_data, self.table_config["food_log"][2]
-        )
-        self.tableView_food_log.setModel(self.models["food_log"])
+        sort_proxy = self._create_colored_food_log_table_model(transformed_data, self.table_config["food_log"][2])
+        if self._food_log_uses_flat_history():
+            self.tableView_food_log.setModel(sort_proxy)
+            self.tableView_food_log.clearSpans()
+            self.models["food_log"] = sort_proxy
+        else:
+            day_proxy = install_food_day_headers(self.tableView_food_log, sort_proxy)
+            day_proxy.set_calorie_thresholds(calorie_thresholds_from_config(self._app_config))
+            self.models["food_log"] = day_proxy
+            if not self._food_day_header_macros_bound:
+                header_delegate = food_day_header_delegate_for_view(self.tableView_food_log)
+                if header_delegate is not None:
+                    header_delegate.macros_requested.connect(self._on_food_log_day_total_macros)
+                    self._food_day_header_macros_bound = True
+
         self.tableView_food_log.setEditTriggers(
             QTableView.EditTrigger.DoubleClicked | QTableView.EditTrigger.EditKeyPressed
+        )
+
+        apply_food_log_column_visibility(self)
+        set_food_log_empty_visible(
+            self,
+            visible=self._food_log_filter_is_active() and len(rows) == 0,
         )
 
         food_log_header = self.tableView_food_log.horizontalHeader()
@@ -2644,8 +2640,9 @@ class MainWindow(
                 append_state=True,
                 db_totals=not self._food_log_partial_day_filter_is_active(),
             )
-            proxy = cast("QSortFilterProxyModel", self.models["food_log"])
-            source_model = cast("QStandardItemModel", proxy.sourceModel())
+            source_model = ultimate_food_log_source(self.models["food_log"])
+            if not isinstance(source_model, QStandardItemModel):
+                return
             self._append_food_log_rows_to_model(source_model, transformed_data)
             self._layout_food_log_day_totals()
 
@@ -2676,16 +2673,14 @@ class MainWindow(
             message_box.warning(self, "Error", "No rows selected")
             return
 
-        proxy_model = self.models["food_log"]
-        if proxy_model is None:
-            return
-        source_model = proxy_model.sourceModel()
-        if not isinstance(source_model, QStandardItemModel):
-            return
-
         unique_rows: dict[int, int] = {}
         for index in selected_indexes:
-            row = index.row()
+            if is_food_day_or_month_header(index):
+                continue
+            source_index, source_model = map_food_log_index_to_source(index)
+            if not isinstance(source_model, QStandardItemModel) or not source_index.isValid():
+                continue
+            row = source_index.row()
             if row not in unique_rows:
                 row_id_item = source_model.verticalHeaderItem(row)
                 if row_id_item:
@@ -2694,6 +2689,10 @@ class MainWindow(
         min_ingredients_required = 2
         if len(unique_rows) < min_ingredients_required:
             message_box.warning(self, "Error", "Please select at least 2 ingredients")
+            return
+
+        source_model = ultimate_food_log_source(self.models["food_log"])
+        if not isinstance(source_model, QStandardItemModel):
             return
 
         row_dicts: list[dict[str, object]] = []
@@ -3449,10 +3448,7 @@ class MainWindow(
         the edit touches those dates.
 
         """
-        proxy_model = self.models.get("food_log")
-        if proxy_model is None:
-            return
-        source_model = proxy_model.sourceModel()
+        source_model = ultimate_food_log_source(self.models.get("food_log"))
         if not isinstance(source_model, QStandardItemModel):
             return
 
@@ -3479,18 +3475,26 @@ class MainWindow(
     def _refresh_food_log_macros_buttons(self) -> None:
         """Reload macros-button states for the days currently loaded in the food log."""
         view = self.tableView_food_log
-        model = view.model()
-        if model is None:
+        view_model = view.model()
+        if view_model is None:
+            self._day_total_delegate.set_statuses({})
+            return
+        source = ultimate_food_log_source(view_model)
+        if not isinstance(source, QStandardItemModel):
             self._day_total_delegate.set_statuses({})
             return
         days: list[str] = []
         seen: set[str] = set()
-        for row in range(model.rowCount()):
-            day = str(model.index(row, FOOD_LOG_COL_DATE).data() or "").strip()[:10]
+        for row in range(source.rowCount()):
+            date_item = source.item(row, FOOD_LOG_COL_DATE)
+            day = str(date_item.text() if date_item is not None else "").strip()[:10]
             if day and day not in seen:
                 seen.add(day)
                 days.append(day)
-        self._day_total_delegate.set_statuses(self._food_log_macros_statuses(days))
+        statuses = self._food_log_macros_statuses(days)
+        self._day_total_delegate.set_statuses(statuses)
+        if isinstance(view_model, FoodDayHeaderProxy):
+            view_model.set_macros_statuses(statuses)
         view.viewport().update()
 
     def _refresh_open_day_macros_dialog(self) -> None:
@@ -3962,7 +3966,12 @@ class MainWindow(
         if model is None or selection_model is None:
             return []
         rows = sorted({index.row() for index in selection_model.selectedIndexes()})
-        raw_dates = [str(model.data(model.index(row, FOOD_LOG_COL_DATE)) or "") for row in rows]
+        raw_dates: list[str] = []
+        for row in rows:
+            index = model.index(row, FOOD_LOG_COL_DATE)
+            if is_food_day_or_month_header(index):
+                continue
+            raw_dates.append(str(model.data(index) or ""))
         return unique_calendar_days(raw_dates)
 
     def _send_food_log_to_ai(
@@ -4302,21 +4311,26 @@ class MainWindow(
         # Calculate total calories from selected rows
         total_calories = 0.0
         if multiple_rows_selected:
-            proxy_model = self.models["food_log"]
-            if proxy_model:
-                source_model = proxy_model.sourceModel()
-                if isinstance(source_model, QStandardItemModel):
-                    for row in unique_rows:
-                        weight_text = source_model.item(row, 2).text() if source_model.item(row, 2) else ""
-                        kcal_text = (
-                            source_model.item(row, FOOD_LOG_COL_CALORIES).text()
-                            if source_model.item(row, FOOD_LOG_COL_CALORIES)
-                            else ""
-                        )
-                        total_calories += calculate_food_log_calories(
-                            parse_food_log_number(weight_text),
-                            parse_food_log_number(kcal_text),
-                        )
+            view_model = self.tableView_food_log.model()
+            if view_model is not None:
+                for row in unique_rows:
+                    row_index = view_model.index(row, 0)
+                    if is_food_day_or_month_header(row_index):
+                        continue
+                    source_index, source_model = map_food_log_index_to_source(row_index)
+                    if not isinstance(source_model, QStandardItemModel) or not source_index.isValid():
+                        continue
+                    data_row = source_index.row()
+                    weight_text = source_model.item(data_row, 2).text() if source_model.item(data_row, 2) else ""
+                    kcal_text = (
+                        source_model.item(data_row, FOOD_LOG_COL_CALORIES).text()
+                        if source_model.item(data_row, FOOD_LOG_COL_CALORIES)
+                        else ""
+                    )
+                    total_calories += calculate_food_log_calories(
+                        parse_food_log_number(weight_text),
+                        parse_food_log_number(kcal_text),
+                    )
 
         context_menu = QMenu(self)
         index = self.tableView_food_log.currentIndex()
@@ -4330,11 +4344,16 @@ class MainWindow(
         name_value = ""
         date_value = ""
 
-        if index.isValid() and model is not None:
+        if index.isValid() and model is not None and not is_food_day_or_month_header(index):
             date_raw = model.data(model.index(index.row(), FOOD_LOG_COL_DATE))
             date_value = str(date_raw).strip() if date_raw is not None else ""
 
-        if not multiple_rows_selected and index.isValid() and model is not None:
+        if (
+            not multiple_rows_selected
+            and index.isValid()
+            and model is not None
+            and not is_food_day_or_month_header(index)
+        ):
             name_raw = model.data(model.index(index.row(), 0))
             name_value = str(name_raw).strip() if name_raw is not None else ""
 
@@ -4380,7 +4399,7 @@ class MainWindow(
                 )
         elif date_value:
             add_separator(context_menu)
-            analyze_day_macros_action = context_menu.addAction("📊 Analyze day macros")
+            analyze_day_macros_action = context_menu.addAction("📊 Analyze day macros (whole calendar day)")
 
         add_separator(context_menu)
         recalc_calories_ai_action = context_menu.addAction("🤖 Recalculate calories with AI")
@@ -4961,14 +4980,28 @@ class MainWindow(
                     calories_per_100g = food_item_row[4]
                     default_portion_calories = food_item_row[6]
 
-                    # Format display name with calories info
-                    display_name = format_food_name_with_calories(
-                        food_name,
-                        calories_per_100g,
-                        default_portion_calories,
-                        is_drink=is_drink,
-                    )
+                    display_name = food_name.strip()
+                    if is_drink and display_name:
+                        display_name = (
+                            f"{DRINK_EMOJI} {display_name}"
+                            if not display_name.startswith(DRINK_EMOJI)
+                            else display_name
+                        )
                     item = QStandardItem(display_name)
+                    local_label = ""
+                    if calories_per_100g is not None and str(calories_per_100g).strip() != "":
+                        with contextlib.suppress(TypeError, ValueError):
+                            local_label = f"{float(calories_per_100g):g} kcal/100g"
+                    elif default_portion_calories is not None and str(default_portion_calories).strip() != "":
+                        with contextlib.suppress(TypeError, ValueError):
+                            local_label = f"{float(default_portion_calories):g} kcal/portion"
+                    if local_label:
+                        item.setData(local_label, NAME_LOCAL_ROLE)
+                    tooltip_parts = [food_name]
+                    local = item.data(NAME_LOCAL_ROLE)
+                    if local:
+                        tooltip_parts.append(str(local))
+                    item.setToolTip(" · ".join(tooltip_parts))
                     item.setData(self.food_items_list_model.rowCount(), _FOOD_ITEM_ORDER_ROLE)
                     self.food_items_list_model.appendRow(item)
 
@@ -4976,7 +5009,8 @@ class MainWindow(
             if selection_model:
                 selection_model.blockSignals(False)  # noqa: FBT003
 
-            filter_text = self.lineEdit_food_manual_name.text().strip()
+            search = getattr(self, "lineEdit_food_items_search", None)
+            filter_text = search.text().strip() if isinstance(search, QLineEdit) else ""
             if filter_text:
                 self._apply_food_items_filter(filter_text)
 
@@ -5012,13 +5046,27 @@ class MainWindow(
             transformed_food_log_data = self._transform_food_log_data(
                 food_log_rows, append_state=False, db_totals=False
             )
-            self.models["food_log"] = self._create_colored_food_log_table_model(
+            sort_proxy = self._create_colored_food_log_table_model(
                 transformed_food_log_data, self.table_config["food_log"][2]
             )
-            self.tableView_food_log.setModel(self.models["food_log"])
+            if self._food_log_uses_flat_history():
+                self.tableView_food_log.setModel(sort_proxy)
+                self.tableView_food_log.clearSpans()
+                self.models["food_log"] = sort_proxy
+            else:
+                day_proxy = install_food_day_headers(self.tableView_food_log, sort_proxy)
+                day_proxy.set_calorie_thresholds(calorie_thresholds_from_config(self._app_config))
+                self.models["food_log"] = day_proxy
+                if not self._food_day_header_macros_bound:
+                    header_delegate = food_day_header_delegate_for_view(self.tableView_food_log)
+                    if header_delegate is not None:
+                        header_delegate.macros_requested.connect(self._on_food_log_day_total_macros)
+                        self._food_day_header_macros_bound = True
             self.tableView_food_log.setEditTriggers(
                 QTableView.EditTrigger.DoubleClicked | QTableView.EditTrigger.EditKeyPressed
             )
+            apply_food_log_column_visibility(self)
+            set_food_log_empty_visible(self, visible=False)
             food_log_header = self.tableView_food_log.horizontalHeader()
             for i in range(food_log_header.count()):
                 food_log_header.setSectionResizeMode(i, food_log_header.ResizeMode.Interactive)
@@ -5334,7 +5382,7 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
         self.food_items_list_model: QStandardItemModel | None = None
 
         # Table models dictionary
-        self.models: dict[str, QSortFilterProxyModel | None] = {
+        self.models: dict[str, QAbstractItemModel | None] = {
             "food_log": None,
             "kcal_per_day": None,
         }
@@ -5350,6 +5398,8 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
         self._food_log_pagination = ScrollPagination()
         self._food_log_dates_with_totals: set[str] = set()
         self._food_log_date_color_map: dict[str, QColor] = {}
+        self._food_day_header_macros_bound = False
+        self._food_items_list_delegate_installed = False
 
         # Dialog state to prevent multiple dialogs
         self._food_item_dialog_open: bool = False
@@ -6220,18 +6270,16 @@ Handle food log table cell click and populate form fields with row data.
 ```python
 def on_food_log_table_cell_clicked(self, index: QModelIndex) -> None:
         try:
-            proxy_model = self.models["food_log"]
-            if proxy_model is None:
+            if not index.isValid() or is_food_day_or_month_header(index):
                 return
-            source_model = proxy_model.sourceModel()
-            if not isinstance(source_model, QStandardItemModel):
+            source_index, source_model = map_food_log_index_to_source(index)
+            if not isinstance(source_model, QStandardItemModel) or not source_index.isValid():
                 return
 
-            row_id = source_model.verticalHeaderItem(index.row())
+            row = source_index.row()
+            row_id = source_model.verticalHeaderItem(row)
             if not row_id:
                 return
-
-            row = index.row()
             name = source_model.item(row, 0).text() if source_model.item(row, 0) else ""
             is_drink_item = source_model.item(row, 1)
             is_drink = parse_is_drink_cell(is_drink_item.data(Qt.ItemDataRole.EditRole)) if is_drink_item else False
