@@ -22,7 +22,6 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
 import harrix_pylib as h
-from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.dates import date2num
 from matplotlib.ticker import MultipleLocator
 from PySide6.QtCore import (
@@ -94,6 +93,7 @@ from harrix_swiss_knife.apps.common.apps_config import (
     set_apps_fitness_workout_duration_min,
     set_apps_fitness_workout_gender,
 )
+from harrix_swiss_knife.apps.common.chart_hover import create_chart_canvas
 from harrix_swiss_knife.apps.common.chart_theme import (
     chart_annotation_style,
     chart_info_panel_qss,
@@ -1320,7 +1320,7 @@ class MainWindow(
 
         # Create matplotlib figure
         fig = themed_figure(figsize=(12, 6), dpi=100)
-        canvas = FigureCanvas(fig)
+        canvas = create_chart_canvas(fig)
         ax = fig.add_subplot(111)
 
         # Plot non-current months first
@@ -1587,7 +1587,7 @@ class MainWindow(
 
         # Create matplotlib figure
         fig = themed_figure(figsize=(12, 6), dpi=100)
-        canvas = FigureCanvas(fig)
+        canvas = create_chart_canvas(fig)
         ax = fig.add_subplot(111)
 
         # Plot each year's data
@@ -3664,7 +3664,7 @@ class MainWindow(
 
         # Create matplotlib figure with custom Y-axis formatting
         fig = themed_figure(figsize=(12, 6), dpi=100)
-        canvas = FigureCanvas(fig)
+        canvas = create_chart_canvas(fig)
         ax = fig.add_subplot(111)
 
         # Extract data

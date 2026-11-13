@@ -19,10 +19,10 @@ from typing import TYPE_CHECKING, Any, Literal, cast
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+    from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
     from matplotlib.figure import Figure
 
 import harrix_pylib as h
-from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.dates import date2num
 from PySide6.QtCore import (
     QAbstractProxyModel,
@@ -1576,7 +1576,9 @@ class MainWindow(
         self.verticalLayout_charts_content.addWidget(row, 0)
 
     def _add_chart_canvas(self, fig: Figure) -> None:
-        canvas = FigureCanvas(fig)
+        from harrix_swiss_knife.apps.common.chart_hover import create_chart_canvas  # noqa: PLC0415
+
+        canvas = create_chart_canvas(fig)
         fig.tight_layout()
         self.verticalLayout_charts_content.addWidget(canvas)
         canvas.draw()

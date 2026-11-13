@@ -13,13 +13,13 @@ import warnings
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, cast
 
-from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.dates import date2num
 from PySide6.QtCore import QDate, QSortFilterProxyModel, QThread, QTimer, Signal
 from PySide6.QtWidgets import QAbstractItemView, QMessageBox, QWidget
 
 from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.common import message_box
+from harrix_swiss_knife.apps.common.chart_hover import create_chart_canvas
 from harrix_swiss_knife.apps.common.chart_theme import chart_ink, chart_label_bbox, themed_figure
 from harrix_swiss_knife.apps.common.day_bands import day_band_color
 from harrix_swiss_knife.apps.common.scroll_pagination import on_scroll_load_more
@@ -508,7 +508,7 @@ class ExchangeRatesOperations:
 
             # Create matplotlib figure with proper cleanup
             fig = themed_figure(figsize=(12, 6), dpi=100)
-            canvas = FigureCanvas(fig)
+            canvas = create_chart_canvas(fig)
             ax = fig.add_subplot(111)
 
             # Store references to prevent premature deletion

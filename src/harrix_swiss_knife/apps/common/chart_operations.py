@@ -38,7 +38,10 @@ from matplotlib.ticker import MaxNLocator
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QLabel
 
+from harrix_swiss_knife.apps.common.chart_hover import create_chart_canvas
 from harrix_swiss_knife.apps.common.chart_theme import chart_annotation_style, chart_label_face, themed_figure
+
+# FigureCanvas kept for isinstance checks in `_clear_layout`.
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
@@ -143,7 +146,7 @@ class ChartOperationsBase:
 
         # Create matplotlib figure
         fig = themed_figure(figsize=(12, 6), dpi=100)
-        canvas = FigureCanvas(fig)
+        canvas = create_chart_canvas(fig)
         ax = fig.add_subplot(111)
 
         # Extract data
