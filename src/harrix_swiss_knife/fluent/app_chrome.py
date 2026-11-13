@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
     QApplication,
     QComboBox,
     QDateEdit,
+    QFrame,
     QGroupBox,
     QHeaderView,
     QLabel,
@@ -492,6 +493,33 @@ def _paint_viewport(view: QAbstractItemView, color: QColor, text: QColor) -> Non
     view.setPalette(tuned)
 
 
+def _polish_combo_popup(combo: QComboBox, palette: FluentPalette) -> None:
+    """Keep the combo list flyout on Fluent popup chrome (no native light frame)."""
+    view = combo.view()
+    if view is None:
+        return
+    if isinstance(view, QFrame):
+        view.setFrameShape(QFrame.Shape.NoFrame)
+    view.setAutoFillBackground(True)
+    surface = palette.popup_bg
+    text = palette.text_primary if palette.text_primary.alpha() == 255 else mix(palette.window_bg, palette.text_primary)
+    highlight = list_item_selected(palette)
+    tuned = view.palette()
+    for group in (QPalette.ColorGroup.Active, QPalette.ColorGroup.Inactive, QPalette.ColorGroup.Disabled):
+        tuned.setColor(group, QPalette.ColorRole.Base, surface)
+        tuned.setColor(group, QPalette.ColorRole.Window, surface)
+        tuned.setColor(group, QPalette.ColorRole.AlternateBase, surface)
+        tuned.setColor(group, QPalette.ColorRole.Text, text)
+        tuned.setColor(group, QPalette.ColorRole.WindowText, text)
+        tuned.setColor(group, QPalette.ColorRole.ButtonText, text)
+        tuned.setColor(group, QPalette.ColorRole.Highlight, highlight)
+        tuned.setColor(group, QPalette.ColorRole.HighlightedText, text)
+    view.setPalette(tuned)
+    viewport = view.viewport()
+    viewport.setPalette(tuned)
+    viewport.setAutoFillBackground(True)
+
+
 def _restyle_buttons(root: QWidget, palette: FluentPalette) -> None:
     from harrix_swiss_knife.qt_lucide_icon import sync_button_icon_to_fill  # noqa: PLC0415
 
@@ -543,6 +571,7 @@ def _restyle_inputs(root: QWidget, palette: FluentPalette) -> None:
     for box in root.findChildren(QComboBox):
         _set_sheet(box, combo)
         _lock_control_height(box)
+        _polish_combo_popup(box, palette)
     date = date_edit_qss(palette, height=CONTROL_HEIGHT)
     for box in root.findChildren(QDateEdit):
         _set_sheet(box, date)

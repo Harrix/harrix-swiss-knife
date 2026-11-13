@@ -165,8 +165,10 @@ DARK_PALETTE = FluentPalette(
     control_strong_fill=_c("#8bffffff"),
     subtle_hover=_c("#0fffffff"),
     subtle_pressed=_c("#0affffff"),
-    popup_bg=_c("#2c2c2c"),
-    popup_stroke=_c("#3a3a3a"),
+    # Flyouts sit on opaque chrome (no Mica) — keep close to window_bg so combos
+    # and menus do not read as a flat gray island over the dark app surface.
+    popup_bg=_c("#282828"),
+    popup_stroke=_c("#3f3f46"),
     smoke=_c("#4d000000"),
     solid_bg=_c("#202020"),
     solid_secondary_bg=_c("#1c1c1c"),
