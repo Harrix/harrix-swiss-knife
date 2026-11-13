@@ -20,12 +20,12 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife.apps.common.day_summary_chrome import apply_food_day_summary_label
 from harrix_swiss_knife.apps.common.table_models import (
     bind_column_fill_on_resize,
     columns_fill_viewport,
     user_resized_columns,
 )
-from harrix_swiss_knife.apps.common.day_summary_chrome import apply_food_day_summary_label
 from harrix_swiss_knife.apps.common.tracker_layout_chrome import polish_left_field_labels, quiet_group_box
 from harrix_swiss_knife.apps.common.ui_chrome import (
     SELECTION_BG,

@@ -108,6 +108,8 @@ class MainWindow(
         self._bg_sport_sync_timer.setInterval(300)
         self._bg_sport_sync_timer.timeout.connect(self._run_background_sport_habit_sync)
         self._habits_heatmap_canvas: FigureCanvas | None = None
+        self._habits_heatmap_counts: dict[date, int] = {}
+        self._habits_heatmap_positions: dict[date, tuple[float, float]] = {}
         self.db_manager: database_manager.DatabaseManager | None = None
         self._is_small_window_layout: bool | None = None  # Used by _update_layout_for_window_size
 
@@ -929,6 +931,8 @@ class MainWindow(
         )
         if not rows:
             period_text = f"year {year}" if year is not None else "last 365 days"
+            self._habits_heatmap_counts = {}
+            self._habits_heatmap_positions = {}
             self._show_habit_heatmap_message(f"No data found for habit '{habit_name}' for {period_text}")
             return
 
@@ -1131,20 +1135,25 @@ class MainWindow(
             # Reduce font size for all text elements in the plot
             for text in ax.texts:
                 text.set_fontsize(8)
+            date_values: dict[date, int] = {}
+            for raw_date, raw_value in zip(
+                df_agg["dates"].tolist(),
+                df_agg["values"].tolist(),
+                strict=True,
+            ):
+                if isinstance(raw_date, datetime):
+                    day = raw_date.date()
+                elif isinstance(raw_date, date):
+                    day = raw_date
+                else:
+                    day = date.fromisoformat(str(raw_date)[:10])
+                date_values[day] = int(raw_value)
+            self._habits_heatmap_counts = date_values
+            self._habits_heatmap_positions, _labels, _width = habit_heatmap_month_separated_positions(
+                start_date,
+                end_date,
+            )
             if is_bool_flag is not True:
-                date_values: dict[date, int] = {}
-                for raw_date, raw_value in zip(
-                    df_agg["dates"].tolist(),
-                    df_agg["values"].tolist(),
-                    strict=True,
-                ):
-                    if isinstance(raw_date, datetime):
-                        day = raw_date.date()
-                    elif isinstance(raw_date, date):
-                        day = raw_date
-                    else:
-                        day = date.fromisoformat(str(raw_date)[:10])
-                    date_values[day] = int(raw_value)
                 for index, value in numeric_habit_heatmap_cell_labels(
                     start_date,
                     len(cell_patches),
@@ -1163,6 +1172,8 @@ class MainWindow(
             figure.tight_layout(rect=(0, 0.06, 1, 1))
         except Exception as e:
             logger.exception("Error creating calendar heatmap")
+            self._habits_heatmap_counts = {}
+            self._habits_heatmap_positions = {}
             self._show_habit_heatmap_message(f"Error creating calendar heatmap: {e}")
             return
 
@@ -1447,6 +1458,21 @@ class MainWindow(
         canvas = FigureCanvas(figure)
         canvas.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         canvas.setMinimumSize(0, 0)
+
+        def resolve_tooltip(event: Any) -> str | None:
+            if event.inaxes is None or event.xdata is None or event.ydata is None:
+                return None
+            day = date_at_heatmap_point(
+                self._habits_heatmap_positions,
+                float(event.xdata),
+                float(event.ydata),
+            )
+            if day is None:
+                return None
+            value = self._habits_heatmap_counts.get(day, 0)
+            return format_chart_point(day, value)
+
+        install_chart_hover(canvas, resolve_tooltip=resolve_tooltip)
         self.verticalLayout_charts_process_habits_content.addWidget(canvas)
         self._habits_heatmap_canvas = canvas
         canvas.draw()
@@ -1909,7 +1935,7 @@ class MainWindow(
         self._habit_dashboard.data_changed.connect(self._on_dashboard_data_changed)
         self._habit_dashboard.sport_habit_assign_requested.connect(self._on_assign_sport_habit)
         self._ticktick_stats_widget = TickTickTaskStatsWidget(self, autoload=False)
-        self.verticalLayout_ticktick_stats.addWidget(self._ticktick_stats_widget)
+        self.verticalLayout_ticktick_stats.addWidget(self._ticktick_stats_widget, stretch=1)
         self.action_habits_refresh.setText(f"🔄 {self.action_habits_refresh.text()}")
         self.action_habits_delete.setText(f"🗑️ {self.action_habits_delete.text()}")
         self.menuCommands.addSeparator()
@@ -1927,12 +1953,15 @@ class MainWindow(
         # Habit form buttons are polished by habits_entry_chrome / layout_chrome.
         apply_leading_chrome_buttons(self)
 
-        self._install_word_wrap_table_headers(skip={self.tableView_process_habits})
+        self._install_word_wrap_table_headers(
+            skip={self.tableView_process_habits, self._ticktick_stats_widget.day_table},
+        )
         install_word_wrap_header(
             self.tableView_process_habits,
             wrap_width=PROCESS_HABIT_VALUE_COLUMN_MIN_WIDTH,
             wrap_first_section=False,
         )
+        self._ticktick_stats_widget.configure_day_table_columns()
         style_fluent_table(self.tableView_process_habits)
         enable_table_header_sorting(self.tableView_process_habits)
 
@@ -2411,6 +2440,8 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107  (inhe
         self._bg_sport_sync_timer.setInterval(300)
         self._bg_sport_sync_timer.timeout.connect(self._run_background_sport_habit_sync)
         self._habits_heatmap_canvas: FigureCanvas | None = None
+        self._habits_heatmap_counts: dict[date, int] = {}
+        self._habits_heatmap_positions: dict[date, tuple[float, float]] = {}
         self.db_manager: database_manager.DatabaseManager | None = None
         self._is_small_window_layout: bool | None = None  # Used by _update_layout_for_window_size
 
@@ -3527,6 +3558,8 @@ def update_habit_calendar_heatmap(self, habit_name: str | None = None, year: int
         )
         if not rows:
             period_text = f"year {year}" if year is not None else "last 365 days"
+            self._habits_heatmap_counts = {}
+            self._habits_heatmap_positions = {}
             self._show_habit_heatmap_message(f"No data found for habit '{habit_name}' for {period_text}")
             return
 
@@ -3729,20 +3762,25 @@ def update_habit_calendar_heatmap(self, habit_name: str | None = None, year: int
             # Reduce font size for all text elements in the plot
             for text in ax.texts:
                 text.set_fontsize(8)
+            date_values: dict[date, int] = {}
+            for raw_date, raw_value in zip(
+                df_agg["dates"].tolist(),
+                df_agg["values"].tolist(),
+                strict=True,
+            ):
+                if isinstance(raw_date, datetime):
+                    day = raw_date.date()
+                elif isinstance(raw_date, date):
+                    day = raw_date
+                else:
+                    day = date.fromisoformat(str(raw_date)[:10])
+                date_values[day] = int(raw_value)
+            self._habits_heatmap_counts = date_values
+            self._habits_heatmap_positions, _labels, _width = habit_heatmap_month_separated_positions(
+                start_date,
+                end_date,
+            )
             if is_bool_flag is not True:
-                date_values: dict[date, int] = {}
-                for raw_date, raw_value in zip(
-                    df_agg["dates"].tolist(),
-                    df_agg["values"].tolist(),
-                    strict=True,
-                ):
-                    if isinstance(raw_date, datetime):
-                        day = raw_date.date()
-                    elif isinstance(raw_date, date):
-                        day = raw_date
-                    else:
-                        day = date.fromisoformat(str(raw_date)[:10])
-                    date_values[day] = int(raw_value)
                 for index, value in numeric_habit_heatmap_cell_labels(
                     start_date,
                     len(cell_patches),
@@ -3761,6 +3799,8 @@ def update_habit_calendar_heatmap(self, habit_name: str | None = None, year: int
             figure.tight_layout(rect=(0, 0.06, 1, 1))
         except Exception as e:
             logger.exception("Error creating calendar heatmap")
+            self._habits_heatmap_counts = {}
+            self._habits_heatmap_positions = {}
             self._show_habit_heatmap_message(f"Error creating calendar heatmap: {e}")
             return
 

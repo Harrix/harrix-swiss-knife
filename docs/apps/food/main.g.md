@@ -1134,32 +1134,31 @@ class MainWindow(
             logger.error("❌ Database manager is not initialized")
             return
 
-        zero_text = "0 kcal\n0,0 liters"
         if not self._validate_database_connection():
-            self.label_food_today.setText(zero_text)
-            self.label_food_yesterday.setText(zero_text)
+            apply_food_day_summary_label(self.label_food_today, 0.0, 0, today=True)
+            apply_food_day_summary_label(self.label_food_yesterday, 0.0, 0, today=False)
             self._update_macros_status_label()
             return
 
         try:
             yesterday = QDate.currentDate().addDays(-1).toString("yyyy-MM-dd")
-            self.label_food_today.setText(
-                _format_food_day_summary(
-                    self.db_manager.get_food_calories_today(),
-                    self.db_manager.get_drinks_weight_today(),
-                )
+            apply_food_day_summary_label(
+                self.label_food_today,
+                self.db_manager.get_food_calories_today(),
+                self.db_manager.get_drinks_weight_today(),
+                today=True,
             )
-            self.label_food_yesterday.setText(
-                _format_food_day_summary(
-                    self.db_manager.get_food_calories_on_date(yesterday),
-                    self.db_manager.get_drinks_weight_on_date(yesterday),
-                )
+            apply_food_day_summary_label(
+                self.label_food_yesterday,
+                self.db_manager.get_food_calories_on_date(yesterday),
+                self.db_manager.get_drinks_weight_on_date(yesterday),
+                today=False,
             )
             self._update_macros_status_label()
         except Exception:
             logger.exception("Error getting food calories for today and yesterday")
-            self.label_food_today.setText(zero_text)
-            self.label_food_yesterday.setText(zero_text)
+            apply_food_day_summary_label(self.label_food_today, 0.0, 0, today=True)
+            apply_food_day_summary_label(self.label_food_yesterday, 0.0, 0, today=False)
             self._update_macros_status_label()
 
     def update_food_data(self) -> None:
@@ -7053,32 +7052,31 @@ def update_food_calories_today(self) -> None:
             logger.error("❌ Database manager is not initialized")
             return
 
-        zero_text = "0 kcal\n0,0 liters"
         if not self._validate_database_connection():
-            self.label_food_today.setText(zero_text)
-            self.label_food_yesterday.setText(zero_text)
+            apply_food_day_summary_label(self.label_food_today, 0.0, 0, today=True)
+            apply_food_day_summary_label(self.label_food_yesterday, 0.0, 0, today=False)
             self._update_macros_status_label()
             return
 
         try:
             yesterday = QDate.currentDate().addDays(-1).toString("yyyy-MM-dd")
-            self.label_food_today.setText(
-                _format_food_day_summary(
-                    self.db_manager.get_food_calories_today(),
-                    self.db_manager.get_drinks_weight_today(),
-                )
+            apply_food_day_summary_label(
+                self.label_food_today,
+                self.db_manager.get_food_calories_today(),
+                self.db_manager.get_drinks_weight_today(),
+                today=True,
             )
-            self.label_food_yesterday.setText(
-                _format_food_day_summary(
-                    self.db_manager.get_food_calories_on_date(yesterday),
-                    self.db_manager.get_drinks_weight_on_date(yesterday),
-                )
+            apply_food_day_summary_label(
+                self.label_food_yesterday,
+                self.db_manager.get_food_calories_on_date(yesterday),
+                self.db_manager.get_drinks_weight_on_date(yesterday),
+                today=False,
             )
             self._update_macros_status_label()
         except Exception:
             logger.exception("Error getting food calories for today and yesterday")
-            self.label_food_today.setText(zero_text)
-            self.label_food_yesterday.setText(zero_text)
+            apply_food_day_summary_label(self.label_food_today, 0.0, 0, today=True)
+            apply_food_day_summary_label(self.label_food_yesterday, 0.0, 0, today=False)
             self._update_macros_status_label()
 ```
 

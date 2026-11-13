@@ -43,6 +43,9 @@ _GRAY = "#e9e9e9"
 _LIGHT_GREEN = "#b7e4b7"
 _DARK_GREEN = "#006400"
 _BAR_GREEN = "#2e7d32"
+_DAY_TICK_STEP_THRESHOLD = 15
+_YEAR_LABEL_ROTATE_THRESHOLD = 12
+_MONTH_LINE_MARKER_THRESHOLD = 10
 _COMPARE_CURRENT = "red"
 _COMPARE_PALETTE = (
     "blue",
@@ -158,6 +161,45 @@ def available_years(completions: Sequence[TickTickCompletion], *, today_year: in
     return sorted(year for year in years if year <= cap)
 
 
+def build_compare_months_chart(
+    series: Sequence[TickTickMonthSeries],
+    *,
+    title: str,
+    figsize: tuple[float, float] = (12.0, 4.5),
+    dpi: int = 100,
+) -> Figure:
+    """Overlay cumulative completion lines for several months (Fitness-style)."""
+    figure = themed_figure(figsize=figsize, dpi=dpi)
+    ax = figure.add_subplot(111)
+    plotted = [item for item in series if item.points]
+    if not plotted:
+        ax.set_title(title)
+        ax.text(0.5, 0.5, "No completed tasks", ha="center", va="center", transform=ax.transAxes)
+        figure.tight_layout()
+        return figure
+
+    current: TickTickMonthSeries | None = None
+    for item in plotted:
+        if item.is_current:
+            current = item
+            continue
+        _plot_month_line(ax, item, linewidth=2, linestyle="--")
+
+    if current is not None:
+        _plot_month_line(ax, current, linewidth=3, linestyle="-")
+
+    max_day = max(point[0] for item in plotted for point in item.points)
+    ax.set_xlim(1, max(max_day, 1))
+    ax.set_xticks(range(1, max_day + 1, 2 if max_day > _DAY_TICK_STEP_THRESHOLD else 1))
+    ax.set_xlabel("Day of month")
+    ax.set_ylabel("Cumulative completed tasks")
+    ax.set_title(title)
+    ax.grid(visible=True, alpha=0.3)
+    ax.legend(loc="upper left", fontsize=9)
+    figure.tight_layout()
+    return figure
+
+
 def build_contribution_heatmap(
     stats: TickTickPeriodStats,
     *,
@@ -244,202 +286,61 @@ def build_contribution_heatmap(
     )
 
 
-def current_streak_days(counts_by_day: dict[date, int], anchor: date) -> int:
-    """Count consecutive active days ending at ``anchor`` (or ``anchor - 1`` if today empty)."""
-    if counts_by_day.get(anchor, 0) > 0:
-        cursor = anchor
-    elif counts_by_day.get(anchor - timedelta(days=1), 0) > 0:
-        cursor = anchor - timedelta(days=1)
-    else:
-        return 0
-    streak = 0
-    while counts_by_day.get(cursor, 0) > 0:
-        streak += 1
-        cursor -= timedelta(days=1)
-    return streak
-
-
-def day_from_heatmap_click(
-    result: TickTickHeatmapResult,
-    x: float,
-    y: float,
-) -> date | None:
-    """Map axes data coordinates from a canvas click to a calendar day."""
-    return date_at_heatmap_point(result.positions, x, y)
-
-
-def heatmap_cell_tooltip(day: date, count: int) -> str:
-    """Return hover text for one contribution-calendar cell."""
-    unit = "task" if count == 1 else "tasks"
-    return f"{day.isoformat()}: {count} {unit}"
-
-
-def filter_completions_for_period(
-    completions: Sequence[TickTickCompletion],
-    start_date: date,
-    end_date: date,
+def build_month_counts_chart(
+    month_counts: Sequence[tuple[date, int]],
     *,
-    project_id: str | None = None,
-) -> list[TickTickCompletion]:
-    """Keep completions in ``[start_date, end_date]``, optionally for one project."""
-    selected: list[TickTickCompletion] = []
-    for item in completions:
-        if project_id and item.project_id != project_id:
-            continue
-        day = item.completed_at.date()
-        if start_date <= day <= end_date:
-            selected.append(item)
-    return selected
+    figsize: tuple[float, float] = (12.0, 4.5),
+    dpi: int = 100,
+) -> Figure:
+    """Bar chart of completed-task totals by calendar month."""
+    figure = themed_figure(figsize=figsize, dpi=dpi)
+    ax = figure.add_subplot(111)
+    if not month_counts:
+        ax.set_title("Completed tasks by month")
+        ax.text(0.5, 0.5, "No completed tasks", ha="center", va="center", transform=ax.transAxes)
+        figure.tight_layout()
+        return figure
+    labels = [start.strftime("%b %Y") for start, _count in month_counts]
+    values = [count for _start, count in month_counts]
+    bars = ax.bar(range(len(labels)), values, color=_BAR_GREEN, width=0.7)
+    ax.set_xticks(range(len(labels)))
+    ax.set_xticklabels(labels, rotation=45, ha="right")
+    ax.set_xlabel("Month")
+    ax.set_ylabel("Completed tasks")
+    ax.set_title(f"Completed tasks by month (last {len(month_counts)})")
+    ax.grid(visible=True, axis="y", alpha=0.3)
+    _annotate_bars(ax, bars)
+    figure.tight_layout()
+    return figure
 
 
-def format_period_summary(stats: TickTickPeriodStats) -> str:
-    """Return a one-line summary for the TickTick stats tab header."""
-    busiest = "—"
-    if stats.busiest_day is not None and stats.busiest_count > 0:
-        busiest = f"{stats.busiest_day.isoformat()} ({stats.busiest_count})"
-    return (
-        f"Completions: {stats.total_completions} · Active days: {stats.active_days} · "
-        f"Current streak: {stats.current_streak} · Longest streak: {stats.longest_streak} · "
-        f"Busiest day: {busiest}"
-    )
-
-
-def latest_active_day(stats: TickTickPeriodStats) -> date | None:
-    """Return the most recent day in ``stats`` that has at least one completion."""
-    if not stats.counts_by_day:
-        return None
-    return max(stats.counts_by_day)
-
-
-def longest_streak_days(counts_by_day: dict[date, int], start_date: date, end_date: date) -> int:
-    """Return the longest run of consecutive active days inside the period."""
-    best = 0
-    run = 0
-    day = start_date
-    while day <= end_date:
-        if counts_by_day.get(day, 0) > 0:
-            run += 1
-            best = max(best, run)
-        else:
-            run = 0
-        day += timedelta(days=1)
-    return best
-
-
-def resolve_period(
+def build_year_counts_chart(
+    year_counts: Sequence[tuple[int, int]],
     *,
-    year: int | None,
-    today: date | None = None,
-) -> tuple[date, date]:
-    """Return inclusive ``(start, end)`` for a calendar year or last 365 days."""
-    today_local = today or datetime.now().astimezone().date()
-    if year is None:
-        return today_local - timedelta(days=365), today_local
-    start = date(year, 1, 1)
-    end = date(year, 12, 31)
-    if year == today_local.year:
-        end = today_local
-    return start, end
-
-
-def counts_by_year(
-    completions: Sequence[TickTickCompletion],
-    *,
-    project_id: str | None = None,
-    today: date | None = None,
-) -> list[tuple[int, int]]:
-    """Return ``(year, count)`` ascending for years with completions (and empty gaps filled)."""
-    today_local = today or datetime.now().astimezone().date()
-    filtered = [
-        item
-        for item in completions
-        if item.completed_at.date() <= today_local and (project_id is None or item.project_id == project_id)
-    ]
-    if not filtered:
-        return []
-    totals: dict[int, int] = {}
-    for item in filtered:
-        year = item.completed_at.year
-        if year <= today_local.year:
-            totals[year] = totals.get(year, 0) + 1
-    if not totals:
-        return []
-    start_year = min(totals)
-    return [(year, totals.get(year, 0)) for year in range(start_year, today_local.year + 1)]
-
-
-def counts_by_month(
-    completions: Sequence[TickTickCompletion],
-    months_count: int,
-    *,
-    project_id: str | None = None,
-    today: date | None = None,
-) -> list[tuple[date, int]]:
-    """Return ``(month_start, count)`` oldest→newest for the last ``months_count`` months."""
-    today_local = today or datetime.now().astimezone().date()
-    month_starts = list(reversed(month_starts_going_back(months_count, today=today_local)))
-    if not month_starts:
-        return []
-    totals = {start: 0 for start in month_starts}
-    for item in completions:
-        if project_id is not None and item.project_id != project_id:
-            continue
-        day = item.completed_at.date()
-        if day > today_local:
-            continue
-        key = date(day.year, day.month, 1)
-        if key in totals:
-            totals[key] += 1
-    return [(start, totals[start]) for start in month_starts]
-
-
-def month_starts_going_back(months_count: int, *, today: date) -> list[date]:
-    """Return first-of-month dates newest first for ``months_count`` months ending at ``today``."""
-    count = max(int(months_count), 0)
-    if count <= 0:
-        return []
-    cursor = date(today.year, today.month, 1)
-    result: list[date] = []
-    for _ in range(count):
-        result.append(cursor)
-        if cursor.month == 1:
-            cursor = date(cursor.year - 1, 12, 1)
-        else:
-            cursor = date(cursor.year, cursor.month - 1, 1)
-    return result
-
-
-def cumulative_month_points(
-    completions: Sequence[TickTickCompletion],
-    year: int,
-    month: int,
-    *,
-    end_day: int,
-    project_id: str | None = None,
-) -> list[tuple[int, int]]:
-    """Return ``(day_of_month, cumulative_count)`` through ``end_day`` for one calendar month."""
-    days_in_month = calendar.monthrange(year, month)[1]
-    limit = max(1, min(int(end_day), days_in_month))
-    per_day: dict[int, int] = {}
-    for item in completions:
-        if project_id is not None and item.project_id != project_id:
-            continue
-        stamp = item.completed_at
-        if stamp.year != year or stamp.month != month:
-            continue
-        if stamp.day > limit:
-            continue
-        per_day[stamp.day] = per_day.get(stamp.day, 0) + 1
-    if not per_day:
-        return []
-    points: list[tuple[int, int]] = []
-    running = 0
-    for day in sorted(per_day):
-        running += per_day[day]
-        points.append((day, running))
-    if points[-1][0] < limit:
-        points.append((limit, running))
-    return points
+    figsize: tuple[float, float] = (12.0, 4.5),
+    dpi: int = 100,
+) -> Figure:
+    """Bar chart of completed-task totals by calendar year."""
+    figure = themed_figure(figsize=figsize, dpi=dpi)
+    ax = figure.add_subplot(111)
+    if not year_counts:
+        ax.set_title("Completed tasks by year")
+        ax.text(0.5, 0.5, "No completed tasks", ha="center", va="center", transform=ax.transAxes)
+        figure.tight_layout()
+        return figure
+    labels = [str(year) for year, _count in year_counts]
+    values = [count for _year, count in year_counts]
+    bars = ax.bar(range(len(labels)), values, color=_BAR_GREEN, width=0.7)
+    ax.set_xticks(range(len(labels)))
+    rotate = len(labels) > _YEAR_LABEL_ROTATE_THRESHOLD
+    ax.set_xticklabels(labels, rotation=45 if rotate else 0, ha="right" if rotate else "center")
+    ax.set_xlabel("Year")
+    ax.set_ylabel("Completed tasks")
+    ax.set_title("Completed tasks by year")
+    ax.grid(visible=True, axis="y", alpha=0.3)
+    _annotate_bars(ax, bars)
+    figure.tight_layout()
+    return figure
 
 
 def compare_last_months_series(
@@ -530,99 +431,199 @@ def compare_same_months_series(
     return series
 
 
-def build_year_counts_chart(
-    year_counts: Sequence[tuple[int, int]],
+def counts_by_month(
+    completions: Sequence[TickTickCompletion],
+    months_count: int,
     *,
-    figsize: tuple[float, float] = (12.0, 4.5),
-    dpi: int = 100,
-) -> Figure:
-    """Bar chart of completed-task totals by calendar year."""
-    figure = themed_figure(figsize=figsize, dpi=dpi)
-    ax = figure.add_subplot(111)
-    if not year_counts:
-        ax.set_title("Completed tasks by year")
-        ax.text(0.5, 0.5, "No completed tasks", ha="center", va="center", transform=ax.transAxes)
-        figure.tight_layout()
-        return figure
-    labels = [str(year) for year, _count in year_counts]
-    values = [count for _year, count in year_counts]
-    bars = ax.bar(range(len(labels)), values, color=_BAR_GREEN, width=0.7)
-    ax.set_xticks(range(len(labels)))
-    ax.set_xticklabels(labels, rotation=0 if len(labels) <= 12 else 45, ha="center" if len(labels) <= 12 else "right")
-    ax.set_xlabel("Year")
-    ax.set_ylabel("Completed tasks")
-    ax.set_title("Completed tasks by year")
-    ax.grid(visible=True, axis="y", alpha=0.3)
-    _annotate_bars(ax, bars)
-    figure.tight_layout()
-    return figure
-
-
-def build_month_counts_chart(
-    month_counts: Sequence[tuple[date, int]],
-    *,
-    figsize: tuple[float, float] = (12.0, 4.5),
-    dpi: int = 100,
-) -> Figure:
-    """Bar chart of completed-task totals by calendar month."""
-    figure = themed_figure(figsize=figsize, dpi=dpi)
-    ax = figure.add_subplot(111)
-    if not month_counts:
-        ax.set_title("Completed tasks by month")
-        ax.text(0.5, 0.5, "No completed tasks", ha="center", va="center", transform=ax.transAxes)
-        figure.tight_layout()
-        return figure
-    labels = [start.strftime("%b %Y") for start, _count in month_counts]
-    values = [count for _start, count in month_counts]
-    bars = ax.bar(range(len(labels)), values, color=_BAR_GREEN, width=0.7)
-    ax.set_xticks(range(len(labels)))
-    ax.set_xticklabels(labels, rotation=45, ha="right")
-    ax.set_xlabel("Month")
-    ax.set_ylabel("Completed tasks")
-    ax.set_title(f"Completed tasks by month (last {len(month_counts)})")
-    ax.grid(visible=True, axis="y", alpha=0.3)
-    _annotate_bars(ax, bars)
-    figure.tight_layout()
-    return figure
-
-
-def build_compare_months_chart(
-    series: Sequence[TickTickMonthSeries],
-    *,
-    title: str,
-    figsize: tuple[float, float] = (12.0, 4.5),
-    dpi: int = 100,
-) -> Figure:
-    """Overlay cumulative completion lines for several months (Fitness-style)."""
-    figure = themed_figure(figsize=figsize, dpi=dpi)
-    ax = figure.add_subplot(111)
-    plotted = [item for item in series if item.points]
-    if not plotted:
-        ax.set_title(title)
-        ax.text(0.5, 0.5, "No completed tasks", ha="center", va="center", transform=ax.transAxes)
-        figure.tight_layout()
-        return figure
-
-    current: TickTickMonthSeries | None = None
-    for item in plotted:
-        if item.is_current:
-            current = item
+    project_id: str | None = None,
+    today: date | None = None,
+) -> list[tuple[date, int]]:
+    """Return ``(month_start, count)`` oldest→newest for the last ``months_count`` months."""
+    today_local = today or datetime.now().astimezone().date()
+    month_starts = list(reversed(month_starts_going_back(months_count, today=today_local)))
+    if not month_starts:
+        return []
+    totals = dict.fromkeys(month_starts, 0)
+    for item in completions:
+        if project_id is not None and item.project_id != project_id:
             continue
-        _plot_month_line(ax, item, linewidth=2, linestyle="--")
+        day = item.completed_at.date()
+        if day > today_local:
+            continue
+        key = date(day.year, day.month, 1)
+        if key in totals:
+            totals[key] += 1
+    return [(start, totals[start]) for start in month_starts]
 
-    if current is not None:
-        _plot_month_line(ax, current, linewidth=3, linestyle="-")
 
-    max_day = max(point[0] for item in plotted for point in item.points)
-    ax.set_xlim(1, max(max_day, 1))
-    ax.set_xticks(range(1, max_day + 1, 2 if max_day > 15 else 1))
-    ax.set_xlabel("Day of month")
-    ax.set_ylabel("Cumulative completed tasks")
-    ax.set_title(title)
-    ax.grid(visible=True, alpha=0.3)
-    ax.legend(loc="upper left", fontsize=9)
-    figure.tight_layout()
-    return figure
+def counts_by_year(
+    completions: Sequence[TickTickCompletion],
+    *,
+    project_id: str | None = None,
+    today: date | None = None,
+) -> list[tuple[int, int]]:
+    """Return ``(year, count)`` ascending for years with completions (and empty gaps filled)."""
+    today_local = today or datetime.now().astimezone().date()
+    filtered = [
+        item
+        for item in completions
+        if item.completed_at.date() <= today_local and (project_id is None or item.project_id == project_id)
+    ]
+    if not filtered:
+        return []
+    totals: dict[int, int] = {}
+    for item in filtered:
+        year = item.completed_at.year
+        if year <= today_local.year:
+            totals[year] = totals.get(year, 0) + 1
+    if not totals:
+        return []
+    start_year = min(totals)
+    return [(year, totals.get(year, 0)) for year in range(start_year, today_local.year + 1)]
+
+
+def cumulative_month_points(
+    completions: Sequence[TickTickCompletion],
+    year: int,
+    month: int,
+    *,
+    end_day: int,
+    project_id: str | None = None,
+) -> list[tuple[int, int]]:
+    """Return ``(day_of_month, cumulative_count)`` through ``end_day`` for one calendar month."""
+    days_in_month = calendar.monthrange(year, month)[1]
+    limit = max(1, min(int(end_day), days_in_month))
+    per_day: dict[int, int] = {}
+    for item in completions:
+        if project_id is not None and item.project_id != project_id:
+            continue
+        stamp = item.completed_at
+        if stamp.year != year or stamp.month != month:
+            continue
+        if stamp.day > limit:
+            continue
+        per_day[stamp.day] = per_day.get(stamp.day, 0) + 1
+    if not per_day:
+        return []
+    points: list[tuple[int, int]] = []
+    running = 0
+    for day in sorted(per_day):
+        running += per_day[day]
+        points.append((day, running))
+    if points[-1][0] < limit:
+        points.append((limit, running))
+    return points
+
+
+def current_streak_days(counts_by_day: dict[date, int], anchor: date) -> int:
+    """Count consecutive active days ending at ``anchor`` (or ``anchor - 1`` if today empty)."""
+    if counts_by_day.get(anchor, 0) > 0:
+        cursor = anchor
+    elif counts_by_day.get(anchor - timedelta(days=1), 0) > 0:
+        cursor = anchor - timedelta(days=1)
+    else:
+        return 0
+    streak = 0
+    while counts_by_day.get(cursor, 0) > 0:
+        streak += 1
+        cursor -= timedelta(days=1)
+    return streak
+
+
+def day_from_heatmap_click(
+    result: TickTickHeatmapResult,
+    x: float,
+    y: float,
+) -> date | None:
+    """Map axes data coordinates from a canvas click to a calendar day."""
+    return date_at_heatmap_point(result.positions, x, y)
+
+
+def filter_completions_for_period(
+    completions: Sequence[TickTickCompletion],
+    start_date: date,
+    end_date: date,
+    *,
+    project_id: str | None = None,
+) -> list[TickTickCompletion]:
+    """Keep completions in ``[start_date, end_date]``, optionally for one project."""
+    selected: list[TickTickCompletion] = []
+    for item in completions:
+        if project_id and item.project_id != project_id:
+            continue
+        day = item.completed_at.date()
+        if start_date <= day <= end_date:
+            selected.append(item)
+    return selected
+
+
+def format_period_summary(stats: TickTickPeriodStats) -> str:
+    """Return a one-line summary for the TickTick stats tab header."""
+    busiest = "—"
+    if stats.busiest_day is not None and stats.busiest_count > 0:
+        busiest = f"{stats.busiest_day.isoformat()} ({stats.busiest_count})"
+    return (
+        f"Completions: {stats.total_completions} · Active days: {stats.active_days} · "
+        f"Current streak: {stats.current_streak} · Longest streak: {stats.longest_streak} · "
+        f"Busiest day: {busiest}"
+    )
+
+
+def heatmap_cell_tooltip(day: date, count: int) -> str:
+    """Return hover text for one contribution-calendar cell."""
+    unit = "task" if count == 1 else "tasks"
+    return f"{day.isoformat()}: {count} {unit}"
+
+
+def latest_active_day(stats: TickTickPeriodStats) -> date | None:
+    """Return the most recent day in ``stats`` that has at least one completion."""
+    if not stats.counts_by_day:
+        return None
+    return max(stats.counts_by_day)
+
+
+def longest_streak_days(counts_by_day: dict[date, int], start_date: date, end_date: date) -> int:
+    """Return the longest run of consecutive active days inside the period."""
+    best = 0
+    run = 0
+    day = start_date
+    while day <= end_date:
+        if counts_by_day.get(day, 0) > 0:
+            run += 1
+            best = max(best, run)
+        else:
+            run = 0
+        day += timedelta(days=1)
+    return best
+
+
+def month_starts_going_back(months_count: int, *, today: date) -> list[date]:
+    """Return first-of-month dates newest first for ``months_count`` months ending at ``today``."""
+    count = max(int(months_count), 0)
+    if count <= 0:
+        return []
+    cursor = date(today.year, today.month, 1)
+    result: list[date] = []
+    for _ in range(count):
+        result.append(cursor)
+        cursor = date(cursor.year - 1, 12, 1) if cursor.month == 1 else date(cursor.year, cursor.month - 1, 1)
+    return result
+
+
+def resolve_period(
+    *,
+    year: int | None,
+    today: date | None = None,
+) -> tuple[date, date]:
+    """Return inclusive ``(start, end)`` for a calendar year or last 365 days."""
+    today_local = today or datetime.now().astimezone().date()
+    if year is None:
+        return today_local - timedelta(days=365), today_local
+    start = date(year, 1, 1)
+    end = date(year, 12, 31)
+    if year == today_local.year:
+        end = today_local
+    return start, end
 
 
 def _annotate_bars(ax: Any, bars: Any) -> None:
@@ -664,7 +665,7 @@ def _plot_month_line(ax: Any, item: TickTickMonthSeries, *, linewidth: float, li
         linewidth=linewidth,
         alpha=0.85,
         label=item.label,
-        marker="o" if len(x_values) <= 10 else None,
+        marker="o" if len(x_values) <= _MONTH_LINE_MARKER_THRESHOLD else None,
         markersize=4,
     )
     if x_values and y_values:

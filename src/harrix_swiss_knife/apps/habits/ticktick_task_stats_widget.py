@@ -193,11 +193,6 @@ class TickTickTaskStatsWidget(QWidget):
         if autoload:
             self.reload()
 
-    @property
-    def day_table(self) -> QTableWidget:
-        """Completed-tasks table for the selected heatmap day."""
-        return self._day_table
-
     def configure_day_table_columns(self) -> None:
         """Time/List hug content; Task stretches to fill the table width."""
         header = self._day_table.horizontalHeader()
@@ -205,6 +200,11 @@ class TickTickTaskStatsWidget(QWidget):
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
         header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+
+    @property
+    def day_table(self) -> QTableWidget:
+        """Completed-tasks table for the selected heatmap day."""
+        return self._day_table
 
     def ensure_loaded(self) -> None:
         """Load TickTick data once when the tab is first shown."""
@@ -252,6 +252,15 @@ class TickTickTaskStatsWidget(QWidget):
         self._chart_layout.addWidget(label)
         self._heatmap = None
 
+    def _figure_size(self) -> tuple[float, float]:
+        width = max(self._chart_host.width(), 900)
+        if self._chart_mode() == CHART_MODE_HEATMAP:
+            height = max(_HEATMAP_MIN_HEIGHT, min(_HEATMAP_MAX_HEIGHT, 240))
+        else:
+            height = max(_CHART_MIN_HEIGHT, min(self._chart_host.height(), _CHART_MAX_HEIGHT))
+            height = max(height, 360)
+        return (width / 100, height / 100)
+
     def _fill_day_table(self, rows: list[TickTickCompletion]) -> None:
         self._day_table.setRowCount(len(rows))
         for index, item in enumerate(rows):
@@ -262,15 +271,6 @@ class TickTickTaskStatsWidget(QWidget):
             self._day_table.setItem(index, 1, task_item)
             self._day_table.setItem(index, 2, list_item)
         self.configure_day_table_columns()
-
-    def _figure_size(self) -> tuple[float, float]:
-        width = max(self._chart_host.width(), 900)
-        if self._chart_mode() == CHART_MODE_HEATMAP:
-            height = max(_HEATMAP_MIN_HEIGHT, min(_HEATMAP_MAX_HEIGHT, 240))
-        else:
-            height = max(_CHART_MIN_HEIGHT, min(self._chart_host.height(), _CHART_MAX_HEIGHT))
-            height = max(height, 360)
-        return (width / 100, height / 100)
 
     def _on_chart_mode_changed(self) -> None:
         self._selected_day = None

@@ -1094,7 +1094,7 @@ class MainWindow(
 
         # Create matplotlib figure
         fig = themed_figure(figsize=(12, 6), dpi=100)
-        canvas = FigureCanvas(fig)
+        canvas = create_chart_canvas(fig)
         ax = fig.add_subplot(111)
 
         # Plot non-current months first
@@ -1361,7 +1361,7 @@ class MainWindow(
 
         # Create matplotlib figure
         fig = themed_figure(figsize=(12, 6), dpi=100)
-        canvas = FigureCanvas(fig)
+        canvas = create_chart_canvas(fig)
         ax = fig.add_subplot(111)
 
         # Plot each year's data
@@ -3438,7 +3438,7 @@ class MainWindow(
 
         # Create matplotlib figure with custom Y-axis formatting
         fig = themed_figure(figsize=(12, 6), dpi=100)
-        canvas = FigureCanvas(fig)
+        canvas = create_chart_canvas(fig)
         ax = fig.add_subplot(111)
 
         # Extract data
@@ -10420,7 +10420,7 @@ def on_compare_last_months(self) -> None:
 
         # Create matplotlib figure
         fig = themed_figure(figsize=(12, 6), dpi=100)
-        canvas = FigureCanvas(fig)
+        canvas = create_chart_canvas(fig)
         ax = fig.add_subplot(111)
 
         # Plot non-current months first
@@ -10698,7 +10698,7 @@ def on_compare_same_months(self) -> None:
 
         # Create matplotlib figure
         fig = themed_figure(figsize=(12, 6), dpi=100)
-        canvas = FigureCanvas(fig)
+        canvas = create_chart_canvas(fig)
         ax = fig.add_subplot(111)
 
         # Plot each year's data
@@ -13294,7 +13294,7 @@ def update_weight_chart(self) -> None:
 
         # Create matplotlib figure with custom Y-axis formatting
         fig = themed_figure(figsize=(12, 6), dpi=100)
-        canvas = FigureCanvas(fig)
+        canvas = create_chart_canvas(fig)
         ax = fig.add_subplot(111)
 
         # Extract data

@@ -5,7 +5,7 @@ track DPI and the user scale. Values stay plain labels or rich text; chrome
 does not add cards, frames, or decorative fills.
 
 Logical-px targets at the default 14px body: caption ~14, today ~28,
-yesterday ~20, unit/secondary ~16–18.
+yesterday ~20, unit/secondary ~16-18.
 
 """
 

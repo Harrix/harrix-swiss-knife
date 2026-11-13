@@ -1355,7 +1355,9 @@ class MainWindow(
         self.verticalLayout_charts_content.addWidget(row, 0)
 
     def _add_chart_canvas(self, fig: Figure) -> None:
-        canvas = FigureCanvas(fig)
+        from harrix_swiss_knife.apps.common.chart_hover import create_chart_canvas  # noqa: PLC0415
+
+        canvas = create_chart_canvas(fig)
         fig.tight_layout()
         self.verticalLayout_charts_content.addWidget(canvas)
         canvas.draw()

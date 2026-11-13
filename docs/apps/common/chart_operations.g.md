@@ -112,7 +112,7 @@ class ChartOperationsBase:
 
         # Create matplotlib figure
         fig = themed_figure(figsize=(12, 6), dpi=100)
-        canvas = FigureCanvas(fig)
+        canvas = create_chart_canvas(fig)
         ax = fig.add_subplot(111)
 
         # Extract data

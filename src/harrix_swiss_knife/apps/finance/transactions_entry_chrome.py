@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from PySide6.QtCore import QPoint, QSize, Qt, QTimer
-from PySide6.QtGui import QAction, QStandardItemModel
+from PySide6.QtGui import QAction, QFont, QStandardItemModel
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QHeaderView,
@@ -15,14 +15,14 @@ from PySide6.QtWidgets import (
     QTableView,
 )
 
+from harrix_swiss_knife.apps.common.day_summary_chrome import (
+    apply_day_summary_caption,
+    apply_day_summary_value,
+)
 from harrix_swiss_knife.apps.common.table_models import (
     bind_column_fill_on_resize,
     columns_fill_viewport,
     user_resized_columns,
-)
-from harrix_swiss_knife.apps.common.day_summary_chrome import (
-    apply_day_summary_caption,
-    apply_day_summary_value,
 )
 from harrix_swiss_knife.apps.common.tracker_layout_chrome import (
     apply_tracker_column_surfaces,

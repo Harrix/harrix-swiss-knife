@@ -38,6 +38,15 @@ def create_chart_canvas(fig: Figure) -> FigureCanvas:
     return canvas
 
 
+def format_chart_point(x: Any, y: Any, *, label: str | None = None) -> str:
+    """Format one ``(x, y)`` chart point for a hover tooltip."""
+    x_text = _format_x_value(x)
+    y_text = _format_y_value(y)
+    if label:
+        return f"{label}: {x_text} → {y_text}"
+    return f"{x_text}: {y_text}"
+
+
 def install_chart_hover(
     canvas: FigureCanvas,
     *,
@@ -136,75 +145,6 @@ def nearest_artist_tooltip(
     return best_tip
 
 
-def format_chart_point(x: Any, y: Any, *, label: str | None = None) -> str:
-    """Format one ``(x, y)`` chart point for a hover tooltip."""
-    x_text = _format_x_value(x)
-    y_text = _format_y_value(y)
-    if label:
-        return f"{label}: {x_text} → {y_text}"
-    return f"{x_text}: {y_text}"
-
-
-def _line_tooltip(
-    ax: Axes,
-    line: Line2D,
-    pixel_x: float,
-    pixel_y: float,
-    *,
-    max_pixel_distance: float,
-) -> tuple[str | None, float]:
-    xdata = line.get_xdata(orig=False)
-    ydata = line.get_ydata(orig=False)
-    if xdata is None or ydata is None:
-        return None, max_pixel_distance
-    xs = np.asarray(xdata, dtype=float)
-    ys = np.asarray(ydata, dtype=float)
-    if xs.size == 0 or ys.size == 0 or xs.size != ys.size:
-        return None, max_pixel_distance
-    mask = np.isfinite(xs) & np.isfinite(ys)
-    xs = xs[mask]
-    ys = ys[mask]
-    if xs.size == 0:
-        return None, max_pixel_distance
-
-    points = ax.transData.transform(np.column_stack([xs, ys]))
-    deltas = points - np.array([pixel_x, pixel_y], dtype=float)
-    distances = np.hypot(deltas[:, 0], deltas[:, 1])
-    index = int(np.argmin(distances))
-    dist = float(distances[index])
-    if dist > max_pixel_distance:
-        return None, max_pixel_distance
-    label = line.get_label()
-    if not label or label.startswith("_"):
-        label = None
-    return format_chart_point(xs[index], ys[index], label=label), dist
-
-
-def _scatter_tooltip(
-    ax: Axes,
-    collection: PathCollection,
-    pixel_x: float,
-    pixel_y: float,
-    *,
-    max_pixel_distance: float,
-) -> tuple[str | None, float]:
-    offsets = collection.get_offsets()
-    if offsets is None or len(offsets) == 0:
-        return None, max_pixel_distance
-    points = ax.transData.transform(np.asarray(offsets, dtype=float))
-    deltas = points - np.array([pixel_x, pixel_y], dtype=float)
-    distances = np.hypot(deltas[:, 0], deltas[:, 1])
-    index = int(np.argmin(distances))
-    dist = float(distances[index])
-    if dist > max_pixel_distance:
-        return None, max_pixel_distance
-    x_val, y_val = offsets[index]
-    label = collection.get_label()
-    if not label or label.startswith("_"):
-        label = None
-    return format_chart_point(x_val, y_val, label=label), dist
-
-
 def _bar_container_tooltip(
     ax: Axes,
     container: BarContainer,
@@ -221,34 +161,11 @@ def _bar_container_tooltip(
     return None
 
 
-def _rectangle_tooltip(
-    ax: Axes,
-    patch: Rectangle,
-    pixel_x: float,
-    pixel_y: float,
-    *,
-    label: str | None = None,
-) -> str | None:
-    try:
-        renderer = ax.figure.canvas.get_renderer()
-    except Exception:
+def _clean_artist_label(label: object) -> str | None:
+    """Return a visible legend label, or `None` for Matplotlib's private `_…` names."""
+    if not isinstance(label, str) or not label or label.startswith("_"):
         return None
-    bbox = patch.get_window_extent(renderer=renderer)
-    if not bbox.contains(pixel_x, pixel_y):
-        return None
-    x0 = patch.get_x()
-    width = patch.get_width()
-    height = patch.get_height()
-    y0 = patch.get_y()
-    # Vertical bars: x is category center-ish, y height is the value.
-    if abs(height) >= abs(width):
-        x_val = x0 + width / 2.0
-        y_val = height if y0 == 0 else y0 + height
-    else:
-        x_val = width if x0 == 0 else x0 + width
-        y_val = y0 + height / 2.0
-    clean_label = label if label and not label.startswith("_") else None
-    return format_chart_point(x_val, y_val, label=clean_label)
+    return label
 
 
 def _format_x_value(value: Any) -> str:
@@ -285,3 +202,91 @@ def _format_y_value(value: Any) -> str:
         return str(round(number))
     text = f"{number:.4f}".rstrip("0").rstrip(".")
     return text or "0"
+
+
+def _line_tooltip(
+    ax: Axes,
+    line: Line2D,
+    pixel_x: float,
+    pixel_y: float,
+    *,
+    max_pixel_distance: float,
+) -> tuple[str | None, float]:
+    xdata = line.get_xdata(orig=False)
+    ydata = line.get_ydata(orig=False)
+    if xdata is None or ydata is None:
+        return None, max_pixel_distance
+    xs = np.asarray(xdata, dtype=float)
+    ys = np.asarray(ydata, dtype=float)
+    if xs.size == 0 or ys.size == 0 or xs.size != ys.size:
+        return None, max_pixel_distance
+    mask = np.isfinite(xs) & np.isfinite(ys)
+    xs = xs[mask]
+    ys = ys[mask]
+    if xs.size == 0:
+        return None, max_pixel_distance
+
+    points = ax.transData.transform(np.column_stack([xs, ys]))
+    deltas = points - np.array([pixel_x, pixel_y], dtype=float)
+    distances = np.hypot(deltas[:, 0], deltas[:, 1])
+    index = int(np.argmin(distances))
+    dist = float(distances[index])
+    if dist > max_pixel_distance:
+        return None, max_pixel_distance
+    return format_chart_point(xs[index], ys[index], label=_clean_artist_label(line.get_label())), dist
+
+
+def _rectangle_tooltip(
+    ax: Axes,
+    patch: Rectangle,
+    pixel_x: float,
+    pixel_y: float,
+    *,
+    label: str | None = None,
+) -> str | None:
+    try:
+        renderer = ax.figure.canvas.get_renderer()
+    except Exception:
+        return None
+    bbox = patch.get_window_extent(renderer=renderer)
+    if not bbox.contains(pixel_x, pixel_y):
+        return None
+    x0 = patch.get_x()
+    width = patch.get_width()
+    height = patch.get_height()
+    y0 = patch.get_y()
+    # Vertical bars: x is category center-ish, y height is the value.
+    if abs(height) >= abs(width):
+        x_val = x0 + width / 2.0
+        y_val = height if y0 == 0 else y0 + height
+    else:
+        x_val = width if x0 == 0 else x0 + width
+        y_val = y0 + height / 2.0
+    return format_chart_point(x_val, y_val, label=_clean_artist_label(label))
+
+
+def _scatter_tooltip(
+    ax: Axes,
+    collection: PathCollection,
+    pixel_x: float,
+    pixel_y: float,
+    *,
+    max_pixel_distance: float,
+) -> tuple[str | None, float]:
+    offsets_arr = np.asarray(collection.get_offsets(), dtype=float)
+    if offsets_arr.size == 0:
+        return None, max_pixel_distance
+    if offsets_arr.ndim == 1:
+        if offsets_arr.size < 2:  # noqa: PLR2004
+            return None, max_pixel_distance
+        offsets_arr = offsets_arr.reshape(1, 2)
+    points = ax.transData.transform(offsets_arr)
+    deltas = points - np.array([pixel_x, pixel_y], dtype=float)
+    distances = np.hypot(deltas[:, 0], deltas[:, 1])
+    index = int(np.argmin(distances))
+    dist = float(distances[index])
+    if dist > max_pixel_distance:
+        return None, max_pixel_distance
+    x_val = float(offsets_arr[index, 0])
+    y_val = float(offsets_arr[index, 1])
+    return format_chart_point(x_val, y_val, label=_clean_artist_label(collection.get_label())), dist
