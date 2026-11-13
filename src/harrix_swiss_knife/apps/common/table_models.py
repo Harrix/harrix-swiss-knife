@@ -21,7 +21,6 @@ from PySide6.QtGui import (
     QGuiApplication,
     QIcon,
     QPainter,
-    QPalette,
     QPen,
     QStandardItem,
     QStandardItemModel,
@@ -35,6 +34,7 @@ from harrix_swiss_knife.apps.common.word_wrap_header import (
     header_column_separator_color,
     header_column_separator_insets,
 )
+from harrix_swiss_knife.fluent.theme import mix, palette_for
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -94,7 +94,10 @@ class _RecordIdCornerMark(QWidget):
         """Draw a short `ID` caption, plus the sort chevron when that column is sorted."""
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.TextAntialiasing, on=True)
-        painter.setPen(self.palette().color(QPalette.ColorRole.ButtonText))
+        # Fluent secondary ink — do not trust ButtonText (stays light-theme black
+        # on the corner mark after dark chrome restyle).
+        fluent = palette_for(self)
+        painter.setPen(mix(fluent.window_bg, fluent.text_secondary))
         font = self.font()
         font.setBold(True)
         point = font.pointSizeF()

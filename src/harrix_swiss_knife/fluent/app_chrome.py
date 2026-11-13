@@ -808,6 +808,10 @@ def _style_table(table: QTableView, palette: FluentPalette) -> None:
         corner.setPalette(tuned)
         corner.setAutoFillBackground(True)
         corner.update()
+        # `_RecordIdCornerMark` is a child overlay; sync its palette and repaint.
+        for child in corner.findChildren(QWidget):
+            child.setPalette(tuned)
+            child.update()
 
 
 def _sync_record_id_header(table: QTableView) -> None:
