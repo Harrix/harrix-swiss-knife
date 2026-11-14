@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
     QFileDialog,
     QLineEdit,
     QMenuBar,
+    QMessageBox,
     QPushButton,
     QStyle,
     QTabWidget,
@@ -48,6 +49,8 @@ from harrix_swiss_knife.screenshot.preview_dialog import (
     _is_ctrl_s,
     _max_side_pixel_size,
     _ReduceSizeDialog,
+    _ScreenshotTab,
+    preview_needs_close_confirm,
     show_screenshot_preview,
 )
 from harrix_swiss_knife.screenshot.tool_colors import load_tool_colors, save_tool_colors
@@ -65,25 +68,93 @@ def qapp() -> QApplication:
     return app
 
 
+def _force_close_preview(window: object) -> None:
+    if isinstance(window, ScreenshotPreviewWindow):
+        window._discard_confirm_suppressed = True  # noqa: SLF001
+        window.close()
+        window.deleteLater()
+
+
+@pytest.fixture(autouse=True)
+def _auto_confirm_preview_close(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Existing tests close multi-tab windows without answering a prompt."""
+    monkeypatch.setattr(
+        preview_dialog_module.message_box,
+        "question",
+        lambda *_args, **_kwargs: QMessageBox.StandardButton.Yes,
+    )
+
+
 @pytest.fixture(autouse=True)
 def _reset_preview_singleton() -> Iterator[None]:
     window = preview_dialog_module._preview_holder["window"]
     preview_dialog_module._preview_holder["window"] = None
     if window is not None:
-        window.close()
-        window.deleteLater()
+        _force_close_preview(window)
     QApplication.processEvents()
     yield
     window = preview_dialog_module._preview_holder["window"]
     preview_dialog_module._preview_holder["window"] = None
     if window is not None:
-        window.close()
-        window.deleteLater()
+        _force_close_preview(window)
     QApplication.processEvents()
 
 
 def test_images_folder_under_project_root() -> None:
     assert images_folder(Path("D:/proj")) == Path("D:/proj/temp/images")
+
+
+def test_preview_needs_close_confirm_rules(qapp: QApplication) -> None:
+    """One plain shot: no ask; one dirty: ask; multi unsaved: ask; multi saved clean: no ask."""
+    assert qapp is not None
+    image = QImage(4, 4, QImage.Format.Format_RGB32)
+    image.fill(Qt.GlobalColor.red)
+    plain = _ScreenshotTab(image)
+    assert preview_needs_close_confirm([plain]) is False
+
+    dirty = _ScreenshotTab(image)
+    dirty.dirty = True
+    assert preview_needs_close_confirm([dirty]) is True
+
+    first = _ScreenshotTab(image)
+    second = _ScreenshotTab(image)
+    assert preview_needs_close_confirm([first, second]) is True
+
+    first.saved_as_path = Path("a.png")
+    second.saved_as_path = Path("b.png")
+    assert preview_needs_close_confirm([first, second]) is False
+
+    second.dirty = True
+    assert preview_needs_close_confirm([second]) is True
+    assert preview_needs_close_confirm([first, second]) is True
+
+    dirty.dirty = False
+    dirty.saved_as_path = Path("c.png")
+    assert preview_needs_close_confirm([dirty]) is False
+
+
+def test_preview_close_prompts_when_single_tab_is_dirty(
+    qapp: QApplication,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Closing one edited screenshot asks; declining keeps the window open."""
+    assert qapp is not None
+    answers = iter([QMessageBox.StandardButton.No, QMessageBox.StandardButton.Yes])
+    monkeypatch.setattr(
+        preview_dialog_module.message_box,
+        "question",
+        lambda *_args, **_kwargs: next(answers),
+    )
+    image = QImage(8, 8, QImage.Format.Format_RGB32)
+    image.fill(Qt.GlobalColor.blue)
+    window = show_screenshot_preview(image)
+    tabs = window._iter_tabs()  # noqa: SLF001
+    assert len(tabs) == 1
+    tabs[0].dirty = True
+    window.close()
+    assert window.isVisible() or preview_dialog_module._preview_holder["window"] is window
+    window.close()
+    assert preview_dialog_module._preview_holder["window"] is None
 
 
 def test_next_dated_image_path_starts_at_01(tmp_path: Path) -> None:

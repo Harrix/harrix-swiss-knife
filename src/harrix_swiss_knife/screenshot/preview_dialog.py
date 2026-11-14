@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
     QInputDialog,
     QLineEdit,
     QMainWindow,
+    QMessageBox,
     QPlainTextEdit,
     QSizePolicy,
     QStatusBar,
@@ -42,6 +43,7 @@ from harrix_swiss_knife.actions.common.text_result_dialog import (
     COPY_BUTTON_LABEL,
     OK_BUTTON_LABEL,
 )
+from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.keyboard_shortcuts import (
     ShortcutHelpEntry,
     add_keyboard_shortcuts_help_action,
@@ -184,6 +186,7 @@ class ScreenshotPreviewWindow(QMainWindow):
         apply_window_icon(self)
         self.setMinimumSize(_MIN_WINDOW_WIDTH, _MIN_WINDOW_HEIGHT)
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, on=True)
+        self._discard_confirm_suppressed = False
         self._text_settings = load_screenshot_text_settings()
         self._tool_colors = load_tool_colors(self._text_settings.color)
         self._color_tool = AnnotationTool.TEXT
@@ -450,7 +453,7 @@ class ScreenshotPreviewWindow(QMainWindow):
     def add_image(self, image: QImage) -> None:
         """Append a new tab for `image` and select it."""
         tab = _ScreenshotTab(image, self._tabs)
-        tab.canvas.document_changed.connect(self._on_document_changed)
+        tab.canvas.document_changed.connect(lambda t=tab: self._on_document_changed(t))
         tab.canvas.crop_mode_changed.connect(self._on_crop_mode_changed)
         tab.canvas.crop_pending_changed.connect(self._on_crop_pending_changed)
         tab.canvas.color_hovered.connect(self._on_color_hovered)
@@ -465,7 +468,23 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._update_multi_tab_chrome()
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
-        """Clear the process-wide preview reference when the window closes."""
+        """Ask before discarding unsaved work, then clear the process-wide preview reference."""
+        if not getattr(self, "_discard_confirm_suppressed", False) and self._needs_close_confirm():
+            tabs = self._iter_tabs()
+            if len(tabs) == 1:
+                text = "This screenshot has unsaved changes. Close anyway?"
+            else:
+                text = "There are unsaved screenshots. Close the window anyway?"
+            reply = message_box.question(
+                self,
+                "Close screenshot editor",
+                text,
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+            if reply != QMessageBox.StandardButton.Yes:
+                event.ignore()
+                return
         if _preview_holder["window"] is self:
             _preview_holder["window"] = None
         super().closeEvent(event)
@@ -620,6 +639,7 @@ class ScreenshotPreviewWindow(QMainWindow):
         if not tab.document.apply_resize(width, height):
             self._set_status("Size unchanged")
             return
+        tab.dirty = True
         tab.canvas.set_document(tab.document)
         tab.canvas.reset_to_original_size()
         image = tab.document.base_image
@@ -842,11 +862,24 @@ class ScreenshotPreviewWindow(QMainWindow):
         if pending:
             self._set_status("Crop: adjust frame · Enter apply · Esc cancel")
 
-    def _on_document_changed(self) -> None:
-        tab = self._current_tab()
-        if tab is None:
+    def _iter_tabs(self) -> list[_ScreenshotTab]:
+        tabs: list[_ScreenshotTab] = []
+        for index in range(self._tabs.count()):
+            widget = self._tabs.widget(index)
+            if isinstance(widget, _ScreenshotTab):
+                tabs.append(widget)
+        return tabs
+
+    def _needs_close_confirm(self) -> bool:
+        """Whether closing should ask about unsaved work."""
+        return preview_needs_close_confirm(self._iter_tabs())
+
+    def _on_document_changed(self, tab: _ScreenshotTab | None = None) -> None:
+        current = tab if tab is not None else self._current_tab()
+        if current is None:
             return
-        count = len(tab.document.annotations)
+        current.dirty = True
+        count = len(current.document.annotations)
         self._set_status(f"Annotations: {count} · Delete removes · Ctrl+Z undo")
 
     def _on_tab_changed(self, _index: int) -> None:
@@ -1134,6 +1167,7 @@ class ScreenshotPreviewWindow(QMainWindow):
             return
         tab.saved_as_path = path.resolve()
         tab.saved_name = path.name
+        tab.dirty = False
         _remember_last_save_dir(path.parent)
         index = self._tabs.currentIndex()
         self._set_tab_text(index, path.name)
@@ -1174,6 +1208,7 @@ class ScreenshotPreviewWindow(QMainWindow):
         resolved = path.resolve()
         tab.saved_paths[folder_key] = resolved
         tab.saved_name = resolved.name
+        tab.dirty = False
         if 0 <= tab_index < self._tabs.count():
             self._set_tab_text(tab_index, resolved.name)
         return resolved
@@ -1451,6 +1486,7 @@ class _ScreenshotTab(QWidget):
         self.saved_name: str | None = None
         self.saved_as_path: Path | None = None
         self.saved_paths: dict[str, Path] = {}
+        self.dirty = False
         self.canvas = ScreenshotPreviewCanvas(image, self)
         self.canvas.set_document(self.document)
         layout = QVBoxLayout(self)
@@ -1461,6 +1497,16 @@ class _ScreenshotTab(QWidget):
     def image(self) -> QImage:
         """Current image with annotations baked in (for save / copy / OCR)."""
         return self.document.render(include_draft=False)
+
+    @property
+    def is_saved(self) -> bool:
+        """Whether this tab has been written to a user save destination."""
+        return bool(self.saved_paths or self.saved_as_path)
+
+    @property
+    def is_unsaved(self) -> bool:
+        """Whether the current image still needs saving (never saved or dirty)."""
+        return self.dirty or not self.is_saved
 
 
 def print_screenshot_image(image: QImage, printer: QPrinter) -> bool:
@@ -1490,6 +1536,21 @@ def print_screenshot_image(image: QImage, printer: QPrinter) -> bool:
     finally:
         painter.end()
     return True
+
+
+def preview_needs_close_confirm(tabs: list[_ScreenshotTab]) -> bool:
+    """Return whether closing the preview should ask about unsaved work.
+
+    - One plain unsaved screenshot: no prompt.
+    - One screenshot with edits (dirty): prompt.
+    - Several tabs with any unsaved image: prompt.
+
+    """
+    if not tabs:
+        return False
+    if len(tabs) == 1:
+        return tabs[0].dirty
+    return any(tab.is_unsaved for tab in tabs)
 
 
 def show_screenshot_preview(image: QImage) -> ScreenshotPreviewWindow:
