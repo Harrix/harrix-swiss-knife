@@ -311,6 +311,29 @@ def test_dark_selection_chrome_colors_are_qcolor_safe(qapp: QApplication) -> Non
         theme.set_mode(previous, persist=False)
 
 
+def test_dark_absent_day_circles_contrast_against_card_surface(qapp: QApplication) -> None:
+    """No-record disks must stay lighter than the dark card so they do not vanish."""
+    assert qapp is not None
+    from PySide6.QtGui import QColor
+
+    from harrix_swiss_knife.apps.habits.dashboard_widgets import _absent_fill
+    from harrix_swiss_knife.fluent.theme import FluentTheme, ThemeMode, mix
+
+    theme = FluentTheme.instance()
+    previous = theme.mode()
+    theme.set_mode(ThemeMode.DARK, persist=False)
+    try:
+        palette = theme.palette()
+        surface = mix(palette.window_bg, palette.card_bg)
+        absent = _absent_fill(palette)
+        muted = _absent_fill(palette, muted=True)
+        assert absent.lightness() >= surface.lightness() + 12
+        assert muted.lightness() >= surface.lightness() + 8
+        assert absent.lightness() > muted.lightness()
+    finally:
+        theme.set_mode(previous, persist=False)
+
+
 def test_habit_row_double_click_requests_edit(qapp: QApplication) -> None:
     """Double-click on the habit name area asks to open the edit dialog."""
     assert qapp is not None

@@ -1309,11 +1309,20 @@ def _absent_fill(palette: FluentPalette, *, muted: bool = False, emphasize: bool
     """Return a quiet fill for days with no check-in record.
 
     Empty days use a single soft wash (no hard outline) so Done / Not done
-    stay the dominant accents in habit rows and the month calendar.
+    stay the dominant accents in habit rows and the month calendar. Dark mode
+    needs a stronger white wash: alpha 14 lands near the card surface and the
+    disks vanish into the row background.
 
     """
     stroke = palette.control_strong_stroke
-    if emphasize:
+    if palette.dark:
+        if emphasize:
+            alpha = 54
+        elif muted:
+            alpha = 30
+        else:
+            alpha = 42
+    elif emphasize:
         alpha = 22
     elif muted:
         alpha = 10
