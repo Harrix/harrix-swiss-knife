@@ -5304,15 +5304,20 @@ class MainWindow(
         if not isinstance(model, QStandardItemModel):
             return
 
-        for row in range(model.rowCount()):
-            item = model.item(row)
-            if item is None:
-                continue
-            item.setCheckState(
-                Qt.CheckState.Checked
-                if item.data(Qt.ItemDataRole.UserRole + 1) == category_type
-                else Qt.CheckState.Unchecked
-            )
+        model.blockSignals(True)  # noqa: FBT003
+        try:
+            for row in range(model.rowCount()):
+                item = model.item(row)
+                if item is None:
+                    continue
+                item.setCheckState(
+                    Qt.CheckState.Checked
+                    if item.data(Qt.ItemDataRole.UserRole + 1) == category_type
+                    else Qt.CheckState.Unchecked
+                )
+        finally:
+            model.blockSignals(False)  # noqa: FBT003
+        self._update_finance_chart()
 
     def _selected_exchange_label(self) -> str:
         """Return a short label for the selected currency exchange row."""
@@ -5404,13 +5409,18 @@ class MainWindow(
             return
 
         state = Qt.CheckState.Checked if checked else Qt.CheckState.Unchecked
-        for row in range(model.rowCount()):
-            item = model.item(row)
-            if item is None:
-                continue
-            if category_type is not None and item.data(Qt.ItemDataRole.UserRole + 1) != category_type:
-                continue
-            item.setCheckState(state)
+        model.blockSignals(True)  # noqa: FBT003
+        try:
+            for row in range(model.rowCount()):
+                item = model.item(row)
+                if item is None:
+                    continue
+                if category_type is not None and item.data(Qt.ItemDataRole.UserRole + 1) != category_type:
+                    continue
+                item.setCheckState(state)
+        finally:
+            model.blockSignals(False)  # noqa: FBT003
+        self._update_finance_chart()
 
     @requires_database()
     def _set_date_for_selected_transactions(
