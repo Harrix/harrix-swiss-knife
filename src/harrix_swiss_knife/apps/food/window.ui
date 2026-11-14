@@ -664,7 +664,7 @@
       </widget>
       <widget class="QWidget" name="tab_food_stats">
        <attribute name="title">
-        <string>Food Statistics</string>
+        <string>Charts</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_food_stats_page">
         <property name="leftMargin">
