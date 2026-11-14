@@ -111,6 +111,7 @@ from harrix_swiss_knife.apps.common.chart_theme import (
     CHART_MARKERSIZE,
     CHART_TITLE_FONTSIZE,
     chart_annotation_style,
+    chart_compare_current_color,
     chart_info_panel_qss,
     chart_series_color,
     style_axes,
@@ -1300,10 +1301,10 @@ class MainWindow(
 
             # Build label/color for every month regardless of data presence
             if i == 0:
-                colors.append(chart_series_color(0))
+                colors.append(chart_compare_current_color())
                 labels.append(f"{month_start.strftime('%B %Y')} (Current)")
             else:
-                colors.append(chart_series_color(i))
+                colors.append(chart_series_color(i - 1))
                 labels.append(f"{month_start.strftime('%B %Y')}")
 
         # In on_compare_last_months, right before the early return where 'all months are empty'
@@ -1522,10 +1523,10 @@ class MainWindow(
 
                     # Determine color based on whether it's current year or not
                     if year == current_year:
-                        colors.append(chart_series_color(0))
+                        colors.append(chart_compare_current_color())
                         labels.append(f"{month_start.strftime('%B %Y')} (Current)")
                     else:
-                        colors.append(chart_series_color(len(yearly_data)))
+                        colors.append(chart_series_color(max(len(yearly_data) - 1, 0)))
                         labels.append(f"{month_start.strftime('%B %Y')}")
 
         # In on_compare_same_months, right before early return on 'not yearly_data'
@@ -5447,7 +5448,7 @@ class MainWindow(
             monthly_data.append(series)
             label = month_date.strftime("%B %Y")
             labels.append(f"{label} (Current)" if i == 0 else label)
-            colors.append(chart_series_color(i))
+            colors.append(chart_compare_current_color() if i == 0 else chart_series_color(i - 1))
         self._render_weight_compare_chart(
             monthly_data,
             labels,
@@ -5492,7 +5493,7 @@ class MainWindow(
             yearly_data.append(series)
             label = f"{calendar.month_name[month_number]} {year}"
             labels.append(f"{label} (Current)" if i == 0 else label)
-            colors.append(chart_series_color(i))
+            colors.append(chart_compare_current_color() if i == 0 else chart_series_color(i - 1))
         self._render_weight_compare_chart(
             yearly_data,
             labels,

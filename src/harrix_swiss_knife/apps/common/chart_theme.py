@@ -71,6 +71,8 @@ CHART_SERIES_COLORS: tuple[str, ...] = (
     "#b3988e",  # taupe
     "#a3d370",  # lime
 )
+# Current period on multi-line compare charts (Finance historically used plain red).
+CHART_COMPARE_CURRENT_COLOR = "#de2b26"
 _SERIES_FALLBACK = CHART_SERIES_COLORS
 
 LabelMode = Literal["auto", "all", "off"]
@@ -317,6 +319,11 @@ def chart_muted_ink() -> str:
 def chart_neutral_color() -> str:
     """Return the theme neutral gray for past comparison series."""
     return FluentTheme.instance().palette().neutral.name()
+
+
+def chart_compare_current_color() -> str:
+    """Return the current-period color for multi-line compare charts."""
+    return CHART_COMPARE_CURRENT_COLOR
 
 
 def chart_series_color(index: int = 0) -> str:
