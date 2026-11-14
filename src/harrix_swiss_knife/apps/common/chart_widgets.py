@@ -43,7 +43,9 @@ if TYPE_CHECKING:
 
 LAST_365_KEY = "last_365"
 ALL_YEARS_KEY = "all"
-_SIDEBAR_MIN = 220
+# Shared floor for Charts / Statistics filter columns across trackers.
+CHARTS_FILTER_MIN_WIDTH = 280
+_SIDEBAR_MIN = CHARTS_FILTER_MIN_WIDTH
 _SIDEBAR_MAX = 420
 _SIDEBAR_DEFAULT = 300
 _BOTTOM_MIN_HEIGHT = 240

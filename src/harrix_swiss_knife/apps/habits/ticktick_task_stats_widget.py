@@ -42,6 +42,7 @@ from harrix_swiss_knife.apps.common.chart_theme import (
     quantile_intensity_ranges,
 )
 from harrix_swiss_knife.apps.common.chart_timeline import TimelineBar, bar_at_x, build_timeline_figure, calendar_days
+from harrix_swiss_knife.apps.common.chart_widgets import CHARTS_FILTER_MIN_WIDTH
 from harrix_swiss_knife.apps.common.ui_chrome import muted_caption_qss
 from harrix_swiss_knife.apps.common.year_heatmap import YearHeatmap
 from harrix_swiss_knife.apps.habits.ticktick_local_db import (
@@ -83,8 +84,8 @@ if TYPE_CHECKING:
 
 _ALL_PROJECTS = "__all__"
 _DEFAULT_COMPARE_COUNT = 12
-_SIDEBAR_MIN = 220
-_SIDEBAR_WIDTH = 260
+_SIDEBAR_MIN = CHARTS_FILTER_MIN_WIDTH
+_SIDEBAR_WIDTH = CHARTS_FILTER_MIN_WIDTH
 _DAY_MIN = 240
 _DAY_WIDTH = 300
 _DAY_MAX = 420

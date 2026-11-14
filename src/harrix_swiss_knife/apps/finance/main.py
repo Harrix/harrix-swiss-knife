@@ -2410,14 +2410,14 @@ class MainWindow(
                 [x - bar_width / 2 for x in x_positions],
                 averages,
                 width=bar_width,
-                color="forestgreen",
+                color=chart_series_color(0),
                 label="Average Monthly Income",
             )
             annual_bars = ax.bar(
                 [x + bar_width / 2 for x in x_positions],
                 annuals,
                 width=bar_width,
-                color="steelblue",
+                color=chart_series_color(1),
                 label="Annual Income",
             )
             bars_to_annotate.extend((average_bars, annual_bars))
@@ -2426,7 +2426,7 @@ class MainWindow(
                 x_positions,
                 averages,
                 width=bar_width,
-                color="forestgreen",
+                color=chart_series_color(0),
                 label="Average Monthly Income",
             )
             bars_to_annotate.append(average_bars)
@@ -2435,7 +2435,7 @@ class MainWindow(
                 x_positions,
                 annuals,
                 width=bar_width,
-                color="steelblue",
+                color=chart_series_color(1),
                 label="Annual Income",
             )
             bars_to_annotate.append(annual_bars)

@@ -9,6 +9,7 @@ from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QLabel, QTableView
 
 from harrix_swiss_knife.apps.common.chart_page_chrome import polish_chart_type_group
+from harrix_swiss_knife.apps.common.chart_widgets import CHARTS_FILTER_MIN_WIDTH
 from harrix_swiss_knife.apps.common.tracker_layout_chrome import (
     apply_tracker_column_surfaces,
     install_tracker_column_chrome,
@@ -22,7 +23,7 @@ from harrix_swiss_knife.fluent.tokens import CONTROL_HEIGHT, SPACE_S
 TABLE_ROW_HEIGHT = 30
 _STATS_SPLITTER_KEY = "food_stats_splitter_sizes_v1"
 _STATS_SPLITTER_DEFAULT = (480, 1088)
-_STATS_LEFT_MIN = 360
+_STATS_LEFT_MIN = CHARTS_FILTER_MIN_WIDTH
 _STATS_RIGHT_MIN = 400
 _SPLITTER_SAVE_DELAY_MS = 400
 _TWO_PANE = 2

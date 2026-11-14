@@ -14,12 +14,10 @@ from harrix_swiss_knife.apps.common.chart_format import setup_date_axis
 from harrix_swiss_knife.apps.common.chart_theme import (
     chart_series_color,
     chart_surface,
-    chart_tint,
     current_chart_theme,
     style_axes,
     themed_figure,
 )
-from harrix_swiss_knife.fluent.theme import FluentTheme
 
 if TYPE_CHECKING:
     from matplotlib.figure import Figure
@@ -89,10 +87,9 @@ def build_timeline_figure(
         figure.tight_layout()
         return figure
 
-    palette = FluentTheme.instance().palette()
     theme = current_chart_theme()
     card = chart_surface().name()
-    bar_color = chart_tint(chart_surface(), palette.accent, 0.55).name()
+    bar_color = chart_series_color(0)
     line_color = chart_series_color(0)
     centers = [mdates.date2num(bar.start) + (bar.end - bar.start).days / 2 for bar in bars]
     widths = [_bar_width_days(bar) for bar in bars]

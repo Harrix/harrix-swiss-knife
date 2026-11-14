@@ -9,6 +9,7 @@ from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QAbstractItemView, QLabel, QListView, QTableView
 
 from harrix_swiss_knife.apps.common.chart_page_chrome import polish_chart_type_group
+from harrix_swiss_knife.apps.common.chart_widgets import CHARTS_FILTER_MIN_WIDTH
 from harrix_swiss_knife.apps.common.tracker_layout_chrome import (
     apply_tracker_column_surfaces,
     quiet_group_box,
@@ -23,9 +24,9 @@ TABLE_ROW_HEIGHT = 30
 _HABITS_SPLITTER_KEY = "habits_process_splitter_sizes_v1"
 _HABITS_SPLITTER_DEFAULT = (320, 1248)
 _CHARTS_SPLITTER_KEY = "habits_charts_splitter_sizes_v2"
-_CHARTS_SPLITTER_DEFAULT = (260, 1348)
+_CHARTS_SPLITTER_DEFAULT = (CHARTS_FILTER_MIN_WIDTH, 1348)
 _FORM_MIN = 280
-_FILTER_MIN = 220
+_FILTER_MIN = CHARTS_FILTER_MIN_WIDTH
 _CONTENT_MIN = 400
 _SPLITTER_SAVE_DELAY_MS = 400
 _TWO_PANE = 2

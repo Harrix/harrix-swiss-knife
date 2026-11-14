@@ -74,7 +74,7 @@ from harrix_swiss_knife.apps.common.chart_page_chrome import (
     polish_chart_type_group,
 )
 from harrix_swiss_knife.apps.common.chart_timeline import bar_at_x, build_timeline_figure
-from harrix_swiss_knife.apps.common.chart_widgets import mark_chart_list_separator
+from harrix_swiss_knife.apps.common.chart_widgets import CHARTS_FILTER_MIN_WIDTH, mark_chart_list_separator
 from harrix_swiss_knife.apps.common.day_bands import day_band_color, set_day_band
 from harrix_swiss_knife.apps.common.db_init import init_tracker_database
 from harrix_swiss_knife.apps.common.qt_database_manager_base import QtSqliteDatabaseManagerBase
@@ -177,8 +177,8 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 PROCESS_HABIT_VALUE_COLUMN_MIN_WIDTH = 86
-_CHARTS_FILTER_MIN = 220
-_CHARTS_FILTER_WIDTH = 260
+_CHARTS_FILTER_MIN = CHARTS_FILTER_MIN_WIDTH
+_CHARTS_FILTER_WIDTH = CHARTS_FILTER_MIN_WIDTH
 
 
 class MainWindow(

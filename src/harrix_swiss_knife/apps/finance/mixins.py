@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Any, cast
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.chart_extrema_labels import annotate_chart_extrema_labels
 from harrix_swiss_knife.apps.common.chart_operations import ChartOperationsBase
-from harrix_swiss_knife.apps.common.chart_theme import LabelMode, chart_annotation_style
+from harrix_swiss_knife.apps.common.chart_theme import LabelMode, chart_annotation_style, chart_series_color
 from harrix_swiss_knife.apps.common.db_guard import requires_database
 from harrix_swiss_knife.apps.common.qt_mixins import (
     AutoSaveMixin,
@@ -378,13 +378,14 @@ class ChartOperations(ChartOperationsBase):
         *,
         period: str,
         currency_symbol: str,
-        point_color: str = "steelblue",
+        point_color: str | None = None,
     ) -> None:
         """Label global and local extrema on the balance chart."""
         if not series:
             return
 
         y_values = [value for _date_str, value in series]
+        marker_color = chart_series_color(0) if point_color is None else point_color
 
         def label_for_index(index: int) -> str:
             date_str, value = series[index]
@@ -397,7 +398,7 @@ class ChartOperations(ChartOperationsBase):
             y_values,
             label_for_index,
             enabled=self._chart_labels_enabled(),
-            point_color=point_color,
+            point_color=marker_color,
         )
 
     def _annotate_chart_last_point(

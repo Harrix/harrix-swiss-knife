@@ -8,6 +8,7 @@ from PySide6.QtCore import QSize, Qt, QTimer
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QAbstractItemView, QLabel, QListView, QSizePolicy, QTableView
 
+from harrix_swiss_knife.apps.common.chart_widgets import CHARTS_FILTER_MIN_WIDTH
 from harrix_swiss_knife.apps.common.table_models import (
     bind_column_fill_on_resize,
     columns_fill_viewport,
@@ -183,7 +184,7 @@ def _configure_all_splitters(host: Any) -> None:
         splitter_attr="splitter_7",
         left=host.frame_accounts_2,
         right=host.layoutWidget,
-        left_min=_EXCHANGE_FORM_MIN_WIDTH,
+        left_min=CHARTS_FILTER_MIN_WIDTH,
         right_min=_CONTENT_MIN_WIDTH,
         load_sizes=load_charts_splitter_sizes,
         save_sizes=save_charts_splitter_sizes,

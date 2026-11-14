@@ -9,6 +9,7 @@ from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QAbstractItemView, QLabel, QListView, QTableView
 
 from harrix_swiss_knife.apps.common.chart_theme import chart_info_panel_qss
+from harrix_swiss_knife.apps.common.chart_widgets import CHARTS_FILTER_MIN_WIDTH
 from harrix_swiss_knife.apps.common.tracker_layout_chrome import (
     apply_tracker_column_surfaces,
     polish_left_field_labels,
@@ -28,7 +29,7 @@ _CHARTS_SPLITTER_DEFAULT = (320, 1248)
 # v2: ignore v1 saves that locked a tiny left pane after programmatic setSizes.
 _EXERCISES_SPLITTER_KEY = "fitness_exercises_splitter_sizes_v2"
 _EXERCISES_SPLITTER_DEFAULT = (640, 640)
-_SIDE_MIN = 280
+_SIDE_MIN = CHARTS_FILTER_MIN_WIDTH
 _CONTENT_MIN = 400
 _SPLITTER_SAVE_DELAY_MS = 400
 _TWO_PANE = 2
