@@ -57,7 +57,8 @@ from harrix_swiss_knife.apps.common.chart_theme import (
     LabelMode,
     chart_annotation_style,
     chart_label_face,
-    chart_series_color,
+    chart_primary_color,
+    finish_chart_layout,
     style_axes,
     themed_figure,
 )
@@ -193,7 +194,7 @@ class ChartOperationsBase:
             ax,
             x_values,
             y_values,
-            chart_config.get("color") or chart_series_color(0),
+            chart_config.get("color") or chart_primary_color(),
             non_zero_count,
             chart_config.get("period"),
             is_calories_chart=bool(chart_config.get("is_calories_chart", False)),
@@ -226,7 +227,7 @@ class ChartOperationsBase:
                 else:
                     stats_text = self._format_default_stats(non_zero_values, chart_config.get("stats_unit", ""))
 
-        fig.tight_layout()
+        finish_chart_layout(fig)
         layout.addWidget(canvas)
         set_stretch = getattr(layout, "setStretch", None)
         if callable(set_stretch):
@@ -449,7 +450,7 @@ class ChartOperationsBase:
         _ = is_calories_chart
         x_nums: list[float] = date2num(x_values)
 
-        plot_color = chart_series_color(0) if color in {"", "blue", "b"} else color
+        plot_color = chart_primary_color() if color in {"", "blue", "b"} else color
         point_count = non_zero_count if non_zero_count is not None else len(y_values)
         sparse = point_count <= self.max_count_points_in_charts
 

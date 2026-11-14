@@ -104,6 +104,7 @@ from harrix_swiss_knife.apps.common.chart_page_chrome import (
     polish_chart_type_group,
 )
 from harrix_swiss_knife.apps.common.chart_theme import (
+    CHART_COMPARE_CURRENT_COLOR,
     CHART_LABEL_FONTSIZE,
     CHART_LEGEND_FONTSIZE,
     CHART_LINEWIDTH,
@@ -112,7 +113,9 @@ from harrix_swiss_knife.apps.common.chart_theme import (
     CHART_TITLE_FONTSIZE,
     chart_annotation_style,
     chart_info_panel_qss,
+    chart_primary_color,
     chart_series_color,
+    finish_chart_layout,
     style_axes,
     themed_figure,
 )
@@ -1300,10 +1303,10 @@ class MainWindow(
 
             # Build label/color for every month regardless of data presence
             if i == 0:
-                colors.append(chart_series_color(0))
+                colors.append(CHART_COMPARE_CURRENT_COLOR)
                 labels.append(f"{month_start.strftime('%B %Y')} (Current)")
             else:
-                colors.append(chart_series_color(i))
+                colors.append(chart_series_color(i - 1))
                 labels.append(f"{month_start.strftime('%B %Y')}")
 
         # In on_compare_last_months, right before the early return where 'all months are empty'
@@ -1407,7 +1410,7 @@ class MainWindow(
         ax.set_xlim(1, max_x_limit)
         ax.set_xticks(range(1, max_x_limit + 1, 2))
 
-        fig.tight_layout()
+        finish_chart_layout(fig)
         self.verticalLayout_charts_content.addWidget(canvas, stretch=1)
         canvas.draw()
 
@@ -1522,10 +1525,10 @@ class MainWindow(
 
                     # Determine color based on whether it's current year or not
                     if year == current_year:
-                        colors.append(chart_series_color(0))
+                        colors.append(CHART_COMPARE_CURRENT_COLOR)
                         labels.append(f"{month_start.strftime('%B %Y')} (Current)")
                     else:
-                        colors.append(chart_series_color(len(yearly_data)))
+                        colors.append(chart_series_color(max(len(yearly_data) - 1, 0)))
                         labels.append(f"{month_start.strftime('%B %Y')}")
 
         # In on_compare_same_months, right before early return on 'not yearly_data'
@@ -1631,7 +1634,7 @@ class MainWindow(
         ax.set_xlim(1, days_in_selected_month)
         ax.set_xticks(range(1, days_in_selected_month + 1, 2))
 
-        fig.tight_layout()
+        finish_chart_layout(fig)
         self.verticalLayout_charts_content.addWidget(canvas, stretch=1)
         canvas.draw()
 
@@ -3433,7 +3436,7 @@ class MainWindow(
             "title": chart_title,
             "xlabel": "Date",
             "ylabel": f"{aggregation_type} value ({exercise_unit})" if exercise_unit else f"{aggregation_type} value",
-            "color": chart_series_color(0),
+            "color": chart_primary_color(),
             "show_stats": True,
             "period": period,
             "stats_formatter": format_exercise_stats,
@@ -3626,7 +3629,7 @@ class MainWindow(
             "title": "Weight Progress",
             "xlabel": "Date",
             "ylabel": "Weight (kg)",
-            "color": chart_series_color(0),
+            "color": chart_primary_color(),
             "show_stats": True,
             "stats_unit": "kg",
             "period": "Days",  # Weight chart always shows days
@@ -3739,7 +3742,7 @@ class MainWindow(
             stats_text = format_weight_stats(y_values)
             self._add_stats_box(ax, stats_text)
 
-        fig.tight_layout()
+        finish_chart_layout(fig)
         self.verticalLayout_weight_chart_content.addWidget(canvas, stretch=1)
         canvas.draw()
 
@@ -7948,7 +7951,7 @@ class MainWindow(
         ax.set_xlim(1, max(max_days, 1))
         ax.legend(fontsize=CHART_LEGEND_FONTSIZE, loc="best")
         style_axes(ax)
-        fig.tight_layout()
+        finish_chart_layout(fig)
         self.verticalLayout_weight_chart_content.addWidget(canvas, stretch=1)
 
     def _reset_process_pagination_state(self) -> None:

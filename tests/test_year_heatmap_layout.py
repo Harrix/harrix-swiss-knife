@@ -88,7 +88,7 @@ def test_percent_timeline_leaves_room_above_full_bars() -> None:
         QApplication([])
     from matplotlib.colors import to_hex
 
-    from harrix_swiss_knife.apps.common.chart_theme import chart_series_color
+    from harrix_swiss_knife.apps.common.chart_theme import chart_primary_color
 
     bars = [
         TimelineBar(date(2024, 1, 1), date(2024, 1, 7), 100.0, 100.0, "week"),
@@ -110,7 +110,7 @@ def test_percent_timeline_leaves_room_above_full_bars() -> None:
     patches = axis.patches
     assert patches
     assert patches[0].get_width() < 7
-    assert to_hex(patches[0].get_facecolor()).casefold() == chart_series_color(0).casefold()
+    assert to_hex(patches[0].get_facecolor()).casefold() == chart_primary_color().casefold()
 
 
 def test_ticktick_heatmap_page_puts_tasks_in_a_side_column() -> None:

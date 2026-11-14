@@ -26,6 +26,8 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from typing import TYPE_CHECKING, Any, NamedTuple
 
+from harrix_swiss_knife.apps.common.chart_theme import CHART_COMPARE_CURRENT_COLOR, CHART_SERIES_COLORS
+
 if TYPE_CHECKING:
     from harrix_swiss_knife.apps.finance.database_manager import DatabaseManager
     from harrix_swiss_knife.apps.finance.services.exchange_rates import PreloadedExchangeRates
@@ -395,7 +397,7 @@ def compute_balance_compare_last_years(
             calendar_year_start=calendar_year_start,
         )
         if i == 0:
-            colors.append("red")
+            colors.append(CHART_COMPARE_CURRENT_COLOR)
         else:
             color_index = (i - 1) % len(CHART_COMPARE_COLOR_PALETTE)
             colors.append(CHART_COMPARE_COLOR_PALETTE[color_index])
@@ -508,7 +510,7 @@ def compute_cumulative_compare_last_months(
         monthly_data.append(cumulative_data)
 
         if i == 0:
-            colors.append("red")
+            colors.append(CHART_COMPARE_CURRENT_COLOR)
             labels.append(f"{month_start.strftime('%B %Y')} (Current)")
         else:
             color_index = (i - 1) % len(CHART_COMPARE_COLOR_PALETTE)
@@ -579,7 +581,7 @@ def compute_cumulative_compare_last_years(
             calendar_year_start=calendar_year_start,
         )
         if i == 0:
-            colors.append("red")
+            colors.append(CHART_COMPARE_CURRENT_COLOR)
         else:
             color_index = (i - 1) % len(CHART_COMPARE_COLOR_PALETTE)
             colors.append(CHART_COMPARE_COLOR_PALETTE[color_index])
@@ -642,7 +644,7 @@ def compute_cumulative_compare_same_months(
         yearly_data.append(cumulative_data)
         label = month_start.strftime("%B %Y")
         if year == current_year:
-            colors.append("red")
+            colors.append(CHART_COMPARE_CURRENT_COLOR)
             labels.append(f"{label} (Current)")
         else:
             color_index = (len(yearly_data) - 2) % len(CHART_COMPARE_COLOR_PALETTE)
@@ -797,7 +799,7 @@ def compute_period_flow_compare_last_years(
             calendar_year_start=calendar_year_start,
         )
         if i == 0:
-            colors.append("red")
+            colors.append(CHART_COMPARE_CURRENT_COLOR)
         else:
             color_index = (i - 1) % len(CHART_COMPARE_COLOR_PALETTE)
             colors.append(CHART_COMPARE_COLOR_PALETTE[color_index])
@@ -1981,21 +1983,4 @@ MIN_ACCOUNTS_ROW_LENGTH = 7
 DECEMBER = 12
 
 
-CHART_COMPARE_COLOR_PALETTE: list[str] = [
-    "blue",
-    "green",
-    "orange",
-    "purple",
-    "brown",
-    "pink",
-    "gray",
-    "olive",
-    "cyan",
-    "magenta",
-    "teal",
-    "navy",
-    "maroon",
-    "lime",
-    "indigo",
-    "coral",
-]
+CHART_COMPARE_COLOR_PALETTE: list[str] = list(CHART_SERIES_COLORS)

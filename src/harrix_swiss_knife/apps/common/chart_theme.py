@@ -55,27 +55,45 @@ HEATMAP_LEVELS_DARK: tuple[str, ...] = ("#2D333B", "#0E4429", "#006D32", "#26A64
 HABIT_DONE_LIGHT = "#30A14E"
 HABIT_DONE_DARK = "#26A641"
 
-# Stable comparative series (not neon cyan/magenta). Accent is injected first.
-_SERIES_FALLBACK = (
-    "#3a78bc",
-    "#4caf50",
-    "#cc584c",
-    "#8e6bbf",
-    "#db8b0a",
-    "#2a9d8f",
-    "#6d6875",
-    "#e76f51",
+# Classic Finance Charts palette (Matplotlib CSS color names as hex). Shared by
+# all trackers so Balance / category / compare lines match the pre-Fluent look.
+CHART_SERIES_COLORS: tuple[str, ...] = (
+    "#0000ff",  # blue
+    "#008000",  # green
+    "#ffa500",  # orange
+    "#800080",  # purple
+    "#a52a2a",  # brown
+    "#ffc0cb",  # pink
+    "#808080",  # gray
+    "#808000",  # olive
+    "#00ffff",  # cyan
+    "#ff00ff",  # magenta
+    "#008080",  # teal
+    "#000080",  # navy
+    "#800000",  # maroon
+    "#00ff00",  # lime
+    "#4b0082",  # indigo
+    "#ff7f50",  # coral
 )
+# Single-series default used by Finance Balance before the shared theme.
+CHART_PRIMARY_COLOR = "#4682b4"  # steelblue
+# Current period in compare charts (Finance used plain "red").
+CHART_COMPARE_CURRENT_COLOR = "#ff0000"
+# Expense / income lines (classic named colors).
+CHART_EXPENSE_COLOR = "#dc143c"  # crimson
+CHART_INCOME_COLOR = "#228b22"  # forestgreen
+
+_SERIES_FALLBACK = CHART_SERIES_COLORS
 
 LabelMode = Literal["auto", "all", "off"]
-_SERIES_COUNT = 8
+_SERIES_COUNT = len(CHART_SERIES_COLORS)
 
 
 class ChartTheme:
     """Colors and font for one light or dark chart pass.
 
-    Heatmap greens and habit-done greens are fixed scales. Everything else
-    follows the Fluent palette so a theme switch repaints open charts.
+    Heatmap greens and habit-done greens are fixed scales. Series / primary /
+    expense / income use the classic Charts palette; chrome follows theme.
 
     """
 
@@ -227,6 +245,22 @@ def apply_theme(fig: Figure, ax: Axes | None = None) -> None:
             fig.set_layout_engine("constrained")
 
 
+def finish_chart_layout(figure: Figure) -> None:
+    """Pack axes without replacing an existing constrained layout engine.
+
+    `apply_theme` enables constrained layout. Calling `Figure.tight_layout`
+    afterward switches the engine and emits Matplotlib's "layout has changed
+    to tight" warning. Prefer this helper at the end of chart builders.
+
+    """
+    engine = figure.get_layout_engine()
+    engine_name = type(engine).__name__.casefold() if engine is not None else ""
+    if "constrained" in engine_name:
+        return
+    with contextlib.suppress(Exception):
+        figure.tight_layout()
+
+
 def chart_annotation_style(*, fontsize: int | None = None) -> dict[str, Any]:
     """Return kwargs for opaque value labels on a themed chart."""
     return {
@@ -238,8 +272,8 @@ def chart_annotation_style(*, fontsize: int | None = None) -> dict[str, Any]:
 
 
 def chart_danger_color() -> str:
-    """Return the theme danger / expense red."""
-    return FluentTheme.instance().palette().critical.name()
+    """Return the classic expense / danger red (Finance Charts crimson)."""
+    return CHART_EXPENSE_COLOR
 
 
 def chart_font_family() -> str:
@@ -313,26 +347,24 @@ def chart_neutral_color() -> str:
     return FluentTheme.instance().palette().neutral.name()
 
 
+def chart_primary_color() -> str:
+    """Return the default single-series color (classic Finance Balance steelblue)."""
+    return CHART_PRIMARY_COLOR
+
+
 def chart_series_color(index: int = 0) -> str:
-    """Return a stable comparative series color; index 0 is the app accent."""
-    palette = FluentTheme.instance().palette()
-    colors = (
-        palette.accent.name(),
-        *(_c for _c in _SERIES_FALLBACK if _c.casefold() != palette.accent.name().casefold()),
-    )
-    if not colors:
-        return _SERIES_FALLBACK[0]
-    return colors[index % len(colors)]
+    """Return a color from the shared classic series palette."""
+    return CHART_SERIES_COLORS[index % len(CHART_SERIES_COLORS)]
 
 
 def chart_series_palette(count: int) -> list[str]:
-    """Return `count` distinct series colors starting with the accent."""
+    """Return `count` distinct series colors from the shared classic palette."""
     return [chart_series_color(index) for index in range(max(0, count))]
 
 
 def chart_success_color() -> str:
-    """Return the theme success green (habits done / positive intensity)."""
-    return FluentTheme.instance().palette().success.name()
+    """Return the classic income / success green (Finance Charts forestgreen)."""
+    return CHART_INCOME_COLOR
 
 
 def chart_surface() -> QColor:
@@ -380,9 +412,9 @@ def current_chart_theme() -> ChartTheme:
         text_muted=chart_muted_ink(),
         grid=mix(palette.window_bg, palette.divider).name(),
         border=mix(palette.window_bg, palette.control_strong_stroke).name(),
-        accent=palette.accent.name(),
-        positive=palette.success.name(),
-        negative=palette.critical.name(),
+        accent=CHART_PRIMARY_COLOR,
+        positive=CHART_INCOME_COLOR,
+        negative=CHART_EXPENSE_COLOR,
         neutral=palette.neutral.name(),
         series=tuple(chart_series_palette(_SERIES_COUNT)),
         heatmap=heatmap,

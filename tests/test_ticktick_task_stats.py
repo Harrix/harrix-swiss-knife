@@ -272,10 +272,10 @@ def test_cumulative_month_points_extends_to_end_day() -> None:
 
 
 def test_compare_last_months_marks_current() -> None:
-    """Last-months series is newest first; the current month uses the accent."""
+    """Last-months series is newest first; the current month uses classic red."""
     from PySide6.QtWidgets import QApplication  # noqa: PLC0415
 
-    from harrix_swiss_knife.apps.common.chart_theme import chart_series_color  # noqa: PLC0415
+    from harrix_swiss_knife.apps.common.chart_theme import CHART_COMPARE_CURRENT_COLOR  # noqa: PLC0415
 
     if QApplication.instance() is None:
         QApplication([])
@@ -287,7 +287,7 @@ def test_compare_last_months_marks_current() -> None:
     )
     assert len(series) == 2
     assert series[0].is_current is True
-    assert series[0].color == chart_series_color(0)
+    assert series[0].color == CHART_COMPARE_CURRENT_COLOR
     assert "(Current)" in series[0].label
     assert series[0].points[-1] == (10, 1)
     assert series[1].points[-1][1] == 2
