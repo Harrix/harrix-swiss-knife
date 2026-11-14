@@ -10,6 +10,7 @@ from PySide6.QtGui import QMouseEvent
 from PySide6.QtWidgets import QApplication, QLabel, QLineEdit, QListWidget, QPushButton, QWidget
 
 import harrix_swiss_knife.qt_widget_identity_menu as identity_menu
+from harrix_swiss_knife.fluent.widgets.card_base import FluentInteractiveCard
 from harrix_swiss_knife.qt_widget_identity_menu import (
     WidgetIdentityEventFilter,
     ensure_widget_object_name,
@@ -137,6 +138,20 @@ def test_filter_handles_middle_click_on_line_edit(qapp: QApplication) -> None:
         handled = event_filter.eventFilter(edit, _middle_press(edit))
     assert handled is True
     show_menu.assert_called_once()
+
+
+def test_filter_skips_fluent_interactive_card(qapp: QApplication) -> None:
+    """Command cards own middle-click for the richer action copy menu."""
+    install_widget_identity_context_menus(qapp)
+    event_filter = qapp.property("_hskWidgetIdentityFilter")
+    assert isinstance(event_filter, WidgetIdentityEventFilter)
+    card = FluentInteractiveCard()
+    with patch(
+        "harrix_swiss_knife.qt_widget_identity_menu.show_widget_identity_context_menu",
+    ) as show_menu:
+        handled = event_filter.eventFilter(card, _middle_press(card))
+    assert handled is False
+    show_menu.assert_not_called()
 
 
 def test_filter_ignores_right_click_context_menu(qapp: QApplication) -> None:

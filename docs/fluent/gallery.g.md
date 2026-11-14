@@ -51,13 +51,7 @@ def build_gallery() -> fw.FluentNavigationWindow:
     )
     for key, text, icon, page in pages:
         window.add_page(key, text, page, icon=icon)
-    _register_showcase(window.navigation, "fluentNavigationBar", menu=False)
-    window.navigation.item_context_menu_requested.connect(
-        lambda _key, global_pos, nav=window.navigation: _show_showcase_menu(
-            nav,
-            nav.mapFromGlobal(global_pos),
-        ),
-    )
+    _register_showcase(window.navigation, "fluentNavigationBar")
     _register_showcase(theme_button, "themeToggleButton")
     fab = fw.FluentFloatButton("plus", window, tooltip="Floating action")
     _register_showcase(fab, "fluentFloatButton")

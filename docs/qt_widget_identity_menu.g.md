@@ -49,7 +49,7 @@ class WidgetIdentityEventFilter(QObject):
         if event.button() != Qt.MouseButton.MiddleButton:
             return False
         widget = resolve_identity_widget(obj)
-        if widget is None or _is_menu_chrome(widget):
+        if widget is None or _is_menu_chrome(widget) or _owns_middle_click_menu(widget):
             return False
         show_widget_identity_context_menu(widget, event.globalPosition().toPoint())
         return True
@@ -78,7 +78,7 @@ def eventFilter(self, obj: QObject, event: QEvent) -> bool:  # noqa: N802
         if event.button() != Qt.MouseButton.MiddleButton:
             return False
         widget = resolve_identity_widget(obj)
-        if widget is None or _is_menu_chrome(widget):
+        if widget is None or _is_menu_chrome(widget) or _owns_middle_click_menu(widget):
             return False
         show_widget_identity_context_menu(widget, event.globalPosition().toPoint())
         return True

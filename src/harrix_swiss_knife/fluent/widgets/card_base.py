@@ -16,7 +16,6 @@ from harrix_swiss_knife.fluent.tokens import (
 if TYPE_CHECKING:
     from PySide6.QtCore import QEvent
     from PySide6.QtGui import (
-        QContextMenuEvent,
         QEnterEvent,
         QFocusEvent,
         QKeyEvent,
@@ -45,7 +44,7 @@ class FluentCard(QWidget):
 
 
 class FluentInteractiveCard(FluentCard):
-    """Clickable card with hover/pressed fills, keyboard activation, and a context menu signal."""
+    """Clickable card with hover/pressed fills, keyboard activation, and a middle-click menu signal."""
 
     clicked = Signal()
     context_menu_requested = Signal(QPoint)
@@ -60,11 +59,6 @@ class FluentInteractiveCard(FluentCard):
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setAttribute(Qt.WidgetAttribute.WA_Hover, on=True)
-
-    def contextMenuEvent(self, event: QContextMenuEvent) -> None:  # noqa: N802
-        """Emit `context_menu_requested` with the global cursor position."""
-        self.context_menu_requested.emit(event.globalPos())
-        event.accept()
 
     def enterEvent(self, event: QEnterEvent) -> None:  # noqa: N802
         """Show the hover fill."""
@@ -103,10 +97,14 @@ class FluentInteractiveCard(FluentCard):
         super().leaveEvent(event)
 
     def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
-        """Show the pressed fill."""
+        """Show the pressed fill; middle-click asks for the copy / identity menu."""
         if event.button() == Qt.MouseButton.LeftButton:
             self._pressed = True
             self.update()
+        elif event.button() == Qt.MouseButton.MiddleButton:
+            self.context_menu_requested.emit(event.globalPosition().toPoint())
+            event.accept()
+            return
         super().mousePressEvent(event)
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802

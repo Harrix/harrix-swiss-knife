@@ -1,7 +1,10 @@
 """Copy object name / class name for any widget (Fluent gallery — style inspector).
 
 Middle-click a widget to open the identity menu. Right-click keeps each control's
-own context menu (editors, tables, command cards, etc.).
+own context menu (editors, tables, habit rows, etc.).
+
+Command cards and the tray menu handle middle-click themselves for the richer
+action copy menu; this filter skips those targets so both do not fire.
 
 Widgets without an `objectName` get one automatically on polish/show (and again
 when the identity menu opens). Existing names — Designer ids, Fluent QSS hooks
@@ -18,6 +21,7 @@ from PySide6.QtCore import QEvent, QObject, Qt
 from PySide6.QtGui import QClipboard, QGuiApplication, QMouseEvent
 from PySide6.QtWidgets import QApplication, QMenu, QMenuBar, QWidget
 
+from harrix_swiss_knife.fluent.widgets.card_base import FluentInteractiveCard
 from harrix_swiss_knife.fluent.widgets.menus import FluentMenu
 from harrix_swiss_knife.qt_lucide_icon import apply_leading_chrome_icons
 
@@ -45,7 +49,7 @@ class WidgetIdentityEventFilter(QObject):
         if event.button() != Qt.MouseButton.MiddleButton:
             return False
         widget = resolve_identity_widget(obj)
-        if widget is None or _is_menu_chrome(widget):
+        if widget is None or _is_menu_chrome(widget) or _owns_middle_click_menu(widget):
             return False
         show_widget_identity_context_menu(widget, event.globalPosition().toPoint())
         return True
@@ -166,6 +170,16 @@ def _label_for_widget(widget: QWidget) -> str:
     if tip:
         return tip.splitlines()[0].strip()
     return ""
+
+
+def _owns_middle_click_menu(widget: QWidget) -> bool:
+    """Return whether `widget` (or an ancestor) shows its own middle-click copy menu."""
+    current: QWidget | None = widget
+    while current is not None:
+        if isinstance(current, FluentInteractiveCard):
+            return True
+        current = current.parentWidget()
+    return False
 
 
 def _slugify(text: str) -> str:

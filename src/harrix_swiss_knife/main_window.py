@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from typing import cast
 
 from PySide6.QtCore import QEvent, QObject, QPoint, Qt, QTimer
-from PySide6.QtGui import QAction, QCloseEvent, QCursor, QResizeEvent, QShowEvent
+from PySide6.QtGui import QAction, QCloseEvent, QCursor, QMouseEvent, QResizeEvent, QShowEvent
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
@@ -136,9 +136,17 @@ class MainWindow(QMainWindow):
         self.hide()
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
-        """Refit Recent when the cards pane resizes (debounced while dragging)."""
+        """Refit Recent on cards resize; open the action copy menu on list middle-click."""
         if event.type() == QEvent.Type.Resize and watched is self._scroll.viewport():
             self._cards_layout_timer.start()
+        elif (
+            event.type() == QEvent.Type.MouseButtonPress
+            and isinstance(event, QMouseEvent)
+            and event.button() == Qt.MouseButton.MiddleButton
+            and watched is self.list_widget.viewport()
+        ):
+            self._show_list_item_context_menu(self.list_widget, event.position().toPoint())
+            return True
         return super().eventFilter(watched, event)
 
     def focus_initial_input(self) -> None:
@@ -333,8 +341,9 @@ class MainWindow(QMainWindow):
 
         self.list_widget = FluentListWidget(list_pane)
         self.list_widget.itemClicked.connect(self.on_item_clicked)
-        self.list_widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.list_widget.customContextMenuRequested.connect(self._on_list_context_menu)
+        list_viewport = self.list_widget.viewport()
+        if list_viewport is not None:
+            list_viewport.installEventFilter(self)
         list_layout.addWidget(self.list_widget, stretch=1)
 
         self._startup_checkbox = FluentCheckBox("Show at program startup", list_pane)
@@ -459,10 +468,6 @@ class MainWindow(QMainWindow):
         """Size Recent to one row of the catalog grid."""
         if not self._is_newest_sort() and not self._search_edit.text().strip():
             self._refresh_recent_section()
-
-    def _on_list_context_menu(self, pos: QPoint) -> None:
-        """Show copy name/class/path and CLI command for the list item under the cursor."""
-        self._show_list_item_context_menu(self.list_widget, pos)
 
     def _on_search_changed(self, text: str) -> None:
         query = text.strip()
@@ -627,7 +632,7 @@ class MainWindow(QMainWindow):
             return
         show_action_item_context_menu(
             parent=self,
-            global_pos=QCursor.pos(),
+            global_pos=list_widget.viewport().mapToGlobal(pos) if list_widget.viewport() is not None else QCursor.pos(),
             action=action,
             host_widget=list_widget.itemWidget(item) or list_widget,
         )

@@ -32,11 +32,11 @@ _ELLIPSIS = "…"
 
 
 class CliContextMenu(FluentMenu):
-    """Fluent menu that offers copy name/class/path and Copy CLI command on right-click."""
+    """Fluent menu that offers copy name/class/path and Copy CLI command on middle-click."""
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
-        """On right-click over a leaf action, show copy name/class/path and CLI command."""
-        if event.button() == Qt.MouseButton.RightButton:
+        """On middle-click over a leaf action, show copy name/class/path and CLI command."""
+        if event.button() == Qt.MouseButton.MiddleButton:
             action = self.actionAt(event.pos())
             if action is not None and not action.isSeparator() and action.menu() is None:
                 show_action_item_context_menu(

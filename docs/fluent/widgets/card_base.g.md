@@ -16,7 +16,6 @@ lang: en
   - [⚙️ Method `paintEvent`](#%EF%B8%8F-method-paintevent)
 - [🏛️ Class `FluentInteractiveCard`](#%EF%B8%8F-class-fluentinteractivecard)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
-  - [⚙️ Method `contextMenuEvent`](#%EF%B8%8F-method-contextmenuevent)
   - [⚙️ Method `enterEvent`](#%EF%B8%8F-method-enterevent)
   - [⚙️ Method `focusInEvent`](#%EF%B8%8F-method-focusinevent)
   - [⚙️ Method `focusOutEvent`](#%EF%B8%8F-method-focusoutevent)
@@ -106,7 +105,7 @@ def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
 class FluentInteractiveCard(FluentCard)
 ```
 
-Clickable card with hover/pressed fills, keyboard activation, and a context menu signal.
+Clickable card with hover/pressed fills, keyboard activation, and a middle-click menu signal.
 
 <details>
 <summary>Code:</summary>
@@ -127,11 +126,6 @@ class FluentInteractiveCard(FluentCard):
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setAttribute(Qt.WidgetAttribute.WA_Hover, on=True)
-
-    def contextMenuEvent(self, event: QContextMenuEvent) -> None:  # noqa: N802
-        """Emit `context_menu_requested` with the global cursor position."""
-        self.context_menu_requested.emit(event.globalPos())
-        event.accept()
 
     def enterEvent(self, event: QEnterEvent) -> None:  # noqa: N802
         """Show the hover fill."""
@@ -170,10 +164,14 @@ class FluentInteractiveCard(FluentCard):
         super().leaveEvent(event)
 
     def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
-        """Show the pressed fill."""
+        """Show the pressed fill; middle-click asks for the copy / identity menu."""
         if event.button() == Qt.MouseButton.LeftButton:
             self._pressed = True
             self.update()
+        elif event.button() == Qt.MouseButton.MiddleButton:
+            self.context_menu_requested.emit(event.globalPosition().toPoint())
+            event.accept()
+            return
         super().mousePressEvent(event)
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
@@ -242,25 +240,6 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setAttribute(Qt.WidgetAttribute.WA_Hover, on=True)
-```
-
-</details>
-
-### ⚙️ Method `contextMenuEvent`
-
-```python
-def contextMenuEvent(self, event: QContextMenuEvent) -> None
-```
-
-Emit `context_menu_requested` with the global cursor position.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def contextMenuEvent(self, event: QContextMenuEvent) -> None:  # noqa: N802
-        self.context_menu_requested.emit(event.globalPos())
-        event.accept()
 ```
 
 </details>
@@ -391,7 +370,7 @@ def leaveEvent(self, event: QEvent) -> None:  # noqa: N802
 def mousePressEvent(self, event: QMouseEvent) -> None
 ```
 
-Show the pressed fill.
+Show the pressed fill; middle-click asks for the copy / identity menu.
 
 <details>
 <summary>Code:</summary>
@@ -401,6 +380,10 @@ def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         if event.button() == Qt.MouseButton.LeftButton:
             self._pressed = True
             self.update()
+        elif event.button() == Qt.MouseButton.MiddleButton:
+            self.context_menu_requested.emit(event.globalPosition().toPoint())
+            event.accept()
+            return
         super().mousePressEvent(event)
 ```
 

@@ -2,8 +2,8 @@
 
 Run with `python -m harrix_swiss_knife.fluent.gallery`.
 
-Each showcase control has a context menu to copy its object name or class name.
-Elsewhere in the app, middle-click opens the same identity menu.
+Showcase controls use the app-wide middle-click identity menu to copy object
+or class name (same gesture as elsewhere in the app).
 
 """
 
@@ -12,7 +12,7 @@ from __future__ import annotations
 import sys
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QDate, QPoint, QPointF, QRectF, QStringListModel, Qt, QTime, QTimer
+from PySide6.QtCore import QDate, QPointF, QRectF, QStringListModel, Qt, QTime, QTimer
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QApplication, QLabel, QTableWidgetItem, QTreeWidgetItem, QVBoxLayout, QWidget
 
@@ -22,10 +22,7 @@ from harrix_swiss_knife.fluent.theme import FluentTheme, ThemeMode
 from harrix_swiss_knife.fluent.tokens import SPACE_L, SPACE_M, SPACE_XL
 from harrix_swiss_knife.qt_app_font import install_app_fonts
 from harrix_swiss_knife.qt_flow_layout import FlowLayout
-from harrix_swiss_knife.qt_widget_identity_menu import (
-    install_widget_identity_context_menus,
-    show_widget_identity_context_menu,
-)
+from harrix_swiss_knife.qt_widget_identity_menu import install_widget_identity_context_menus
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -61,13 +58,7 @@ def build_gallery() -> fw.FluentNavigationWindow:
     )
     for key, text, icon, page in pages:
         window.add_page(key, text, page, icon=icon)
-    _register_showcase(window.navigation, "fluentNavigationBar", menu=False)
-    window.navigation.item_context_menu_requested.connect(
-        lambda _key, global_pos, nav=window.navigation: _show_showcase_menu(
-            nav,
-            nav.mapFromGlobal(global_pos),
-        ),
-    )
+    _register_showcase(window.navigation, "fluentNavigationBar")
     _register_showcase(theme_button, "themeToggleButton")
     fab = fw.FluentFloatButton("plus", window, tooltip="Floating action")
     _register_showcase(fab, "fluentFloatButton")
@@ -375,8 +366,8 @@ def _pickers_page() -> QWidget:
     )
 
 
-def _register_showcase(widget: QWidget, label: str | None = None, *, menu: bool = True) -> QWidget:
-    """Tag `widget` for the gallery and attach the copy-name context menu."""
+def _register_showcase(widget: QWidget, label: str | None = None) -> QWidget:
+    """Tag `widget` for the gallery; identity copy uses app-wide middle-click."""
     class_name = type(widget).__name__
     count = _SHOWCASE_COUNTS.get(class_name, 0) + 1
     _SHOWCASE_COUNTS[class_name] = count
@@ -384,9 +375,6 @@ def _register_showcase(widget: QWidget, label: str | None = None, *, menu: bool 
     if not widget.objectName():
         widget.setObjectName(name)
     widget.setProperty(_PROP_SHOWCASE, name)
-    if menu:
-        widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        widget.customContextMenuRequested.connect(lambda pos, host=widget: _show_showcase_menu(host, pos))
     return widget
 
 
@@ -428,10 +416,6 @@ def _setting_cards() -> QWidget:
     editor.trailing_layout.addWidget(fw.FluentToggleSwitch())
     group.add_widget(editor)
     return group
-
-
-def _show_showcase_menu(widget: QWidget, pos: QPoint) -> None:
-    show_widget_identity_context_menu(widget, widget.mapToGlobal(pos))
 
 
 def _show_splash() -> None:
