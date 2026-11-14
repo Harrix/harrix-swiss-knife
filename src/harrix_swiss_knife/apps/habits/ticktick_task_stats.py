@@ -26,6 +26,7 @@ from harrix_swiss_knife.apps.common.chart_theme import (
     chart_annotation_style,
     chart_series_color,
     chart_success_color,
+    current_chart_theme,
     intensity_bin_label,
     intensity_bin_ranges,
     map_value_to_intensity_bin,
@@ -61,8 +62,6 @@ CHART_MODE_LABELS: tuple[tuple[ChartMode, str], ...] = (
     (CHART_MODE_COMPARE_LAST, "Compare last months"),
     (CHART_MODE_COMPARE_SAME, "Compare same months"),
 )
-_GRAY = "#e9e9e9"
-_LIGHT_GREEN = "#b7e4b7"
 _DAY_TICK_STEP_THRESHOLD = 15
 _YEAR_LABEL_ROTATE_THRESHOLD = 12
 _MONTH_LINE_MARKER_THRESHOLD = 10
@@ -216,14 +215,16 @@ def build_contribution_heatmap(
 
     pos_max = max((int(v) for v in stats.counts_by_day.values() if int(v) > 0), default=0)
     bins = intensity_bin_ranges(pos_max, max_bins=5)
-    dark_green = chart_success_color()
-    colors_list: list[tuple[float, float, float]] = [to_rgb(_GRAY)]
+    levels = current_chart_theme().heatmap
+    empty = levels[0]
+    greens = levels[1:] if len(levels) > 1 else (chart_success_color(),)
+    colors_list: list[tuple[float, float, float]] = [to_rgb(empty)]
     if bins:
         for index in range(len(bins)):
             t = 0.0 if len(bins) == 1 else index / (len(bins) - 1)
-            colors_list.append(_lerp(to_rgb(_LIGHT_GREEN), to_rgb(dark_green), t))
+            colors_list.append(_lerp(to_rgb(greens[0]), to_rgb(greens[-1]), t))
     else:
-        colors_list.append(to_rgb(_LIGHT_GREEN))
+        colors_list.append(to_rgb(greens[0]))
 
     mapped_vmax = max(len(bins), 1)
     cmap = LinearSegmentedColormap.from_list("ticktick_contrib", colors_list, N=len(colors_list))
@@ -244,7 +245,7 @@ def build_contribution_heatmap(
         start_date=start_date.strftime("%Y-%m-%d"),
         end_date=end_date.strftime("%Y-%m-%d"),
         legend=False,
-        color_for_none=_GRAY,
+        color_for_none=empty,
         vmin=0,
         vmax=mapped_vmax,
         cmap=cmap,
@@ -284,7 +285,7 @@ def build_contribution_heatmap(
             )
 
     norm = Normalize(vmin=0, vmax=mapped_vmax)
-    handles: list[Patch] = [Patch(facecolor=_GRAY, edgecolor="none", label="None")]
+    handles: list[Patch] = [Patch(facecolor=empty, edgecolor="none", label="None")]
     for index, (lo, hi) in enumerate(bins, start=1):
         handles.append(
             Patch(
@@ -293,7 +294,7 @@ def build_contribution_heatmap(
                 label=intensity_bin_label(lo, hi),
             ),
         )
-    ax.legend(
+    legend = ax.legend(
         handles=handles,
         loc="upper left",
         bbox_to_anchor=(1.01, 1.0),
@@ -301,6 +302,10 @@ def build_contribution_heatmap(
         fontsize=8,
         title="Tasks",
     )
+    theme = current_chart_theme()
+    legend.get_title().set_color(theme.text)
+    for text in legend.get_texts():
+        text.set_color(theme.text)
     # Legend is outside the axes on a short figure; tight_layout cannot fit it
     # and warns about top/bottom margins. Keep a fixed right gutter instead.
     figure.subplots_adjust(left=0.02, right=0.86, top=0.96, bottom=0.12)

@@ -32,7 +32,13 @@ from harrix_swiss_knife.apps.common.calendar_heatmap import (
     habit_heatmap_week_start,
     habit_heatmap_weekday_index,
 )
-from harrix_swiss_knife.apps.common.chart_theme import chart_ink, chart_series_color, chart_tint
+from harrix_swiss_knife.apps.common.chart_theme import (
+    chart_ink,
+    chart_series_color,
+    chart_surface,
+    chart_tint,
+    heatmap_absent_color,
+)
 from harrix_swiss_knife.fluent.theme import FluentTheme, bind_theme, css, mix
 from harrix_swiss_knife.qt_flow_layout import FlowLayout
 
@@ -220,7 +226,6 @@ class _Grid(QWidget):
     def paintEvent(self, _event: object) -> None:  # noqa: N802
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
-        palette = FluentTheme.instance().palette()
         ink = QColor(chart_ink())
         font = QFont(self.font())
         font.setPixelSize(11)
@@ -242,12 +247,12 @@ class _Grid(QWidget):
             )
         selected = self._owner.selected_days
         accent = QColor(chart_series_color(0))
-        page = palette.card_bg
+        page = QColor(heatmap_absent_color())
         for cell in self._cells:
             rect = cell.rect
             painter.setPen(Qt.PenStyle.NoPen)
             if cell.color is None:
-                painter.setBrush(QColor(page))
+                painter.setBrush(page)
                 painter.drawRoundedRect(rect, _RADIUS, _RADIUS)
                 painter.setPen(QPen(QColor(heatmap_hairline()), 1))
                 painter.setBrush(Qt.BrushStyle.NoBrush)
@@ -342,7 +347,7 @@ def heatmap_column_count(start: date, end: date, *, week_starts_on: int = HEATMA
 def heatmap_hairline() -> str:
     """Return the outline used for days with no record."""
     palette = FluentTheme.instance().palette()
-    return chart_tint(palette.card_bg, palette.text_secondary, 0.28).name()
+    return chart_tint(chart_surface(), palette.text_secondary, 0.28).name()
 
 
 def _cell_size(viewport_width: int, columns: int, months: int) -> tuple[int, bool]:

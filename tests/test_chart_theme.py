@@ -80,6 +80,34 @@ def test_light_heatmap_scale(qapp: QApplication) -> None:
         apply_chart_theme()
 
 
+def test_dark_heatmap_cells_are_not_white(qapp: QApplication) -> None:
+    """Translucent card tokens must not collapse to #ffffff empty cells."""
+    assert qapp is not None
+    from harrix_swiss_knife.apps.common.chart_theme import (
+        accent_heatmap_colors,
+        chart_surface,
+        heatmap_absent_color,
+        heatmap_zero_color,
+    )
+
+    theme = FluentTheme.instance()
+    previous = theme.mode()
+    theme.set_mode(ThemeMode.DARK, persist=False)
+    try:
+        apply_chart_theme()
+        absent = QColor(heatmap_absent_color())
+        zero = QColor(heatmap_zero_color())
+        surface = chart_surface()
+        assert absent.isValid() and absent.lightness() < 80
+        assert zero.isValid() and zero.lightness() < 140
+        assert surface.lightness() < 80
+        for fill in accent_heatmap_colors(4):
+            assert QColor(fill).lightness() < 200
+    finally:
+        theme.set_mode(previous, persist=False)
+        apply_chart_theme()
+
+
 def test_apply_theme_updates_legend_and_annotation_after_switch(qapp: QApplication) -> None:
     """Open charts keep readable legend / value labels when light/dark flips."""
     assert qapp is not None

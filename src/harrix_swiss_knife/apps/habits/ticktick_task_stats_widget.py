@@ -34,6 +34,7 @@ from harrix_swiss_knife.apps.common.chart_page_chrome import (
 )
 from harrix_swiss_knife.apps.common.chart_theme import (
     accent_heatmap_colors,
+    chart_surface,
     chart_tint,
     heatmap_zero_color,
     intensity_bin_label,
@@ -717,7 +718,7 @@ class TickTickTaskStatsWidget(QWidget):
 
 def _chip_qss() -> str:
     palette = FluentTheme.instance().palette()
-    background = css(chart_tint(palette.card_bg, palette.text_secondary, 0.14))
+    background = css(chart_tint(chart_surface(), palette.text_secondary, 0.14))
     foreground = css(mix(palette.window_bg, palette.text_secondary))
     return f"background: {background}; color: {foreground}; border-radius: 4px; padding: 1px 6px;"
 

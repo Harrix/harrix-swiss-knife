@@ -11,7 +11,14 @@ from matplotlib import patheffects
 
 from harrix_swiss_knife.apps.common.calendar_heatmap import HEATMAP_WEEK_STARTS_ON, habit_heatmap_week_start
 from harrix_swiss_knife.apps.common.chart_format import setup_date_axis
-from harrix_swiss_knife.apps.common.chart_theme import chart_series_color, chart_tint, style_axes, themed_figure
+from harrix_swiss_knife.apps.common.chart_theme import (
+    chart_series_color,
+    chart_surface,
+    chart_tint,
+    current_chart_theme,
+    style_axes,
+    themed_figure,
+)
 from harrix_swiss_knife.fluent.theme import FluentTheme
 
 if TYPE_CHECKING:
@@ -83,8 +90,9 @@ def build_timeline_figure(
         return figure
 
     palette = FluentTheme.instance().palette()
-    card = palette.card_bg.name()
-    bar_color = chart_tint(palette.card_bg, palette.accent, 0.55).name()
+    theme = current_chart_theme()
+    card = chart_surface().name()
+    bar_color = chart_tint(chart_surface(), palette.accent, 0.55).name()
     line_color = chart_series_color(0)
     centers = [mdates.date2num(bar.start) + (bar.end - bar.start).days / 2 for bar in bars]
     widths = [_bar_width_days(bar) for bar in bars]
@@ -144,9 +152,11 @@ def build_timeline_figure(
         labels += extra_labels
     if handles:
         legend = axis.legend(handles, labels, loc="upper left", frameon=True, fontsize=9)
+        for text in legend.get_texts():
+            text.set_color(theme.text)
         frame = legend.get_frame()
-        frame.set_facecolor(palette.card_bg.name())
-        frame.set_edgecolor(palette.card_bg.name())
+        frame.set_facecolor(theme.bg)
+        frame.set_edgecolor(theme.grid)
         frame.set_alpha(0.92)
     figure.tight_layout()
     return figure

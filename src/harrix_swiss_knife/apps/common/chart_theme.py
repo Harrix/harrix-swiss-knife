@@ -150,8 +150,9 @@ def accent_heatmap_colors(steps: int) -> list[str]:
         return [palette.accent.name()]
     pale = 0.32
     span = 0.68
+    surface = chart_surface()
     return [
-        chart_tint(palette.card_bg, palette.accent, pale + span * index / (count - 1)).name() for index in range(count)
+        chart_tint(surface, palette.accent, pale + span * index / (count - 1)).name() for index in range(count)
     ]
 
 
@@ -334,6 +335,18 @@ def chart_success_color() -> str:
     return FluentTheme.instance().palette().success.name()
 
 
+def chart_surface() -> QColor:
+    """Return an opaque card/plot surface for the active theme.
+
+    Fluent `card_bg` is a translucent wash. Calling `.name()` on it yields pure
+    white/black RGB and washes out dark heatmaps and legend plates — always mix
+    it onto `window_bg` before painting or tinting.
+
+    """
+    palette = FluentTheme.instance().palette()
+    return mix(palette.window_bg, palette.card_bg)
+
+
 def chart_tint(base: QColor, overlay: QColor, amount: float) -> QColor:
     """Blend `overlay` over `base`. `amount` is 0 for `base` and 1 for `overlay`."""
     return mix(base, with_alpha(overlay, round(amount * 255)))
@@ -390,14 +403,13 @@ def ensure_chart_theme() -> None:
 
 def heatmap_absent_color() -> str:
     """Return the no-record cell fill. It stays lighter than an explicit zero."""
-    palette = FluentTheme.instance().palette()
-    return chart_tint(palette.card_bg, palette.text_secondary, 0.05).name()
+    return current_chart_theme().habit_empty
 
 
 def heatmap_zero_color() -> str:
     """Return the fill for a recorded zero (not done / no completions)."""
     palette = FluentTheme.instance().palette()
-    return chart_tint(palette.card_bg, palette.text_secondary, 0.32).name()
+    return chart_tint(chart_surface(), palette.text_secondary, 0.32).name()
 
 
 def intensity_bin_label(lo: int, hi: int) -> str:
