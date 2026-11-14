@@ -59,10 +59,12 @@ lang: en
   - [⚙️ Method `resizeEvent`](#%EF%B8%8F-method-resizeevent)
   - [⚙️ Method `set_chart_all_time`](#%EF%B8%8F-method-set_chart_all_time)
   - [⚙️ Method `set_chart_last_month`](#%EF%B8%8F-method-set_chart_last_month)
+  - [⚙️ Method `set_chart_last_week`](#%EF%B8%8F-method-set_chart_last_week)
   - [⚙️ Method `set_chart_last_year`](#%EF%B8%8F-method-set_chart_last_year)
   - [⚙️ Method `set_today_date`](#%EF%B8%8F-method-set_today_date)
   - [⚙️ Method `set_weight_all_time`](#%EF%B8%8F-method-set_weight_all_time)
   - [⚙️ Method `set_weight_last_month`](#%EF%B8%8F-method-set_weight_last_month)
+  - [⚙️ Method `set_weight_last_week`](#%EF%B8%8F-method-set_weight_last_week)
   - [⚙️ Method `set_weight_last_year`](#%EF%B8%8F-method-set_weight_last_year)
   - [⚙️ Method `show_kcal_chart`](#%EF%B8%8F-method-show_kcal_chart)
   - [⚙️ Method `show_sets_chart`](#%EF%B8%8F-method-show_sets_chart)
@@ -262,6 +264,9 @@ class MainWindow(
         }
 
         # For charts
+        self._chart_toolbar: ChartToolbar | None = None
+        self._weight_chart_toolbar: ChartToolbar | None = None
+        self._weight_chart_radios: dict[str, QRadioButton] = {}
         self._chart_update_timer = QTimer(self)
         self._chart_update_timer.setSingleShot(True)
         self._chart_update_timer.timeout.connect(self._update_chart_based_on_radio_button)
@@ -1706,6 +1711,7 @@ class MainWindow(
         btn = self.sender()
         if isinstance(btn, QRadioButton) and not btn.isChecked():
             return
+        self._sync_fitness_chart_toolbar_mode()
         self._schedule_chart_update(50)
 
     @requires_database()
@@ -2632,6 +2638,11 @@ class MainWindow(
         self._set_date_range(self.dateEdit_chart_from, self.dateEdit_chart_to, months=1)
         self._schedule_chart_update(50)
 
+    def set_chart_last_week(self) -> None:
+        """Set chart date range to last week."""
+        self._set_date_range(self.dateEdit_chart_from, self.dateEdit_chart_to, days=7)
+        self._schedule_chart_update(50)
+
     def set_chart_last_year(self) -> None:
         """Set chart date range to last year."""
         self._set_date_range(self.dateEdit_chart_from, self.dateEdit_chart_to, years=1)
@@ -2658,17 +2669,38 @@ class MainWindow(
 
     def set_weight_all_time(self) -> None:
         """Set weight chart date range to all available data using database manager."""
-        self._set_date_range(self.dateEdit_weight_from, self.dateEdit_weight_to, is_all_time=True)
+        date_from = self.dateEdit_weight_from
+        date_to = self.dateEdit_weight_to
+        if date_from is None or date_to is None:
+            return
+        self._set_date_range(date_from, date_to, is_all_time=True)
         self.update_weight_chart()
 
     def set_weight_last_month(self) -> None:
         """Set weight chart date range to last month."""
-        self._set_date_range(self.dateEdit_weight_from, self.dateEdit_weight_to, months=1)
+        date_from = self.dateEdit_weight_from
+        date_to = self.dateEdit_weight_to
+        if date_from is None or date_to is None:
+            return
+        self._set_date_range(date_from, date_to, months=1)
+        self.update_weight_chart()
+
+    def set_weight_last_week(self) -> None:
+        """Set weight chart date range to last week."""
+        date_from = self.dateEdit_weight_from
+        date_to = self.dateEdit_weight_to
+        if date_from is None or date_to is None:
+            return
+        self._set_date_range(date_from, date_to, days=7)
         self.update_weight_chart()
 
     def set_weight_last_year(self) -> None:
         """Set weight chart date range to last year."""
-        self._set_date_range(self.dateEdit_weight_from, self.dateEdit_weight_to, years=1)
+        date_from = self.dateEdit_weight_from
+        date_to = self.dateEdit_weight_to
+        if date_from is None or date_to is None:
+            return
+        self._set_date_range(date_from, date_to, years=1)
         self.update_weight_chart()
 
     @requires_database()
@@ -3306,8 +3338,21 @@ class MainWindow(
             logger.error("❌ Database manager is not initialized")
             return
 
-        date_from = self.dateEdit_weight_from.date().toString("yyyy-MM-dd")
-        date_to = self.dateEdit_weight_to.date().toString("yyyy-MM-dd")
+        self._sync_weight_chart_toolbar_mode()
+        mode_key = next((key for key, radio in self._weight_chart_radios.items() if radio.isChecked()), "weight")
+        if mode_key == "compare_last":
+            self._draw_weight_compare_last_months()
+            return
+        if mode_key == "compare_same":
+            self._draw_weight_compare_same_months()
+            return
+
+        weight_from = self.dateEdit_weight_from
+        weight_to = self.dateEdit_weight_to
+        if weight_from is None or weight_to is None:
+            return
+        date_from = weight_from.date().toString("yyyy-MM-dd")
+        date_to = weight_to.date().toString("yyyy-MM-dd")
 
         # Get weight data using database manager
         rows = self.db_manager.get_weight_chart_data(date_from, date_to)
@@ -4753,28 +4798,9 @@ class MainWindow(
         # Tab change
         self.tabWidget.currentChanged.connect(self.on_tab_changed)
 
-        # Weight chart signals
-        self.pushButton_update_weight_chart.clicked.connect(self.update_weight_chart)
-        self.pushButton_weight_last_month.clicked.connect(self.set_weight_last_month)
-        self.pushButton_weight_last_year.clicked.connect(self.set_weight_last_year)
-        self.pushButton_weight_all_time.clicked.connect(self.set_weight_all_time)
-
-        # Exercise chart signals - only one update button now
-        self.pushButton_update_chart.clicked.connect(self._update_chart_based_on_radio_button)
-        from harrix_swiss_knife.apps.common.chart_operations import (  # noqa: PLC0415
-            install_chart_label_mode_combo,
-        )
-
-        install_chart_label_mode_combo(
-            self,
-            self.horizontalLayout_charts_controls_1,
-            on_changed=self._update_chart_based_on_radio_button,
-        )
-        self.pushButton_chart_last_month.clicked.connect(self.set_chart_last_month)
-        self.pushButton_chart_last_year.clicked.connect(self.set_chart_last_year)
-        self.pushButton_chart_all_time.clicked.connect(self.set_chart_all_time)
-
-        # Radio button signals for chart type selection
+        # Weight + exercise chart toolbars and type radios.
+        self._install_fitness_chart_toolbar()
+        self._install_weight_chart_shell()
         self.radioButton_type_of_chart_standart.toggled.connect(self.on_radio_button_changed)
         self.radioButton_type_of_chart_show_sets_chart.toggled.connect(self.on_radio_button_changed)
         self.radioButton_type_of_chart_kcal.toggled.connect(self.on_radio_button_changed)
@@ -5143,6 +5169,94 @@ class MainWindow(
         if self.exercises_list_model is not None:
             self.exercises_list_model.deleteLater()
         self.exercises_list_model = None
+
+    def _draw_weight_compare_last_months(self) -> None:
+        """Plot raw body weight by day of month for the last N months."""
+        if self.db_manager is None:
+            return
+        months_count = self.spinBox_weight_compare.value() if self.spinBox_weight_compare is not None else 12
+        today = datetime.now(UTC).astimezone()
+        monthly_data: list[list[tuple[int, float]]] = []
+        labels: list[str] = []
+        colors: list[str] = []
+        max_days = 0
+        for i in range(months_count):
+            month_date = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            for _ in range(i):
+                if month_date.month == 1:
+                    month_date = month_date.replace(year=month_date.year - 1, month=12)
+                else:
+                    month_date = month_date.replace(month=month_date.month - 1)
+            days_in_month = calendar.monthrange(month_date.year, month_date.month)[1]
+            month_end = today if i == 0 else month_date.replace(day=days_in_month)
+            max_days = max(max_days, min(today.day, days_in_month) if i == 0 else days_in_month)
+            rows = self.db_manager.get_weight_chart_data(
+                month_date.strftime("%Y-%m-%d"),
+                month_end.strftime("%Y-%m-%d"),
+            )
+            series: list[tuple[int, float]] = []
+            for value, date_str in rows:
+                try:
+                    day = datetime.fromisoformat(date_str).replace(tzinfo=UTC).day
+                    series.append((day, float(value)))
+                except (ValueError, TypeError):
+                    continue
+            monthly_data.append(series)
+            label = month_date.strftime("%B %Y")
+            labels.append(f"{label} (Current)" if i == 0 else label)
+            colors.append(chart_series_color(i))
+        self._render_weight_compare_chart(
+            monthly_data,
+            labels,
+            colors,
+            max_days,
+            title=f"Weight (Last {months_count} months comparison)",
+        )
+
+    def _draw_weight_compare_same_months(self) -> None:
+        """Plot raw body weight by day for the same calendar month across years."""
+        if self.db_manager is None:
+            return
+        years_count = self.spinBox_weight_compare.value() if self.spinBox_weight_compare is not None else 12
+        month_number = (
+            self.comboBox_weight_compare_month.currentData()
+            if self.comboBox_weight_compare_month is not None
+            else QDate.currentDate().month()
+        )
+        if not isinstance(month_number, int):
+            month_number = QDate.currentDate().month()
+        today = datetime.now(UTC).astimezone()
+        yearly_data: list[list[tuple[int, float]]] = []
+        labels: list[str] = []
+        colors: list[str] = []
+        max_days = calendar.monthrange(today.year, month_number)[1]
+        for i in range(years_count):
+            year = today.year - i
+            days_in_month = calendar.monthrange(year, month_number)[1]
+            max_days = max(max_days, days_in_month)
+            start = date(year, month_number, 1)
+            end = date(year, month_number, days_in_month)
+            if year == today.year and month_number == today.month:
+                end = today.date()
+            rows = self.db_manager.get_weight_chart_data(start.isoformat(), end.isoformat())
+            series: list[tuple[int, float]] = []
+            for value, date_str in rows:
+                try:
+                    day = datetime.fromisoformat(date_str).replace(tzinfo=UTC).day
+                    series.append((day, float(value)))
+                except (ValueError, TypeError):
+                    continue
+            yearly_data.append(series)
+            label = f"{calendar.month_name[month_number]} {year}"
+            labels.append(f"{label} (Current)" if i == 0 else label)
+            colors.append(chart_series_color(i))
+        self._render_weight_compare_chart(
+            yearly_data,
+            labels,
+            colors,
+            max_days,
+            title=f"Weight ({calendar.month_name[month_number]} comparison — last {years_count} years)",
+        )
 
     def _drop_exercise_icon_cache(self, exercise_name: str) -> None:
         """Drop cached min and AVIF preview icons for one exercise."""
@@ -6045,6 +6159,11 @@ class MainWindow(
         self.dateEdit_chart_from.setDate(current_date.addMonths(-1))
         self.dateEdit_chart_to.setDate(current_date)
 
+        # Chart type radios stay at the top of the left pane.
+        if hasattr(self, "verticalLayout_18") and hasattr(self, "groupBox_type_of_charts"):
+            move_layout_widget(self.verticalLayout_18, self.groupBox_type_of_charts, 0)
+            polish_chart_type_group(self.groupBox_type_of_charts)
+
         # Make listView_chart_exercise items non-editable
         self.listView_chart_exercise.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
 
@@ -6078,6 +6197,7 @@ class MainWindow(
 
         # Set default value for compare last spinbox
         self.spinBox_compare_last.setValue(12)
+        self._sync_fitness_chart_toolbar_mode()
 
     def _init_exercises_list(self) -> None:
         """Initialize the exercises list view with a model and connect signals."""
@@ -6243,6 +6363,75 @@ class MainWindow(
         if not self.db_manager.add_process_record(ex_id, type_id, row.value, date_str):
             return f"{entry.name}: failed to add process record"
         return None
+
+    def _install_fitness_chart_toolbar(self) -> None:
+        """Bind the shared chart toolbar on the Charts tab."""
+        install_chart_label_mode_combo(self, self.horizontalLayout_charts_controls_1)
+        toolbar = ChartToolbar()
+        toolbar.bind_host(self, extra_slot=getattr(self, "checkBox_max_value", None))
+        toolbar.polish()
+        toolbar.connect_changed(self._update_chart_based_on_radio_button)
+        toolbar.connect_refresh(self._update_chart_based_on_radio_button)
+        toolbar.connect_presets(
+            last_week=self.set_chart_last_week,
+            last_month=self.set_chart_last_month,
+            last_year=self.set_chart_last_year,
+            all_time=self.set_chart_all_time,
+        )
+        self._chart_toolbar = toolbar
+        self._sync_fitness_chart_toolbar_mode()
+
+    def _install_weight_chart_shell(self) -> None:
+        """Add Chart radios and a shared toolbar on the Weight tab."""
+        left_layout = getattr(self, "verticalLayout_9", None)
+        if left_layout is not None and not hasattr(self, "groupBox_weight_charts"):
+            group = QGroupBox("Chart", self.frame_4)
+            group.setObjectName("groupBox_weight_charts")
+            group_layout = QVBoxLayout(group)
+            button_group, radios = build_chart_type_radios(
+                group,
+                (
+                    ("weight", "Weight"),
+                    ("compare_last", "Compare last months"),
+                    ("compare_same", "Compare same months"),
+                ),
+                checked_key="weight",
+            )
+            for radio in radios.values():
+                group_layout.addWidget(radio)
+                radio.toggled.connect(self._on_weight_chart_type_changed)
+            polish_chart_type_group(group)
+            left_layout.insertWidget(0, group)
+            self.groupBox_weight_charts = group
+            self._weight_chart_button_group = button_group
+            self._weight_chart_radios = radios
+
+        old_frame = getattr(self, "frame_weight_controls", None)
+        parent_layout = getattr(self, "verticalLayout_6", None)
+        toolbar = ChartToolbar()
+        frame = toolbar.build(self.tab_5)
+        frame.setMaximumHeight(120)
+        if parent_layout is not None and old_frame is not None:
+            index = parent_layout.indexOf(old_frame)
+            old_frame.hide()
+            parent_layout.insertWidget(max(index, 0), frame)
+        self.frame_weight_controls = frame
+        self.dateEdit_weight_from = toolbar.date_from
+        self.dateEdit_weight_to = toolbar.date_to
+        self.spinBox_weight_compare = toolbar.spin_count
+        self.comboBox_weight_compare_month = toolbar.combo_month
+        self.pushButton_update_weight_chart = toolbar.refresh_button
+        toolbar.polish()
+        toolbar.connect_changed(self.update_weight_chart)
+        toolbar.connect_refresh(self.update_weight_chart)
+        toolbar.connect_presets(
+            last_week=self.set_weight_last_week,
+            last_month=self.set_weight_last_month,
+            last_year=self.set_weight_last_year,
+            all_time=self.set_weight_all_time,
+        )
+        self._weight_chart_toolbar = toolbar
+        self._sync_weight_chart_toolbar_mode()
 
     def _lightbox_source_model(self, list_view: QListView | None) -> QStandardItemModel | None:
         """Return the list model that should drive lightbox navigation."""
@@ -6675,6 +6864,14 @@ class MainWindow(
         """Toggle date edit widgets and refresh the process table filter."""
         self._update_date_filter_controls_enabled()
         self.apply_filter()
+
+    def _on_weight_chart_type_changed(self) -> None:
+        """Refresh the weight chart when its Chart radio changes."""
+        sender = self.sender()
+        if isinstance(sender, QRadioButton) and not sender.isChecked():
+            return
+        self._sync_weight_chart_toolbar_mode()
+        self.update_weight_chart()
 
     def _on_workout_add_exercise_requested(self, workout_id: int) -> None:
         """Add one or more catalog exercises to the selected workout."""
@@ -7464,6 +7661,52 @@ class MainWindow(
         self.avif_manager.rename_exercise_avif(previous, updated)
         self._drop_exercise_icon_cache(previous)
         self._refresh_exercise_media_ui(updated)
+
+    def _render_weight_compare_chart(
+        self,
+        series_list: list[list[tuple[int, float]]],
+        labels: list[str],
+        colors: list[str],
+        max_days: int,
+        *,
+        title: str,
+    ) -> None:
+        """Draw day-of-month weight comparison lines (raw kg, not cumulative)."""
+        self._clear_layout(self.verticalLayout_weight_chart_content)
+        if all(len(series) == 0 for series in series_list):
+            self._show_no_data_label(
+                self.verticalLayout_weight_chart_content,
+                "No weight data found for the selected period",
+            )
+            return
+        fig = themed_figure(figsize=(12, 6), dpi=100)
+        canvas = create_chart_canvas(fig)
+        ax = fig.add_subplot(111)
+        for index in range(len(series_list) - 1, -1, -1):
+            series = series_list[index]
+            if not series:
+                continue
+            xs = [point[0] for point in series]
+            ys = [point[1] for point in series]
+            linewidth = CHART_LINEWIDTH_EMPHASIS if index == 0 else CHART_LINEWIDTH
+            ax.plot(
+                xs,
+                ys,
+                color=colors[index],
+                linewidth=linewidth,
+                linestyle="-" if index == 0 else "--",
+                marker="o",
+                markersize=CHART_MARKERSIZE,
+                label=labels[index],
+            )
+        ax.set_title(title, fontsize=CHART_TITLE_FONTSIZE)
+        ax.set_xlabel("Day of Month")
+        ax.set_ylabel("Weight (kg)")
+        ax.set_xlim(1, max(max_days, 1))
+        ax.legend(fontsize=CHART_LEGEND_FONTSIZE, loc="best")
+        style_axes(ax)
+        fig.tight_layout()
+        self.verticalLayout_weight_chart_content.addWidget(canvas, stretch=1)
 
     def _reset_process_pagination_state(self) -> None:
         """Reset pagination counters and color map for process table."""
@@ -8650,6 +8893,31 @@ class MainWindow(
         finally:
             self._syncing_selection = False
 
+    def _sync_fitness_chart_toolbar_mode(self) -> None:
+        """Show only toolbar slots that apply to the selected exercise chart type."""
+        toolbar = self._chart_toolbar
+        if toolbar is None:
+            return
+        if self.radioButton_type_of_chart_compare_last.isChecked():
+            toolbar.set_mode("compare_last")
+        elif self.radioButton_type_of_chart_compare_same_months.isChecked():
+            toolbar.set_mode("compare_same")
+        else:
+            toolbar.set_mode("range")
+
+    def _sync_weight_chart_toolbar_mode(self) -> None:
+        """Show only toolbar slots that apply to the selected weight chart type."""
+        toolbar = self._weight_chart_toolbar
+        if toolbar is None:
+            return
+        mode_key = next((key for key, radio in self._weight_chart_radios.items() if radio.isChecked()), "weight")
+        if mode_key == "compare_last":
+            toolbar.set_mode("compare_last")
+        elif mode_key == "compare_same":
+            toolbar.set_mode("compare_same")
+        else:
+            toolbar.set_mode("range")
+
     def _table_exercise_name_column(self, table_name: str) -> int:
         """Return the exercise-name column for a table that may have a leading image."""
         if table_name in {"exercises", "types"}:
@@ -8738,6 +9006,7 @@ class MainWindow(
 
     def _update_chart_based_on_radio_button(self) -> None:
         """Update chart based on selected radio button."""
+        self._sync_fitness_chart_toolbar_mode()
         if self.radioButton_type_of_chart_standart.isChecked():
             self.update_exercise_chart()
         elif self.radioButton_type_of_chart_show_sets_chart.isChecked():
@@ -9213,6 +9482,9 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
         }
 
         # For charts
+        self._chart_toolbar: ChartToolbar | None = None
+        self._weight_chart_toolbar: ChartToolbar | None = None
+        self._weight_chart_radios: dict[str, QRadioButton] = {}
         self._chart_update_timer = QTimer(self)
         self._chart_update_timer.setSingleShot(True)
         self._chart_update_timer.timeout.connect(self._update_chart_based_on_radio_button)
@@ -11082,6 +11354,7 @@ def on_radio_button_changed(self) -> None:
         btn = self.sender()
         if isinstance(btn, QRadioButton) and not btn.isChecked():
             return
+        self._sync_fitness_chart_toolbar_mode()
         self._schedule_chart_update(50)
 ```
 
@@ -12177,6 +12450,25 @@ def set_chart_last_month(self) -> None:
 
 </details>
 
+### ⚙️ Method `set_chart_last_week`
+
+```python
+def set_chart_last_week(self) -> None
+```
+
+Set chart date range to last week.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_chart_last_week(self) -> None:
+        self._set_date_range(self.dateEdit_chart_from, self.dateEdit_chart_to, days=7)
+        self._schedule_chart_update(50)
+```
+
+</details>
+
 ### ⚙️ Method `set_chart_last_year`
 
 ```python
@@ -12240,7 +12532,11 @@ Set weight chart date range to all available data using database manager.
 
 ```python
 def set_weight_all_time(self) -> None:
-        self._set_date_range(self.dateEdit_weight_from, self.dateEdit_weight_to, is_all_time=True)
+        date_from = self.dateEdit_weight_from
+        date_to = self.dateEdit_weight_to
+        if date_from is None or date_to is None:
+            return
+        self._set_date_range(date_from, date_to, is_all_time=True)
         self.update_weight_chart()
 ```
 
@@ -12259,7 +12555,34 @@ Set weight chart date range to last month.
 
 ```python
 def set_weight_last_month(self) -> None:
-        self._set_date_range(self.dateEdit_weight_from, self.dateEdit_weight_to, months=1)
+        date_from = self.dateEdit_weight_from
+        date_to = self.dateEdit_weight_to
+        if date_from is None or date_to is None:
+            return
+        self._set_date_range(date_from, date_to, months=1)
+        self.update_weight_chart()
+```
+
+</details>
+
+### ⚙️ Method `set_weight_last_week`
+
+```python
+def set_weight_last_week(self) -> None
+```
+
+Set weight chart date range to last week.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_weight_last_week(self) -> None:
+        date_from = self.dateEdit_weight_from
+        date_to = self.dateEdit_weight_to
+        if date_from is None or date_to is None:
+            return
+        self._set_date_range(date_from, date_to, days=7)
         self.update_weight_chart()
 ```
 
@@ -12278,7 +12601,11 @@ Set weight chart date range to last year.
 
 ```python
 def set_weight_last_year(self) -> None:
-        self._set_date_range(self.dateEdit_weight_from, self.dateEdit_weight_to, years=1)
+        date_from = self.dateEdit_weight_from
+        date_to = self.dateEdit_weight_to
+        if date_from is None or date_to is None:
+            return
+        self._set_date_range(date_from, date_to, years=1)
         self.update_weight_chart()
 ```
 
@@ -13067,8 +13394,21 @@ def update_weight_chart(self) -> None:
             logger.error("❌ Database manager is not initialized")
             return
 
-        date_from = self.dateEdit_weight_from.date().toString("yyyy-MM-dd")
-        date_to = self.dateEdit_weight_to.date().toString("yyyy-MM-dd")
+        self._sync_weight_chart_toolbar_mode()
+        mode_key = next((key for key, radio in self._weight_chart_radios.items() if radio.isChecked()), "weight")
+        if mode_key == "compare_last":
+            self._draw_weight_compare_last_months()
+            return
+        if mode_key == "compare_same":
+            self._draw_weight_compare_same_months()
+            return
+
+        weight_from = self.dateEdit_weight_from
+        weight_to = self.dateEdit_weight_to
+        if weight_from is None or weight_to is None:
+            return
+        date_from = weight_from.date().toString("yyyy-MM-dd")
+        date_to = weight_to.date().toString("yyyy-MM-dd")
 
         # Get weight data using database manager
         rows = self.db_manager.get_weight_chart_data(date_from, date_to)

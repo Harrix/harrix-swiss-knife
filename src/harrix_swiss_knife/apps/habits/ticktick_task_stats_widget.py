@@ -8,14 +8,17 @@ from typing import TYPE_CHECKING
 
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QComboBox,
+    QGroupBox,
     QHBoxLayout,
     QHeaderView,
     QLabel,
+    QListView,
+    QRadioButton,
     QSizePolicy,
-    QSpinBox,
     QSplitter,
     QTableWidget,
     QTableWidgetItem,
@@ -23,7 +26,14 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife.apps.common.calendar_heatmap import heatmap_year_after_step
 from harrix_swiss_knife.apps.common.chart_hover import create_chart_canvas, install_chart_hover
+from harrix_swiss_knife.apps.common.chart_page_chrome import (
+    ChartToolbar,
+    build_chart_type_radios,
+    create_info_strip,
+    polish_chart_type_group,
+)
 from harrix_swiss_knife.apps.common.ui_chrome import muted_caption_qss
 from harrix_swiss_knife.apps.habits.ticktick_local_db import (
     TickTickCompletion,
@@ -58,7 +68,6 @@ from harrix_swiss_knife.apps.habits.ticktick_task_stats import (
     latest_active_day,
     resolve_period,
 )
-from harrix_swiss_knife.qt_lucide_icon import make_lucide_push_button
 
 if TYPE_CHECKING:
     from datetime import date
@@ -97,32 +106,15 @@ class TickTickTaskStatsWidget(QWidget):
         self._heatmap: TickTickHeatmapResult | None = None
         self._canvas: FigureCanvas | None = None
         self._selected_day: date | None = None
-
-        self._summary_label = QLabel()
-        self._summary_label.setWordWrap(True)
-        self._summary_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self._chart_toolbar: ChartToolbar | None = None
+        self._year_list_model: QStandardItemModel | None = None
 
         self._source_label = QLabel()
         self._source_label.setStyleSheet(muted_caption_qss())
         self._source_label.setWordWrap(True)
         self._source_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
 
-        self._chart_mode_combo = QComboBox()
-        for mode, label in CHART_MODE_LABELS:
-            self._chart_mode_combo.addItem(label, mode)
-
-        self._period_combo = QComboBox()
         self._project_combo = QComboBox()
-        self._count_spin = QSpinBox()
-        self._count_spin.setRange(1, 36)
-        self._count_spin.setValue(_DEFAULT_COMPARE_COUNT)
-        self._count_caption = QLabel("Months")
-        self._count_caption.setStyleSheet(muted_caption_qss())
-        self._same_month_combo = QComboBox()
-        for month_index in range(1, 13):
-            self._same_month_combo.addItem(calendar.month_name[month_index], month_index)
-        self._same_month_caption = QLabel("Month")
-        self._same_month_caption.setStyleSheet(muted_caption_qss())
 
         self._chart_host = QWidget()
         self._chart_host.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
@@ -158,51 +150,75 @@ class TickTickTaskStatsWidget(QWidget):
         self._body_splitter.setStretchFactor(1, 2)
         self._body_splitter.setSizes([720, 480])
 
-        filters = QHBoxLayout()
-        chart_caption = QLabel("Chart")
-        chart_caption.setStyleSheet(muted_caption_qss())
-        period_caption = QLabel("Period")
-        period_caption.setStyleSheet(muted_caption_qss())
-        self._period_caption = period_caption
-        project_caption = QLabel("List")
-        project_caption.setStyleSheet(muted_caption_qss())
-        filters.addWidget(chart_caption)
-        filters.addWidget(self._chart_mode_combo, stretch=1)
-        filters.addWidget(period_caption)
-        filters.addWidget(self._period_combo, stretch=1)
-        filters.addWidget(project_caption)
-        filters.addWidget(self._project_combo, stretch=2)
+        left_pane = QWidget()
+        left_layout = QVBoxLayout(left_pane)
+        left_layout.setContentsMargins(12, 12, 12, 12)
+        left_layout.setSpacing(8)
 
-        self._compare_filters = QHBoxLayout()
-        self._compare_filters.addWidget(self._count_caption)
-        self._compare_filters.addWidget(self._count_spin)
-        self._compare_filters.addWidget(self._same_month_caption)
-        self._compare_filters.addWidget(self._same_month_combo, stretch=1)
-        self._compare_filters.addStretch()
+        chart_group = QGroupBox("Chart")
+        chart_group.setObjectName("groupBox_ticktick_charts")
+        chart_group_layout = QVBoxLayout(chart_group)
+        _, self._chart_radios = build_chart_type_radios(chart_group, CHART_MODE_LABELS)
+        for radio in self._chart_radios.values():
+            chart_group_layout.addWidget(radio)
+            radio.toggled.connect(self._on_chart_mode_changed)
+        polish_chart_type_group(chart_group)
+        left_layout.addWidget(chart_group)
 
-        refresh_button = make_lucide_push_button("Refresh", "refresh-cw")
-        refresh_button.clicked.connect(self.reload)
-        button_row = QHBoxLayout()
-        button_row.addWidget(refresh_button)
-        button_row.addStretch()
+        list_caption = QLabel("List")
+        list_caption.setStyleSheet(muted_caption_qss())
+        left_layout.addWidget(list_caption)
+        left_layout.addWidget(self._project_combo)
 
-        root = QVBoxLayout(self)
-        root.setContentsMargins(12, 12, 12, 12)
-        root.addWidget(self._summary_label)
-        root.addWidget(self._source_label)
-        root.addLayout(filters)
-        root.addLayout(self._compare_filters)
-        root.addWidget(self._body_splitter, stretch=1)
-        root.addLayout(button_row)
+        year_caption = QLabel("Year")
+        year_caption.setStyleSheet(muted_caption_qss())
+        self._label_ticktick_year = year_caption
+        self._year_list = QListView()
+        self._year_list.setEditTriggers(QListView.EditTrigger.NoEditTriggers)
+        self._year_list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        left_layout.addWidget(year_caption)
+        left_layout.addWidget(self._year_list, stretch=1)
+        left_layout.addWidget(self._source_label)
 
-        self._chart_mode_combo.currentIndexChanged.connect(self._on_chart_mode_changed)
-        self._period_combo.currentIndexChanged.connect(self._on_filters_changed)
+        right_pane = QWidget()
+        right_layout = QVBoxLayout(right_pane)
+        right_layout.setContentsMargins(12, 12, 12, 12)
+        right_layout.setSpacing(8)
+
+        toolbar = ChartToolbar()
+        toolbar_frame = toolbar.build(right_pane)
+        self._info_strip = create_info_strip(right_pane)
+        self._info_strip.hide()
+        right_layout.addWidget(toolbar_frame)
+        right_layout.addWidget(self._info_strip)
+        right_layout.addWidget(self._body_splitter, stretch=1)
+
+        toolbar.polish()
+        toolbar.connect_changed(self._on_filters_changed)
+        toolbar.connect_refresh(self.reload)
+        toolbar.connect_presets(
+            prev_year=self._on_prev_year,
+            next_year=self._on_next_year,
+        )
+        self._chart_toolbar = toolbar
+
+        split = QSplitter(Qt.Orientation.Horizontal)
+        split.setChildrenCollapsible(False)
+        split.addWidget(left_pane)
+        split.addWidget(right_pane)
+        split.setStretchFactor(0, 0)
+        split.setStretchFactor(1, 1)
+        split.setSizes([240, 960])
+
+        root = QHBoxLayout(self)
+        root.setContentsMargins(0, 0, 0, 0)
+        root.addWidget(split)
+
         self._project_combo.currentIndexChanged.connect(self._on_filters_changed)
-        self._count_spin.valueChanged.connect(self._on_filters_changed)
-        self._same_month_combo.currentIndexChanged.connect(self._on_filters_changed)
+        self._year_list.clicked.connect(self._on_year_changed)
+        self._year_list.activated.connect(self._on_year_changed)
 
         self._sync_mode_controls()
-        self._set_same_month_to_current()
 
         if autoload:
             self.reload()
@@ -233,15 +249,12 @@ class TickTickTaskStatsWidget(QWidget):
         except TickTickDbError as exc:
             self._projects = []
             self._completions = []
-            self._summary_label.setText(str(exc))
+            self._set_info_summary(str(exc))
             self._source_label.setText("")
             self._clear_chart("TickTick database is not available.")
             self._fill_day_table([])
-            self._period_combo.blockSignals(True)  # noqa: FBT003
             self._project_combo.blockSignals(True)  # noqa: FBT003
-            self._period_combo.clear()
             self._project_combo.clear()
-            self._period_combo.blockSignals(False)  # noqa: FBT003
             self._project_combo.blockSignals(False)  # noqa: FBT003
             return
 
@@ -253,10 +266,15 @@ class TickTickTaskStatsWidget(QWidget):
         self._redraw()
 
     def _chart_mode(self) -> ChartMode:
-        data = self._chart_mode_combo.currentData()
-        for mode, _label in CHART_MODE_LABELS:
-            if data == mode:
-                return mode
+        for key, radio in self._chart_radios.items():
+            if radio.isChecked() and key in {
+                CHART_MODE_HEATMAP,
+                CHART_MODE_BY_YEAR,
+                CHART_MODE_BY_MONTH,
+                CHART_MODE_COMPARE_LAST,
+                CHART_MODE_COMPARE_SAME,
+            }:
+                return key
         return CHART_MODE_HEATMAP
 
     def _clear_chart(self, message: str) -> None:
@@ -287,7 +305,22 @@ class TickTickTaskStatsWidget(QWidget):
             self._day_table.setItem(index, 2, list_item)
         self.configure_day_table_columns()
 
+    def _filter_years(self) -> list[int]:
+        if self._year_list_model is None:
+            return []
+        years: list[int] = []
+        for row in range(self._year_list_model.rowCount()):
+            text = self._year_list_model.data(self._year_list_model.index(row, 0)) or ""
+            try:
+                years.append(int(text))
+            except (TypeError, ValueError):
+                continue
+        return years
+
     def _on_chart_mode_changed(self) -> None:
+        sender = self.sender()
+        if isinstance(sender, QRadioButton) and not sender.isChecked():
+            return
         self._selected_day = None
         self._sync_mode_controls()
         self._redraw()
@@ -307,6 +340,17 @@ class TickTickTaskStatsWidget(QWidget):
         project_id = self._selected_project_id()
         self._redraw_heatmap(project_id)
 
+    def _on_next_year(self) -> None:
+        self._step_year(1)
+
+    def _on_prev_year(self) -> None:
+        self._step_year(-1)
+
+    def _on_year_changed(self) -> None:
+        self._selected_day = None
+        self._sync_year_nav_buttons()
+        self._redraw()
+
     def _redraw(self) -> None:
         mode = self._chart_mode()
         project_id = self._selected_project_id()
@@ -322,12 +366,13 @@ class TickTickTaskStatsWidget(QWidget):
             self._redraw_compare_same(project_id)
 
     def _redraw_by_month(self, project_id: str | None) -> None:
-        months = self._count_spin.value()
+        toolbar = self._chart_toolbar
+        months = toolbar.count_value() if toolbar is not None else _DEFAULT_COMPARE_COUNT
         month_counts = counts_by_month(self._completions, months, project_id=project_id)
         if not month_counts:
             self._clear_chart("No completed tasks in this period.")
             return
-        self._summary_label.setText(f"Completed tasks by month (last {months})")
+        self._set_info_summary(f"Completed tasks by month (last {months})")
         self._show_figure(build_month_counts_chart(month_counts, figsize=self._figure_size()))
 
     def _redraw_by_year(self, project_id: str | None) -> None:
@@ -335,11 +380,12 @@ class TickTickTaskStatsWidget(QWidget):
         if not year_counts:
             self._clear_chart("No completed tasks in this period.")
             return
-        self._summary_label.setText("Completed tasks by year")
+        self._set_info_summary("Completed tasks by year")
         self._show_figure(build_year_counts_chart(year_counts, figsize=self._figure_size()))
 
     def _redraw_compare_last(self, project_id: str | None) -> None:
-        months = self._count_spin.value()
+        toolbar = self._chart_toolbar
+        months = toolbar.count_value() if toolbar is not None else _DEFAULT_COMPARE_COUNT
         series = compare_last_months_series(self._completions, months, project_id=project_id)
         if not series or all(not item.points for item in series):
             self._clear_chart(f"No data for the last {months} months.")
@@ -348,8 +394,9 @@ class TickTickTaskStatsWidget(QWidget):
         self._show_figure(build_compare_months_chart(series, title=title, figsize=self._figure_size()))
 
     def _redraw_compare_same(self, project_id: str | None) -> None:
-        years = self._count_spin.value()
-        month = int(self._same_month_combo.currentData() or datetime.now().astimezone().month)
+        toolbar = self._chart_toolbar
+        years = toolbar.count_value() if toolbar is not None else _DEFAULT_COMPARE_COUNT
+        month = toolbar.month_number() if toolbar is not None else datetime.now().astimezone().month
         series = compare_same_months_series(self._completions, month, years, project_id=project_id)
         month_name = calendar.month_name[month]
         if not series or all(not item.points for item in series):
@@ -367,7 +414,8 @@ class TickTickTaskStatsWidget(QWidget):
             end_date,
             project_id=project_id,
         )
-        self._summary_label.setText(format_period_summary(self._stats))
+        self._set_info_summary(format_period_summary(self._stats))
+        self._sync_year_nav_buttons()
         if self._stats.total_completions == 0:
             self._selected_day = None
             self._clear_chart("No completed tasks in this period.")
@@ -402,24 +450,39 @@ class TickTickTaskStatsWidget(QWidget):
         self._canvas = None
 
     def _repopulate_filters(self) -> None:
-        self._period_combo.blockSignals(True)  # noqa: FBT003
         self._project_combo.blockSignals(True)  # noqa: FBT003
-        current_period = self._period_combo.currentData()
         current_project = self._project_combo.currentData()
-        self._period_combo.clear()
-        self._period_combo.addItem(LAST_365_DAYS_LABEL, None)
-        for year in available_years(self._completions):
-            self._period_combo.addItem(str(year), year)
         self._project_combo.clear()
         self._project_combo.addItem("All lists", _ALL_PROJECTS)
         for project in self._projects:
             self._project_combo.addItem(project.name, project.id)
-        period_index = self._period_combo.findData(current_period)
-        self._period_combo.setCurrentIndex(max(period_index, 0))
         project_index = self._project_combo.findData(current_project)
         self._project_combo.setCurrentIndex(max(project_index, 0))
-        self._period_combo.blockSignals(False)  # noqa: FBT003
         self._project_combo.blockSignals(False)  # noqa: FBT003
+
+        current_year_text = self._selected_year_text()
+        model = QStandardItemModel(self)
+        item_365 = QStandardItem(LAST_365_DAYS_LABEL)
+        item_365.setData(None, Qt.ItemDataRole.UserRole)
+        model.appendRow(item_365)
+        for year in available_years(self._completions):
+            year_item = QStandardItem(str(year))
+            year_item.setData(year, Qt.ItemDataRole.UserRole)
+            model.appendRow(year_item)
+        self._year_list_model = model
+        self._year_list.setModel(model)
+        self._select_year_text(current_year_text)
+        self._sync_year_nav_buttons()
+
+    def _select_year_text(self, text: str) -> None:
+        if self._year_list_model is None:
+            return
+        for row in range(self._year_list_model.rowCount()):
+            index = self._year_list_model.index(row, 0)
+            if self._year_list_model.data(index) == text:
+                self._year_list.setCurrentIndex(index)
+                return
+        self._year_list.setCurrentIndex(self._year_list_model.index(0, 0))
 
     def _selected_project_id(self) -> str | None:
         data = self._project_combo.currentData()
@@ -428,14 +491,24 @@ class TickTickTaskStatsWidget(QWidget):
         return str(data)
 
     def _selected_year(self) -> int | None:
-        data = self._period_combo.currentData()
+        index = self._year_list.currentIndex()
+        if not index.isValid() or self._year_list_model is None:
+            return None
+        data = self._year_list_model.data(index, Qt.ItemDataRole.UserRole)
         return int(data) if isinstance(data, int) else None
 
-    def _set_same_month_to_current(self) -> None:
-        current_month = datetime.now().astimezone().month
-        index = self._same_month_combo.findData(current_month)
-        if index >= 0:
-            self._same_month_combo.setCurrentIndex(index)
+    def _selected_year_text(self) -> str:
+        index = self._year_list.currentIndex()
+        if not index.isValid() or self._year_list_model is None:
+            return LAST_365_DAYS_LABEL
+        return str(self._year_list_model.data(index) or LAST_365_DAYS_LABEL)
+
+    def _set_info_summary(self, text: str) -> None:
+        if not text.strip():
+            self._info_strip.hide()
+            return
+        self._info_strip.setText(text)
+        self._info_strip.show()
 
     def _show_day(self, day: date) -> None:
         rows = []
@@ -473,30 +546,41 @@ class TickTickTaskStatsWidget(QWidget):
         self._canvas = canvas
         canvas.draw()
 
+    def _step_year(self, step: int) -> None:
+        next_year = heatmap_year_after_step(
+            self._selected_year_text(),
+            self._filter_years(),
+            step=step,
+            today_year=datetime.now().astimezone().date().year,
+        )
+        if next_year is None:
+            return
+        self._select_year_text(str(next_year))
+        self._on_year_changed()
+
     def _sync_mode_controls(self) -> None:
         mode = self._chart_mode()
+        toolbar = self._chart_toolbar
+        if toolbar is None:
+            return
+        if mode == CHART_MODE_HEATMAP:
+            toolbar.set_mode("heatmap")
+        elif mode == CHART_MODE_BY_YEAR:
+            toolbar.set_mode("labels_only")
+        elif mode == CHART_MODE_BY_MONTH:
+            toolbar.set_mode("count")
+        elif mode == CHART_MODE_COMPARE_LAST:
+            toolbar.set_mode("compare_last")
+        else:
+            toolbar.set_mode("compare_same")
+
         is_heatmap = mode == CHART_MODE_HEATMAP
-        is_by_month = mode == CHART_MODE_BY_MONTH
-        is_compare_last = mode == CHART_MODE_COMPARE_LAST
-        is_compare_same = mode == CHART_MODE_COMPARE_SAME
-        show_count = is_by_month or is_compare_last or is_compare_same
-        show_same_month = is_compare_same
-
-        self._period_caption.setVisible(is_heatmap)
-        self._period_combo.setVisible(is_heatmap)
-        self._count_caption.setVisible(show_count)
-        self._count_spin.setVisible(show_count)
-        self._same_month_caption.setVisible(show_same_month)
-        self._same_month_combo.setVisible(show_same_month)
-
-        if is_compare_same:
-            self._count_caption.setText("Years")
-            self._count_spin.setRange(1, 20)
-        elif is_by_month or is_compare_last:
-            self._count_caption.setText("Months")
-            self._count_spin.setRange(1, 36)
-
+        self._label_ticktick_year.setVisible(is_heatmap)
+        self._year_list.setVisible(is_heatmap)
         self._day_panel.setVisible(is_heatmap)
+        if not is_heatmap:
+            self._info_strip.show()
+
         if is_heatmap:
             self._chart_host.setMinimumHeight(_HEATMAP_MIN_HEIGHT)
             self._chart_host.setMaximumHeight(_HEATMAP_MAX_HEIGHT)
@@ -509,3 +593,17 @@ class TickTickTaskStatsWidget(QWidget):
             self._chart_host.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
             self._body_splitter.setStretchFactor(0, 1)
             self._body_splitter.setStretchFactor(1, 0)
+
+    def _sync_year_nav_buttons(self) -> None:
+        toolbar = self._chart_toolbar
+        if toolbar is None or self._chart_mode() != CHART_MODE_HEATMAP:
+            return
+        prev_btn = toolbar.button_prev_year
+        next_btn = toolbar.button_next_year
+        if prev_btn is None or next_btn is None:
+            return
+        selected = self._selected_year_text()
+        years = self._filter_years()
+        today_year = datetime.now().astimezone().date().year
+        prev_btn.setEnabled(heatmap_year_after_step(selected, years, step=-1, today_year=today_year) is not None)
+        next_btn.setEnabled(heatmap_year_after_step(selected, years, step=1, today_year=today_year) is not None)

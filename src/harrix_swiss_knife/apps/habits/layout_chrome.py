@@ -8,17 +8,16 @@ from PySide6.QtCore import QSize, Qt, QTimer
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QAbstractItemView, QLabel, QListView, QTableView
 
+from harrix_swiss_knife.apps.common.chart_page_chrome import polish_chart_type_group
 from harrix_swiss_knife.apps.common.tracker_layout_chrome import (
     apply_tracker_column_surfaces,
     quiet_group_box,
     show_splitter_hairlines,
 )
 from harrix_swiss_knife.apps.common.tracker_splitter_settings import load_splitter_sizes, save_splitter_sizes
-from harrix_swiss_knife.apps.common.ui_chrome import button_idle_qss
 from harrix_swiss_knife.fluent.app_chrome import style_fluent_item_view, style_fluent_table
 from harrix_swiss_knife.fluent.theme import FluentTheme, bind_theme, css, mix
 from harrix_swiss_knife.fluent.tokens import ICON_SIZE, SPACE_S
-from harrix_swiss_knife.qt_lucide_icon import apply_lucide_button_icon
 
 TABLE_ROW_HEIGHT = 30
 _HABITS_SPLITTER_KEY = "habits_process_splitter_sizes_v1"
@@ -138,10 +137,17 @@ def _polish_all(host: Any) -> None:
             getattr(host, "splitter_charts", None),
         ),
     )
-    for name in ("groupBox_habits_5", "groupBox_habits_2"):
+    for name in ("groupBox_habits_5", "groupBox_habits_2", "groupBox_habits_charts"):
         box = getattr(host, name, None)
         if box is not None:
-            quiet_group_box(box)
+            if name == "groupBox_habits_charts":
+                polish_chart_type_group(box)
+            else:
+                quiet_group_box(box)
+
+    toolbar = getattr(host, "_habits_chart_toolbar", None)
+    if toolbar is not None:
+        toolbar.polish()
 
     if hasattr(host, "tableView_process_habits"):
         _compact_table(host.tableView_process_habits)
@@ -159,17 +165,15 @@ def _polish_all(host: Any) -> None:
         if isinstance(view, QListView):
             _compact_list(view)
 
-    for name, tooltip, icon in (
-        ("pushButton_charts_heatmap_prev_year", "Previous year", "chevron-left"),
-        ("pushButton_charts_heatmap_next_year", "Next year", "chevron-right"),
-    ):
-        button = getattr(host, name, None)
-        if button is None:
-            continue
-        button.setText("")
-        button.setToolTip(tooltip)
-        button.setStyleSheet(button_idle_qss())
-        apply_lucide_button_icon(button, icon)
+    year_nav = getattr(host, "horizontalLayout_charts_heatmap_year", None)
+    if year_nav is not None:
+        for index in range(year_nav.count()):
+            item = year_nav.itemAt(index)
+            if item is None:
+                continue
+            widget = item.widget()
+            if widget is not None and not widget.isHidden():
+                widget.hide()
 
     if hasattr(host, "verticalLayout_23"):
         host.verticalLayout_23.setSpacing(SPACE_S)

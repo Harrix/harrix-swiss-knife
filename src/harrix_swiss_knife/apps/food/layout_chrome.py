@@ -8,16 +8,16 @@ from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QLabel, QTableView
 
+from harrix_swiss_knife.apps.common.chart_page_chrome import polish_chart_type_group
 from harrix_swiss_knife.apps.common.tracker_layout_chrome import (
     apply_tracker_column_surfaces,
     install_tracker_column_chrome,
     show_splitter_hairlines,
 )
 from harrix_swiss_knife.apps.common.tracker_splitter_settings import load_splitter_sizes, save_splitter_sizes
-from harrix_swiss_knife.apps.common.ui_chrome import button_idle_qss, muted_caption_qss
+from harrix_swiss_knife.apps.common.ui_chrome import muted_caption_qss
 from harrix_swiss_knife.fluent.theme import bind_theme
 from harrix_swiss_knife.fluent.tokens import CONTROL_HEIGHT, SPACE_S
-from harrix_swiss_knife.qt_lucide_icon import apply_lucide_button_icon
 
 TABLE_ROW_HEIGHT = 30
 _STATS_SPLITTER_KEY = "food_stats_splitter_sizes_v1"
@@ -150,27 +150,24 @@ def _polish_stats_tab(host: Any) -> None:
         font = QFont(host.label.font())
         font.setBold(True)
         host.label.setFont(font)
-    for name in ("label_food_stats_from", "label_food_stats_to"):
-        label = getattr(host, name, None)
-        if isinstance(label, QLabel):
-            label.setStyleSheet(_caption_qss())
+    chart_group = getattr(host, "groupBox_food_charts", None)
+    if chart_group is not None:
+        polish_chart_type_group(chart_group)
 
-    for name, text, icon in (
-        ("pushButton_food_stats_last_week", "Last week", "calendar"),
-        ("pushButton_food_stats_last_month", "Last month", "calendar"),
-        ("pushButton_food_stats_last_year", "Last year", "calendar-range"),
-        ("pushButton_food_stats_all_time", "All time", "infinity"),
-        ("pushButton_food_stats_update", "Update", "refresh-cw"),
-        ("pushButton_food_stats_food_weight", "Food weight", "scale"),
-        ("pushButton_food_stats_drink", "Drinks", "cup-soda"),
+    toolbar = getattr(host, "_food_chart_toolbar", None)
+    if toolbar is not None:
+        toolbar.polish()
+
+    for legacy_name in (
+        "pushButton_food_stats_food_weight",
+        "pushButton_food_stats_drink",
+        "pushButton_food_stats_macros_protein",
+        "pushButton_food_stats_macros_fat",
+        "pushButton_food_stats_macros_carb",
     ):
-        button = getattr(host, name, None)
-        if button is None:
-            continue
-        button.setText(text)
-        button.setMinimumHeight(CONTROL_HEIGHT)
-        button.setStyleSheet(button_idle_qss())
-        apply_lucide_button_icon(button, icon)
+        legacy_button = getattr(host, legacy_name, None)
+        if legacy_button is not None:
+            legacy_button.setVisible(False)
 
     for control_name in (
         "dateEdit_food_stats_from",
@@ -180,20 +177,6 @@ def _polish_stats_tab(host: Any) -> None:
         control = getattr(host, control_name, None)
         if control is not None:
             control.setMinimumHeight(CONTROL_HEIGHT)
-
-    # Runtime macro chart buttons (created in main).
-    for name, text, icon in (
-        ("pushButton_food_stats_macros_protein", "Protein", "drumstick"),
-        ("pushButton_food_stats_macros_fat", "Fat", "droplet"),
-        ("pushButton_food_stats_macros_carb", "Carbs", "wheat"),
-    ):
-        button = getattr(host, name, None)
-        if button is None:
-            continue
-        button.setText(text)
-        button.setMinimumHeight(CONTROL_HEIGHT)
-        button.setStyleSheet(button_idle_qss())
-        apply_lucide_button_icon(button, icon)
 
     if hasattr(host, "tableView_kcal_per_day"):
         _compact_table(host.tableView_kcal_per_day)

@@ -17,7 +17,9 @@ from harrix_swiss_knife.qt_lucide_icon import apply_leading_chrome_icons
 from harrix_swiss_knife.qt_widget_identity_menu import add_widget_identity_actions
 
 if TYPE_CHECKING:
-    from PySide6.QtWidgets import QWidget
+    from collections.abc import Iterable
+
+    from PySide6.QtWidgets import QMenu, QWidget
 
 CLI_EXECUTABLE = "hsk"
 CLI_MENU_SUFFIX = " ꟲᴸᴵ"
@@ -28,21 +30,39 @@ COPY_ACTION_CLASS_MENU_PREFIX = "📋 Copy action class: "
 COPY_ACTION_PATH_MENU_PREFIX = "📋 Copy action path: "
 COPY_ACTION_NAME_PREVIEW_MAX_LEN = 40
 COPY_CLI_MENU_PREFIX = "📋 Copy CLI command: "
+OPEN_ALL_TRACKERS_MENU_LABEL = "Open all trackers"
+# Tray top-level trackers that share the «Open all trackers» right-click menu.
+TRACKER_LAUNCHER_CLASS_NAMES: frozenset[str] = frozenset(
+    {
+        "OnFinance",
+        "OnFitness",
+        "OnFood",
+        "OnHabits",
+    }
+)
 _ELLIPSIS = "…"
 
 
 class CliContextMenu(FluentMenu):
-    """Fluent menu that offers copy name/class/path and Copy CLI command on middle-click."""
+    """Tray menu: middle-click copies identity; right-click on trackers opens all four."""
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
-        """On middle-click over a leaf action, show copy name/class/path and CLI command."""
-        if event.button() == Qt.MouseButton.MiddleButton:
-            action = self.actionAt(event.pos())
-            if action is not None and not action.isSeparator() and action.menu() is None:
+        """Handle middle-click identity copy and right-click open-all for trackers."""
+        action = self.actionAt(event.position().toPoint())
+        if action is not None and not action.isSeparator() and action.menu() is None:
+            if event.button() == Qt.MouseButton.MiddleButton:
                 show_action_item_context_menu(
                     parent=self,
                     global_pos=event.globalPosition().toPoint(),
                     action=action,
+                )
+                event.accept()
+                return
+            if event.button() == Qt.MouseButton.RightButton and is_tracker_launcher_action(action):
+                show_open_all_trackers_menu(
+                    parent=self,
+                    global_pos=event.globalPosition().toPoint(),
+                    host_menu=self,
                 )
                 event.accept()
                 return
@@ -120,6 +140,19 @@ def get_cli_copy_command(action: QAction | None) -> str | None:
     if isinstance(cmd, str) and cmd:
         return cmd
     return None
+
+
+def is_tracker_launcher_action(action: QAction | None) -> bool:
+    """Return whether `action` is one of the four tray tracker launchers."""
+    parts = get_action_identity_parts(action)
+    return parts is not None and parts.class_name in TRACKER_LAUNCHER_CLASS_NAMES
+
+
+def iter_tracker_launcher_actions(menu: QMenu) -> Iterable[QAction]:
+    """Yield Finance/Fitness/Food/Habits leaf actions from `menu` in menu order."""
+    for action in menu.actions():
+        if is_tracker_launcher_action(action):
+            yield action
 
 
 def show_action_class_context_menu(
@@ -209,6 +242,27 @@ def show_action_item_context_menu(
         cli_copy_command=get_cli_copy_command(action),
         host_widget=host_widget,
     )
+
+
+def show_open_all_trackers_menu(
+    *,
+    parent: QWidget | None,
+    global_pos: QPoint,
+    host_menu: QMenu,
+) -> None:
+    """Show a one-item menu that opens Finance, Fitness, Food, and Habits."""
+    menu = FluentMenu("", parent)
+    open_all = menu.addAction(OPEN_ALL_TRACKERS_MENU_LABEL)
+    open_all.triggered.connect(lambda *_args, source=host_menu: trigger_all_tracker_launchers(source))
+    apply_leading_chrome_icons(menu)
+    menu.refresh_theme()
+    menu.exec(global_pos)
+
+
+def trigger_all_tracker_launchers(menu: QMenu) -> None:
+    """Trigger every tracker launcher QAction found on `menu`."""
+    for action in iter_tracker_launcher_actions(menu):
+        action.trigger()
 
 
 def truncate_action_name_preview(name: str, max_len: int = COPY_ACTION_NAME_PREVIEW_MAX_LEN) -> str:

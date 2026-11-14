@@ -339,9 +339,11 @@ def _polish_charts(host: Any) -> None:
     host.groupBox_type_of_charts.setTitle("Chart")
     quiet_group_box(host.groupBox_type_of_charts)
     for name, text in (
+        ("pushButton_chart_last_week", "Last week"),
         ("pushButton_chart_last_month", "Last month"),
         ("pushButton_chart_last_year", "Last year"),
         ("pushButton_chart_all_time", "All time"),
+        ("pushButton_update_chart", "Refresh"),
     ):
         button = getattr(host, name, None)
         if button is not None:
@@ -371,9 +373,11 @@ def _polish_charts(host: Any) -> None:
         ("pushButton_select_deselect_all", "square"),
         ("pushButton_select_only_expense", EXPENSE_LUCIDE_ICON),
         ("pushButton_select_only_income", INCOME_LUCIDE_ICON),
+        ("pushButton_chart_last_week", "calendar-days"),
         ("pushButton_chart_last_month", "calendar"),
         ("pushButton_chart_last_year", "calendar-range"),
         ("pushButton_chart_all_time", "infinity"),
+        ("pushButton_update_chart", "refresh-cw"),
     ):
         button = getattr(host, name, None)
         if button is None:
@@ -387,6 +391,8 @@ def _polish_charts(host: Any) -> None:
         "label_chart_from",
         "label_chart_to",
         "label_compare_last",
+        "label_compare_same_months",
+        "label_chart_label_mode",
         "label_exchange_rates_currency",
         "label_exchange_rates_from",
         "label_exchange_rates_to",
@@ -397,6 +403,7 @@ def _polish_charts(host: Any) -> None:
 
     for control_name in (
         "comboBox_chart_period",
+        "comboBox_chart_label_mode",
         "dateEdit_chart_from",
         "dateEdit_chart_to",
         "spinBox_compare_last",
@@ -405,6 +412,13 @@ def _polish_charts(host: Any) -> None:
         control = getattr(host, control_name, None)
         if control is not None:
             control.setMinimumHeight(CONTROL_HEIGHT)
+
+    toolbar = getattr(host, "_chart_toolbar", None)
+    if toolbar is not None:
+        toolbar.polish()
+        sync = getattr(host, "_sync_finance_chart_toolbar_mode", None)
+        if callable(sync):
+            sync()
 
     _compact_list(host.list_chart_categories)
 

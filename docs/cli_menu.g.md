@@ -23,9 +23,13 @@ lang: en
 - [🔧 Function `get_action_identity_parts`](#-function-get_action_identity_parts)
 - [🔧 Function `get_action_identity_text`](#-function-get_action_identity_text)
 - [🔧 Function `get_cli_copy_command`](#-function-get_cli_copy_command)
+- [🔧 Function `is_tracker_launcher_action`](#-function-is_tracker_launcher_action)
+- [🔧 Function `iter_tracker_launcher_actions`](#-function-iter_tracker_launcher_actions)
 - [🔧 Function `show_action_class_context_menu`](#-function-show_action_class_context_menu)
 - [🔧 Function `show_action_identity_context_menu`](#-function-show_action_identity_context_menu)
 - [🔧 Function `show_action_item_context_menu`](#-function-show_action_item_context_menu)
+- [🔧 Function `show_open_all_trackers_menu`](#-function-show_open_all_trackers_menu)
+- [🔧 Function `trigger_all_tracker_launchers`](#-function-trigger_all_tracker_launchers)
 - [🔧 Function `truncate_action_name_preview`](#-function-truncate_action_name_preview)
 
 </details>
@@ -36,7 +40,7 @@ lang: en
 class CliContextMenu(FluentMenu)
 ```
 
-Fluent menu that offers copy name/class/path and Copy CLI command on middle-click.
+Tray menu: middle-click copies identity; right-click on trackers opens all four.
 
 <details>
 <summary>Code:</summary>
@@ -45,14 +49,22 @@ Fluent menu that offers copy name/class/path and Copy CLI command on middle-clic
 class CliContextMenu(FluentMenu):
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
-        """On middle-click over a leaf action, show copy name/class/path and CLI command."""
-        if event.button() == Qt.MouseButton.MiddleButton:
-            action = self.actionAt(event.pos())
-            if action is not None and not action.isSeparator() and action.menu() is None:
+        """Handle middle-click identity copy and right-click open-all for trackers."""
+        action = self.actionAt(event.position().toPoint())
+        if action is not None and not action.isSeparator() and action.menu() is None:
+            if event.button() == Qt.MouseButton.MiddleButton:
                 show_action_item_context_menu(
                     parent=self,
                     global_pos=event.globalPosition().toPoint(),
                     action=action,
+                )
+                event.accept()
+                return
+            if event.button() == Qt.MouseButton.RightButton and is_tracker_launcher_action(action):
+                show_open_all_trackers_menu(
+                    parent=self,
+                    global_pos=event.globalPosition().toPoint(),
+                    host_menu=self,
                 )
                 event.accept()
                 return
@@ -67,20 +79,28 @@ class CliContextMenu(FluentMenu):
 def mouseReleaseEvent(self, event: QMouseEvent) -> None
 ```
 
-On middle-click over a leaf action, show copy name/class/path and CLI command.
+Handle middle-click identity copy and right-click open-all for trackers.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
-        if event.button() == Qt.MouseButton.MiddleButton:
-            action = self.actionAt(event.pos())
-            if action is not None and not action.isSeparator() and action.menu() is None:
+        action = self.actionAt(event.position().toPoint())
+        if action is not None and not action.isSeparator() and action.menu() is None:
+            if event.button() == Qt.MouseButton.MiddleButton:
                 show_action_item_context_menu(
                     parent=self,
                     global_pos=event.globalPosition().toPoint(),
                     action=action,
+                )
+                event.accept()
+                return
+            if event.button() == Qt.MouseButton.RightButton and is_tracker_launcher_action(action):
+                show_open_all_trackers_menu(
+                    parent=self,
+                    global_pos=event.globalPosition().toPoint(),
+                    host_menu=self,
                 )
                 event.accept()
                 return
@@ -292,6 +312,45 @@ def get_cli_copy_command(action: QAction | None) -> str | None:
 
 </details>
 
+## 🔧 Function `is_tracker_launcher_action`
+
+```python
+def is_tracker_launcher_action(action: QAction | None) -> bool
+```
+
+Return whether `action` is one of the four tray tracker launchers.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def is_tracker_launcher_action(action: QAction | None) -> bool:
+    parts = get_action_identity_parts(action)
+    return parts is not None and parts.class_name in TRACKER_LAUNCHER_CLASS_NAMES
+```
+
+</details>
+
+## 🔧 Function `iter_tracker_launcher_actions`
+
+```python
+def iter_tracker_launcher_actions(menu: QMenu) -> Iterable[QAction]
+```
+
+Yield Finance/Fitness/Food/Habits leaf actions from [`menu`](qt_split_menu_button.g.md#%EF%B8%8F-method-menu) in menu order.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def iter_tracker_launcher_actions(menu: QMenu) -> Iterable[QAction]:
+    for action in menu.actions():
+        if is_tracker_launcher_action(action):
+            yield action
+```
+
+</details>
+
 ## 🔧 Function `show_action_class_context_menu`
 
 ```python
@@ -416,6 +475,53 @@ def show_action_item_context_menu(
         cli_copy_command=get_cli_copy_command(action),
         host_widget=host_widget,
     )
+```
+
+</details>
+
+## 🔧 Function `show_open_all_trackers_menu`
+
+```python
+def show_open_all_trackers_menu(*, parent: QWidget | None, global_pos: QPoint, host_menu: QMenu) -> None
+```
+
+Show a one-item menu that opens Finance, Fitness, Food, and Habits.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def show_open_all_trackers_menu(
+    *,
+    parent: QWidget | None,
+    global_pos: QPoint,
+    host_menu: QMenu,
+) -> None:
+    menu = FluentMenu("", parent)
+    open_all = menu.addAction(OPEN_ALL_TRACKERS_MENU_LABEL)
+    open_all.triggered.connect(lambda *_args, source=host_menu: trigger_all_tracker_launchers(source))
+    apply_leading_chrome_icons(menu)
+    menu.refresh_theme()
+    menu.exec(global_pos)
+```
+
+</details>
+
+## 🔧 Function `trigger_all_tracker_launchers`
+
+```python
+def trigger_all_tracker_launchers(menu: QMenu) -> None
+```
+
+Trigger every tracker launcher QAction found on [`menu`](qt_split_menu_button.g.md#%EF%B8%8F-method-menu).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def trigger_all_tracker_launchers(menu: QMenu) -> None:
+    for action in iter_tracker_launcher_actions(menu):
+        action.trigger()
 ```
 
 </details>

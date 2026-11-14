@@ -253,6 +253,7 @@ class DateMixin:
         to_widget: QDateEdit,
         months: int = 0,
         years: int = 0,
+        days: int = 0,
         *,
         is_all_time: bool = False,
     ) -> None:
@@ -271,6 +272,8 @@ class DateMixin:
             from_widget.setDate(current_date.addYears(-years))
         elif months:
             from_widget.setDate(current_date.addMonths(-months))
+        elif days:
+            from_widget.setDate(current_date.addDays(-days))
 
 
 class TableOperations:

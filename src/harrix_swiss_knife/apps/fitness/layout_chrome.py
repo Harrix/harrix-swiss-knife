@@ -212,12 +212,19 @@ def _polish_charts(host: Any) -> None:
                 label.setFont(font)
 
     for name, text, icon in (
-        ("pushButton_update_chart", "Update chart", "refresh-cw"),
+        ("pushButton_update_chart", "Refresh", "refresh-cw"),
+        ("pushButton_chart_last_week", "Last week", "calendar-days"),
         ("pushButton_chart_last_month", "Last month", "calendar"),
         ("pushButton_chart_last_year", "Last year", "calendar-range"),
         ("pushButton_chart_all_time", "All time", "infinity"),
     ):
         _idle_button(host, name, text, icon)
+    toolbar = getattr(host, "_chart_toolbar", None)
+    if toolbar is not None:
+        toolbar.polish()
+        sync = getattr(host, "_sync_fitness_chart_toolbar_mode", None)
+        if callable(sync):
+            sync()
 
     for control_name in (
         "comboBox_chart_period",

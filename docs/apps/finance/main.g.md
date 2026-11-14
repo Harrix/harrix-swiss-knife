@@ -48,6 +48,7 @@ lang: en
   - [⚙️ Method `on_translate_with_ai`](#%EF%B8%8F-method-on_translate_with_ai)
   - [⚙️ Method `set_chart_all_time`](#%EF%B8%8F-method-set_chart_all_time)
   - [⚙️ Method `set_chart_last_month`](#%EF%B8%8F-method-set_chart_last_month)
+  - [⚙️ Method `set_chart_last_week`](#%EF%B8%8F-method-set_chart_last_week)
   - [⚙️ Method `set_chart_last_year`](#%EF%B8%8F-method-set_chart_last_year)
   - [⚙️ Method `set_today_date`](#%EF%B8%8F-method-set_today_date)
   - [⚙️ Method `show_tables`](#%EF%B8%8F-method-show_tables)
@@ -220,6 +221,7 @@ class MainWindow(
 
         # Charts tab: auto-draw only on first visit.
         self._charts_initialized: bool = False
+        self._chart_toolbar: ChartToolbar | None = None
         self._chart_build_toast: toast_countdown_notification.ToastCountdownNotification | None = None
         self._report_build_toast: toast_countdown_notification.ToastCountdownNotification | None = None
         self._compare_last_years_start_month: int = 1
@@ -1138,6 +1140,10 @@ class MainWindow(
         """Set chart start date to one month ago and end date to today."""
         self._set_date_range(self.dateEdit_chart_from, self.dateEdit_chart_to, months=1)
 
+    def set_chart_last_week(self) -> None:
+        """Set chart start date to one week ago and end date to today."""
+        self._set_date_range(self.dateEdit_chart_from, self.dateEdit_chart_to, days=7)
+
     def set_chart_last_year(self) -> None:
         """Set chart start date to one year ago and end date to today."""
         self._set_date_range(self.dateEdit_chart_from, self.dateEdit_chart_to, years=1)
@@ -1893,12 +1899,7 @@ class MainWindow(
         self.dateEdit_filter_to.dateChanged.connect(self.apply_filter)
         self.checkBox_use_date_filter.toggled.connect(self._on_use_date_filter_toggled)
 
-        # Chart date range signals
-        self.pushButton_chart_last_month.clicked.connect(self.set_chart_last_month)
-        self.pushButton_chart_last_year.clicked.connect(self.set_chart_last_year)
-        self.pushButton_chart_all_time.clicked.connect(self.set_chart_all_time)
-
-        # Auto-update chart when parameters change
+        # Chart type radios + shared toolbar (period / dates / compare).
         self.radioButton_type_of_chart_balance.toggled.connect(self._update_finance_chart)
         self.radioButton_type_of_chart_balance_compare_last_years.toggled.connect(self._update_finance_chart)
         self.radioButton_expense_and_income.toggled.connect(self._update_finance_chart)
@@ -1908,13 +1909,8 @@ class MainWindow(
         self.radioButton_type_of_chart_compare_same_months.toggled.connect(self._update_finance_chart)
         self.radioButton_type_of_chart_compare_last_years.toggled.connect(self._update_finance_chart)
         self.radioButton_type_of_chart_average_salary.toggled.connect(self._update_finance_chart)
-        self.comboBox_chart_period.currentIndexChanged.connect(self._update_finance_chart)
-        self.dateEdit_chart_from.dateChanged.connect(self._update_finance_chart)
-        self.dateEdit_chart_to.dateChanged.connect(self._update_finance_chart)
         self.checkBox_chart_show_labels.toggled.connect(self._update_finance_chart)
-        self._install_chart_label_mode_control()
-        self.spinBox_compare_last.valueChanged.connect(self._update_finance_chart)
-        self.comboBox_compare_same_months.currentIndexChanged.connect(self._update_finance_chart)
+        self._install_chart_toolbar()
 
         self.list_chart_categories.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.list_chart_categories.setItemDelegate(LucideCheckableItemDelegate(self.list_chart_categories))
@@ -2275,7 +2271,6 @@ class MainWindow(
 
         year_start_month = self._compare_last_years_start_month
         year_start_day = self._compare_last_years_start_day
-        self.label_compare_last.setText("Number of years:")
 
         yearly_data, labels, colors = compute_balance_compare_last_years(
             transaction_rows,
@@ -2421,11 +2416,6 @@ class MainWindow(
         compare_count = self.spinBox_compare_last.value()
         max_days_in_all_periods = 0
         rendered_any = False
-
-        if mode == "last_years":
-            self.label_compare_last.setText("Number of years:")
-        else:
-            self.label_compare_last.setText("Number of months:")
 
         for section_title, category_type, selected_names in sections:
             if mode == "last":
@@ -2594,7 +2584,6 @@ class MainWindow(
 
         year_start_month = self._compare_last_years_start_month
         year_start_day = self._compare_last_years_start_day
-        self.label_compare_last.setText("Number of years:")
 
         all_series: list[list[tuple[int, float, str]]] = []
         all_labels: list[str] = []
@@ -3090,19 +3079,27 @@ class MainWindow(
         # Setup exchange rates controls
         self._setup_exchange_rates_controls()
 
-    def _install_chart_label_mode_control(self) -> None:
-        """Replace Show labels checkbox with Auto / All / Off combo (default Auto)."""
-        from harrix_swiss_knife.apps.common.chart_operations import (  # noqa: PLC0415
-            install_chart_label_mode_combo,
-        )
-
+    def _install_chart_toolbar(self) -> None:
+        """Bind the shared chart toolbar and wire period / date / compare controls."""
         checkbox = getattr(self, "checkBox_chart_show_labels", None)
         install_chart_label_mode_combo(
             self,
             self.horizontalLayout_charts_controls_1,
             replace_widget=checkbox,
-            on_changed=self._update_finance_chart,
         )
+        toolbar = ChartToolbar()
+        toolbar.bind_host(self)
+        toolbar.polish()
+        toolbar.connect_changed(self._update_finance_chart)
+        toolbar.connect_refresh(self._update_finance_chart)
+        toolbar.connect_presets(
+            last_week=self.set_chart_last_week,
+            last_month=self.set_chart_last_month,
+            last_year=self.set_chart_last_year,
+            all_time=self.set_chart_all_time,
+        )
+        self._chart_toolbar = toolbar
+        self._sync_finance_chart_toolbar_mode()
 
     def _is_current_tab(self, object_name: str) -> bool:
         """Return whether the current tab widget has `object_name`."""
@@ -6149,6 +6146,26 @@ class MainWindow(
                 subdivision = db_manager.get_currency_subdivision_by_code(currency_code)
         self.doubleSpinBox_amount.setMaximum(sqlite_max_major_amount(subdivision))
 
+    def _sync_finance_chart_toolbar_mode(self) -> None:
+        """Show only toolbar slots that apply to the selected finance chart type."""
+        toolbar = self._chart_toolbar
+        if toolbar is None:
+            return
+        if self.radioButton_type_of_chart_compare_last.isChecked():
+            toolbar.set_mode("compare_last")
+        elif self.radioButton_type_of_chart_compare_same_months.isChecked():
+            toolbar.set_mode("compare_same")
+        elif (
+            self.radioButton_type_of_chart_balance_compare_last_years.isChecked()
+            or self.radioButton_type_of_chart_compare_last_years.isChecked()
+            or self.radioButton_expense_and_income_compare_last_years.isChecked()
+        ):
+            toolbar.set_mode("compare_years")
+        elif self.radioButton_type_of_chart_average_salary.isChecked():
+            toolbar.set_mode("labels_only", show_count=False)
+        else:
+            toolbar.set_mode("range")
+
     def _tab_object_name(self, index: int | None = None) -> str:
         """Return the object name of the tab at `index`, or the current tab."""
         widget = self.tabWidget.widget(self.tabWidget.currentIndex() if index is None else index)
@@ -6324,6 +6341,8 @@ class MainWindow(
         sender = self.sender()
         if isinstance(sender, QRadioButton) and not sender.isChecked():
             return
+
+        self._sync_finance_chart_toolbar_mode()
 
         year_start_radios = (
             self.radioButton_type_of_chart_balance_compare_last_years,
@@ -6657,6 +6676,7 @@ def __init__(self, *, hide_on_close: bool = False) -> None:
 
         # Charts tab: auto-draw only on first visit.
         self._charts_initialized: bool = False
+        self._chart_toolbar: ChartToolbar | None = None
         self._chart_build_toast: toast_countdown_notification.ToastCountdownNotification | None = None
         self._report_build_toast: toast_countdown_notification.ToastCountdownNotification | None = None
         self._compare_last_years_start_month: int = 1
@@ -8040,6 +8060,24 @@ Set chart start date to one month ago and end date to today.
 ```python
 def set_chart_last_month(self) -> None:
         self._set_date_range(self.dateEdit_chart_from, self.dateEdit_chart_to, months=1)
+```
+
+</details>
+
+### ⚙️ Method `set_chart_last_week`
+
+```python
+def set_chart_last_week(self) -> None
+```
+
+Set chart start date to one week ago and end date to today.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_chart_last_week(self) -> None:
+        self._set_date_range(self.dateEdit_chart_from, self.dateEdit_chart_to, days=7)
 ```
 
 </details>

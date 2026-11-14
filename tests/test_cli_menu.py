@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+from unittest.mock import MagicMock
+
 import pytest
-from PySide6.QtCore import QPoint
+from PySide6.QtCore import QEvent, QPoint, QPointF, Qt
+from PySide6.QtGui import QAction, QMouseEvent
 from PySide6.QtWidgets import QApplication, QWidget
 
 from harrix_swiss_knife.action_identity import ActionIdentityParts
@@ -12,11 +15,15 @@ from harrix_swiss_knife.cli_menu import (
     COPY_ACTION_NAME_MENU_PREFIX,
     COPY_ACTION_NAME_PREVIEW_MAX_LEN,
     COPY_ACTION_PATH_MENU_PREFIX,
+    OPEN_ALL_TRACKERS_MENU_LABEL,
     CliContextMenu,
     format_copy_action_class_menu_label,
     format_copy_action_name_menu_label,
     format_copy_action_path_menu_label,
+    is_tracker_launcher_action,
     show_action_identity_context_menu,
+    show_open_all_trackers_menu,
+    trigger_all_tracker_launchers,
     truncate_action_name_preview,
 )
 from harrix_swiss_knife.fluent.theme import FluentTheme, ThemeMode, enable_fluent_theme
@@ -112,3 +119,104 @@ def test_tray_context_menu_follows_dark_theme_without_host(qapp: QApplication) -
         assert "rgba(255, 255, 255" in sheet or "#ffffff" in sheet
     finally:
         theme.set_mode(previous, persist=False)
+
+
+def _action_with_identity(class_name: str, title: str) -> QAction:
+    action = QAction(title)
+    setattr(  # noqa: B010
+        action,
+        "action_identity_parts",
+        ActionIdentityParts(name=title, class_name=class_name, path=f"actions/{class_name}.py"),
+    )
+    return action
+
+
+def test_is_tracker_launcher_action_detects_four_trackers(qapp: QApplication) -> None:  # noqa: ARG001
+    assert is_tracker_launcher_action(_action_with_identity("OnFinance", "Finance"))
+    assert is_tracker_launcher_action(_action_with_identity("OnFitness", "Fitness"))
+    assert is_tracker_launcher_action(_action_with_identity("OnFood", "Food"))
+    assert is_tracker_launcher_action(_action_with_identity("OnHabits", "Habits"))
+    assert not is_tracker_launcher_action(_action_with_identity("OnIcons", "Icons"))
+    assert not is_tracker_launcher_action(QAction("plain"))
+
+
+def test_trigger_all_tracker_launchers_triggers_only_trackers(qapp: QApplication) -> None:  # noqa: ARG001
+    menu = CliContextMenu()
+    finance = _action_with_identity("OnFinance", "Finance")
+    fitness = _action_with_identity("OnFitness", "Fitness")
+    food = _action_with_identity("OnFood", "Food")
+    habits = _action_with_identity("OnHabits", "Habits")
+    icons = _action_with_identity("OnIcons", "Icons")
+    for action in (finance, fitness, food, habits, icons):
+        menu.addAction(action)
+    triggered: list[str] = []
+    for action in (finance, fitness, food, habits, icons):
+        label = action.text()
+        action.triggered.connect(lambda *_a, name=label: triggered.append(name))
+    trigger_all_tracker_launchers(menu)
+    assert triggered == ["Finance", "Fitness", "Food", "Habits"]
+
+
+def test_show_open_all_trackers_menu_has_single_action(qapp: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:
+    assert qapp is not None
+    host = CliContextMenu()
+    shown: list[FluentMenu] = []
+
+    def _capture_exec(self: FluentMenu, *_args: object, **_kwargs: object) -> None:
+        shown.append(self)
+
+    monkeypatch.setattr(FluentMenu, "exec", _capture_exec)
+    show_open_all_trackers_menu(parent=host, global_pos=QPoint(0, 0), host_menu=host)
+    assert len(shown) == 1
+    labels = [action.text() for action in shown[0].actions()]
+    assert labels == [OPEN_ALL_TRACKERS_MENU_LABEL]
+
+
+def test_cli_context_menu_right_click_opens_all_trackers_menu(
+    qapp: QApplication, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    assert qapp is not None
+    menu = CliContextMenu()
+    finance = _action_with_identity("OnFinance", "Finance")
+    menu.addAction(finance)
+    menu.setFixedSize(200, 40)
+    opened: list[dict[str, object]] = []
+    monkeypatch.setattr(
+        "harrix_swiss_knife.cli_menu.show_open_all_trackers_menu",
+        lambda **kwargs: opened.append(kwargs),
+    )
+    monkeypatch.setattr(menu, "actionAt", MagicMock(return_value=finance))
+    event = QMouseEvent(
+        QEvent.Type.MouseButtonRelease,
+        QPointF(10, 10),
+        QPointF(10, 10),
+        Qt.MouseButton.RightButton,
+        Qt.MouseButton.RightButton,
+        Qt.KeyboardModifier.NoModifier,
+    )
+    menu.mouseReleaseEvent(event)
+    assert len(opened) == 1
+    assert opened[0]["host_menu"] is menu
+
+
+def test_cli_context_menu_right_click_ignores_non_tracker(qapp: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:
+    assert qapp is not None
+    menu = CliContextMenu()
+    icons = _action_with_identity("OnIcons", "Icons")
+    menu.addAction(icons)
+    opened: list[dict[str, object]] = []
+    monkeypatch.setattr(
+        "harrix_swiss_knife.cli_menu.show_open_all_trackers_menu",
+        lambda **kwargs: opened.append(kwargs),
+    )
+    monkeypatch.setattr(menu, "actionAt", MagicMock(return_value=icons))
+    event = QMouseEvent(
+        QEvent.Type.MouseButtonRelease,
+        QPointF(10, 10),
+        QPointF(10, 10),
+        Qt.MouseButton.RightButton,
+        Qt.MouseButton.RightButton,
+        Qt.KeyboardModifier.NoModifier,
+    )
+    menu.mouseReleaseEvent(event)
+    assert opened == []

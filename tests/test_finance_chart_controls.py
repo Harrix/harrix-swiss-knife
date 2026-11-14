@@ -8,10 +8,10 @@ from harrix_swiss_knife.apps.finance.main import MainWindow
 
 
 def test_compare_controls_rebuild_finance_chart() -> None:
-    """Month count and same-month combo must trigger a chart rebuild."""
-    source = inspect.getsource(MainWindow._connect_signals)
-    assert "self.spinBox_compare_last.valueChanged.connect(self._update_finance_chart)" in source
-    assert "self.comboBox_compare_same_months.currentIndexChanged.connect(self._update_finance_chart)" in source
+    """Month count and same-month combo must trigger a chart rebuild via the toolbar."""
+    source = inspect.getsource(MainWindow._install_chart_toolbar)
+    assert "toolbar.connect_changed(self._update_finance_chart)" in source
+    assert "toolbar.bind_host(self)" in source
 
 
 def test_year_start_prompt_only_when_switching_chart_type() -> None:
@@ -27,4 +27,11 @@ def test_balance_compare_last_years_uses_spinbox_years() -> None:
     assert "_draw_balance_compare_last_years_chart" in source
     draw_source = inspect.getsource(MainWindow._draw_balance_compare_last_years_chart)
     assert "compute_balance_compare_last_years" in draw_source
-    assert 'setText("Number of years:")' in draw_source
+
+
+def test_finance_toolbar_mode_sync_covers_compare_and_salary() -> None:
+    source = inspect.getsource(MainWindow._sync_finance_chart_toolbar_mode)
+    assert 'toolbar.set_mode("compare_last")' in source
+    assert 'toolbar.set_mode("compare_same")' in source
+    assert 'toolbar.set_mode("compare_years")' in source
+    assert 'toolbar.set_mode("labels_only", show_count=False)' in source

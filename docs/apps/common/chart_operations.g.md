@@ -544,7 +544,7 @@ def install_chart_label_mode_combo(host: Any, layout: Any, *, replace_widget: An
 
 Add or reuse Labels Auto/All/Off combo on a chart toolbar layout.
 
-Returns the combo. Idempotent when `host.comboBox_chart_label_mode` exists.
+Delegates to `chart_page_chrome.install_chart_label_mode_combo`.
 
 <details>
 <summary>Code:</summary>
@@ -558,36 +558,13 @@ def install_chart_label_mode_combo(
     on_changed: Any | None = None,
     insert_index: int | None = None,
 ) -> Any:
-    from PySide6.QtWidgets import QComboBox, QLabel  # noqa: PLC0415
-
-    existing = getattr(host, "comboBox_chart_label_mode", None)
-    if existing is not None:
-        return existing
-
-    if replace_widget is not None:
-        replace_widget.hide()
-        index = layout.indexOf(replace_widget)
-    elif insert_index is not None:
-        index = insert_index
-    else:
-        index = -1
-
-    caption = QLabel("Labels")
-    combo = QComboBox()
-    combo.setObjectName("comboBox_chart_label_mode")
-    for mode, text in (("auto", "Auto"), ("all", "All"), ("off", "Off")):
-        combo.addItem(text, mode)
-    combo.setCurrentIndex(0)
-    if index >= 0:
-        layout.insertWidget(index, caption)
-        layout.insertWidget(index + 1, combo)
-    else:
-        layout.addWidget(caption)
-        layout.addWidget(combo)
-    host.comboBox_chart_label_mode = combo
-    if on_changed is not None:
-        combo.currentIndexChanged.connect(on_changed)
-    return combo
+    return _install_label_mode_combo(
+        host,
+        layout,
+        replace_widget=replace_widget,
+        on_changed=on_changed,
+        insert_index=insert_index,
+    )
 ```
 
 </details>

@@ -108,8 +108,11 @@ class MainWindow(
         self._bg_sport_sync_timer.setInterval(300)
         self._bg_sport_sync_timer.timeout.connect(self._run_background_sport_habit_sync)
         self._habits_heatmap_canvas: FigureCanvas | None = None
+        self._habits_chart_canvas: FigureCanvas | None = None
         self._habits_heatmap_counts: dict[date, int] = {}
         self._habits_heatmap_positions: dict[date, tuple[float, float]] = {}
+        self._habits_chart_toolbar: ChartToolbar | None = None
+        self._habits_chart_info_strip: QLabel | None = None
         self.db_manager: database_manager.DatabaseManager | None = None
         self._is_small_window_layout: bool | None = None  # Used by _update_layout_for_window_size
 
@@ -580,7 +583,7 @@ class MainWindow(
                 # Apply filter to process_habits table
                 self.load_process_habits_table(ignore_filter=False)
                 # Directly update heatmap - this is the most reliable way
-                self.update_habit_calendar_heatmap(habit_name, year=year)
+                self._refresh_habits_chart(habit_name, year=year)
 
     def on_habit_filter_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
         """Handle habit filter list view selection change.
@@ -607,8 +610,7 @@ class MainWindow(
                         year = None
                 # Apply filter to process_habits table
                 self.load_process_habits_table(ignore_filter=False)
-                # Update heatmap with selected habit
-                self.update_habit_calendar_heatmap(habit_name, year=year)
+                self._refresh_habits_chart(habit_name, year=year)
 
     def on_habit_filter_selection_changed_slot(self, selected: QItemSelection, _deselected: QItemSelection) -> None:
         """Handle habit filter list view selection changed signal.
@@ -638,8 +640,7 @@ class MainWindow(
                             year = None
                     # Apply filter to process_habits table
                     self.load_process_habits_table(ignore_filter=False)
-                    # Update heatmap with selected habit
-                    self.update_habit_calendar_heatmap(habit_name, year=year)
+                    self._refresh_habits_chart(habit_name, year=year)
 
     def on_habit_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
         """Handle habit table selection change.
@@ -651,7 +652,7 @@ class MainWindow(
 
         """
         if current.isValid():
-            self.update_habit_calendar_heatmap()
+            self._refresh_habits_chart()
 
     def on_habit_year_changed(self, index: QModelIndex) -> None:
         """Handle habit year list view change.
@@ -683,8 +684,7 @@ class MainWindow(
 
         # Apply filter to process_habits table
         self.load_process_habits_table(ignore_filter=False)
-        # Update heatmap with selected year
-        self.update_habit_calendar_heatmap(habit_name, year=year)
+        self._refresh_habits_chart(habit_name, year=year)
         self._sync_heatmap_year_nav_buttons()
 
     def on_habit_year_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
@@ -845,7 +845,7 @@ class MainWindow(
                 self.load_process_habits_table(ignore_filter=True)
                 selected_habit = self._get_selected_habit_from_table()
                 if selected_habit:
-                    self.update_habit_calendar_heatmap(selected_habit)
+                    self._refresh_habits_chart(selected_habit)
             else:
                 logger.warning("⚠️ Table 'process_habits' does not exist in database")
                 self.models["process_habits"] = self._create_colored_table_model(
@@ -1179,6 +1179,11 @@ class MainWindow(
             self._show_habit_heatmap_message(f"Error creating calendar heatmap: {e}")
             return
 
+        period_label = str(year) if year is not None else "Last 365 days"
+        active_days = len([value for value in date_values.values() if value > 0])
+        self._set_habits_chart_info(
+            f"<b>{habit_name}</b> ({period_label}) — {active_days} active day{'s' if active_days != 1 else ''}",
+        )
         self._display_habit_heatmap_figure(figure)
 
     def update_habits_filter_combobox(self) -> None:
@@ -1280,7 +1285,7 @@ class MainWindow(
                             except ValueError:
                                 year = None
                         # Manually trigger the selection change handler to build the graph
-                        self.update_habit_calendar_heatmap(selected_habit, year=year)
+                        self._refresh_habits_chart(selected_habit, year=year)
 
             if selection_model:
                 selection_model.blockSignals(False)  # noqa: FBT003
@@ -1399,6 +1404,18 @@ class MainWindow(
             text = f"{text}\n\nTickTick was not backed up:\n{ticktick_error}"
         message_box.information(self, "Backup habits", text)
 
+    def _charts_body_insert_index(self) -> int:
+        layout = self.verticalLayout_charts_heatmap
+        if self._habits_chart_info_strip is not None:
+            index = layout.indexOf(self._habits_chart_info_strip)
+            if index >= 0:
+                return index + 1
+        if getattr(self, "frame_charts_controls", None) is not None:
+            index = layout.indexOf(self.frame_charts_controls)
+            if index >= 0:
+                return index + 1
+        return 1
+
     def _cleanup_process_habit_delegates(self) -> None:
         """Remove process_habits table delegates before window destruction."""
         table_view = self.tableView_process_habits
@@ -1432,6 +1449,7 @@ class MainWindow(
             elif item.spacerItem() is not None:
                 layout.takeAt(index)
         self._habits_heatmap_canvas = None
+        self._habits_chart_canvas = None
 
     def _configure_habits_table_columns(self) -> None:
         """Keep compact flag columns and use remaining width for the habit name."""
@@ -1469,6 +1487,15 @@ class MainWindow(
         self.tableView_process_habits.customContextMenuRequested.connect(self._show_process_habits_context_menu)
         self.tableView_process_habits.clicked.connect(self._on_process_habits_table_clicked)
 
+    def _current_habits_chart_mode(self) -> str:
+        radios = getattr(self, "_habits_chart_radios", None)
+        if not radios:
+            return CHART_MODE_HEATMAP
+        for key, radio in radios.items():
+            if radio.isChecked():
+                return key
+        return CHART_MODE_HEATMAP
+
     def _display_habit_heatmap_figure(self, figure: Figure) -> None:
         """Show the heatmap top-aligned at natural height (7 weekday rows + legend)."""
         self._clear_habit_heatmap_layout()
@@ -1496,8 +1523,7 @@ class MainWindow(
         # not an expanded white scroll-area content pane.
         self.scrollArea_charts_process_habits.hide()
         layout = self.verticalLayout_charts_heatmap
-        # Year nav is index 0; insert canvas after it, then a stretch for page bg.
-        insert_at = 1
+        insert_at = self._charts_body_insert_index()
         layout.insertWidget(insert_at, canvas, 0, Qt.AlignmentFlag.AlignTop)
         # Ensure a single trailing stretch exists for leftover height.
         if layout.count() == insert_at + 1:
@@ -1505,6 +1531,16 @@ class MainWindow(
         layout.setStretch(insert_at, 0)
         layout.setStretch(layout.count() - 1, 1)
         self._habits_heatmap_canvas = canvas
+        canvas.draw()
+
+    def _display_habit_line_chart(self, figure: Figure) -> None:
+        """Show a line/bar chart inside the charts scroll area."""
+        self._clear_habit_heatmap_layout()
+        self.scrollArea_charts_process_habits.show()
+        canvas = create_chart_canvas(figure)
+        canvas.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.verticalLayout_charts_process_habits_content.addWidget(canvas, stretch=1)
+        self._habits_chart_canvas = canvas
         canvas.draw()
 
     def _dispose_models(self) -> None:
@@ -1590,6 +1626,17 @@ class MainWindow(
         if current_index.isValid():
             return self.habits_year_list_model.data(current_index) or ""
         return ""
+
+    def _habit_chart_figsize(self, *, for_heatmap: bool) -> tuple[float, float]:
+        host = self.scrollArea_charts_process_habits.viewport()
+        dpi = 100
+        min_px = 200
+        width_px = max(int(host.width()), min_px)
+        if for_heatmap:
+            height_px = max(int(host.height()), min_px)
+        else:
+            height_px = max(360, min(int(self.widget_charts_heatmap.height()), 520))
+        return (width_px / dpi, height_px / dpi)
 
     def _habit_filter_years(self) -> list[int]:
         """Return calendar years listed in the Charts year filter."""
@@ -1766,19 +1813,61 @@ class MainWindow(
         # You could add a toast notification here if you have one
 
     def _init_heatmap_year_nav(self) -> None:
-        """Style and connect Calendar Heatmap prev/next year buttons."""
-        prev_btn = self.pushButton_charts_heatmap_prev_year
-        next_btn = self.pushButton_charts_heatmap_next_year
-        style_calendar_nav_button(prev_btn)
-        style_calendar_nav_button(next_btn)
-        prev_btn.clicked.connect(self._on_heatmap_prev_year)
-        next_btn.clicked.connect(self._on_heatmap_next_year)
-        # Do not stretch the scroll area into a tall empty panel; leftover height is page bg.
-        self.verticalLayout_charts_heatmap.setStretch(1, 0)
+        """Keep charts scroll/heatmap layout metrics (toolbar wires prev/next in chart shell)."""
         self.scrollArea_charts_process_habits.setSizePolicy(
             QSizePolicy.Policy.Expanding,
             QSizePolicy.Policy.Preferred,
         )
+
+    def _install_habits_chart_shell(self) -> None:
+        """Chart-type radios (left) and shared toolbar + info strip (right)."""
+        if self._habits_chart_toolbar is not None:
+            return
+
+        group = QGroupBox("Chart", self.layoutWidget)
+        group.setObjectName("groupBox_habits_charts")
+        group_layout = QVBoxLayout(group)
+        _, radios = build_chart_type_radios(group, HABIT_CHART_MODE_LABELS, checked_key=CHART_MODE_HEATMAP)
+        for radio in radios.values():
+            group_layout.addWidget(radio)
+            radio.toggled.connect(self._on_habits_chart_type_changed)
+        polish_chart_type_group(group)
+        move_layout_widget(self.verticalLayout_24, group, 0)
+        self.groupBox_habits_charts = group
+        self._habits_chart_radios = radios
+
+        toolbar = ChartToolbar()
+        frame = toolbar.build(self.widget_charts_heatmap)
+        info_strip = create_info_strip(self.widget_charts_heatmap)
+        info_strip.hide()
+        move_layout_widget(self.verticalLayout_charts_heatmap, frame, 0)
+        move_layout_widget(self.verticalLayout_charts_heatmap, info_strip, 1)
+
+        self.pushButton_charts_heatmap_prev_year = toolbar.button_prev_year
+        self.pushButton_charts_heatmap_next_year = toolbar.button_next_year
+        self.pushButton_update_chart = toolbar.refresh_button
+        self.spinBox_compare_last = toolbar.spin_count
+        self.comboBox_compare_same_months = toolbar.combo_month
+
+        for index in range(self.horizontalLayout_charts_heatmap_year.count()):
+            item = self.horizontalLayout_charts_heatmap_year.itemAt(index)
+            if item is None:
+                continue
+            widget = item.widget()
+            if widget is not None:
+                widget.hide()
+
+        toolbar.polish()
+        toolbar.connect_changed(self._refresh_habits_chart)
+        toolbar.connect_refresh(self._refresh_habits_chart)
+        toolbar.connect_presets(
+            prev_year=self._on_heatmap_prev_year,
+            next_year=self._on_heatmap_next_year,
+        )
+        self._habits_chart_toolbar = toolbar
+        self._habits_chart_info_strip = info_strip
+        self.frame_charts_controls = frame
+        self._sync_habits_chart_toolbar_mode()
         self._sync_heatmap_year_nav_buttons()
 
     # Add to MainWindow class (near other small helpers)
@@ -1805,6 +1894,13 @@ class MainWindow(
             timer.timeout.connect(self._sync_tables_after_dashboard_change)
             self._dashboard_tables_sync_timer = timer
         timer.start()
+
+    def _on_habits_chart_type_changed(self) -> None:
+        sender = self.sender()
+        if isinstance(sender, QRadioButton) and not sender.isChecked():
+            return
+        self._sync_habits_chart_toolbar_mode()
+        self._refresh_habits_chart()
 
     def _on_heatmap_next_year(self) -> None:
         self._step_heatmap_year(1)
@@ -1875,18 +1971,83 @@ class MainWindow(
             dashboard.set_database(self.db_manager)
 
     def _refresh_habit_heatmap_from_filters(self) -> None:
-        """Redraw the heatmap for the current habit and year filters."""
-        habit_name = self._get_selected_habit_filter()
-        if not habit_name:
+        """Redraw the chart for the current habit/year filters and chart mode."""
+        self._refresh_habits_chart()
+
+    def _refresh_habits_chart(self, habit_name: str | None = None, year: int | None = None) -> None:
+        """Redraw the chart for the selected habit and current chart mode."""
+        if self.db_manager is None:
             return
-        selected_text = self._get_selected_habit_year()
-        year = None
-        if selected_text != "Last 365 days":
-            try:
-                year = int(selected_text)
-            except ValueError:
-                year = None
-        self.update_habit_calendar_heatmap(habit_name, year=year)
+        self._sync_habits_chart_toolbar_mode()
+        mode = self._current_habits_chart_mode()
+        if mode == CHART_MODE_HEATMAP:
+            if year is None:
+                selected_text = self._get_selected_habit_year()
+                if selected_text != "Last 365 days":
+                    with contextlib.suppress(ValueError):
+                        year = int(selected_text)
+            self.update_habit_calendar_heatmap(habit_name, year=year)
+            self._sync_heatmap_year_nav_buttons()
+            return
+        if habit_name is None:
+            habit_name = self._get_selected_habit_filter()
+        if not habit_name:
+            self._show_habit_heatmap_message("Please select a habit")
+            return
+        rows = self.db_manager.get_habit_calendar_data(habit_name)
+        is_bool = habit_is_bool_flag(
+            self.db_manager.get_rows(
+                "SELECT is_bool FROM habits WHERE name = :name LIMIT 1",
+                {"name": habit_name},
+            ),
+        )
+        daily = aggregate_daily_values(rows, is_bool=is_bool)
+        toolbar = self._habits_chart_toolbar
+        months = toolbar.count_value() if toolbar is not None else 12
+        figsize = self._habit_chart_figsize(for_heatmap=False)
+
+        if mode == CHART_MODE_BY_MONTH:
+            month_counts = counts_by_month(daily, months)
+            if not month_counts or all(count == 0 for _start, count in month_counts):
+                self._show_habit_heatmap_message(f"No data for habit '{habit_name}'")
+                return
+            figure = build_habit_by_month_chart(
+                month_counts,
+                habit_name=habit_name,
+                is_bool=is_bool,
+                figsize=figsize,
+            )
+            total = sum(count for _start, count in month_counts)
+            measure = "done days" if is_bool else "total"
+            self._set_habits_chart_info(
+                f"<b>{habit_name}</b> — {measure}: {total} over the last {months} months",
+            )
+            self._display_habit_line_chart(figure)
+            return
+
+        if mode == CHART_MODE_COMPARE_LAST:
+            series = compare_last_months_series(daily, months)
+            if not series or all(not item.points for item in series):
+                self._show_habit_heatmap_message(f"No data for the last {months} months")
+                return
+            title = f"{habit_name}: last {months} months"
+            figure = build_habit_compare_chart(series, title=title, is_bool=is_bool, figsize=figsize)
+            self._set_habits_chart_info(f"<b>{habit_name}</b> — compare last {months} months")
+            self._display_habit_line_chart(figure)
+            return
+
+        if mode == CHART_MODE_COMPARE_SAME:
+            month = toolbar.month_number() if toolbar is not None else datetime.now(UTC).astimezone().month
+            years = months
+            series = compare_same_months_series(daily, month, years)
+            month_name = calendar.month_name[month]
+            if not series or all(not item.points for item in series):
+                self._show_habit_heatmap_message(f"No data for {month_name} in the last {years} years")
+                return
+            title = f"{habit_name}: {month_name} ({years} years)"
+            figure = build_habit_compare_chart(series, title=title, is_bool=is_bool, figsize=figsize)
+            self._set_habits_chart_info(f"<b>{habit_name}</b> — {month_name} across {years} years")
+            self._display_habit_line_chart(figure)
 
     def _release_habit_heatmap_display(self) -> None:
         """Remove heatmap canvas before window destruction."""
@@ -1933,6 +2094,16 @@ class MainWindow(
             self.splitter_charts.setSizes([filter_width, chart_width])
             return
         QTimer.singleShot(50, self._set_charts_splitter_size)
+
+    def _set_habits_chart_info(self, html: str) -> None:
+        strip = self._habits_chart_info_strip
+        if strip is None:
+            return
+        if html.strip():
+            strip.setText(html)
+            strip.show()
+        else:
+            strip.hide()
 
     def _set_habits_splitter_size(self) -> None:
         """Set initial width for frame_habits to 350 pixels."""
@@ -2011,6 +2182,7 @@ class MainWindow(
             QSizePolicy.Policy.Expanding,
         )
         self.verticalLayout_charts_process_habits_content.setContentsMargins(0, 0, 0, 0)
+        self._install_habits_chart_shell()
         install_shrinkable_tab_scroll(self, self.tabWidget)
 
     def _show_habit_filter_context_menu(self, position: QPoint) -> None:
@@ -2073,12 +2245,15 @@ class MainWindow(
         label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         label.setWordWrap(True)
         layout = self.verticalLayout_charts_heatmap
-        layout.insertWidget(1, label, 0, Qt.AlignmentFlag.AlignTop)
-        year_nav_and_label_count = 2
-        if layout.count() == year_nav_and_label_count:
+        insert_at = self._charts_body_insert_index()
+        layout.insertWidget(insert_at, label, 0, Qt.AlignmentFlag.AlignTop)
+        placeholder_slots = insert_at + 1
+        if layout.count() == placeholder_slots:
             layout.addStretch(1)
-        layout.setStretch(1, 0)
+        layout.setStretch(insert_at, 0)
         layout.setStretch(layout.count() - 1, 1)
+        if self._habits_chart_info_strip is not None:
+            self._habits_chart_info_strip.hide()
 
     def _show_habit_year_filter_context_menu(self, position: QPoint) -> None:
         """Show context menu for habit year filter list view."""
@@ -2223,6 +2398,25 @@ class MainWindow(
         if next_year is None:
             return
         self._select_habit_year_text(str(next_year))
+
+    def _sync_habits_chart_toolbar_mode(self) -> None:
+        toolbar = self._habits_chart_toolbar
+        if toolbar is None:
+            return
+        mode = self._current_habits_chart_mode()
+        if mode == CHART_MODE_HEATMAP:
+            toolbar.set_mode("heatmap")
+        elif mode == CHART_MODE_BY_MONTH:
+            toolbar.set_mode("count")
+        elif mode == CHART_MODE_COMPARE_LAST:
+            toolbar.set_mode("compare_last")
+        elif mode == CHART_MODE_COMPARE_SAME:
+            toolbar.set_mode("compare_same")
+        show_year = mode == CHART_MODE_HEATMAP
+        self.label_filter_habit_year.setVisible(show_year)
+        self.listView_filter_habit_year.setVisible(show_year)
+        if not show_year and self._habits_chart_info_strip is not None:
+            self._habits_chart_info_strip.hide()
 
     def _sync_heatmap_year_nav_buttons(self) -> None:
         """Enable heatmap year arrows only when another year is available."""
@@ -2485,8 +2679,11 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107  (inhe
         self._bg_sport_sync_timer.setInterval(300)
         self._bg_sport_sync_timer.timeout.connect(self._run_background_sport_habit_sync)
         self._habits_heatmap_canvas: FigureCanvas | None = None
+        self._habits_chart_canvas: FigureCanvas | None = None
         self._habits_heatmap_counts: dict[date, int] = {}
         self._habits_heatmap_positions: dict[date, tuple[float, float]] = {}
+        self._habits_chart_toolbar: ChartToolbar | None = None
+        self._habits_chart_info_strip: QLabel | None = None
         self.db_manager: database_manager.DatabaseManager | None = None
         self._is_small_window_layout: bool | None = None  # Used by _update_layout_for_window_size
 
@@ -3095,7 +3292,7 @@ def on_habit_filter_clicked(self, index: QModelIndex) -> None:
                 # Apply filter to process_habits table
                 self.load_process_habits_table(ignore_filter=False)
                 # Directly update heatmap - this is the most reliable way
-                self.update_habit_calendar_heatmap(habit_name, year=year)
+                self._refresh_habits_chart(habit_name, year=year)
 ```
 
 </details>
@@ -3134,8 +3331,7 @@ def on_habit_filter_selection_changed(self, current: QModelIndex, _previous: QMo
                         year = None
                 # Apply filter to process_habits table
                 self.load_process_habits_table(ignore_filter=False)
-                # Update heatmap with selected habit
-                self.update_habit_calendar_heatmap(habit_name, year=year)
+                self._refresh_habits_chart(habit_name, year=year)
 ```
 
 </details>
@@ -3177,8 +3373,7 @@ def on_habit_filter_selection_changed_slot(self, selected: QItemSelection, _dese
                             year = None
                     # Apply filter to process_habits table
                     self.load_process_habits_table(ignore_filter=False)
-                    # Update heatmap with selected habit
-                    self.update_habit_calendar_heatmap(habit_name, year=year)
+                    self._refresh_habits_chart(habit_name, year=year)
 ```
 
 </details>
@@ -3202,7 +3397,7 @@ Args:
 ```python
 def on_habit_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
         if current.isValid():
-            self.update_habit_calendar_heatmap()
+            self._refresh_habits_chart()
 ```
 
 </details>
@@ -3246,8 +3441,7 @@ def on_habit_year_changed(self, index: QModelIndex) -> None:
 
         # Apply filter to process_habits table
         self.load_process_habits_table(ignore_filter=False)
-        # Update heatmap with selected year
-        self.update_habit_calendar_heatmap(habit_name, year=year)
+        self._refresh_habits_chart(habit_name, year=year)
         self._sync_heatmap_year_nav_buttons()
 ```
 
@@ -3497,7 +3691,7 @@ def show_tables(self) -> None:
                 self.load_process_habits_table(ignore_filter=True)
                 selected_habit = self._get_selected_habit_from_table()
                 if selected_habit:
-                    self.update_habit_calendar_heatmap(selected_habit)
+                    self._refresh_habits_chart(selected_habit)
             else:
                 logger.warning("⚠️ Table 'process_habits' does not exist in database")
                 self.models["process_habits"] = self._create_colored_table_model(
@@ -3851,6 +4045,11 @@ def update_habit_calendar_heatmap(self, habit_name: str | None = None, year: int
             self._show_habit_heatmap_message(f"Error creating calendar heatmap: {e}")
             return
 
+        period_label = str(year) if year is not None else "Last 365 days"
+        active_days = len([value for value in date_values.values() if value > 0])
+        self._set_habits_chart_info(
+            f"<b>{habit_name}</b> ({period_label}) — {active_days} active day{'s' if active_days != 1 else ''}",
+        )
         self._display_habit_heatmap_figure(figure)
 ```
 
@@ -3966,7 +4165,7 @@ def update_habits_filter_combobox(self) -> None:
                             except ValueError:
                                 year = None
                         # Manually trigger the selection change handler to build the graph
-                        self.update_habit_calendar_heatmap(selected_habit, year=year)
+                        self._refresh_habits_chart(selected_habit, year=year)
 
             if selection_model:
                 selection_model.blockSignals(False)  # noqa: FBT003

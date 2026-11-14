@@ -123,6 +123,10 @@ class MainWindow(
         self._macros_analysis_done = 0
         self._macros_analysis_failed: list[str] = []
         self._macros_chart_nutrient: Literal["protein", "fat", "carb"] | None = None
+        self._food_chart_mode: str = "calories"
+        self._food_chart_radios: dict[str, QRadioButton] = {}
+        self._food_chart_toolbar: ChartToolbar | None = None
+        self._food_metric_combo: QComboBox | None = None
         self._macros_open_range_after_queue = False
         self._macros_pending_range: tuple[str, str] | None = None
         self._macros_open_day_after_queue: str | None = None
@@ -801,13 +805,11 @@ class MainWindow(
 
     def on_food_stats_drink(self) -> None:
         """Show drinks chart."""
-        self._macros_chart_nutrient = None
-        self._update_drinks_chart()
+        self._set_food_chart_mode("drinks")
 
     def on_food_stats_food_weight(self) -> None:
         """Show food weight chart."""
-        self._macros_chart_nutrient = None
-        self._update_food_weight_chart()
+        self._set_food_chart_mode("food_weight")
 
     def on_food_stats_last_month(self) -> None:
         """Set date range to last month and update chart."""
@@ -841,34 +843,23 @@ class MainWindow(
 
     def on_food_stats_macros_carb(self) -> None:
         """Show carbohydrate chart from saved day analyses."""
-        self._macros_chart_nutrient = "carb"
-        self._request_macros_chart_with_optional_backfill()
+        self._set_food_chart_mode("carb", backfill=True)
 
     def on_food_stats_macros_fat(self) -> None:
         """Show fat chart from saved day analyses."""
-        self._macros_chart_nutrient = "fat"
-        self._request_macros_chart_with_optional_backfill()
+        self._set_food_chart_mode("fat", backfill=True)
 
     def on_food_stats_macros_protein(self) -> None:
         """Show protein chart from saved day analyses."""
-        self._macros_chart_nutrient = "protein"
-        self._request_macros_chart_with_optional_backfill()
+        self._set_food_chart_mode("protein", backfill=True)
 
     def on_food_stats_period_changed(self) -> None:
         """Handle period selection change and update chart."""
-        if self._macros_chart_nutrient is not None:
-            self._update_macros_chart()
-            return
-        self._update_food_calories_chart()
+        self._refresh_food_stats_chart()
 
     def on_food_stats_update(self) -> None:
         """Refresh the currently shown stats chart and macros table."""
-        self._update_macros_analysis_table()
-        self._update_macros_status_label()
-        if self._macros_chart_nutrient is not None:
-            self._update_macros_chart()
-            return
-        self._update_food_calories_chart()
+        self._refresh_food_stats_chart()
 
     def on_import_food_log_json(self) -> None:
         """Pick a transfer JSON file and open the add-food preview dialog."""
@@ -1524,8 +1515,7 @@ class MainWindow(
         self._update_macros_status_label()
         self._refresh_food_log_macros_buttons()
         self._refresh_open_day_macros_dialog()
-        if self._macros_chart_nutrient is not None:
-            self._update_macros_chart()
+        self._refresh_food_stats_chart()
         if saved:
             text = f"Stopped. Macros saved for {saved} day(s). The rest were left unchanged."
         else:
@@ -1686,9 +1676,14 @@ class MainWindow(
         self.pushButton_food_stats_drink.clicked.connect(self.on_food_stats_drink)
         self.pushButton_food_stats_update.clicked.connect(self.on_food_stats_update)
         self.comboBox_food_stats_period.currentTextChanged.connect(self.on_food_stats_period_changed)
-        self.pushButton_food_stats_macros_protein.clicked.connect(self.on_food_stats_macros_protein)
-        self.pushButton_food_stats_macros_fat.clicked.connect(self.on_food_stats_macros_fat)
-        self.pushButton_food_stats_macros_carb.clicked.connect(self.on_food_stats_macros_carb)
+        for attr, handler in (
+            ("pushButton_food_stats_macros_protein", self.on_food_stats_macros_protein),
+            ("pushButton_food_stats_macros_fat", self.on_food_stats_macros_fat),
+            ("pushButton_food_stats_macros_carb", self.on_food_stats_macros_carb),
+        ):
+            button = getattr(self, attr, None)
+            if button is not None:
+                button.clicked.connect(handler)
 
         catalog_search = getattr(self, "lineEdit_food_items_search", None)
         if isinstance(catalog_search, QLineEdit):
@@ -1872,6 +1867,13 @@ class MainWindow(
         """
         return create_table_proxy_model(data, headers, id_column=id_column)
 
+    def _current_food_chart_mode(self) -> str:
+        """Return the checked Chart radio key, or the last known mode."""
+        for key, radio in self._food_chart_radios.items():
+            if radio.isChecked():
+                return key
+        return self._food_chart_mode
+
     def _day_macros_prompt_vars(self, *, date: str, day_menu: str) -> dict[str, str]:
         thresholds = calorie_thresholds_from_config(self._app_config)
         return {
@@ -1893,8 +1895,7 @@ class MainWindow(
         self._update_macros_status_label()
         self._refresh_food_log_macros_buttons()
         self._refresh_open_day_macros_dialog()
-        if self._macros_chart_nutrient is not None:
-            self._update_macros_chart()
+        self._refresh_food_stats_chart()
 
     def _delete_range_macros_analysis(self, date_from: str, date_to: str) -> None:
         if self.db_manager is None:
@@ -1988,6 +1989,144 @@ class MainWindow(
         if hasattr(self, "food_completer_source_model") and self.food_completer_source_model is not None:
             self.food_completer_source_model.deleteLater()
             self.food_completer_source_model = None
+
+    def _draw_food_compare_chart(self, mode: Literal["compare_last", "compare_same"]) -> None:
+        """Plot cumulative food metric by day of month (last months or same month across years)."""
+        if self.db_manager is None or not self._validate_database_connection():
+            return
+        metric = self._food_compare_metric_key()
+        title_name, unit = _FOOD_METRIC_UNITS.get(metric, ("Value", ""))
+        daily = self._food_daily_points_for_metric(metric)
+        toolbar = self._food_chart_toolbar
+        months_count = toolbar.count_value() if toolbar is not None else 12
+        today = datetime.now(UTC).astimezone()
+        series_list: list[list[tuple[int, float]]] = []
+        labels: list[str] = []
+        colors: list[str] = []
+        max_days = 1
+
+        if mode == "compare_last":
+            for index in range(months_count):
+                month_date = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+                for _ in range(index):
+                    if month_date.month == 1:
+                        month_date = month_date.replace(year=month_date.year - 1, month=12)
+                    else:
+                        month_date = month_date.replace(month=month_date.month - 1)
+                days_in_month = calendar.monthrange(month_date.year, month_date.month)[1]
+                if index == 0:
+                    max_days = max(max_days, min(today.day, days_in_month))
+                    month_end = today
+                    extend_day = min(today.day, days_in_month)
+                else:
+                    max_days = max(max_days, days_in_month)
+                    month_end = month_date.replace(
+                        day=days_in_month,
+                        hour=23,
+                        minute=59,
+                        second=59,
+                        microsecond=999999,
+                    )
+                    extend_day = days_in_month
+                date_from = month_date.strftime("%Y-%m-%d")
+                date_to = month_end.strftime("%Y-%m-%d")
+                month_points = self._food_points_in_range(daily, date_from, date_to)
+                series_list.append(
+                    self._food_cumulative_by_day_of_month(month_points, extend_to_day=extend_day),
+                )
+                label = month_date.strftime("%B %Y")
+                labels.append(f"{label} (Current)" if index == 0 else label)
+                colors.append(chart_series_color(index))
+        else:
+            month_number = toolbar.month_number() if toolbar is not None else today.month
+            years_count = months_count
+            max_days = calendar.monthrange(today.year, month_number)[1]
+            for index in range(years_count):
+                year = today.year - index
+                days_in_month = calendar.monthrange(year, month_number)[1]
+                max_days = max(max_days, days_in_month)
+                start = date(year, month_number, 1)
+                end = date(year, month_number, days_in_month)
+                if year == today.year and month_number == today.month:
+                    end = today.date()
+                    extend_day = today.day
+                else:
+                    extend_day = days_in_month
+                month_points = self._food_points_in_range(daily, start.isoformat(), end.isoformat())
+                series_list.append(
+                    self._food_cumulative_by_day_of_month(month_points, extend_to_day=extend_day),
+                )
+                label = f"{calendar.month_name[month_number]} {year}"
+                labels.append(f"{label} (Current)" if index == 0 else label)
+                colors.append(chart_series_color(index))
+
+        layout = self.verticalLayout_food_stats_content
+        self._clear_layout(layout, close_matplotlib_figures=True)
+        if all(len(series) == 0 for series in series_list):
+            self._show_no_data_label(layout, "No data found for the selected period")
+            return
+
+        if mode == "compare_last":
+            compare_title = f"{title_name} (Last {months_count} months comparison)"
+        else:
+            month_num = toolbar.month_number() if toolbar is not None else today.month
+            compare_title = f"{title_name} ({calendar.month_name[month_num]} comparison — last {months_count} years)"
+        fig = themed_figure(figsize=(12, 6), dpi=100)
+        canvas = create_chart_canvas(fig)
+        ax = fig.add_subplot(111)
+        current: tuple[list[int], list[float], str, str] | None = None
+        for index, (series, color, label) in enumerate(zip(series_list, colors, labels, strict=False)):
+            if not series:
+                continue
+            xs = [point[0] for point in series]
+            ys = [point[1] for point in series]
+            if index == 0:
+                current = (xs, ys, color, label)
+                continue
+            ax.plot(
+                xs,
+                ys,
+                color=color,
+                linestyle="--",
+                linewidth=CHART_LINEWIDTH,
+                alpha=0.55,
+                label=label,
+                marker="o" if len(xs) <= _FOOD_COMPARE_MARKER_MAX_POINTS else None,
+                markersize=CHART_MARKERSIZE,
+            )
+        if current is not None:
+            xs, ys, color, label = current
+            ax.plot(
+                xs,
+                ys,
+                color=color,
+                linestyle="-",
+                linewidth=CHART_LINEWIDTH_EMPHASIS,
+                alpha=0.95,
+                label=label,
+                marker="o" if len(xs) <= _FOOD_COMPARE_MARKER_MAX_POINTS else None,
+                markersize=CHART_MARKERSIZE,
+            )
+            if xs and ys:
+                value_str = f"{ys[-1]:.1f}".rstrip("0").rstrip(".")
+                month_year = label.replace(" (Current)", "")
+                ax.annotate(
+                    f"{month_year}: {value_str}",
+                    (xs[-1], ys[-1]),
+                    textcoords="offset points",
+                    xytext=(0, 10),
+                    ha="center",
+                    **chart_annotation_style(),
+                )
+        y_label = f"Cumulative {title_name} ({unit})" if unit else f"Cumulative {title_name}"
+        ax.set_title(compare_title, fontsize=CHART_TITLE_FONTSIZE)
+        ax.set_xlabel("Day of Month", fontsize=CHART_LABEL_FONTSIZE)
+        ax.set_ylabel(y_label, fontsize=CHART_LABEL_FONTSIZE)
+        ax.set_xlim(1, max(max_days, 1))
+        ax.legend(fontsize=CHART_LEGEND_FONTSIZE, loc="best")
+        style_axes(ax)
+        fig.tight_layout()
+        layout.addWidget(canvas, stretch=1)
 
     def _end_day_macros_toast_pin_chain(self) -> None:
         """Stop carrying collapse state across macros toasts after the queue ends."""
@@ -2172,6 +2311,71 @@ class MainWindow(
         # The stats chart is already scheduled by _init_food_stats_dates once the date
         # range is known; scheduling it again here would rebuild it twice on startup.
 
+    def _food_compare_metric_key(self) -> str:
+        combo = self._food_metric_combo
+        if combo is None:
+            return "calories"
+        data = combo.currentData()
+        return data if isinstance(data, str) else "calories"
+
+    def _food_cumulative_by_day_of_month(
+        self,
+        points: list[tuple[str, float]],
+        *,
+        extend_to_day: int | None = None,
+    ) -> list[tuple[int, float]]:
+        """Build a running total keyed by day-of-month."""
+        if not points:
+            return []
+        cumulative = 0.0
+        series: list[tuple[int, float]] = []
+        for date_str, value in sorted(points, key=lambda item: item[0]):
+            try:
+                day = datetime.fromisoformat(date_str[:10]).replace(tzinfo=UTC).day
+            except (ValueError, TypeError):
+                continue
+            cumulative += value
+            series.append((day, cumulative))
+        if series and extend_to_day is not None:
+            last_day, last_value = series[-1]
+            if last_day < extend_to_day:
+                series.append((extend_to_day, last_value))
+        return series
+
+    def _food_daily_points_for_metric(self, metric: str) -> list[tuple[str, float]]:
+        """Load daily `(yyyy-MM-dd, value)` rows for a compare metric."""
+        if self.db_manager is None or not self._validate_database_connection():
+            return []
+        points: list[tuple[str, float]] = []
+        if metric == "calories":
+            for row in self.db_manager.get_calories_per_day():
+                day = str(row[0] or "")[:10]
+                if not day:
+                    continue
+                with contextlib.suppress(ValueError, TypeError):
+                    points.append((day, float(row[1] or 0.0)))
+        elif metric == "food_weight":
+            for row in self.db_manager.get_food_weight_per_day():
+                day = str(row[0] or "")[:10]
+                if not day:
+                    continue
+                with contextlib.suppress(ValueError, TypeError):
+                    points.append((day, float(row[1] or 0.0) / 1000.0))
+        elif metric == "drinks":
+            for row in self.db_manager.get_drinks_weight_per_day():
+                day = str(row[0] or "")[:10]
+                if not day:
+                    continue
+                with contextlib.suppress(ValueError, TypeError):
+                    points.append((day, float(row[1] or 0.0) / 1000.0))
+        elif metric in ("protein", "fat", "carb"):
+            attr = {"protein": "protein_g", "fat": "fat_g", "carb": "carb_g"}[metric]
+            for row in self.db_manager.get_food_day_nutrition_analyses_between("1970-01-01", "2099-12-31"):
+                day = row.date[:10]
+                with contextlib.suppress(ValueError, TypeError):
+                    points.append((day, float(getattr(row, attr))))
+        return points
+
     def _food_log_daily_totals(self, rows: list[list], *, from_database: bool) -> dict[str, float]:
         """Return daily calorie totals for the dates present in `rows`.
 
@@ -2276,6 +2480,14 @@ class MainWindow(
     def _food_log_uses_flat_history(self) -> bool:
         """Return whether the food log shows a flat list (filters active)."""
         return self._food_log_filter_is_active()
+
+    def _food_points_in_range(
+        self,
+        points: list[tuple[str, float]],
+        date_from: str,
+        date_to: str,
+    ) -> list[tuple[str, float]]:
+        return [(day, value) for day, value in points if date_from <= day <= date_to]
 
     def _get_current_selected_food_item(self) -> str | None:
         """Get the currently selected food item name from the list view.
@@ -2525,7 +2737,7 @@ class MainWindow(
             self.dateEdit_food_stats_to.setDate(today)
 
             # Update the chart with the new date range
-            QTimer.singleShot(50, self._update_food_calories_chart)
+            QTimer.singleShot(50, self._refresh_food_stats_chart)
             QTimer.singleShot(80, self._update_macros_analysis_table)
 
         except Exception:
@@ -2537,8 +2749,109 @@ class MainWindow(
             self.dateEdit_food_stats_to.setDate(today)
 
             # Update the chart with fallback date range
-            QTimer.singleShot(50, self._update_food_calories_chart)
+            QTimer.singleShot(50, self._refresh_food_stats_chart)
             QTimer.singleShot(80, self._update_macros_analysis_table)
+
+    def _install_food_chart_shell(self) -> None:
+        """Chart-type radios (left) and shared toolbar (right) on Food Statistics."""
+        if getattr(self, "groupBox_food_charts", None) is not None:
+            return
+
+        left_layout = self.verticalLayout_3
+        group = QGroupBox("Chart", self.frame)
+        group.setObjectName("groupBox_food_charts")
+        group_layout = QVBoxLayout(group)
+        chart_options = (
+            ("calories", "Calories"),
+            ("food_weight", "Food weight"),
+            ("drinks", "Drinks"),
+            ("protein", "Protein"),
+            ("fat", "Fat"),
+            ("carb", "Carbohydrates"),
+            ("compare_last", "Compare last months"),
+            ("compare_same", "Compare same months"),
+        )
+        button_group, radios = build_chart_type_radios(group, chart_options, checked_key="calories")
+        for radio in radios.values():
+            group_layout.addWidget(radio)
+            radio.toggled.connect(self._on_food_chart_type_changed)
+        polish_chart_type_group(group)
+        left_layout.insertWidget(0, group)
+        self.groupBox_food_charts = group
+        self._food_chart_button_group = button_group
+        self._food_chart_radios = radios
+
+        old_frame = self.frame_food_stats_controls
+        parent_layout = self.verticalLayout_4
+        from_date = self.dateEdit_food_stats_from.date()
+        to_date = self.dateEdit_food_stats_to.date()
+        period_text = self.comboBox_food_stats_period.currentText()
+
+        toolbar = ChartToolbar()
+        frame = toolbar.build(self.widget_food_stats_chart)
+        if parent_layout is not None:
+            insert_at = parent_layout.indexOf(old_frame) if old_frame is not None else 0
+            if old_frame is not None:
+                old_frame.hide()
+            parent_layout.insertWidget(max(insert_at, 0), frame)
+
+        self.dateEdit_food_stats_from = toolbar.date_from
+        self.dateEdit_food_stats_to = toolbar.date_to
+        self.comboBox_food_stats_period = toolbar.combo_period
+        self.comboBox_chart_label_mode = toolbar.combo_labels
+        self.pushButton_food_stats_update = toolbar.refresh_button
+        self.pushButton_food_stats_last_week = toolbar.button_last_week
+        self.pushButton_food_stats_last_month = toolbar.button_last_month
+        self.pushButton_food_stats_last_year = toolbar.button_last_year
+        self.pushButton_food_stats_all_time = toolbar.button_all_time
+        self.spinBox_food_stats_compare = toolbar.spin_count
+        self.comboBox_food_stats_compare_month = toolbar.combo_month
+
+        if self.dateEdit_food_stats_from is not None:
+            self.dateEdit_food_stats_from.setDate(from_date)
+        if self.dateEdit_food_stats_to is not None:
+            self.dateEdit_food_stats_to.setDate(to_date)
+        if self.comboBox_food_stats_period is not None and period_text:
+            index = self.comboBox_food_stats_period.findText(period_text)
+            if index >= 0:
+                self.comboBox_food_stats_period.setCurrentIndex(index)
+
+        for name in (
+            "pushButton_food_stats_food_weight",
+            "pushButton_food_stats_drink",
+        ):
+            button = getattr(self, name, None)
+            if button is not None:
+                button.setVisible(False)
+
+        metric_wrap = QWidget(frame)
+        metric_layout = QHBoxLayout(metric_wrap)
+        metric_layout.setContentsMargins(0, 0, 0, 0)
+        metric_layout.setSpacing(6)
+        metric_caption = QLabel("Metric")
+        metric_caption.setStyleSheet(muted_caption_qss())
+        metric_combo = QComboBox(metric_wrap)
+        metric_combo.setObjectName("comboBox_food_stats_compare_metric")
+        for key, label in _FOOD_CHART_METRIC_ITEMS:
+            metric_combo.addItem(label, key)
+        metric_layout.addWidget(metric_caption)
+        metric_layout.addWidget(metric_combo)
+        toolbar.set_extra_slot(metric_wrap)
+        self._food_metric_combo = metric_combo
+        metric_combo.currentIndexChanged.connect(self.on_food_stats_update)
+
+        toolbar.polish()
+        toolbar.connect_changed(self.on_food_stats_update)
+        toolbar.connect_refresh(self.on_food_stats_update)
+        toolbar.connect_presets(
+            last_week=self.on_food_stats_last_week,
+            last_month=self.on_food_stats_last_month,
+            last_year=self.on_food_stats_last_year,
+            all_time=self.on_food_stats_all_time,
+        )
+        self._food_chart_toolbar = toolbar
+        self.frame_food_stats_controls = frame
+        self._sync_food_chart_toolbar_mode()
 
     def _kcal_per_day_displayed_days(self) -> list[str]:
         """Return every date currently shown in the daily calories & macros table."""
@@ -2822,6 +3135,21 @@ class MainWindow(
         if image_paths:
             self.on_food_add_with_ai(initial_image_paths=image_paths)
 
+    def _on_food_chart_type_changed(self) -> None:
+        """Refresh when a Chart radio on the stats tab changes."""
+        sender = self.sender()
+        if isinstance(sender, QRadioButton) and not sender.isChecked():
+            return
+        mode = self._current_food_chart_mode()
+        self._food_chart_mode = mode
+        if mode in ("protein", "fat", "carb"):
+            self._macros_chart_nutrient = mode
+        else:
+            self._macros_chart_nutrient = None
+        self._sync_food_chart_toolbar_mode()
+        backfill = mode in ("protein", "fat", "carb")
+        self._refresh_food_stats_chart(backfill_macros=backfill)
+
     def _on_food_log_day_total_macros(self, day: str) -> None:
         """Open a day's macros from the food-log total button.
 
@@ -2956,9 +3284,8 @@ class MainWindow(
             QTimer.singleShot(50, self._adjust_food_log_table_columns)
             return
         if tab_name == "tab_food_stats":
-            self._update_macros_analysis_table()
             kcal_data = self.db_manager.get_calories_per_day() if self.db_manager is not None else None
-            self._update_food_calories_chart(kcal_data)
+            self._refresh_food_stats_chart(kcal_data)
 
     def _on_use_date_filter_toggled(self, *_args: object) -> None:
         """Toggle date edit widgets and refresh the food log table filter."""
@@ -3503,6 +3830,35 @@ class MainWindow(
             view_model.set_macros_statuses(statuses)
         view.viewport().update()
 
+    def _refresh_food_stats_chart(
+        self,
+        kcal_data: list[list[Any]] | None = None,
+        *,
+        backfill_macros: bool = False,
+    ) -> None:
+        """Redraw the stats chart for the selected type without resetting selection."""
+        self._update_macros_analysis_table()
+        self._update_macros_status_label()
+        mode = self._current_food_chart_mode()
+        self._food_chart_mode = mode
+        self._sync_food_chart_toolbar_mode()
+        if mode == "calories":
+            self._update_food_calories_chart(kcal_data)
+        elif mode == "food_weight":
+            self._update_food_weight_chart()
+        elif mode == "drinks":
+            self._update_drinks_chart()
+        elif mode in ("protein", "fat", "carb"):
+            self._macros_chart_nutrient = mode
+            if backfill_macros:
+                self._request_macros_chart_with_optional_backfill()
+            else:
+                self._update_macros_chart()
+        elif mode == "compare_last":
+            self._draw_food_compare_chart("compare_last")
+        elif mode == "compare_same":
+            self._draw_food_compare_chart("compare_same")
+
     def _refresh_open_day_macros_dialog(self) -> None:
         """Reload analysis into the open day macros dialog, if any."""
         dialog = self._day_macros_dialog
@@ -3704,7 +4060,7 @@ class MainWindow(
             )
             return
         self.update_food_data()
-        self._update_food_calories_chart()
+        self._refresh_food_stats_chart()
         self._update_kcal_per_day_table()
 
     def _run_food_add_by_voice(self, *, large_ui: bool = False) -> None:
@@ -3776,8 +4132,7 @@ class MainWindow(
             self._update_macros_status_label()
             self._refresh_food_log_macros_buttons()
             self._refresh_open_day_macros_dialog()
-            if self._macros_chart_nutrient is not None:
-                self._update_macros_chart()
+            self._refresh_food_stats_chart()
             open_range = self._macros_open_range_after_queue
             pending_range = self._macros_pending_range
             self._macros_open_range_after_queue = False
@@ -4075,6 +4430,21 @@ class MainWindow(
             log_label="date from table + 1 day",
         )
 
+    def _set_food_chart_mode(self, mode: str, *, backfill: bool = False) -> None:
+        """Select a chart type via radio and redraw."""
+        self._food_chart_mode = mode
+        radio = self._food_chart_radios.get(mode)
+        if radio is not None and not radio.isChecked():
+            radio.blockSignals(True)  # noqa: FBT003
+            radio.setChecked(True)
+            radio.blockSignals(False)  # noqa: FBT003
+        if mode in ("protein", "fat", "carb"):
+            self._macros_chart_nutrient = mode
+        else:
+            self._macros_chart_nutrient = None
+        self._sync_food_chart_toolbar_mode()
+        self._refresh_food_stats_chart(backfill_macros=backfill)
+
     def _setup_autocomplete(self) -> None:
         """Set up autocomplete functionality for food name input."""
         self.food_completer_source_model = QStandardItemModel(self)
@@ -4134,25 +4504,7 @@ class MainWindow(
         self.label_macros_notes.setObjectName("label_macros_notes")
         self.label_macros_notes.setWordWrap(True)
         self.verticalLayout_3.addWidget(self.label_macros_notes)
-
-        self.pushButton_food_stats_macros_protein = QPushButton("Protein")
-        self.pushButton_food_stats_macros_fat = QPushButton("Fat")
-        self.pushButton_food_stats_macros_carb = QPushButton("Carbs")
-
-        charts = self.horizontalLayout_food_stats_charts
-        charts.insertWidget(2, self.pushButton_food_stats_macros_protein)
-        charts.insertWidget(3, self.pushButton_food_stats_macros_fat)
-        charts.insertWidget(4, self.pushButton_food_stats_macros_carb)
-
-        from harrix_swiss_knife.apps.common.chart_operations import (  # noqa: PLC0415
-            install_chart_label_mode_combo,
-        )
-
-        install_chart_label_mode_combo(
-            self,
-            self.horizontalLayout_food_stats_period,
-            on_changed=self.on_food_stats_update,
-        )
+        self._install_food_chart_shell()
 
     def _setup_open_photos_action(self) -> None:
         """Add Commands → Open photos (`path_photos` in the image viewer)."""
@@ -4726,6 +5078,19 @@ class MainWindow(
         """Cancel the silent translate debounce timer."""
         self._bg_food_translate_timer.stop()
 
+    def _sync_food_chart_toolbar_mode(self) -> None:
+        """Show range vs compare toolbar slots for the active food chart type."""
+        toolbar = self._food_chart_toolbar
+        if toolbar is None:
+            return
+        mode = self._current_food_chart_mode()
+        if mode == "compare_last":
+            toolbar.set_mode("compare_last", show_extra=True)
+        elif mode == "compare_same":
+            toolbar.set_mode("compare_same", show_extra=True)
+        else:
+            toolbar.set_mode("range", show_extra=False)
+
     def _transform_food_log_data(
         self, rows: list[list], *, append_state: bool = False, db_totals: bool = True
     ) -> list[list]:
@@ -4908,7 +5273,6 @@ class MainWindow(
           Defaults to `None`.
 
         """
-        self._macros_chart_nutrient = None
         if not self._validate_database_connection():
             logger.warning("Database connection not available for updating food calories chart")
             return
@@ -5377,6 +5741,10 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
         self._macros_analysis_done = 0
         self._macros_analysis_failed: list[str] = []
         self._macros_chart_nutrient: Literal["protein", "fat", "carb"] | None = None
+        self._food_chart_mode: str = "calories"
+        self._food_chart_radios: dict[str, QRadioButton] = {}
+        self._food_chart_toolbar: ChartToolbar | None = None
+        self._food_metric_combo: QComboBox | None = None
         self._macros_open_range_after_queue = False
         self._macros_pending_range: tuple[str, str] | None = None
         self._macros_open_day_after_queue: str | None = None
@@ -6390,8 +6758,7 @@ Show drinks chart.
 
 ```python
 def on_food_stats_drink(self) -> None:
-        self._macros_chart_nutrient = None
-        self._update_drinks_chart()
+        self._set_food_chart_mode("drinks")
 ```
 
 </details>
@@ -6409,8 +6776,7 @@ Show food weight chart.
 
 ```python
 def on_food_stats_food_weight(self) -> None:
-        self._macros_chart_nutrient = None
-        self._update_food_weight_chart()
+        self._set_food_chart_mode("food_weight")
 ```
 
 </details>
@@ -6500,8 +6866,7 @@ Show carbohydrate chart from saved day analyses.
 
 ```python
 def on_food_stats_macros_carb(self) -> None:
-        self._macros_chart_nutrient = "carb"
-        self._request_macros_chart_with_optional_backfill()
+        self._set_food_chart_mode("carb", backfill=True)
 ```
 
 </details>
@@ -6519,8 +6884,7 @@ Show fat chart from saved day analyses.
 
 ```python
 def on_food_stats_macros_fat(self) -> None:
-        self._macros_chart_nutrient = "fat"
-        self._request_macros_chart_with_optional_backfill()
+        self._set_food_chart_mode("fat", backfill=True)
 ```
 
 </details>
@@ -6538,8 +6902,7 @@ Show protein chart from saved day analyses.
 
 ```python
 def on_food_stats_macros_protein(self) -> None:
-        self._macros_chart_nutrient = "protein"
-        self._request_macros_chart_with_optional_backfill()
+        self._set_food_chart_mode("protein", backfill=True)
 ```
 
 </details>
@@ -6557,10 +6920,7 @@ Handle period selection change and update chart.
 
 ```python
 def on_food_stats_period_changed(self) -> None:
-        if self._macros_chart_nutrient is not None:
-            self._update_macros_chart()
-            return
-        self._update_food_calories_chart()
+        self._refresh_food_stats_chart()
 ```
 
 </details>
@@ -6578,12 +6938,7 @@ Refresh the currently shown stats chart and macros table.
 
 ```python
 def on_food_stats_update(self) -> None:
-        self._update_macros_analysis_table()
-        self._update_macros_status_label()
-        if self._macros_chart_nutrient is not None:
-            self._update_macros_chart()
-            return
-        self._update_food_calories_chart()
+        self._refresh_food_stats_chart()
 ```
 
 </details>

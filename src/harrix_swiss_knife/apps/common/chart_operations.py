@@ -43,6 +43,7 @@ from harrix_swiss_knife.apps.common.chart_extrema_labels import (
     annotate_chart_extrema_labels,
 )
 from harrix_swiss_knife.apps.common.chart_hover import create_chart_canvas
+from harrix_swiss_knife.apps.common.chart_page_chrome import install_chart_label_mode_combo as _install_label_mode_combo
 from harrix_swiss_knife.apps.common.chart_theme import (
     CHART_LABEL_FONTSIZE,
     CHART_LINEWIDTH,
@@ -582,39 +583,16 @@ def install_chart_label_mode_combo(
 ) -> Any:
     """Add or reuse Labels Auto/All/Off combo on a chart toolbar layout.
 
-    Returns the combo. Idempotent when `host.comboBox_chart_label_mode` exists.
+    Delegates to `chart_page_chrome.install_chart_label_mode_combo`.
 
     """
-    from PySide6.QtWidgets import QComboBox, QLabel  # noqa: PLC0415
-
-    existing = getattr(host, "comboBox_chart_label_mode", None)
-    if existing is not None:
-        return existing
-
-    if replace_widget is not None:
-        replace_widget.hide()
-        index = layout.indexOf(replace_widget)
-    elif insert_index is not None:
-        index = insert_index
-    else:
-        index = -1
-
-    caption = QLabel("Labels")
-    combo = QComboBox()
-    combo.setObjectName("comboBox_chart_label_mode")
-    for mode, text in (("auto", "Auto"), ("all", "All"), ("off", "Off")):
-        combo.addItem(text, mode)
-    combo.setCurrentIndex(0)
-    if index >= 0:
-        layout.insertWidget(index, caption)
-        layout.insertWidget(index + 1, combo)
-    else:
-        layout.addWidget(caption)
-        layout.addWidget(combo)
-    host.comboBox_chart_label_mode = combo
-    if on_changed is not None:
-        combo.currentIndexChanged.connect(on_changed)
-    return combo
+    return _install_label_mode_combo(
+        host,
+        layout,
+        replace_widget=replace_widget,
+        on_changed=on_changed,
+        insert_index=insert_index,
+    )
 
 
 def label_mode_from_combo(host: Any) -> LabelMode:
