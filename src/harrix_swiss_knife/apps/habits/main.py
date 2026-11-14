@@ -218,6 +218,16 @@ class MainWindow(
         self._apply_fluent_window_chrome()
         self.setupUi(self)
         self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
+        # Chart shell is installed during `_setup_ui`; initialize before that call.
+        self._habits_heatmap_canvas: FigureCanvas | None = None
+        self._habits_chart_canvas: FigureCanvas | None = None
+        self._habits_heatmap_counts: dict[date, int] = {}
+        self._habits_heatmap_positions: dict[date, tuple[float, float]] = {}
+        self._habits_chart_toolbar: ChartToolbar | None = None
+        self._habits_chart_info_strip: QLabel | None = None
+        self.db_manager: database_manager.DatabaseManager | None = None
+        self.habits_filter_list_model: QStandardItemModel | None = None
+        self.habits_year_list_model: QStandardItemModel | None = None
         self._setup_ui()
         self._finish_fluent_window_chrome()
         install_habits_layout_chrome(self)
@@ -233,19 +243,7 @@ class MainWindow(
         self._bg_sport_sync_timer.setSingleShot(True)
         self._bg_sport_sync_timer.setInterval(300)
         self._bg_sport_sync_timer.timeout.connect(self._run_background_sport_habit_sync)
-        self._habits_heatmap_canvas: FigureCanvas | None = None
-        self._habits_chart_canvas: FigureCanvas | None = None
-        self._habits_heatmap_counts: dict[date, int] = {}
-        self._habits_heatmap_positions: dict[date, tuple[float, float]] = {}
-        self._habits_chart_toolbar: ChartToolbar | None = None
-        self._habits_chart_info_strip: QLabel | None = None
-        self.db_manager: database_manager.DatabaseManager | None = None
         self._is_small_window_layout: bool | None = None  # Used by _update_layout_for_window_size
-
-        # Habits filter list model
-        self.habits_filter_list_model: QStandardItemModel | None = None
-        # Habits year list model
-        self.habits_year_list_model: QStandardItemModel | None = None
 
         # Table models dictionary
         self.models: dict[str, QSortFilterProxyModel | None] = {
@@ -1746,11 +1744,12 @@ class MainWindow(
 
     def _get_selected_habit_year(self) -> str:
         """Get the currently selected year from the year list view."""
-        if not self.habits_year_list_model:
+        year_model = getattr(self, "habits_year_list_model", None)
+        if not year_model:
             return ""
         current_index = self.listView_filter_habit_year.currentIndex()
         if current_index.isValid():
-            return self.habits_year_list_model.data(current_index) or ""
+            return year_model.data(current_index) or ""
         return ""
 
     def _habit_chart_figsize(self, *, for_heatmap: bool) -> tuple[float, float]:

@@ -161,23 +161,16 @@ class ChartOperations(ChartOperationsBase):
     # Expected attributes from main class
     max_count_points_in_charts: int
 
-    def _clear_layout(self, layout: QLayout, *, close_matplotlib_figures: bool = False) -> None:
+    def _clear_layout(self, layout: QLayout, *, close_matplotlib_figures: bool = True) -> None:
         """Clear all widgets from a layout.
 
-        The food app historically reparented widgets without closing
-        Matplotlib figures, so `close_matplotlib_figures` defaults to `False`
-        here to preserve the previous behavior.
+        Always close Matplotlib figures when removing canvases. Reparenting a
+        canvas with `setParent(None)` leaves the figure alive and the QtAgg
+        backend can show it as a separate "Python" window (seen after All time
+        / date presets redraw the stats chart twice).
 
         """
-        for i in reversed(range(layout.count())):
-            item = layout.takeAt(i)
-            if item is not None:
-                child = item.widget()
-                if child:
-                    if close_matplotlib_figures:
-                        super()._clear_layout(layout, close_matplotlib_figures=True)
-                        return
-                    child.setParent(None)
+        super()._clear_layout(layout, close_matplotlib_figures=close_matplotlib_figures)
 
     def _format_default_stats(self, values: list, unit: str = "", *, filter_none: bool = True) -> str:
         """Format default statistics text.

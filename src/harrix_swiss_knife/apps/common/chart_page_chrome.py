@@ -251,18 +251,22 @@ class ChartToolbar:
     def connect_changed(self, callback: Callable[[], None]) -> None:
         """Redraw when period, labels, dates, count, or month change."""
         self._on_changed = callback
+
+        def _emit_changed(*_args: object) -> None:
+            callback()
+
         if self.combo_period is not None:
-            self.combo_period.currentIndexChanged.connect(callback)
+            self.combo_period.currentIndexChanged.connect(_emit_changed)
         if self.combo_labels is not None:
-            self.combo_labels.currentIndexChanged.connect(callback)
+            self.combo_labels.currentIndexChanged.connect(_emit_changed)
         if self.date_from is not None:
-            self.date_from.dateChanged.connect(callback)
+            self.date_from.dateChanged.connect(_emit_changed)
         if self.date_to is not None:
-            self.date_to.dateChanged.connect(callback)
+            self.date_to.dateChanged.connect(_emit_changed)
         if self.spin_count is not None:
-            self.spin_count.valueChanged.connect(callback)
+            self.spin_count.valueChanged.connect(_emit_changed)
         if self.combo_month is not None:
-            self.combo_month.currentIndexChanged.connect(callback)
+            self.combo_month.currentIndexChanged.connect(_emit_changed)
 
     def connect_presets(
         self,
@@ -285,13 +289,21 @@ class ChartToolbar:
         )
         for button, handler in mapping:
             if button is not None and handler is not None:
-                button.clicked.connect(handler)
+
+                def _emit_preset(*_args: object, _handler: Callable[[], None] = handler) -> None:
+                    _handler()
+
+                button.clicked.connect(_emit_preset)
 
     def connect_refresh(self, callback: Callable[[], None]) -> None:
         """Wire the Refresh button (manual redraw / DB reload)."""
         self._on_refresh = callback
+
+        def _emit_refresh(*_args: object) -> None:
+            callback()
+
         if self.refresh_button is not None:
-            self.refresh_button.clicked.connect(callback)
+            self.refresh_button.clicked.connect(_emit_refresh)
 
     def count_value(self) -> int:
         """Return the compare / by-month count spin value."""
