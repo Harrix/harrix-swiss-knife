@@ -71,13 +71,13 @@ def test_heatmap_year_after_step_walks_available_years() -> None:
     assert heatmap_year_after_step("2024", [], step=-1, today_year=2026) is None
 
 
-def test_heatmap_year_bands_newest_first_and_capped_at_today() -> None:
-    """All-years heatmaps are stacked newest on top and stop at today."""
+def test_heatmap_year_bands_newest_first_full_calendar_years() -> None:
+    """All-years heatmaps are stacked newest on top as complete Jan–Dec bands."""
     from harrix_swiss_knife.apps.common.calendar_heatmap import heatmap_year_bands
 
     bands = heatmap_year_bands([2024, 2026, 2025], today=date(2026, 3, 15))
     assert [year for year, _start, _end in bands] == [2026, 2025, 2024]
-    assert bands[0] == (2026, date(2026, 1, 1), date(2026, 3, 15))
+    assert bands[0] == (2026, date(2026, 1, 1), date(2026, 12, 31))
     assert bands[1] == (2025, date(2025, 1, 1), date(2025, 12, 31))
 
 

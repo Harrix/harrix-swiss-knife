@@ -608,15 +608,15 @@ def resolve_period(
     year: int | None,
     today: date | None = None,
 ) -> tuple[date, date]:
-    """Return inclusive ``(start, end)`` for a calendar year or last 365 days."""
+    """Return inclusive ``(start, end)`` for a calendar year or last 365 days.
+
+    A selected calendar year always spans 1 Jan–31 Dec so an incomplete year
+    still draws a full heatmap; metrics and streaks stop at ``today`` elsewhere.
+    """
     today_local = today or datetime.now().astimezone().date()
     if year is None:
         return today_local - timedelta(days=365), today_local
-    start = date(year, 1, 1)
-    end = date(year, 12, 31)
-    if year == today_local.year:
-        end = today_local
-    return start, end
+    return date(year, 1, 1), date(year, 12, 31)
 
 
 def task_timeline_bars(

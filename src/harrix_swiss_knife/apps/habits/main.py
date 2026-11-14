@@ -1016,12 +1016,9 @@ class MainWindow(
         # Calculate date range based on year parameter
         today = datetime.now(UTC).astimezone().date()
         if year is not None:
-            # Specific year: from January 1 to December 31 of that year
-            start_date = datetime(year, 1, 1, tzinfo=UTC).astimezone().date()
-            end_date = datetime(year, 12, 31, tzinfo=UTC).astimezone().date()
-            # If year is current year, limit to today
-            if year == today.year:
-                end_date = today
+            # Full calendar year so an incomplete year still draws every month.
+            start_date = date(year, 1, 1)
+            end_date = date(year, 12, 31)
         else:
             # Last 365 days (default)
             start_date = today - timedelta(days=365)

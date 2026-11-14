@@ -126,10 +126,10 @@ def _sample_completions() -> list[TickTickCompletion]:
 
 
 def test_resolve_period_year_and_rolling() -> None:
-    """Year windows clamp the current year to today; None means last 365 days."""
+    """Calendar years are full Jan–Dec; None means last 365 days ending today."""
     today = date(2024, 6, 15)
     assert resolve_period(year=2023, today=today) == (date(2023, 1, 1), date(2023, 12, 31))
-    assert resolve_period(year=2024, today=today) == (date(2024, 1, 1), date(2024, 6, 15))
+    assert resolve_period(year=2024, today=today) == (date(2024, 1, 1), date(2024, 12, 31))
     start, end = resolve_period(year=None, today=today)
     assert end == today
     assert start == date(2023, 6, 16)

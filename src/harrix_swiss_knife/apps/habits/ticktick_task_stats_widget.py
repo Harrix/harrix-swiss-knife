@@ -372,9 +372,15 @@ class TickTickTaskStatsWidget(QWidget):
         ranges = quantile_intensity_ranges(stats.counts_by_day.values(), max_bins=4)
         scale = accent_heatmap_colors(len(ranges))
         zero = heatmap_zero_color()
+        today = datetime.now().astimezone().date()
         colors: dict[date, str | None] = {}
         tips: dict[date, str] = {}
         for day in calendar_days(stats.start_date, stats.end_date):
+            if day > today:
+                # Keep the full-year grid; future days stay unfilled outlines.
+                colors[day] = None
+                tips[day] = day.isoformat()
+                continue
             count = int(stats.counts_by_day.get(day, 0))
             tips[day] = heatmap_cell_tooltip(day, count)
             if count <= 0 or not scale:
@@ -576,10 +582,11 @@ class TickTickTaskStatsWidget(QWidget):
         if self._chart_mode() != CHART_MODE_HEATMAP or self._stats is None or self._selected_all_years():
             return
         stats = self._stats
+        today = datetime.now().astimezone().date()
         bars, weekly = task_timeline_bars(
             stats.counts_by_day,
             stats.start_date,
-            stats.end_date,
+            min(stats.end_date, today),
             width_px=max(self._time_host.width(), 480),
         )
         self._timeline_bars = bars

@@ -184,14 +184,16 @@ def heatmap_year_bands(
     *,
     today: date,
 ) -> list[tuple[int, date, date]]:
-    """Return ``(year, start, end)`` bands newest-first, capped at ``today``."""
+    """Return ``(year, start, end)`` bands newest-first for full calendar years.
+
+    The current year still runs through 31 December so the grid is complete;
+    callers leave future days empty when painting cells.
+    """
     ordered = sorted({int(year) for year in years if year and int(year) <= today.year}, reverse=True)
     bands: list[tuple[int, date, date]] = []
     for year in ordered:
         start = date(year, 1, 1)
         end = date(year, 12, 31)
-        if year == today.year:
-            end = today
         if start <= end:
             bands.append((year, start, end))
     return bands
