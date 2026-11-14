@@ -114,18 +114,34 @@ def build_timeline_figure(
         return figure
 
     palette = FluentTheme.instance().palette()
+    card = palette.card_bg.name()
     bar_color = chart_tint(palette.card_bg, palette.accent, 0.55).name()
     line_color = chart_series_color(0)
     centers = [mdates.date2num(bar.start) + (bar.end - bar.start).days / 2 for bar in bars]
-    widths = [max((bar.end - bar.start).days + 0.7, 0.7) for bar in bars]
+    widths = [_bar_width_days(bar) for bar in bars]
     values = [bar.value for bar in bars]
-    axis.bar(centers, values, width=widths, color=bar_color, label=bar_label, zorder=2, align="center")
+    # Card-colored edges keep a 100% run from becoming one solid wall.
+    axis.bar(
+        centers,
+        values,
+        width=widths,
+        color=bar_color,
+        edgecolor=card,
+        linewidth=0.8,
+        label=bar_label,
+        zorder=2,
+        align="center",
+    )
 
     line_axis = axis.twinx() if line_on_twin else axis
     line_x = [center for center, bar in zip(centers, bars, strict=True) if bar.line is not None]
     line_y = [bar.line for bar in bars if bar.line is not None]
     if line_x:
-        line_axis.plot(line_x, line_y, color=line_color, linewidth=1.8, label=line_label, zorder=3)
+        (line,) = line_axis.plot(line_x, line_y, color=line_color, linewidth=2.0, label=line_label, zorder=4)
+        # Halo so a flat 100% average stays readable on filled bars.
+        line.set_path_effects(
+            [patheffects.Stroke(linewidth=3.6, foreground=card), patheffects.Normal()],
+        )
     if line_on_twin:
         line_axis.set_ylabel(line_ylabel or line_label)
         line_axis.tick_params(labelsize=9)
@@ -146,7 +162,10 @@ def build_timeline_figure(
     axis.set_title(title)
     axis.set_ylabel(ylabel)
     if y_max is not None:
-        axis.set_ylim(0, y_max)
+        # Leave room above 100% so full bars do not weld into the top spine.
+        axis.set_ylim(0, y_max * _PERCENT_HEADROOM)
+        if abs(y_max - _PERCENT_AXIS) < _PERCENT_AXIS_EPS:
+            axis.set_yticks([0, 20, 40, 60, 80, 100])
     setup_date_axis(axis)
     style_axes(axis)
     handles, labels = axis.get_legend_handles_labels()

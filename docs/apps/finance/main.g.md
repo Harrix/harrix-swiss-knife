@@ -530,6 +530,15 @@ class MainWindow(
             self._show_category_label_context_menu(event.position().toPoint())
             return True
 
+        if (
+            obj == self.lineEdit_tag
+            and event.type() == QEvent.Type.MouseButtonDblClick
+            and isinstance(event, QMouseEvent)
+            and event.button() == Qt.MouseButton.LeftButton
+        ):
+            self._open_tag_picker_for_entry()
+            return True
+
         # Handle Enter key to add transaction quickly
         if (
             (
@@ -1982,8 +1991,9 @@ class MainWindow(
         # Enter key handling for dateEdit
         self.dateEdit.installEventFilter(self)
 
-        # Enter key handling for lineEdit_tag
+        # Enter / double-click / trailing icon for lineEdit_tag
         self.lineEdit_tag.installEventFilter(self)
+        self._install_tag_entry_picker()
 
         # Enter key handling for lineEdit_description
         self.lineEdit_description.installEventFilter(self)
@@ -2936,11 +2946,11 @@ class MainWindow(
         return None
 
     def _get_tags_for_delegate(self) -> list[str]:
-        """Get list of unique tags for the delegate dropdown.
+        """Get unique tags in database appearance order for the tag picker.
 
         Returns:
 
-        - `list[str]`: Sorted list of unique tags.
+        - `list[str]`: Tag names oldest-created first (refreshed on each open).
 
         """
         if self.db_manager is None:
@@ -3100,6 +3110,19 @@ class MainWindow(
         )
         self._chart_toolbar = toolbar
         self._sync_finance_chart_toolbar_mode()
+
+    def _install_tag_entry_picker(self) -> None:
+        """Add a trailing tags action on the entry Tags field."""
+        if self.lineEdit_tag.property("hskTagPickerInstalled") is True:
+            return
+        action = QAction(self.lineEdit_tag)
+        action.setObjectName("hskTagPickerAction")
+        action.setIcon(create_lucide_icon("tags", 16, color=SELECTION_BORDER))
+        action.setToolTip("Choose tags")
+        action.triggered.connect(self._open_tag_picker_for_entry)
+        self.lineEdit_tag.addAction(action, QLineEdit.ActionPosition.TrailingPosition)
+        self.lineEdit_tag.setPlaceholderText("Optional — icon or double-click to choose")
+        self.lineEdit_tag.setProperty("hskTagPickerInstalled", True)  # noqa: FBT003
 
     def _is_current_tab(self, object_name: str) -> bool:
         """Return whether the current tab widget has `object_name`."""
@@ -4380,6 +4403,17 @@ class MainWindow(
         self.doubleSpinBox_amount.setValue(result)
         self.doubleSpinBox_amount.setFocus()
         self.doubleSpinBox_amount.selectAll()
+
+    def _open_tag_picker_for_entry(self) -> None:
+        """Open the tag check-list as a popup under the Tags field."""
+        selected = parse_tag_text(self.lineEdit_tag.text())
+        result = pick_transaction_tags(
+            self.lineEdit_tag,
+            self._get_tags_for_delegate(),
+            selected,
+        )
+        if result is not None:
+            self.lineEdit_tag.setText(result)
 
     def _open_text_input_dialog(
         self,
@@ -7111,6 +7145,15 @@ def eventFilter(self, obj: QObject, event: QEvent) -> bool:  # noqa: N802
             and event.button() == Qt.MouseButton.LeftButton
         ):
             self._show_category_label_context_menu(event.position().toPoint())
+            return True
+
+        if (
+            obj == self.lineEdit_tag
+            and event.type() == QEvent.Type.MouseButtonDblClick
+            and isinstance(event, QMouseEvent)
+            and event.button() == Qt.MouseButton.LeftButton
+        ):
+            self._open_tag_picker_for_entry()
             return True
 
         # Handle Enter key to add transaction quickly

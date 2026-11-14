@@ -152,12 +152,6 @@ def build_timeline_figure(
     return figure
 
 
-def _bar_width_days(bar: TimelineBar) -> float:
-    """Return a bar width that leaves a gutter between neighboring spans."""
-    span_days = (bar.end - bar.start).days + 1
-    return max(span_days - _BAR_GAP_DAYS, 0.45)
-
-
 def calendar_days(start: date, end: date) -> list[date]:
     """Return each date from `start` through `end`."""
     days: list[date] = []
@@ -198,3 +192,9 @@ def week_spans(start: date, end: date, *, week_starts_on: int = HEATMAP_WEEK_STA
         spans.append((cursor, span_end))
         cursor = span_end + timedelta(days=1)
     return spans
+
+
+def _bar_width_days(bar: TimelineBar) -> float:
+    """Return a bar width that leaves a gutter between neighboring spans."""
+    span_days = (bar.end - bar.start).days + 1
+    return max(span_days - _BAR_GAP_DAYS, 0.45)

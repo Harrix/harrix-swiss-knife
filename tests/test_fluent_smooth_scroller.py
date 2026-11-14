@@ -7,6 +7,8 @@ from PySide6.QtCore import QEvent, QObject, QPoint, Qt
 from PySide6.QtGui import QWheelEvent
 from PySide6.QtWidgets import QApplication, QListWidget
 
+from harrix_swiss_knife.fluent.widgets.views import SmoothScroller
+
 
 @pytest.fixture
 def qapp() -> QApplication:
@@ -22,8 +24,6 @@ def qapp() -> QApplication:
 def test_smooth_scroller_event_filter_before_viewport_ready(qapp: QApplication) -> None:
     """Polish storms must not crash when `_viewport` is still unset."""
     assert qapp is not None
-    from harrix_swiss_knife.fluent.widgets.views import SmoothScroller
-
     area = QListWidget()
     scroller = SmoothScroller.__new__(SmoothScroller)
     QObject.__init__(scroller, area)

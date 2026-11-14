@@ -4,11 +4,30 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, cast
 
-from PySide6.QtCore import QAbstractItemModel, QModelIndex, QPersistentModelIndex, QRect, QRectF, Qt, Signal
-from PySide6.QtGui import QColor, QFontMetrics, QKeyEvent, QKeySequence, QPainter, QPaintEvent, QShortcut
+from PySide6.QtCore import (
+    QAbstractItemModel,
+    QEventLoop,
+    QModelIndex,
+    QPersistentModelIndex,
+    QPoint,
+    QRect,
+    QRectF,
+    Qt,
+    Signal,
+)
+from PySide6.QtGui import (
+    QColor,
+    QFontMetrics,
+    QGuiApplication,
+    QHideEvent,
+    QKeyEvent,
+    QKeySequence,
+    QPainter,
+    QPaintEvent,
+    QShortcut,
+)
 from PySide6.QtWidgets import (
     QAbstractItemDelegate,
-    QDialog,
     QFrame,
     QHBoxLayout,
     QSizePolicy,
@@ -37,12 +56,121 @@ if TYPE_CHECKING:
 
 _EDITOR_HEIGHT = 300
 _EDITOR_MIN_WIDTH = 280
-_DIALOG_WIDTH = 320
-_DIALOG_HEIGHT = 360
+_POPUP_HEIGHT = 320
+_POPUP_GAP = 2
 _CHIP_HEIGHT = 20
 _CHIP_PAD_X = 8
 _CHIP_GAP = 4
 _CHIP_MARGIN_Y = 2
+
+
+class TagCheckListEditor(QFrame):
+    """Fluent popup: checkboxes for known tags, a new-tag field, OK and Close."""
+
+    accepted = Signal()
+    rejected = Signal()
+
+    def __init__(
+        self,
+        known_tags: list[str],
+        selected: list[str],
+        parent: QWidget | None = None,
+    ) -> None:
+        """Build the Fluent check list and the field used to type one more tag."""
+        super().__init__(parent)
+        self.setObjectName("financeTagEditor")
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
+        self.setAutoFillBackground(False)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(SPACE_S, SPACE_S, SPACE_S, SPACE_S)
+        layout.setSpacing(SPACE_S)
+
+        self._scroll = FluentScrollArea(self)
+        self._scroll.setWidgetResizable(True)
+        self._scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self._scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self._scroll.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+
+        self._host = QWidget(self._scroll)
+        self._host.setObjectName("financeTagEditorHost")
+        self._checks_layout = QVBoxLayout(self._host)
+        self._checks_layout.setContentsMargins(SPACE_XS, SPACE_XS, SPACE_XS, SPACE_XS)
+        self._checks_layout.setSpacing(2)
+        self._checks_layout.addStretch(1)
+        self._scroll.setWidget(self._host)
+        layout.addWidget(self._scroll, stretch=1)
+
+        self._checks: list[FluentCheckBox] = []
+        names = list(known_tags)
+        selected_keys = {name.casefold() for name in selected}
+        known_keys = {name.casefold() for name in names}
+        for name in selected:
+            if name.casefold() not in known_keys:
+                names.append(name)
+                known_keys.add(name.casefold())
+        for name in names:
+            box = FluentCheckBox(name, self._host)
+            box.setChecked(name.casefold() in selected_keys)
+            self._checks_layout.insertWidget(self._checks_layout.count() - 1, box)
+            self._checks.append(box)
+
+        self._new_tag = FluentLineEdit(self, placeholder="Add tag", clearable=True, compact=True)
+        layout.addWidget(self._new_tag)
+
+        buttons = QHBoxLayout()
+        buttons.setSpacing(SPACE_S)
+        self._ok_button = FluentPrimaryButton("OK", self)
+        self._ok_button.setDefault(True)
+        self._ok_button.setAutoDefault(True)
+        self._close_button = FluentPushButton("Close", self)
+        self._close_button.setAutoDefault(False)
+        buttons.addWidget(self._ok_button, stretch=1)
+        buttons.addWidget(self._close_button, stretch=1)
+        layout.addLayout(buttons)
+
+        self._ok_button.clicked.connect(self.accepted.emit)
+        self._close_button.clicked.connect(self.rejected.emit)
+        self._new_tag.returnPressed.connect(self.accepted.emit)
+        # Shortcuts work while focus is on checkboxes / the add field.
+        QShortcut(QKeySequence(Qt.Key.Key_Escape), self, self.rejected.emit)
+        QShortcut(QKeySequence(Qt.Key.Key_Return), self, self.accepted.emit)
+        QShortcut(QKeySequence(Qt.Key.Key_Enter), self, self.accepted.emit)
+        self.setFocusProxy(self._new_tag if not self._checks else self._checks[0])
+
+    def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
+        """OK on Enter; Close on Escape when the frame itself has focus."""
+        if event.key() == Qt.Key.Key_Escape:
+            self.rejected.emit()
+            event.accept()
+            return
+        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+            self.accepted.emit()
+            event.accept()
+            return
+        super().keyPressEvent(event)
+
+    def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802
+        """Paint the Fluent popup surface behind the checklist."""
+        del event
+        palette = palette_for(self)
+        fill = palette.solid_tertiary_bg if palette.dark else palette.solid_quarternary_bg
+        painter = antialiased_painter(self)
+        paint_surface(painter, self.rect(), fill, palette.popup_stroke, RADIUS_OVERLAY)
+        painter.end()
+
+    def set_selected_tags(self, selected: list[str]) -> None:
+        """Sync checkbox states to `selected` without changing the offered names."""
+        selected_keys = {name.casefold() for name in selected}
+        for box in self._checks:
+            box.setChecked(box.text().casefold() in selected_keys)
+
+    def tags_text(self) -> str:
+        """Return the checked names plus any tag still typed in the add field."""
+        names = [box.text() for box in self._checks if box.isChecked()]
+        names.extend(parse_tag_text(self._new_tag.text()))
+        return format_tag_text(names)
 
 
 class TagDelegate(QStyledItemDelegate):
@@ -173,137 +301,81 @@ class TagDelegate(QStyledItemDelegate):
         return list(self._tags)
 
 
-class TagCheckListEditor(QFrame):
-    """Fluent popup: checkboxes for known tags, a new-tag field, OK and Close."""
+class _TagPickerPopup(QFrame):
+    """Frameless Qt.Popup hosting `TagCheckListEditor` under an anchor field."""
 
-    accepted = Signal()
-    rejected = Signal()
+    finished = Signal(object)
 
     def __init__(
         self,
         known_tags: list[str],
         selected: list[str],
-        parent: QWidget | None = None,
+        *,
+        fluent: bool,
     ) -> None:
-        """Build the Fluent check list and the field used to type one more tag."""
-        super().__init__(parent)
-        self.setObjectName("financeTagEditor")
+        super().__init__(None, Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint)
+        self.setObjectName("financeTagPickerPopup")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
-        self.setAutoFillBackground(False)
-        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-
+        if fluent:
+            enable_fluent_theme(self)
+        self._emitted = False
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(SPACE_S, SPACE_S, SPACE_S, SPACE_S)
-        layout.setSpacing(SPACE_S)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        self.editor = TagCheckListEditor(known_tags, selected, self)
+        layout.addWidget(self.editor)
+        self.editor.accepted.connect(self._accept)
+        self.editor.rejected.connect(self._reject)
 
-        self._scroll = FluentScrollArea(self)
-        self._scroll.setWidgetResizable(True)
-        self._scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self._scroll.setFrameShape(QFrame.Shape.NoFrame)
-        self._scroll.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+    def hideEvent(self, event: QHideEvent) -> None:  # noqa: N802
+        """Click-outside closes a Qt.Popup — treat that as Cancel."""
+        super().hideEvent(event)
+        self._emit_finished(None)
 
-        self._host = QWidget(self._scroll)
-        self._host.setObjectName("financeTagEditorHost")
-        self._checks_layout = QVBoxLayout(self._host)
-        self._checks_layout.setContentsMargins(SPACE_XS, SPACE_XS, SPACE_XS, SPACE_XS)
-        self._checks_layout.setSpacing(2)
-        self._checks_layout.addStretch(1)
-        self._scroll.setWidget(self._host)
-        layout.addWidget(self._scroll, stretch=1)
+    def _accept(self) -> None:
+        self._emit_finished(self.editor.tags_text())
+        self.hide()
 
-        self._checks: list[FluentCheckBox] = []
-        names = list(known_tags)
-        selected_keys = {name.casefold() for name in selected}
-        known_keys = {name.casefold() for name in names}
-        for name in selected:
-            if name.casefold() not in known_keys:
-                names.append(name)
-                known_keys.add(name.casefold())
-        for name in names:
-            box = FluentCheckBox(name, self._host)
-            box.setChecked(name.casefold() in selected_keys)
-            self._checks_layout.insertWidget(self._checks_layout.count() - 1, box)
-            self._checks.append(box)
-
-        self._new_tag = FluentLineEdit(self, placeholder="Add tag", clearable=True, compact=True)
-        layout.addWidget(self._new_tag)
-
-        buttons = QHBoxLayout()
-        buttons.setSpacing(SPACE_S)
-        self._ok_button = FluentPrimaryButton("OK", self)
-        self._ok_button.setDefault(True)
-        self._ok_button.setAutoDefault(True)
-        self._close_button = FluentPushButton("Close", self)
-        self._close_button.setAutoDefault(False)
-        buttons.addWidget(self._ok_button, stretch=1)
-        buttons.addWidget(self._close_button, stretch=1)
-        layout.addLayout(buttons)
-
-        self._ok_button.clicked.connect(self.accepted.emit)
-        self._close_button.clicked.connect(self.rejected.emit)
-        self._new_tag.returnPressed.connect(self.accepted.emit)
-        # Shortcuts work while focus is on checkboxes / the add field.
-        QShortcut(QKeySequence(Qt.Key.Key_Escape), self, self.rejected.emit)
-        QShortcut(QKeySequence(Qt.Key.Key_Return), self, self.accepted.emit)
-        QShortcut(QKeySequence(Qt.Key.Key_Enter), self, self.accepted.emit)
-        self.setFocusProxy(self._new_tag if not self._checks else self._checks[0])
-
-    def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
-        """OK on Enter; Close on Escape when the frame itself has focus."""
-        if event.key() == Qt.Key.Key_Escape:
-            self.rejected.emit()
-            event.accept()
+    def _emit_finished(self, value: str | None) -> None:
+        if self._emitted:
             return
-        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
-            self.accepted.emit()
-            event.accept()
-            return
-        super().keyPressEvent(event)
+        self._emitted = True
+        self.finished.emit(value)
 
-    def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802
-        """Paint the Fluent popup surface behind the checklist."""
-        del event
-        palette = palette_for(self)
-        fill = palette.solid_tertiary_bg if palette.dark else palette.solid_quarternary_bg
-        painter = antialiased_painter(self)
-        paint_surface(painter, self.rect(), fill, palette.popup_stroke, RADIUS_OVERLAY)
-        painter.end()
-
-    def set_selected_tags(self, selected: list[str]) -> None:
-        """Sync checkbox states to `selected` without changing the offered names."""
-        selected_keys = {name.casefold() for name in selected}
-        for box in self._checks:
-            box.setChecked(box.text().casefold() in selected_keys)
-
-    def tags_text(self) -> str:
-        """Return the checked names plus any tag still typed in the add field."""
-        names = [box.text() for box in self._checks if box.isChecked()]
-        names.extend(parse_tag_text(self._new_tag.text()))
-        return format_tag_text(names)
+    def _reject(self) -> None:
+        self._emit_finished(None)
+        self.hide()
 
 
 def pick_transaction_tags(
-    parent: QWidget | None,
+    anchor: QWidget,
     known_tags: list[str],
     selected: list[str],
 ) -> str | None:
-    """Show the shared tag check-list dialog and return the chosen text, or `None`."""
-    dialog = QDialog(parent)
-    dialog.setWindowTitle("Tags")
-    dialog.setModal(True)
-    dialog.resize(_DIALOG_WIDTH, _DIALOG_HEIGHT)
-    if parent is None or is_fluent_themed(parent):
-        enable_fluent_theme(dialog)
-    layout = QVBoxLayout(dialog)
-    layout.setContentsMargins(0, 0, 0, 0)
-    layout.setSpacing(0)
-    editor = TagCheckListEditor(known_tags, selected, dialog)
-    layout.addWidget(editor)
-    editor.accepted.connect(dialog.accept)
-    editor.rejected.connect(dialog.reject)
-    if dialog.exec() == QDialog.DialogCode.Accepted:
-        return editor.tags_text()
-    return None
+    """Show the tag check-list as a popup under `anchor` and return chosen text, or `None`."""
+    popup = _TagPickerPopup(
+        known_tags,
+        selected,
+        fluent=is_fluent_themed(anchor),
+    )
+    width = max(anchor.width(), _EDITOR_MIN_WIDTH)
+    popup.resize(width, _POPUP_HEIGHT)
+    _place_popup_under_anchor(popup, anchor)
+
+    result: dict[str, object] = {"value": None}
+    loop = QEventLoop(popup)
+
+    def on_finished(value: object) -> None:
+        result["value"] = value
+        loop.quit()
+
+    popup.finished.connect(on_finished)
+    popup.show()
+    popup.editor.setFocus(Qt.FocusReason.PopupFocusReason)
+    loop.exec()
+    popup.deleteLater()
+    value = result["value"]
+    return value if isinstance(value, str) else None
 
 
 def _draw_chip(
@@ -369,3 +441,17 @@ def _paint_tag_chips(painter: QPainter, cell: QRect, names: list[str], palette: 
         painted += 1
 
     painter.restore()
+
+
+def _place_popup_under_anchor(popup: QWidget, anchor: QWidget) -> None:
+    """Move `popup` under `anchor`, flipping above when the screen has no room below."""
+    gap = _POPUP_GAP
+    below = anchor.mapToGlobal(QPoint(0, anchor.height() + gap))
+    screen = QGuiApplication.screenAt(anchor.mapToGlobal(anchor.rect().center()))
+    area = screen.availableGeometry() if screen is not None else QRect(below, popup.size())
+    x = max(area.left() + 4, min(below.x(), area.right() - popup.width() - 4))
+    y = below.y()
+    if y + popup.height() > area.bottom() - 4:
+        above = anchor.mapToGlobal(QPoint(0, -popup.height() - gap))
+        y = above.y() if above.y() >= area.top() + 4 else max(area.top() + 4, area.bottom() - popup.height() - 4)
+    popup.move(x, y)

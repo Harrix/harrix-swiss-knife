@@ -70,7 +70,7 @@ def qapp() -> QApplication:
 
 def _force_close_preview(window: object) -> None:
     if isinstance(window, ScreenshotPreviewWindow):
-        window._discard_confirm_suppressed = True  # noqa: SLF001
+        window._discard_confirm_suppressed = True
         window.close()
         window.deleteLater()
 
@@ -148,7 +148,7 @@ def test_preview_close_prompts_when_single_tab_is_dirty(
     image = QImage(8, 8, QImage.Format.Format_RGB32)
     image.fill(Qt.GlobalColor.blue)
     window = show_screenshot_preview(image)
-    tabs = window._iter_tabs()  # noqa: SLF001
+    tabs = window._iter_tabs()
     assert len(tabs) == 1
     tabs[0].dirty = True
     window.close()

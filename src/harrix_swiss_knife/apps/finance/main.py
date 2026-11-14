@@ -3201,26 +3201,6 @@ class MainWindow(
             logger.exception("Error getting tags for delegate")
             return []
 
-    def _install_tag_entry_picker(self) -> None:
-        """Add a trailing tags action on the entry Tags field."""
-        if self.lineEdit_tag.property("hskTagPickerInstalled") is True:
-            return
-        action = QAction(self.lineEdit_tag)
-        action.setObjectName("hskTagPickerAction")
-        action.setIcon(create_lucide_icon("tags", 16, color=SELECTION_BORDER))
-        action.setToolTip("Choose tags")
-        action.triggered.connect(self._open_tag_picker_for_entry)
-        self.lineEdit_tag.addAction(action, QLineEdit.ActionPosition.TrailingPosition)
-        self.lineEdit_tag.setPlaceholderText("Optional — icon or double-click to choose")
-        self.lineEdit_tag.setProperty("hskTagPickerInstalled", True)  # noqa: FBT003
-
-    def _open_tag_picker_for_entry(self) -> None:
-        """Open the same tag check-list used by the transactions Tags column."""
-        selected = parse_tag_text(self.lineEdit_tag.text())
-        result = pick_transaction_tags(self, self._get_tags_for_delegate(), selected)
-        if result is not None:
-            self.lineEdit_tag.setText(result)
-
     def _get_transactions_filter_params(self) -> dict[str, Any] | None:
         """Return active filter parameters or `None` when no filter is applied."""
         if not self._transactions_filter_is_active():
@@ -3369,6 +3349,19 @@ class MainWindow(
         )
         self._chart_toolbar = toolbar
         self._sync_finance_chart_toolbar_mode()
+
+    def _install_tag_entry_picker(self) -> None:
+        """Add a trailing tags action on the entry Tags field."""
+        if self.lineEdit_tag.property("hskTagPickerInstalled") is True:
+            return
+        action = QAction(self.lineEdit_tag)
+        action.setObjectName("hskTagPickerAction")
+        action.setIcon(create_lucide_icon("tags", 16, color=SELECTION_BORDER))
+        action.setToolTip("Choose tags")
+        action.triggered.connect(self._open_tag_picker_for_entry)
+        self.lineEdit_tag.addAction(action, QLineEdit.ActionPosition.TrailingPosition)
+        self.lineEdit_tag.setPlaceholderText("Optional — icon or double-click to choose")
+        self.lineEdit_tag.setProperty("hskTagPickerInstalled", True)  # noqa: FBT003
 
     def _is_current_tab(self, object_name: str) -> bool:
         """Return whether the current tab widget has `object_name`."""
@@ -4649,6 +4642,17 @@ class MainWindow(
         self.doubleSpinBox_amount.setValue(result)
         self.doubleSpinBox_amount.setFocus()
         self.doubleSpinBox_amount.selectAll()
+
+    def _open_tag_picker_for_entry(self) -> None:
+        """Open the tag check-list as a popup under the Tags field."""
+        selected = parse_tag_text(self.lineEdit_tag.text())
+        result = pick_transaction_tags(
+            self.lineEdit_tag,
+            self._get_tags_for_delegate(),
+            selected,
+        )
+        if result is not None:
+            self.lineEdit_tag.setText(result)
 
     def _open_text_input_dialog(
         self,

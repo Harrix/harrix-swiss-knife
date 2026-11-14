@@ -6,12 +6,17 @@ from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QPoint, Qt, QTimer
 from PySide6.QtGui import QPainter, QPixmap, QStandardItemModel
 from PySide6.QtWidgets import QApplication, QStyleOptionViewItem, QWidget
 
 from harrix_swiss_knife.apps.finance.database_manager import DatabaseManager
-from harrix_swiss_knife.apps.finance.delegates.tag_delegate import TagCheckListEditor, TagDelegate
+from harrix_swiss_knife.apps.finance.delegates import tag_delegate as tag_delegate_module
+from harrix_swiss_knife.apps.finance.delegates.tag_delegate import (
+    TagCheckListEditor,
+    TagDelegate,
+    pick_transaction_tags,
+)
 from harrix_swiss_knife.apps.finance.tags import format_tag_text, parse_tag_text
 from harrix_swiss_knife.fluent.widgets.button_base import FluentPushButton
 from harrix_swiss_knife.fluent.widgets.buttons import FluentCheckBox, FluentPrimaryButton
@@ -153,6 +158,45 @@ def test_tag_checklist_has_ok_and_close_buttons(qapp: QApplication) -> None:
     assert rejected == [True]
     editor.close()
     parent.close()
+
+
+def test_pick_transaction_tags_uses_popup_under_anchor(qapp: QApplication) -> None:
+    """Entry Tags field opens a frameless popup under the line edit, not a dialog window."""
+    assert qapp is not None
+    anchor = QWidget()
+    anchor.setGeometry(80, 80, 220, 32)
+    anchor.show()
+    qapp.processEvents()
+
+    seen_flags = 0
+    seen_pos = QPoint()
+    seen_is_popup = False
+
+    def accept_popup() -> None:
+        nonlocal seen_flags, seen_pos, seen_is_popup
+        popup = next(
+            (
+                widget
+                for widget in QApplication.topLevelWidgets()
+                if isinstance(widget, tag_delegate_module._TagPickerPopup)
+            ),
+            None,
+        )
+        assert popup is not None
+        seen_flags = int(popup.windowFlags())
+        seen_pos = popup.pos()
+        seen_is_popup = bool(popup.windowFlags() & Qt.WindowType.Popup)
+        popup.editor._ok_button.click()
+
+    QTimer.singleShot(0, accept_popup)
+    result = pick_transaction_tags(anchor, ["gift", "trip"], ["gift"])
+    assert result == "gift"
+    assert seen_is_popup is True
+    assert not (seen_flags & int(Qt.WindowType.WindowTitleHint))
+    expected = anchor.mapToGlobal(QPoint(0, anchor.height() + 2))
+    assert seen_pos.x() == expected.x()
+    assert seen_pos.y() == expected.y()
+    anchor.close()
 
 
 def test_legacy_tag_column_is_copied_when_database_opens(tmp_path: Path, qapp: QApplication) -> None:

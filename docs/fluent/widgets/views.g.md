@@ -1993,6 +1993,8 @@ class SmoothScroller(QObject):
     def __init__(self, area: QAbstractScrollArea, *, orientation: Qt.Orientation = Qt.Orientation.Vertical) -> None:
         """Install smooth wheel scrolling on `area`."""
         super().__init__(area)
+        # Set before any Qt work: installEventFilter / ChildAdded can re-enter eventFilter.
+        self._viewport: QWidget | None = None
         self._area = area
         self._orientation = orientation
         bar = self._bar()
@@ -2000,16 +2002,21 @@ class SmoothScroller(QObject):
         self._animation.setDuration(ANIMATION_SLOW)
         self._animation.setEasingCurve(QEasingCurve.Type.OutCubic)
         self._target = bar.value()
-        self._viewport = area.viewport()
-        self._viewport.installEventFilter(self)
+        viewport = area.viewport()
+        self._viewport = viewport
+        if viewport is not None:
+            viewport.installEventFilter(self)
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
         """Turn wheel events into an animated scroll."""
-        if watched is self._viewport and event.type() == QEvent.Type.Wheel and isinstance(event, QWheelEvent):
-            if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
-                return False
-            return self.scroll_by_wheel(event)
-        return False
+        viewport = getattr(self, "_viewport", None)
+        if viewport is None or watched is not viewport:
+            return False
+        if event.type() != QEvent.Type.Wheel or not isinstance(event, QWheelEvent):
+            return False
+        if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
+            return False
+        return self.scroll_by_wheel(event)
 
     def scroll_by_wheel(self, event: QWheelEvent) -> bool:
         """Scroll for one wheel event; return whether it was consumed."""
@@ -2053,6 +2060,8 @@ Install smooth wheel scrolling on `area`.
 ```python
 def __init__(self, area: QAbstractScrollArea, *, orientation: Qt.Orientation = Qt.Orientation.Vertical) -> None:
         super().__init__(area)
+        # Set before any Qt work: installEventFilter / ChildAdded can re-enter eventFilter.
+        self._viewport: QWidget | None = None
         self._area = area
         self._orientation = orientation
         bar = self._bar()
@@ -2060,8 +2069,10 @@ def __init__(self, area: QAbstractScrollArea, *, orientation: Qt.Orientation = Q
         self._animation.setDuration(ANIMATION_SLOW)
         self._animation.setEasingCurve(QEasingCurve.Type.OutCubic)
         self._target = bar.value()
-        self._viewport = area.viewport()
-        self._viewport.installEventFilter(self)
+        viewport = area.viewport()
+        self._viewport = viewport
+        if viewport is not None:
+            viewport.installEventFilter(self)
 ```
 
 </details>
@@ -2079,11 +2090,14 @@ Turn wheel events into an animated scroll.
 
 ```python
 def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
-        if watched is self._viewport and event.type() == QEvent.Type.Wheel and isinstance(event, QWheelEvent):
-            if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
-                return False
-            return self.scroll_by_wheel(event)
-        return False
+        viewport = getattr(self, "_viewport", None)
+        if viewport is None or watched is not viewport:
+            return False
+        if event.type() != QEvent.Type.Wheel or not isinstance(event, QWheelEvent):
+            return False
+        if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
+            return False
+        return self.scroll_by_wheel(event)
 ```
 
 </details>

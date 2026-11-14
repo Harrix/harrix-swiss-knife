@@ -811,6 +811,18 @@ class ScreenshotPreviewWindow(QMainWindow):
             )
             self._zoom_shortcuts.append(shortcut)
 
+    def _iter_tabs(self) -> list[_ScreenshotTab]:
+        tabs: list[_ScreenshotTab] = []
+        for index in range(self._tabs.count()):
+            widget = self._tabs.widget(index)
+            if isinstance(widget, _ScreenshotTab):
+                tabs.append(widget)
+        return tabs
+
+    def _needs_close_confirm(self) -> bool:
+        """Whether closing should ask about unsaved work."""
+        return preview_needs_close_confirm(self._iter_tabs())
+
     def _on_caption_tab_changed(self, index: int) -> None:
         if index < 0 or self._tabs.currentIndex() == index:
             return
@@ -861,18 +873,6 @@ class ScreenshotPreviewWindow(QMainWindow):
         self._crop_ok_button.setEnabled(pending)
         if pending:
             self._set_status("Crop: adjust frame · Enter apply · Esc cancel")
-
-    def _iter_tabs(self) -> list[_ScreenshotTab]:
-        tabs: list[_ScreenshotTab] = []
-        for index in range(self._tabs.count()):
-            widget = self._tabs.widget(index)
-            if isinstance(widget, _ScreenshotTab):
-                tabs.append(widget)
-        return tabs
-
-    def _needs_close_confirm(self) -> bool:
-        """Whether closing should ask about unsaved work."""
-        return preview_needs_close_confirm(self._iter_tabs())
 
     def _on_document_changed(self, tab: _ScreenshotTab | None = None) -> None:
         current = tab if tab is not None else self._current_tab()
@@ -1509,6 +1509,21 @@ class _ScreenshotTab(QWidget):
         return self.dirty or not self.is_saved
 
 
+def preview_needs_close_confirm(tabs: list[_ScreenshotTab]) -> bool:
+    """Return whether closing the preview should ask about unsaved work.
+
+    - One plain unsaved screenshot: no prompt.
+    - One screenshot with edits (dirty): prompt.
+    - Several tabs with any unsaved image: prompt.
+
+    """
+    if not tabs:
+        return False
+    if len(tabs) == 1:
+        return tabs[0].dirty
+    return any(tab.is_unsaved for tab in tabs)
+
+
 def print_screenshot_image(image: QImage, printer: QPrinter) -> bool:
     """Draw `image` scaled to fit and centered on the printer page.
 
@@ -1536,21 +1551,6 @@ def print_screenshot_image(image: QImage, printer: QPrinter) -> bool:
     finally:
         painter.end()
     return True
-
-
-def preview_needs_close_confirm(tabs: list[_ScreenshotTab]) -> bool:
-    """Return whether closing the preview should ask about unsaved work.
-
-    - One plain unsaved screenshot: no prompt.
-    - One screenshot with edits (dirty): prompt.
-    - Several tabs with any unsaved image: prompt.
-
-    """
-    if not tabs:
-        return False
-    if len(tabs) == 1:
-        return tabs[0].dirty
-    return any(tab.is_unsaved for tab in tabs)
 
 
 def show_screenshot_preview(image: QImage) -> ScreenshotPreviewWindow:
