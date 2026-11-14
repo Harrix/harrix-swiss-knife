@@ -573,18 +573,21 @@ def selection_chrome_colors() -> tuple[str, str, str, str]:
     Light mode keeps the shared soft-blue tokens. Dark mode uses Fluent list
     selection fills so tiles are not bright white islands.
 
+    Values are opaque `#RRGGBB` so both QSS and `QColor(...)` accept them
+    (Qt does not parse `rgba(r,g,b,a)` in the `QColor` constructor).
+
     """
     with contextlib.suppress(Exception):
         from harrix_swiss_knife.fluent.style import list_item_hover, list_item_selected  # noqa: PLC0415
-        from harrix_swiss_knife.fluent.theme import FluentTheme, css, mix  # noqa: PLC0415
+        from harrix_swiss_knife.fluent.theme import FluentTheme, mix  # noqa: PLC0415
 
         palette = FluentTheme.instance().palette()
         if palette.dark:
             return (
-                css(list_item_selected(palette)),
-                css(list_item_hover(palette)),
-                css(mix(palette.window_bg, palette.accent)),
-                css(mix(palette.window_bg, palette.text_primary)),
+                list_item_selected(palette).name(),
+                list_item_hover(palette).name(),
+                mix(palette.window_bg, palette.accent).name(),
+                mix(palette.window_bg, palette.text_primary).name(),
             )
     return SELECTION_BG, SELECTION_HOVER, SELECTION_BORDER, SELECTION_TEXT
 

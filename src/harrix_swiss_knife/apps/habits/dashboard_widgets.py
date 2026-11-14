@@ -22,13 +22,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from harrix_swiss_knife.apps.common.ui_chrome import (
-    MUTED_TEXT,
-    SELECTION_BG,
-    SELECTION_BORDER,
-    SELECTION_HOVER,
-    selection_chrome_colors,
-)
+from harrix_swiss_knife.apps.common.ui_chrome import MUTED_TEXT, selection_chrome_colors
 from harrix_swiss_knife.apps.habits.habit_emojis import default_habit_emoji
 from harrix_swiss_knife.fluent.style import push_button_qss
 from harrix_swiss_knife.fluent.theme import bind_theme, css, mix, palette_for
@@ -458,16 +452,15 @@ class HabitRow(QFrame):
         palette = palette_for(self)
         selected_bg, hover_bg, marker, _text = selection_chrome_colors()
         if self._selected:
-            fill = QColor(selected_bg if palette.dark else SELECTION_BG)
+            fill = QColor(selected_bg)
         elif self._hovered:
-            fill = QColor(hover_bg if palette.dark else SELECTION_HOVER)
+            fill = QColor(hover_bg)
         else:
             fill = QColor(0, 0, 0, 0)
         if fill.alpha() > 0:
             painter.fillRect(self.rect(), fill)
         if self._selected:
-            marker_color = QColor(marker if palette.dark else SELECTION_BORDER)
-            painter.fillRect(1, 6, 3, max(8, self.height() - 12), marker_color)
+            painter.fillRect(1, 6, 3, max(8, self.height() - 12), QColor(marker))
         if self.hasFocus() and not self._selected:
             painter.setPen(QPen(palette.focus_stroke_outer, 1))
             painter.setBrush(Qt.BrushStyle.NoBrush)

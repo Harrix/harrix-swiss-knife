@@ -287,6 +287,30 @@ def test_set_habit_checkin_four_kinds(habits_db: DatabaseManager) -> None:
     assert not habits_db.is_habit_done_on_date(habit_id, day)
 
 
+def test_dark_selection_chrome_colors_are_qcolor_safe(qapp: QApplication) -> None:
+    """Dark hover/selection fills must be opaque hex — not rgba that QColor turns black."""
+    assert qapp is not None
+    from PySide6.QtGui import QColor
+
+    from harrix_swiss_knife.apps.common.ui_chrome import selection_chrome_colors
+    from harrix_swiss_knife.fluent.theme import FluentTheme, ThemeMode
+
+    theme = FluentTheme.instance()
+    previous = theme.mode()
+    theme.set_mode(ThemeMode.DARK, persist=False)
+    try:
+        fill, hover, border, text = selection_chrome_colors()
+        for value in (fill, hover, border, text):
+            assert value.startswith("#")
+            color = QColor(value)
+            assert color.isValid()
+            assert color.alpha() == 255
+        # Hover must lighten the window, not collapse to pure black.
+        assert QColor(hover).lightness() > 20
+    finally:
+        theme.set_mode(previous, persist=False)
+
+
 def test_habit_row_double_click_requests_edit(qapp: QApplication) -> None:
     """Double-click on the habit name area asks to open the edit dialog."""
     assert qapp is not None
