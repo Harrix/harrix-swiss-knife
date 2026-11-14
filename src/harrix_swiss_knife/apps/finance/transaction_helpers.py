@@ -26,6 +26,8 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from typing import TYPE_CHECKING, Any, NamedTuple
 
+from harrix_swiss_knife.apps.common.chart_theme import CHART_SERIES_COLORS
+
 if TYPE_CHECKING:
     from harrix_swiss_knife.apps.finance.database_manager import DatabaseManager
     from harrix_swiss_knife.apps.finance.services.exchange_rates import PreloadedExchangeRates
@@ -1981,21 +1983,4 @@ MIN_ACCOUNTS_ROW_LENGTH = 7
 DECEMBER = 12
 
 
-CHART_COMPARE_COLOR_PALETTE: list[str] = [
-    "blue",
-    "green",
-    "orange",
-    "purple",
-    "brown",
-    "pink",
-    "gray",
-    "olive",
-    "cyan",
-    "magenta",
-    "teal",
-    "navy",
-    "maroon",
-    "lime",
-    "indigo",
-    "coral",
-]
+CHART_COMPARE_COLOR_PALETTE: list[str] = list(CHART_SERIES_COLORS)

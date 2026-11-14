@@ -55,27 +55,33 @@ HEATMAP_LEVELS_DARK: tuple[str, ...] = ("#2D333B", "#0E4429", "#006D32", "#26A64
 HABIT_DONE_LIGHT = "#30A14E"
 HABIT_DONE_DARK = "#26A641"
 
-# Stable comparative series (not neon cyan/magenta). Accent is injected first.
-_SERIES_FALLBACK = (
-    "#3a78bc",
-    "#4caf50",
-    "#cc584c",
-    "#8e6bbf",
-    "#db8b0a",
-    "#2a9d8f",
-    "#6d6875",
-    "#e76f51",
+# Shared series palette: Fitness compare look (brand solids at ~0.55 on white),
+# then nudged darker and more saturated so opaque charts keep that soft read.
+CHART_SERIES_COLORS: tuple[str, ...] = (
+    "#699fdb",  # blue
+    "#78cf7b",  # green
+    "#e67c71",  # coral-red
+    "#aa89d7",  # purple
+    "#f8b343",  # amber
+    "#64c6ba",  # teal
+    "#9a96a1",  # gray
+    "#fb8a6d",  # coral
+    "#7f8cda",  # indigo
+    "#ff6397",  # pink
+    "#b3988e",  # taupe
+    "#a3d370",  # lime
 )
+_SERIES_FALLBACK = CHART_SERIES_COLORS
 
 LabelMode = Literal["auto", "all", "off"]
-_SERIES_COUNT = 8
+_SERIES_COUNT = len(CHART_SERIES_COLORS)
 
 
 class ChartTheme:
     """Colors and font for one light or dark chart pass.
 
-    Heatmap greens and habit-done greens are fixed scales. Everything else
-    follows the Fluent palette so a theme switch repaints open charts.
+    Heatmap greens and habit-done greens are fixed scales. Series colors are the
+    shared Fitness-derived palette; chrome ink follows the Fluent theme.
 
     """
 
@@ -314,19 +320,12 @@ def chart_neutral_color() -> str:
 
 
 def chart_series_color(index: int = 0) -> str:
-    """Return a stable comparative series color; index 0 is the app accent."""
-    palette = FluentTheme.instance().palette()
-    colors = (
-        palette.accent.name(),
-        *(_c for _c in _SERIES_FALLBACK if _c.casefold() != palette.accent.name().casefold()),
-    )
-    if not colors:
-        return _SERIES_FALLBACK[0]
-    return colors[index % len(colors)]
+    """Return a shared comparative series color (Fitness-derived soft palette)."""
+    return CHART_SERIES_COLORS[index % len(CHART_SERIES_COLORS)]
 
 
 def chart_series_palette(count: int) -> list[str]:
-    """Return `count` distinct series colors starting with the accent."""
+    """Return `count` distinct series colors from the shared chart palette."""
     return [chart_series_color(index) for index in range(max(0, count))]
 
 

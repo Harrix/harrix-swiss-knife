@@ -64,6 +64,19 @@ def test_dark_chart_label_face_differs_from_axes_surface(qapp: QApplication) -> 
         apply_chart_theme()
 
 
+def test_shared_series_palette_matches_fitness_soft_colors(qapp: QApplication) -> None:
+    """Comparative series use the Fitness-derived soft palette, not Fluent accent injection."""
+    assert qapp is not None
+    from harrix_swiss_knife.apps.common.chart_theme import CHART_SERIES_COLORS, chart_series_color
+    from harrix_swiss_knife.apps.finance.transaction_helpers import CHART_COMPARE_COLOR_PALETTE
+
+    assert chart_series_color(0) == CHART_SERIES_COLORS[0] == "#699fdb"
+    assert chart_series_color(1) == "#78cf7b"
+    assert chart_series_color(2) == "#e67c71"
+    assert CHART_COMPARE_COLOR_PALETTE == list(CHART_SERIES_COLORS)
+    assert len(CHART_SERIES_COLORS) >= 12
+
+
 def test_light_heatmap_scale(qapp: QApplication) -> None:
     """The light contribution scale matches the shared heatmap tokens."""
     assert qapp is not None
