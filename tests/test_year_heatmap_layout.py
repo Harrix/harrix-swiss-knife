@@ -7,6 +7,7 @@ from datetime import date
 from PySide6.QtWidgets import QApplication, QSplitter, QWidget
 
 from harrix_swiss_knife.apps.common.chart_theme import quantile_intensity_ranges
+from harrix_swiss_knife.apps.common.chart_timeline import TimelineBar, build_timeline_figure
 from harrix_swiss_knife.apps.common.year_heatmap import heatmap_column_count
 from harrix_swiss_knife.apps.habits.habit_process_charts import habit_calendar_model, habit_period_stats
 from harrix_swiss_knife.apps.habits.ticktick_task_stats import task_timeline_bars
@@ -79,6 +80,32 @@ def test_task_timeline_keeps_zero_days_and_aggregates_a_long_range() -> None:
     assert weekly_long is True
     assert long
     assert long[0].end > long[0].start
+
+
+def test_percent_timeline_leaves_room_above_full_bars() -> None:
+    """A solid 100% habit must not weld the bars into the top edge of the plot."""
+    if not isinstance(QApplication.instance(), QApplication):
+        QApplication([])
+    bars = [
+        TimelineBar(date(2024, 1, 1), date(2024, 1, 7), 100.0, 100.0, "week"),
+        TimelineBar(date(2024, 1, 8), date(2024, 1, 14), 100.0, 100.0, "week"),
+    ]
+    figure = build_timeline_figure(
+        bars,
+        title="Completion over time",
+        ylabel="Completion",
+        bar_label="Weekly completion",
+        line_label="30-day average",
+        figsize=(6.4, 3.2),
+        y_max=100,
+    )
+    axis = figure.axes[0]
+    bottom, top = axis.get_ylim()
+    assert bottom == 0
+    assert top > 100
+    patches = axis.patches
+    assert patches
+    assert patches[0].get_width() < 7
 
 
 def test_ticktick_heatmap_page_puts_tasks_in_a_side_column() -> None:
