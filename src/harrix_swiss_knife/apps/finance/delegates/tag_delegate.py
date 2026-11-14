@@ -4,10 +4,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, cast
 
-from PySide6.QtCore import QAbstractItemModel, QModelIndex, QPersistentModelIndex, QRect, QRectF, Qt
-from PySide6.QtGui import QColor, QFontMetrics, QPainter, QPaintEvent
+from PySide6.QtCore import QAbstractItemModel, QModelIndex, QPersistentModelIndex, QRect, QRectF, Qt, Signal
+from PySide6.QtGui import QColor, QFontMetrics, QKeyEvent, QKeySequence, QPainter, QPaintEvent, QShortcut
 from PySide6.QtWidgets import (
+    QAbstractItemDelegate,
+    QDialog,
     QFrame,
+    QHBoxLayout,
     QSizePolicy,
     QStyle,
     QStyledItemDelegate,
@@ -18,9 +21,10 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife.apps.finance.tags import format_tag_text, parse_tag_text
 from harrix_swiss_knife.fluent.paint import antialiased_painter, paint_surface
-from harrix_swiss_knife.fluent.theme import palette_for
+from harrix_swiss_knife.fluent.theme import enable_fluent_theme, is_fluent_themed, palette_for
 from harrix_swiss_knife.fluent.tokens import RADIUS_OVERLAY, SPACE_S, SPACE_XS, FluentPalette
-from harrix_swiss_knife.fluent.widgets.buttons import FluentCheckBox
+from harrix_swiss_knife.fluent.widgets.button_base import FluentPushButton
+from harrix_swiss_knife.fluent.widgets.buttons import FluentCheckBox, FluentPrimaryButton
 from harrix_swiss_knife.fluent.widgets.display import severity_colors
 from harrix_swiss_knife.fluent.widgets.enums import Severity
 from harrix_swiss_knife.fluent.widgets.input_base import FluentLineEdit
@@ -31,8 +35,10 @@ if TYPE_CHECKING:
 
     from PySide6.QtCore import QObject
 
-_EDITOR_HEIGHT = 240
-_EDITOR_MIN_WIDTH = 260
+_EDITOR_HEIGHT = 300
+_EDITOR_MIN_WIDTH = 280
+_DIALOG_WIDTH = 320
+_DIALOG_HEIGHT = 360
 _CHIP_HEIGHT = 20
 _CHIP_PAD_X = 8
 _CHIP_GAP = 4
@@ -72,7 +78,10 @@ class TagDelegate(QStyledItemDelegate):
         """Open a Fluent check list of known tags with the current cell values checked."""
         raw = index.data()
         selected = parse_tag_text(str(raw) if raw is not None else "")
-        return _TagCheckListEditor(self._known_tags(), selected, parent)
+        editor = TagCheckListEditor(self._known_tags(), selected, parent)
+        editor.accepted.connect(lambda: self._commit_editor(editor))
+        editor.rejected.connect(lambda: self._close_editor(editor, revert=True))
+        return editor
 
     def paint(
         self,
@@ -99,7 +108,7 @@ class TagDelegate(QStyledItemDelegate):
 
     def setEditorData(self, editor: QWidget, index: QModelIndex | QPersistentModelIndex) -> None:  # noqa: N802
         """Check the tags currently stored in the cell."""
-        checklist = cast("_TagCheckListEditor", editor)
+        checklist = cast("TagCheckListEditor", editor)
         raw = index.data()
         checklist.set_selected_tags(parse_tag_text(str(raw) if raw is not None else ""))
 
@@ -110,7 +119,7 @@ class TagDelegate(QStyledItemDelegate):
         index: QModelIndex | QPersistentModelIndex,
     ) -> None:
         """Write the checked tags back as one comma-separated cell value."""
-        checklist = cast("_TagCheckListEditor", editor)
+        checklist = cast("TagCheckListEditor", editor)
         model.setData(index, checklist.tags_text(), Qt.ItemDataRole.DisplayRole)
 
     @property
@@ -145,6 +154,18 @@ class TagDelegate(QStyledItemDelegate):
         rect.setHeight(height)
         editor.setGeometry(rect)
 
+    def _close_editor(self, editor: QWidget, *, revert: bool) -> None:
+        hint = (
+            QAbstractItemDelegate.EndEditHint.RevertModelCache
+            if revert
+            else QAbstractItemDelegate.EndEditHint.SubmitModelCache
+        )
+        self.closeEditor.emit(editor, hint)
+
+    def _commit_editor(self, editor: QWidget) -> None:
+        self.commitData.emit(editor)
+        self._close_editor(editor, revert=False)
+
     def _known_tags(self) -> list[str]:
         """Return the tag names the editor should offer."""
         if self._tags_provider is not None:
@@ -152,8 +173,11 @@ class TagDelegate(QStyledItemDelegate):
         return list(self._tags)
 
 
-class _TagCheckListEditor(QFrame):
-    """Fluent popup: checkboxes for known tags plus a field for a new name."""
+class TagCheckListEditor(QFrame):
+    """Fluent popup: checkboxes for known tags, a new-tag field, OK and Close."""
+
+    accepted = Signal()
+    rejected = Signal()
 
     def __init__(
         self,
@@ -203,7 +227,38 @@ class _TagCheckListEditor(QFrame):
 
         self._new_tag = FluentLineEdit(self, placeholder="Add tag", clearable=True, compact=True)
         layout.addWidget(self._new_tag)
+
+        buttons = QHBoxLayout()
+        buttons.setSpacing(SPACE_S)
+        self._ok_button = FluentPrimaryButton("OK", self)
+        self._ok_button.setDefault(True)
+        self._ok_button.setAutoDefault(True)
+        self._close_button = FluentPushButton("Close", self)
+        self._close_button.setAutoDefault(False)
+        buttons.addWidget(self._ok_button, stretch=1)
+        buttons.addWidget(self._close_button, stretch=1)
+        layout.addLayout(buttons)
+
+        self._ok_button.clicked.connect(self.accepted.emit)
+        self._close_button.clicked.connect(self.rejected.emit)
+        self._new_tag.returnPressed.connect(self.accepted.emit)
+        # Shortcuts work while focus is on checkboxes / the add field.
+        QShortcut(QKeySequence(Qt.Key.Key_Escape), self, self.rejected.emit)
+        QShortcut(QKeySequence(Qt.Key.Key_Return), self, self.accepted.emit)
+        QShortcut(QKeySequence(Qt.Key.Key_Enter), self, self.accepted.emit)
         self.setFocusProxy(self._new_tag if not self._checks else self._checks[0])
+
+    def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
+        """OK on Enter; Close on Escape when the frame itself has focus."""
+        if event.key() == Qt.Key.Key_Escape:
+            self.rejected.emit()
+            event.accept()
+            return
+        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+            self.accepted.emit()
+            event.accept()
+            return
+        super().keyPressEvent(event)
 
     def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802
         """Paint the Fluent popup surface behind the checklist."""
@@ -225,6 +280,30 @@ class _TagCheckListEditor(QFrame):
         names = [box.text() for box in self._checks if box.isChecked()]
         names.extend(parse_tag_text(self._new_tag.text()))
         return format_tag_text(names)
+
+
+def pick_transaction_tags(
+    parent: QWidget | None,
+    known_tags: list[str],
+    selected: list[str],
+) -> str | None:
+    """Show the shared tag check-list dialog and return the chosen text, or `None`."""
+    dialog = QDialog(parent)
+    dialog.setWindowTitle("Tags")
+    dialog.setModal(True)
+    dialog.resize(_DIALOG_WIDTH, _DIALOG_HEIGHT)
+    if parent is None or is_fluent_themed(parent):
+        enable_fluent_theme(dialog)
+    layout = QVBoxLayout(dialog)
+    layout.setContentsMargins(0, 0, 0, 0)
+    layout.setSpacing(0)
+    editor = TagCheckListEditor(known_tags, selected, dialog)
+    layout.addWidget(editor)
+    editor.accepted.connect(dialog.accept)
+    editor.rejected.connect(dialog.reject)
+    if dialog.exec() == QDialog.DialogCode.Accepted:
+        return editor.tags_text()
+    return None
 
 
 def _draw_chip(

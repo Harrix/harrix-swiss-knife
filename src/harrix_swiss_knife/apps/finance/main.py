@@ -39,6 +39,7 @@ from PySide6.QtCore import (
     QTimer,
 )
 from PySide6.QtGui import (
+    QAction,
     QCloseEvent,
     QColor,
     QKeyEvent,
@@ -59,6 +60,7 @@ from PySide6.QtWidgets import (
     QHeaderView,
     QLabel,
     QLayout,
+    QLineEdit,
     QMainWindow,
     QMenu,
     QMessageBox,
@@ -140,7 +142,7 @@ from harrix_swiss_knife.apps.common.table_models import (
 )
 from harrix_swiss_knife.apps.common.text_case import capitalize_first_letter
 from harrix_swiss_knife.apps.common.tracker_filter_chrome import fit_date_filter_field_widths
-from harrix_swiss_knife.apps.common.ui_chrome import muted_caption_qss
+from harrix_swiss_knife.apps.common.ui_chrome import SELECTION_BORDER, muted_caption_qss
 from harrix_swiss_knife.apps.common.ui_helpers import set_combo_plain_items
 from harrix_swiss_knife.apps.common.widgets.image_picker import ImagePicker, ImagePickerMode
 from harrix_swiss_knife.apps.common.widgets.shrinkable_scroll_area import install_shrinkable_tab_scroll
@@ -176,6 +178,7 @@ from harrix_swiss_knife.apps.finance.delegates import (
     DateDelegate,
     DescriptionDelegate,
     TagDelegate,
+    pick_transaction_tags,
 )
 from harrix_swiss_knife.apps.finance.description_autocomplete import (
     DescriptionAutocompleteProxyModel,
@@ -288,6 +291,7 @@ from harrix_swiss_knife.qt_lucide_icon import (
     apply_leading_chrome_buttons,
     apply_leading_chrome_icons,
     apply_lucide_dialog_buttons,
+    create_lucide_icon,
     install_line_edit_search_chrome,
     make_lucide_push_button,
     set_action_text_with_lucide_icon,
@@ -763,6 +767,15 @@ class MainWindow(
             and event.button() == Qt.MouseButton.LeftButton
         ):
             self._show_category_label_context_menu(event.position().toPoint())
+            return True
+
+        if (
+            obj == self.lineEdit_tag
+            and event.type() == QEvent.Type.MouseButtonDblClick
+            and isinstance(event, QMouseEvent)
+            and event.button() == Qt.MouseButton.LeftButton
+        ):
+            self._open_tag_picker_for_entry()
             return True
 
         # Handle Enter key to add transaction quickly
@@ -2217,8 +2230,9 @@ class MainWindow(
         # Enter key handling for dateEdit
         self.dateEdit.installEventFilter(self)
 
-        # Enter key handling for lineEdit_tag
+        # Enter / double-click / trailing icon for lineEdit_tag
         self.lineEdit_tag.installEventFilter(self)
+        self._install_tag_entry_picker()
 
         # Enter key handling for lineEdit_description
         self.lineEdit_description.installEventFilter(self)
@@ -3171,11 +3185,11 @@ class MainWindow(
         return None
 
     def _get_tags_for_delegate(self) -> list[str]:
-        """Get list of unique tags for the delegate dropdown.
+        """Get unique tags in database appearance order for the tag picker.
 
         Returns:
 
-        - `list[str]`: Sorted list of unique tags.
+        - `list[str]`: Tag names oldest-created first (refreshed on each open).
 
         """
         if self.db_manager is None:
@@ -3186,6 +3200,26 @@ class MainWindow(
         except Exception:
             logger.exception("Error getting tags for delegate")
             return []
+
+    def _install_tag_entry_picker(self) -> None:
+        """Add a trailing tags action on the entry Tags field."""
+        if self.lineEdit_tag.property("hskTagPickerInstalled") is True:
+            return
+        action = QAction(self.lineEdit_tag)
+        action.setObjectName("hskTagPickerAction")
+        action.setIcon(create_lucide_icon("tags", 16, color=SELECTION_BORDER))
+        action.setToolTip("Choose tags")
+        action.triggered.connect(self._open_tag_picker_for_entry)
+        self.lineEdit_tag.addAction(action, QLineEdit.ActionPosition.TrailingPosition)
+        self.lineEdit_tag.setPlaceholderText("Optional — icon or double-click to choose")
+        self.lineEdit_tag.setProperty("hskTagPickerInstalled", True)  # noqa: FBT003
+
+    def _open_tag_picker_for_entry(self) -> None:
+        """Open the same tag check-list used by the transactions Tags column."""
+        selected = parse_tag_text(self.lineEdit_tag.text())
+        result = pick_transaction_tags(self, self._get_tags_for_delegate(), selected)
+        if result is not None:
+            self.lineEdit_tag.setText(result)
 
     def _get_transactions_filter_params(self) -> dict[str, Any] | None:
         """Return active filter parameters or `None` when no filter is applied."""

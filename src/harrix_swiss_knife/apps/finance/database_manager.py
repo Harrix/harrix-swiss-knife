@@ -1051,11 +1051,14 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         return 1
 
     def get_distinct_transaction_tags(self) -> list[str]:
-        """Return sorted unique non-empty transaction tags.
+        """Return unique transaction tags in database appearance order.
+
+        Order follows `tags._id` (first time each tag was inserted). Opening the
+        tag picker again after a newer transaction adds a tag refreshes this list.
 
         Returns:
 
-        - `list[str]`: Trimmed tag values in ascending order.
+        - `list[str]`: Tag names oldest-created first.
 
         """
         rows = self.get_rows(
@@ -1064,7 +1067,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             FROM tags tg
             JOIN transaction_tags tt ON tt._id_tags = tg._id
             GROUP BY tg._id, tg.name
-            ORDER BY tg.name COLLATE NOCASE
+            ORDER BY tg._id ASC
             """
         )
         return [str(row[0]) for row in rows]

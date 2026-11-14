@@ -13,7 +13,7 @@ from harrix_swiss_knife.apps.finance.delegates.currency_combo_box_delegate impor
 from harrix_swiss_knife.apps.finance.delegates.date_delegate import DateDelegate
 from harrix_swiss_knife.apps.finance.delegates.description_delegate import DescriptionDelegate
 from harrix_swiss_knife.apps.finance.delegates.report_amount_delegate import ReportAmountDelegate
-from harrix_swiss_knife.apps.finance.delegates.tag_delegate import TagDelegate
+from harrix_swiss_knife.apps.finance.delegates.tag_delegate import TagDelegate, pick_transaction_tags
 from harrix_swiss_knife.apps.finance.delegates.year_delta_cell_delegate import YearDeltaCellDelegate
 
 __all__ = [
@@ -30,4 +30,5 @@ __all__ = [
     "ReportAmountDelegate",
     "TagDelegate",
     "YearDeltaCellDelegate",
+    "pick_transaction_tags",
 ]

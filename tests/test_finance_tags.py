@@ -11,9 +11,10 @@ from PySide6.QtGui import QPainter, QPixmap, QStandardItemModel
 from PySide6.QtWidgets import QApplication, QStyleOptionViewItem, QWidget
 
 from harrix_swiss_knife.apps.finance.database_manager import DatabaseManager
-from harrix_swiss_knife.apps.finance.delegates.tag_delegate import TagDelegate
+from harrix_swiss_knife.apps.finance.delegates.tag_delegate import TagCheckListEditor, TagDelegate
 from harrix_swiss_knife.apps.finance.tags import format_tag_text, parse_tag_text
-from harrix_swiss_knife.fluent.widgets.buttons import FluentCheckBox
+from harrix_swiss_knife.fluent.widgets.button_base import FluentPushButton
+from harrix_swiss_knife.fluent.widgets.buttons import FluentCheckBox, FluentPrimaryButton
 from harrix_swiss_knife.fluent.widgets.input_base import FluentLineEdit
 
 RECOVER_SQL = Path(__file__).resolve().parents[1] / "src" / "harrix_swiss_knife" / "apps" / "finance" / "recover.sql"
@@ -109,7 +110,8 @@ def test_transaction_can_keep_several_tags(finance_db: DatabaseManager) -> None:
     trip_ids = {int(row[0]) for row in finance_db.get_transactions_for_tag("Trip")}
     assert lunch_id in lunch_ids
     assert lunch_id in trip_ids
-    assert finance_db.get_distinct_transaction_tags() == ["food", "trip"]
+    # "trip, food" is stored as links in first-seen parse order → trip then food by _id.
+    assert finance_db.get_distinct_transaction_tags() == ["trip", "food"]
 
     assert finance_db.remove_transaction_tag(lunch_id, "food")
     assert finance_db.get_rows("SELECT tag FROM transactions WHERE _id = :id", {"id": lunch_id})[0][0] == "trip"
@@ -118,6 +120,39 @@ def test_transaction_can_keep_several_tags(finance_db: DatabaseManager) -> None:
     assert totals
     assert totals[0][1] == "RUB"
     assert totals[0][3] == 2000
+
+
+def test_distinct_tags_follow_appearance_order_and_refresh(finance_db: DatabaseManager) -> None:
+    """New tags from a later transaction appear at the end when the picker refreshes."""
+    category_id = _category_id(finance_db, "Food")
+    assert finance_db.add_transaction(5.0, "A", category_id, RUB_ID, "2024-05-01", "alpha")
+    assert finance_db.get_distinct_transaction_tags() == ["alpha"]
+    assert finance_db.add_transaction(6.0, "B", category_id, RUB_ID, "2024-05-02", "beta")
+    assert finance_db.get_distinct_transaction_tags() == ["alpha", "beta"]
+    assert finance_db.add_transaction(7.0, "C", category_id, RUB_ID, "2024-05-03", "alpha, gamma")
+    assert finance_db.get_distinct_transaction_tags() == ["alpha", "beta", "gamma"]
+
+
+def test_tag_checklist_has_ok_and_close_buttons(qapp: QApplication) -> None:
+    """Tag picker exposes OK / Close so the window is not Enter-only."""
+    assert qapp is not None
+    parent = QWidget()
+    editor = TagCheckListEditor(["gift", "trip"], ["gift"], parent)
+    assert editor.findChild(FluentPrimaryButton) is not None
+    assert any(button.text() == "Close" for button in editor.findChildren(FluentPushButton))
+    accepted: list[bool] = []
+    rejected: list[bool] = []
+    editor.accepted.connect(lambda: accepted.append(True))
+    editor.rejected.connect(lambda: rejected.append(True))
+    ok = editor.findChild(FluentPrimaryButton)
+    assert ok is not None
+    ok.click()
+    assert accepted == [True]
+    close = next(button for button in editor.findChildren(FluentPushButton) if button.text() == "Close")
+    close.click()
+    assert rejected == [True]
+    editor.close()
+    parent.close()
 
 
 def test_legacy_tag_column_is_copied_when_database_opens(tmp_path: Path, qapp: QApplication) -> None:
