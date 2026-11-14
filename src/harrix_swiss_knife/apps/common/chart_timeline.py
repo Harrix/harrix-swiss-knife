@@ -28,6 +28,8 @@ _HIT_SLOP_DAYS = 3
 # Keep a visible gutter between adjacent week/day columns.
 _BAR_GAP_DAYS = 1.4
 _PERCENT_HEADROOM = 1.08
+# Extra room when every bar sits on the ceiling (solid 100% weeks).
+_PERCENT_FULL_HEADROOM = 1.22
 _PERCENT_AXIS = 100.0
 _PERCENT_AXIS_EPS = 0.01
 
@@ -138,7 +140,11 @@ def build_timeline_figure(
     axis.set_ylabel(ylabel)
     if y_max is not None:
         # Leave room above 100% so full bars do not weld into the top spine.
-        axis.set_ylim(0, y_max * _PERCENT_HEADROOM)
+        # A flat all-max series needs more space or it still reads as a solid wall.
+        headroom = _PERCENT_HEADROOM
+        if values and min(values) >= y_max - _PERCENT_AXIS_EPS:
+            headroom = _PERCENT_FULL_HEADROOM
+        axis.set_ylim(0, y_max * headroom)
         if abs(y_max - _PERCENT_AXIS) < _PERCENT_AXIS_EPS:
             axis.set_yticks([0, 20, 40, 60, 80, 100])
     setup_date_axis(axis)

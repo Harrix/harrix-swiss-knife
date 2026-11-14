@@ -89,6 +89,7 @@ def test_percent_timeline_leaves_room_above_full_bars() -> None:
     from matplotlib.colors import to_hex
 
     from harrix_swiss_knife.apps.common.chart_theme import chart_series_color
+    from harrix_swiss_knife.apps.common.chart_timeline import _PERCENT_FULL_HEADROOM
 
     bars = [
         TimelineBar(date(2024, 1, 1), date(2024, 1, 7), 100.0, 100.0, "week"),
@@ -106,11 +107,34 @@ def test_percent_timeline_leaves_room_above_full_bars() -> None:
     axis = figure.axes[0]
     bottom, top = axis.get_ylim()
     assert bottom == 0
-    assert top > 100
+    assert top == 100 * _PERCENT_FULL_HEADROOM
     patches = axis.patches
     assert patches
     assert patches[0].get_width() < 7
     assert to_hex(patches[0].get_facecolor()).casefold() == chart_series_color(0).casefold()
+
+
+def test_percent_timeline_keeps_mild_headroom_for_mixed_bars() -> None:
+    """Varied completion only needs the smaller top gutter."""
+    if not isinstance(QApplication.instance(), QApplication):
+        QApplication([])
+    from harrix_swiss_knife.apps.common.chart_timeline import _PERCENT_HEADROOM
+
+    bars = [
+        TimelineBar(date(2024, 1, 1), date(2024, 1, 7), 40.0, 50.0, "week"),
+        TimelineBar(date(2024, 1, 8), date(2024, 1, 14), 100.0, 80.0, "week"),
+    ]
+    figure = build_timeline_figure(
+        bars,
+        title="Completion over time",
+        ylabel="Completion",
+        bar_label="Weekly completion",
+        line_label="30-day average",
+        figsize=(6.4, 3.2),
+        y_max=100,
+    )
+    _bottom, top = figure.axes[0].get_ylim()
+    assert top == 100 * _PERCENT_HEADROOM
 
 
 def test_ticktick_heatmap_page_puts_tasks_in_a_side_column() -> None:
