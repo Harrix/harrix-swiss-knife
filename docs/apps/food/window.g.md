@@ -105,7 +105,7 @@ class Ui_MainWindow(object):
 
         self.pushButton_food_stats_food_weight.setText(QCoreApplication.translate("MainWindow", u"Food Weight Chart", None))
         self.pushButton_food_stats_drink.setText(QCoreApplication.translate("MainWindow", u"Drinks Chart", None))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_food_stats), QCoreApplication.translate("MainWindow", u"Food Statistics", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_food_stats), QCoreApplication.translate("MainWindow", u"Charts", None))
         self.menuCommands.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
         self.menuFile.setTitle(QCoreApplication.translate("MainWindow", u"File", None))
         self.menuHelp.setTitle(QCoreApplication.translate("MainWindow", u"Help", None))
@@ -780,7 +780,7 @@ def retranslateUi(self, MainWindow):
 
         self.pushButton_food_stats_food_weight.setText(QCoreApplication.translate("MainWindow", u"Food Weight Chart", None))
         self.pushButton_food_stats_drink.setText(QCoreApplication.translate("MainWindow", u"Drinks Chart", None))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_food_stats), QCoreApplication.translate("MainWindow", u"Food Statistics", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_food_stats), QCoreApplication.translate("MainWindow", u"Charts", None))
         self.menuCommands.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
         self.menuFile.setTitle(QCoreApplication.translate("MainWindow", u"File", None))
         self.menuHelp.setTitle(QCoreApplication.translate("MainWindow", u"Help", None))

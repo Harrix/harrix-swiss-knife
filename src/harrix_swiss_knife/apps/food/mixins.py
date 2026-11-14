@@ -166,7 +166,7 @@ class ChartOperations(ChartOperationsBase):
 
         Always close Matplotlib figures when removing canvases. Reparenting a
         canvas with `setParent(None)` leaves the figure alive and the QtAgg
-        backend can show it as a separate "Python" window (seen after All time
+        backend can show it as a separate `Python` window (seen after All time
         / date presets redraw the stats chart twice).
 
         """

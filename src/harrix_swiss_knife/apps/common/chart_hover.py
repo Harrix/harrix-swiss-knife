@@ -13,8 +13,12 @@ from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.collections import PathCollection
 from matplotlib.container import BarContainer, ErrorbarContainer
 from matplotlib.patches import Rectangle
-from PySide6.QtGui import QCursor, QResizeEvent
+from PySide6.QtCore import Qt, QTimer
+from PySide6.QtGui import QColor, QCursor, QPainter, QPaintEvent, QPen, QResizeEvent
 from PySide6.QtWidgets import QSizePolicy, QToolTip
+
+from harrix_swiss_knife.apps.common.chart_format import NO_CHART_DATA, fmt_date, fmt_number
+from harrix_swiss_knife.apps.common.chart_theme import apply_theme, chart_muted_ink, register_chart_canvas
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
@@ -27,8 +31,8 @@ _HOVER_ATTR = "_hsk_chart_hover_cid"
 _LEAVE_ATTR = "_hsk_chart_leave_cid"
 _HOVER_STATE_ATTR = "_hsk_chart_hover_state"
 _MPL_DATE_NUMBER_MIN = 1000.0
-_INT_EPSILON = 1e-9
 _MIN_CANVAS_PX = 80
+_RESIZE_DEBOUNCE_MS = 100
 
 
 class ExpandingChartCanvas(FigureCanvas):
@@ -39,16 +43,60 @@ class ExpandingChartCanvas(FigureCanvas):
         super().__init__(figure)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.setMinimumSize(_MIN_CANVAS_PX, _MIN_CANVAS_PX)
+        register_chart_canvas(self)
+        self._cursor_x: int | None = None
+        self._resize_timer = QTimer(self)
+        self._resize_timer.setSingleShot(True)
+        self._resize_timer.setInterval(_RESIZE_DEBOUNCE_MS)
+        self._resize_timer.timeout.connect(self._flush_resize)
+
+    def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802
+        """Draw the figure, then a hover guide that is not part of the data."""
+        super().paintEvent(event)
+        if self._cursor_x is None:
+            return
+        painter = QPainter(self)
+        painter.setPen(QPen(QColor(chart_muted_ink()), 1, Qt.PenStyle.SolidLine))
+        painter.drawLine(self._cursor_x, 0, self._cursor_x, self.height())
+        painter.end()
 
     def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
         """Resize the Matplotlib figure to match the Qt widget size."""
         super().resizeEvent(event)
+        self._resize_timer.start(_RESIZE_DEBOUNCE_MS)
+
+    def set_hover_cursor(self, x_px: float | None) -> None:
+        """Move the vertical hover guide. `None` hides it.
+
+        The guide is painted by Qt. It is not a Matplotlib line, so it cannot
+        change the axis limits.
+
+        """
+        cursor_x = None if x_px is None else round(x_px)
+        if cursor_x == self._cursor_x:
+            return
+        self._cursor_x = cursor_x
+        self.update()
+
+    def show_centered_message(self, text: str = NO_CHART_DATA) -> None:
+        """Replace the figure with one centered line of text."""
+        self.figure.clear()
+        axis = self.figure.add_subplot(111)
+        apply_theme(self.figure, axis)
+        axis.set_axis_off()
+        axis.text(0.5, 0.5, text, ha="center", va="center", color=chart_muted_ink(), transform=axis.transAxes)
+        self.draw_idle()
+
+    def _flush_resize(self) -> None:
         width = max(self.width(), _MIN_CANVAS_PX)
         height = max(self.height(), _MIN_CANVAS_PX)
         dpi = float(self.figure.dpi) if self.figure.dpi else 100.0
         self.figure.set_size_inches(width / dpi, height / dpi, forward=False)
-        with contextlib.suppress(Exception):
-            self.figure.tight_layout()
+        engine = self.figure.get_layout_engine()
+        engine_name = type(engine).__name__.lower() if engine is not None else ""
+        if "constrained" not in engine_name:
+            with contextlib.suppress(Exception):
+                self.figure.tight_layout()
         self.draw_idle()
 
 
@@ -63,9 +111,10 @@ def format_chart_point(x: Any, y: Any, *, label: str | None = None) -> str:
     """Format one ``(x, y)`` chart point for a hover tooltip."""
     x_text = _format_x_value(x)
     y_text = _format_y_value(y)
+    text = f"{x_text} — {y_text}"
     if label:
-        return f"{label}: {x_text} → {y_text}"
-    return f"{x_text}: {y_text}"
+        return f"{text} ({label})"
+    return text
 
 
 def install_chart_hover(
@@ -107,6 +156,7 @@ def install_chart_hover(
                 float(event.y),
                 max_pixel_distance=max_pixel_distance,
             )
+        _set_hover_cursor(canvas, None if event.inaxes is None or event.x is None else float(event.x))
         if tip:
             if tip != state["last_tip"]:
                 state["last_tip"] = tip
@@ -117,6 +167,7 @@ def install_chart_hover(
             QToolTip.hideText()
 
     def on_leave(_event: Event) -> None:
+        _set_hover_cursor(canvas, None)
         if state["last_tip"] is not None:
             state["last_tip"] = None
             QToolTip.hideText()
@@ -190,12 +241,8 @@ def _clean_artist_label(label: object) -> str | None:
 
 
 def _format_x_value(value: Any) -> str:
-    if isinstance(value, datetime):
-        if value.hour or value.minute or value.second:
-            return value.strftime("%Y-%m-%d %H:%M")
-        return value.date().isoformat()
-    if isinstance(value, date):
-        return value.isoformat()
+    if isinstance(value, datetime | date):
+        return fmt_date(value)
     try:
         number = float(value)
     except (TypeError, ValueError):
@@ -206,9 +253,7 @@ def _format_x_value(value: Any) -> str:
             converted = mdates.num2date(number)
             if converted.tzinfo is not None:
                 converted = converted.astimezone().replace(tzinfo=None)
-            if converted.hour or converted.minute or converted.second:
-                return converted.strftime("%Y-%m-%d %H:%M")
-            return converted.date().isoformat()
+            return fmt_date(converted)
         except (ValueError, OverflowError, OSError):
             pass
     return _format_y_value(number)
@@ -219,10 +264,7 @@ def _format_y_value(value: Any) -> str:
         number = float(value)
     except (TypeError, ValueError):
         return str(value)
-    if abs(number - round(number)) < _INT_EPSILON:
-        return str(round(number))
-    text = f"{number:.4f}".rstrip("0").rstrip(".")
-    return text or "0"
+    return fmt_number(number)
 
 
 def _line_tooltip(
@@ -311,3 +353,9 @@ def _scatter_tooltip(
     x_val = float(offsets_arr[index, 0])
     y_val = float(offsets_arr[index, 1])
     return format_chart_point(x_val, y_val, label=_clean_artist_label(collection.get_label())), dist
+
+
+def _set_hover_cursor(canvas: FigureCanvas, x_px: float | None) -> None:
+    setter = getattr(canvas, "set_hover_cursor", None)
+    if callable(setter):
+        setter(x_px)

@@ -2310,7 +2310,7 @@ class MainWindow(
         layout = self.verticalLayout_food_stats_content
         self._clear_layout(layout, close_matplotlib_figures=True)
         if all(len(series) == 0 for series in series_list):
-            self._show_no_data_label(layout, "No data found for the selected period")
+            self._show_no_data_label(layout, "No data for the selected period")
             return
 
         if mode == "compare_last":

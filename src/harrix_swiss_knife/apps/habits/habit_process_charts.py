@@ -6,8 +6,7 @@ import calendar
 from datetime import date, datetime
 from typing import TYPE_CHECKING, Any
 
-from harrix_swiss_knife.apps.common.chart_theme import chart_series_color
-from harrix_swiss_knife.apps.common.ui_chrome import BUTTON_DANGER_BG
+from harrix_swiss_knife.apps.common.chart_compare import compare_last_month_windows, compare_same_month_windows
 from harrix_swiss_knife.apps.habits.ticktick_task_stats import (
     TickTickMonthSeries,
     build_compare_months_chart,
@@ -88,26 +87,17 @@ def compare_last_months_series(
 ) -> list[TickTickMonthSeries]:
     """Cumulative day-of-month lines for the last ``months_count`` months."""
     today_local = today or datetime.now().astimezone().date()
-    series: list[TickTickMonthSeries] = []
-    for index, start in enumerate(month_starts_going_back(months_count, today=today_local)):
-        days_in_month = calendar.monthrange(start.year, start.month)[1]
-        is_current = index == 0
-        end_day = min(today_local.day, days_in_month) if is_current else days_in_month
-        label = start.strftime("%B %Y")
-        if is_current:
-            label = f"{label} (Current)"
-        color = BUTTON_DANGER_BG if is_current else chart_series_color(index)
-        series.append(
-            TickTickMonthSeries(
-                year=start.year,
-                month=start.month,
-                label=label,
-                color=color,
-                is_current=is_current,
-                points=cumulative_habit_month_points(daily, start.year, start.month, end_day=end_day),
-            ),
+    return [
+        TickTickMonthSeries(
+            year=window.year,
+            month=window.month,
+            label=window.label,
+            color=window.color,
+            is_current=window.is_current,
+            points=cumulative_habit_month_points(daily, window.year, window.month, end_day=window.end_day),
         )
-    return series
+        for window in compare_last_month_windows(months_count, today=today_local)
+    ]
 
 
 def compare_same_months_series(
@@ -119,39 +109,17 @@ def compare_same_months_series(
 ) -> list[TickTickMonthSeries]:
     """Cumulative lines for the same calendar month across recent years."""
     today_local = today or datetime.now().astimezone().date()
-    selected = max(1, min(int(month), 12))
-    series: list[TickTickMonthSeries] = []
-    color_index = 0
-    for offset in range(max(int(years_count), 0)):
-        year = today_local.year - offset
-        if year == today_local.year and today_local.month < selected:
-            continue
-        days_in_month = calendar.monthrange(year, selected)[1]
-        is_current = year == today_local.year and today_local.month == selected
-        if year == today_local.year and today_local.month == selected:
-            end_day = min(today_local.day, days_in_month)
-        elif year == today_local.year:
-            end_day = days_in_month
-        else:
-            end_day = days_in_month
-        label = date(year, selected, 1).strftime("%B %Y")
-        if is_current:
-            label = f"{label} (Current)"
-            color = BUTTON_DANGER_BG
-        else:
-            color = chart_series_color(color_index + 1)
-            color_index += 1
-        series.append(
-            TickTickMonthSeries(
-                year=year,
-                month=selected,
-                label=label,
-                color=color,
-                is_current=is_current,
-                points=cumulative_habit_month_points(daily, year, selected, end_day=end_day),
-            ),
+    return [
+        TickTickMonthSeries(
+            year=window.year,
+            month=window.month,
+            label=window.label,
+            color=window.color,
+            is_current=window.is_current,
+            points=cumulative_habit_month_points(daily, window.year, window.month, end_day=window.end_day),
         )
-    return series
+        for window in compare_same_month_windows(month, years_count, today=today_local)
+    ]
 
 
 def counts_by_month(

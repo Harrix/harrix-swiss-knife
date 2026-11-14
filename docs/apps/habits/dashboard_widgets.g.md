@@ -2609,7 +2609,7 @@ Return dates in the month that have no record and are not in the future.
 
 Args:
 
-- `year` (`int`): Visible calendar year.
+- [`year`](../common/chart_widgets.g.md#%EF%B8%8F-method-year) (`int`): Visible calendar year.
 - `month` (`int`): Visible calendar month.
 - `day_values` (`Mapping[str, int]`): Stored values keyed by `YYYY-MM-DD`.
 - `today` (`date`): Local today; later days are skipped.
@@ -2650,11 +2650,11 @@ def absent_dates_in_month(
 def calendar_month_for_year(year: int, month: int, today: date) -> tuple[int, int]
 ```
 
-Return a display month in `year`, keeping `month` when it is not in the future.
+Return a display month in [`year`](../common/chart_widgets.g.md#%EF%B8%8F-method-year), keeping `month` when it is not in the future.
 
 Args:
 
-- `year` (`int`): Year chosen from the calendar menu.
+- [`year`](../common/chart_widgets.g.md#%EF%B8%8F-method-year) (`int`): Year chosen from the calendar menu.
 - `month` (`int`): Currently visible month.
 - `today` (`date`): Local today; future months are clamped to this date.
 

@@ -134,6 +134,9 @@ class MainWindow(
         self._range_macros_dialog: RangeMacrosDialog | None = None
         self.label_macros_status: QLabel | None = None
         self.label_macros_notes: QLabel | None = None
+        # Chart shell may fire during `_setup_ui`; keep these ready first.
+        self.db_manager: database_manager.DatabaseManager | None = None
+        self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
         self._setup_ui()
         self._finish_fluent_window_chrome()
         install_food_layout_chrome(self)
@@ -145,8 +148,6 @@ class MainWindow(
 
         # Initialize core attributes
         self._is_closing = False
-        self.db_manager: database_manager.DatabaseManager | None = None
-        self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
 
         # Food items list model
         self.food_items_list_model: QStandardItemModel | None = None
@@ -781,27 +782,17 @@ class MainWindow(
             if earliest_date_str:
                 earliest_date = QDate.fromString(earliest_date_str, "yyyy-MM-dd")
                 if QDate.isValid(earliest_date.year(), earliest_date.month(), earliest_date.day()):
-                    self.dateEdit_food_stats_from.setDate(earliest_date)
+                    from_date = earliest_date
                 else:
-                    # Fallback to a reasonable default if date parsing fails
-                    self.dateEdit_food_stats_from.setDate(QDate.currentDate().addYears(-10))
+                    from_date = QDate.currentDate().addYears(-10)
             else:
-                # No data in database, use a reasonable default
-                self.dateEdit_food_stats_from.setDate(QDate.currentDate().addYears(-10))
+                from_date = QDate.currentDate().addYears(-10)
 
-            # Set end date to today
-            self.dateEdit_food_stats_to.setDate(QDate.currentDate())
-
-            self.on_food_stats_update()
-
+            self._set_food_stats_date_range(from_date, QDate.currentDate())
         except Exception:
             logger.exception("Error setting all time date range")
-            # Fallback to last year if any error occurs
             today = QDate.currentDate()
-            year_ago = today.addYears(-1)
-            self.dateEdit_food_stats_from.setDate(year_ago)
-            self.dateEdit_food_stats_to.setDate(today)
-            self.on_food_stats_update()
+            self._set_food_stats_date_range(today.addYears(-1), today)
 
     def on_food_stats_drink(self) -> None:
         """Show drinks chart."""
@@ -814,32 +805,17 @@ class MainWindow(
     def on_food_stats_last_month(self) -> None:
         """Set date range to last month and update chart."""
         today = QDate.currentDate()
-        month_ago = today.addMonths(-1)
-
-        self.dateEdit_food_stats_from.setDate(month_ago)
-        self.dateEdit_food_stats_to.setDate(today)
-
-        self.on_food_stats_update()
+        self._set_food_stats_date_range(today.addMonths(-1), today)
 
     def on_food_stats_last_week(self) -> None:
         """Set date range to last week and update chart."""
         today = QDate.currentDate()
-        week_ago = today.addDays(-7)
-
-        self.dateEdit_food_stats_from.setDate(week_ago)
-        self.dateEdit_food_stats_to.setDate(today)
-
-        self.on_food_stats_update()
+        self._set_food_stats_date_range(today.addDays(-7), today)
 
     def on_food_stats_last_year(self) -> None:
         """Set date range to last year and update chart."""
         today = QDate.currentDate()
-        year_ago = today.addYears(-1)
-
-        self.dateEdit_food_stats_from.setDate(year_ago)
-        self.dateEdit_food_stats_to.setDate(today)
-
-        self.on_food_stats_update()
+        self._set_food_stats_date_range(today.addYears(-1), today)
 
     def on_food_stats_macros_carb(self) -> None:
         """Show carbohydrate chart from saved day analyses."""
@@ -1667,16 +1643,11 @@ class MainWindow(
         self.spinBox_food_weight.valueChanged.connect(self.update_calories_calculation)
         self.doubleSpinBox_food_calories.valueChanged.connect(self.update_calories_calculation)
 
-        # Connect food stats controls
-        self.pushButton_food_stats_last_week.clicked.connect(self.on_food_stats_last_week)
-        self.pushButton_food_stats_last_month.clicked.connect(self.on_food_stats_last_month)
-        self.pushButton_food_stats_last_year.clicked.connect(self.on_food_stats_last_year)
-        self.pushButton_food_stats_all_time.clicked.connect(self.on_food_stats_all_time)
-        self.pushButton_food_stats_food_weight.clicked.connect(self.on_food_stats_food_weight)
-        self.pushButton_food_stats_drink.clicked.connect(self.on_food_stats_drink)
-        self.pushButton_food_stats_update.clicked.connect(self.on_food_stats_update)
-        self.comboBox_food_stats_period.currentTextChanged.connect(self.on_food_stats_period_changed)
+        # Food stats presets / period / refresh are wired by `_install_food_chart_shell`.
+        # Keep legacy chart-type buttons only if they still exist (hidden by the shell).
         for attr, handler in (
+            ("pushButton_food_stats_food_weight", self.on_food_stats_food_weight),
+            ("pushButton_food_stats_drink", self.on_food_stats_drink),
             ("pushButton_food_stats_macros_protein", self.on_food_stats_macros_protein),
             ("pushButton_food_stats_macros_fat", self.on_food_stats_macros_fat),
             ("pushButton_food_stats_macros_carb", self.on_food_stats_macros_carb),
@@ -2063,7 +2034,7 @@ class MainWindow(
         layout = self.verticalLayout_food_stats_content
         self._clear_layout(layout, close_matplotlib_figures=True)
         if all(len(series) == 0 for series in series_list):
-            self._show_no_data_label(layout, "No data found for the selected period")
+            self._show_no_data_label(layout, "No data for the selected period")
             return
 
         if mode == "compare_last":
@@ -3837,6 +3808,8 @@ class MainWindow(
         backfill_macros: bool = False,
     ) -> None:
         """Redraw the stats chart for the selected type without resetting selection."""
+        if getattr(self, "db_manager", None) is None:
+            return
         self._update_macros_analysis_table()
         self._update_macros_status_label()
         mode = self._current_food_chart_mode()
@@ -4444,6 +4417,23 @@ class MainWindow(
             self._macros_chart_nutrient = None
         self._sync_food_chart_toolbar_mode()
         self._refresh_food_stats_chart(backfill_macros=backfill)
+
+    def _set_food_stats_date_range(self, date_from: QDate, date_to: QDate) -> None:
+        """Set From/To without firing mid-edit redraws, then refresh once."""
+        date_edits = (self.dateEdit_food_stats_from, self.dateEdit_food_stats_to)
+        for date_edit in date_edits:
+            if date_edit is not None:
+                date_edit.blockSignals(True)  # noqa: FBT003
+        try:
+            if self.dateEdit_food_stats_from is not None:
+                self.dateEdit_food_stats_from.setDate(date_from)
+            if self.dateEdit_food_stats_to is not None:
+                self.dateEdit_food_stats_to.setDate(date_to)
+        finally:
+            for date_edit in date_edits:
+                if date_edit is not None:
+                    date_edit.blockSignals(False)  # noqa: FBT003
+        self.on_food_stats_update()
 
     def _setup_autocomplete(self) -> None:
         """Set up autocomplete functionality for food name input."""
@@ -5654,7 +5644,7 @@ class MainWindow(
         label = self.label_macros_status
         if label is None:
             return
-        if self.db_manager is None or not self._validate_database_connection():
+        if getattr(self, "db_manager", None) is None or not self._validate_database_connection():
             label.setText("")
             return
         day = QDate.currentDate().toString("yyyy-MM-dd")
@@ -5752,6 +5742,9 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
         self._range_macros_dialog: RangeMacrosDialog | None = None
         self.label_macros_status: QLabel | None = None
         self.label_macros_notes: QLabel | None = None
+        # Chart shell may fire during `_setup_ui`; keep these ready first.
+        self.db_manager: database_manager.DatabaseManager | None = None
+        self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
         self._setup_ui()
         self._finish_fluent_window_chrome()
         install_food_layout_chrome(self)
@@ -5763,8 +5756,6 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
 
         # Initialize core attributes
         self._is_closing = False
-        self.db_manager: database_manager.DatabaseManager | None = None
-        self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
 
         # Food items list model
         self.food_items_list_model: QStandardItemModel | None = None
@@ -6720,27 +6711,17 @@ def on_food_stats_all_time(self) -> None:
             if earliest_date_str:
                 earliest_date = QDate.fromString(earliest_date_str, "yyyy-MM-dd")
                 if QDate.isValid(earliest_date.year(), earliest_date.month(), earliest_date.day()):
-                    self.dateEdit_food_stats_from.setDate(earliest_date)
+                    from_date = earliest_date
                 else:
-                    # Fallback to a reasonable default if date parsing fails
-                    self.dateEdit_food_stats_from.setDate(QDate.currentDate().addYears(-10))
+                    from_date = QDate.currentDate().addYears(-10)
             else:
-                # No data in database, use a reasonable default
-                self.dateEdit_food_stats_from.setDate(QDate.currentDate().addYears(-10))
+                from_date = QDate.currentDate().addYears(-10)
 
-            # Set end date to today
-            self.dateEdit_food_stats_to.setDate(QDate.currentDate())
-
-            self.on_food_stats_update()
-
+            self._set_food_stats_date_range(from_date, QDate.currentDate())
         except Exception:
             logger.exception("Error setting all time date range")
-            # Fallback to last year if any error occurs
             today = QDate.currentDate()
-            year_ago = today.addYears(-1)
-            self.dateEdit_food_stats_from.setDate(year_ago)
-            self.dateEdit_food_stats_to.setDate(today)
-            self.on_food_stats_update()
+            self._set_food_stats_date_range(today.addYears(-1), today)
 ```
 
 </details>
@@ -6795,12 +6776,7 @@ Set date range to last month and update chart.
 ```python
 def on_food_stats_last_month(self) -> None:
         today = QDate.currentDate()
-        month_ago = today.addMonths(-1)
-
-        self.dateEdit_food_stats_from.setDate(month_ago)
-        self.dateEdit_food_stats_to.setDate(today)
-
-        self.on_food_stats_update()
+        self._set_food_stats_date_range(today.addMonths(-1), today)
 ```
 
 </details>
@@ -6819,12 +6795,7 @@ Set date range to last week and update chart.
 ```python
 def on_food_stats_last_week(self) -> None:
         today = QDate.currentDate()
-        week_ago = today.addDays(-7)
-
-        self.dateEdit_food_stats_from.setDate(week_ago)
-        self.dateEdit_food_stats_to.setDate(today)
-
-        self.on_food_stats_update()
+        self._set_food_stats_date_range(today.addDays(-7), today)
 ```
 
 </details>
@@ -6843,12 +6814,7 @@ Set date range to last year and update chart.
 ```python
 def on_food_stats_last_year(self) -> None:
         today = QDate.currentDate()
-        year_ago = today.addYears(-1)
-
-        self.dateEdit_food_stats_from.setDate(year_ago)
-        self.dateEdit_food_stats_to.setDate(today)
-
-        self.on_food_stats_update()
+        self._set_food_stats_date_range(today.addYears(-1), today)
 ```
 
 </details>

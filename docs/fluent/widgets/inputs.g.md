@@ -1372,7 +1372,7 @@ Args:
 
 - `parent` (`QWidget | None`): Optional parent.
 - `minimum` / `maximum` (`float`): Allowed range.
-- [`step`](../../installer/log.g.md#%EF%B8%8F-method-step) (`float`): Increment for buttons, wheel, and arrow keys.
+- `step` (`float`): Increment for buttons, wheel, and arrow keys.
 - `decimals` (`int`): Digits after the decimal point.
 
 <details>

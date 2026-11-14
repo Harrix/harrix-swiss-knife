@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any
 
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 
-from harrix_swiss_knife.apps.common.chart_theme import chart_annotation_style
+from harrix_swiss_knife.apps.common.chart_theme import chart_annotation_style, chart_muted_ink
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -84,8 +84,8 @@ def annotate_chart_extrema_labels(
     if not candidates:
         return
 
-    global_min_index = min(range(len(y_list)), key=y_list.__getitem__)
-    global_max_index = max(range(len(y_list)), key=y_list.__getitem__)
+    global_min_index = min(range(len(y_list)), key=lambda index: y_list[index])
+    global_max_index = max(range(len(y_list)), key=lambda index: y_list[index])
     renderer = _get_renderer(fig)
     axes_bbox = ax.get_window_extent(renderer).expanded(0.98, 0.94)
     placed_boxes: list[Bbox] = []
@@ -152,8 +152,14 @@ def annotate_chart_extrema_labels(
 
         moved = label_offset != default_offset
         arrowprops = (
-            {"arrowstyle": "-", "color": "gray", "linewidth": 0.6, "shrinkA": 0, "shrinkB": 2} if moved else None
+            {"arrowstyle": "-", "color": chart_muted_ink(), "linewidth": 0.6, "shrinkA": 0, "shrinkB": 2}
+            if moved
+            else None
         )
+        style: dict[str, Any] = chart_annotation_style(fontsize=cfg.label_fontsize)
+        bbox = dict(style.get("bbox", {}))
+        bbox["edgecolor"] = point_color
+        style["bbox"] = bbox
         ax.annotate(
             label_text,
             (x_list[index], y_list[index]),
@@ -161,7 +167,7 @@ def annotate_chart_extrema_labels(
             xytext=label_offset,
             ha="center",
             arrowprops=arrowprops,
-            **chart_annotation_style(fontsize=cfg.label_fontsize),
+            **style,
         )
         placed_boxes.append(
             _measure_label_bbox(
@@ -192,6 +198,9 @@ def _annotation_candidates(
     global_max_index = max(range(count), key=y_values.__getitem__)
     last_index = count - 1
     high_indices = {global_min_index, global_max_index, last_index}
+
+    if cfg.max_local_extrema_each <= 0:
+        return [ChartExtremaLabelCandidate(index, cfg.priority_high) for index in sorted(high_indices)]
 
     if count == 1:
         return [ChartExtremaLabelCandidate(0, cfg.priority_high)]

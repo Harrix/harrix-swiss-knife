@@ -138,6 +138,7 @@ class ChartToolbar:
             self._ensure_missing_controls(host)
         self._normalize_preset_labels()
         self._ensure_month_items()
+        self._arrange()
         return self
 
     def build(self, parent: QWidget | None = None) -> QFrame:
@@ -149,7 +150,7 @@ class ChartToolbar:
         frame.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         root = QVBoxLayout(frame)
         root.setContentsMargins(0, 0, 0, 0)
-        root.setSpacing(6)
+        root.setSpacing(SPACE_S)
 
         self.row1 = QHBoxLayout()
         self.row2 = QHBoxLayout()
@@ -235,23 +236,28 @@ class ChartToolbar:
 
         self.frame = frame
         self._normalize_preset_labels()
+        self._arrange()
         return frame
 
     def connect_changed(self, callback: Callable[[], None]) -> None:
         """Redraw when period, labels, dates, count, or month change."""
         self._on_changed = callback
+
+        def _emit_changed(*_args: object) -> None:
+            callback()
+
         if self.combo_period is not None:
-            self.combo_period.currentIndexChanged.connect(callback)
+            self.combo_period.currentIndexChanged.connect(_emit_changed)
         if self.combo_labels is not None:
-            self.combo_labels.currentIndexChanged.connect(callback)
+            self.combo_labels.currentIndexChanged.connect(_emit_changed)
         if self.date_from is not None:
-            self.date_from.dateChanged.connect(callback)
+            self.date_from.dateChanged.connect(_emit_changed)
         if self.date_to is not None:
-            self.date_to.dateChanged.connect(callback)
+            self.date_to.dateChanged.connect(_emit_changed)
         if self.spin_count is not None:
-            self.spin_count.valueChanged.connect(callback)
+            self.spin_count.valueChanged.connect(_emit_changed)
         if self.combo_month is not None:
-            self.combo_month.currentIndexChanged.connect(callback)
+            self.combo_month.currentIndexChanged.connect(_emit_changed)
 
     def connect_presets(
         self,
@@ -274,13 +280,21 @@ class ChartToolbar:
         )
         for button, handler in mapping:
             if button is not None and handler is not None:
-                button.clicked.connect(handler)
+
+                def _emit_preset(*_args: object, _handler: Callable[[], None] = handler) -> None:
+                    _handler()
+
+                button.clicked.connect(_emit_preset)
 
     def connect_refresh(self, callback: Callable[[], None]) -> None:
         """Wire the Refresh button (manual redraw / DB reload)."""
         self._on_refresh = callback
+
+        def _emit_refresh(*_args: object) -> None:
+            callback()
+
         if self.refresh_button is not None:
-            self.refresh_button.clicked.connect(callback)
+            self.refresh_button.clicked.connect(_emit_refresh)
 
     def count_value(self) -> int:
         """Return the compare / by-month count spin value."""
@@ -355,6 +369,7 @@ class ChartToolbar:
         ):
             if control is not None:
                 control.setMinimumHeight(CONTROL_HEIGHT)
+        self._arrange()
 
     def set_extra_slot(self, widget: QWidget | None) -> None:
         """Place a tracker-specific control on row 1 before the stretch."""
@@ -365,6 +380,7 @@ class ChartToolbar:
             self.row1.removeWidget(self.extra_slot)
         self.extra_slot = widget
         if widget is None:
+            self._arrange()
             return
         insert_at = self.row1.count()
         if self.refresh_button is not None:
@@ -378,6 +394,7 @@ class ChartToolbar:
                 insert_at = index
                 break
         self.row1.insertWidget(insert_at, widget)
+        self._arrange()
 
     def set_mode(
         self,
@@ -432,6 +449,71 @@ class ChartToolbar:
         _set_visible(self.spin_count, visible=show_spin)
         _set_visible(self.label_month, visible=show_month)
         _set_visible(self.combo_month, visible=show_month)
+
+    def _arrange(self) -> None:
+        """Order controls as parameters, then dates, with Refresh on the right."""
+        self._arrange_row(
+            self.row1,
+            [
+                self.label_period,
+                self.combo_period,
+                self.label_labels,
+                self.combo_labels,
+                self.extra_slot,
+            ],
+            [self.refresh_button],
+        )
+        self._arrange_row(
+            self.row2,
+            [
+                self.label_from,
+                self.date_from,
+                self.label_to,
+                self.date_to,
+                self.button_last_week,
+                self.button_last_month,
+                self.button_last_year,
+                self.button_all_time,
+                self.button_prev_year,
+                self.button_next_year,
+                self.label_count,
+                self.spin_count,
+                self.label_month,
+                self.combo_month,
+            ],
+            [],
+        )
+
+    def _arrange_row(
+        self,
+        layout: QHBoxLayout | None,
+        leading: list[QWidget | None],
+        trailing: list[QWidget | None],
+    ) -> None:
+        if layout is None:
+            return
+        known = {id(widget) for widget in (*leading, *trailing) if widget is not None}
+        unknown: list[QWidget] = []
+        seen: set[int] = set()
+        for index in range(layout.count()):
+            item = layout.itemAt(index)
+            widget = item.widget() if item is not None else None
+            if widget is None or id(widget) in known or id(widget) in seen:
+                continue
+            unknown.append(widget)
+            seen.add(id(widget))
+        while layout.count():
+            layout.takeAt(0)
+        for widget in leading:
+            if widget is not None:
+                layout.addWidget(widget)
+        for widget in unknown:
+            layout.addWidget(widget)
+        layout.addStretch(1)
+        for widget in trailing:
+            if widget is not None:
+                layout.addWidget(widget)
+        layout.setSpacing(SPACE_S)
 
     def _ensure_missing_controls(self, host: Any) -> None:
         if self.row1 is None or self.row2 is None:
@@ -639,6 +721,7 @@ def bind_host(
             self._ensure_missing_controls(host)
         self._normalize_preset_labels()
         self._ensure_month_items()
+        self._arrange()
         return self
 ```
 
@@ -664,7 +747,7 @@ def build(self, parent: QWidget | None = None) -> QFrame:
         frame.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         root = QVBoxLayout(frame)
         root.setContentsMargins(0, 0, 0, 0)
-        root.setSpacing(6)
+        root.setSpacing(SPACE_S)
 
         self.row1 = QHBoxLayout()
         self.row2 = QHBoxLayout()
@@ -750,6 +833,7 @@ def build(self, parent: QWidget | None = None) -> QFrame:
 
         self.frame = frame
         self._normalize_preset_labels()
+        self._arrange()
         return frame
 ```
 
@@ -769,18 +853,22 @@ Redraw when period, labels, dates, count, or month change.
 ```python
 def connect_changed(self, callback: Callable[[], None]) -> None:
         self._on_changed = callback
+
+        def _emit_changed(*_args: object) -> None:
+            callback()
+
         if self.combo_period is not None:
-            self.combo_period.currentIndexChanged.connect(callback)
+            self.combo_period.currentIndexChanged.connect(_emit_changed)
         if self.combo_labels is not None:
-            self.combo_labels.currentIndexChanged.connect(callback)
+            self.combo_labels.currentIndexChanged.connect(_emit_changed)
         if self.date_from is not None:
-            self.date_from.dateChanged.connect(callback)
+            self.date_from.dateChanged.connect(_emit_changed)
         if self.date_to is not None:
-            self.date_to.dateChanged.connect(callback)
+            self.date_to.dateChanged.connect(_emit_changed)
         if self.spin_count is not None:
-            self.spin_count.valueChanged.connect(callback)
+            self.spin_count.valueChanged.connect(_emit_changed)
         if self.combo_month is not None:
-            self.combo_month.currentIndexChanged.connect(callback)
+            self.combo_month.currentIndexChanged.connect(_emit_changed)
 ```
 
 </details>
@@ -817,7 +905,11 @@ def connect_presets(
         )
         for button, handler in mapping:
             if button is not None and handler is not None:
-                button.clicked.connect(handler)
+
+                def _emit_preset(*_args: object, _handler: Callable[[], None] = handler) -> None:
+                    _handler()
+
+                button.clicked.connect(_emit_preset)
 ```
 
 </details>
@@ -836,8 +928,12 @@ Wire the Refresh button (manual redraw / DB reload).
 ```python
 def connect_refresh(self, callback: Callable[[], None]) -> None:
         self._on_refresh = callback
+
+        def _emit_refresh(*_args: object) -> None:
+            callback()
+
         if self.refresh_button is not None:
-            self.refresh_button.clicked.connect(callback)
+            self.refresh_button.clicked.connect(_emit_refresh)
 ```
 
 </details>
@@ -982,6 +1078,7 @@ def polish(self) -> None:
         ):
             if control is not None:
                 control.setMinimumHeight(CONTROL_HEIGHT)
+        self._arrange()
 ```
 
 </details>
@@ -1006,6 +1103,7 @@ def set_extra_slot(self, widget: QWidget | None) -> None:
             self.row1.removeWidget(self.extra_slot)
         self.extra_slot = widget
         if widget is None:
+            self._arrange()
             return
         insert_at = self.row1.count()
         if self.refresh_button is not None:
@@ -1019,6 +1117,7 @@ def set_extra_slot(self, widget: QWidget | None) -> None:
                 insert_at = index
                 break
         self.row1.insertWidget(insert_at, widget)
+        self._arrange()
 ```
 
 </details>

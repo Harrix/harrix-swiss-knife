@@ -148,7 +148,7 @@ def hit_test_selection_handle(
 def nudge_selection_rect(rect: QRect, direction: ArrowDir, *, step: int, resize: bool, bounds: QRect, min_size: int = 2) -> QRect
 ```
 
-Move or resize `rect` by [`step`](../installer/log.g.md#%EF%B8%8F-method-step) pixels in `direction`.
+Move or resize `rect` by `step` pixels in `direction`.
 
 Without `resize`, arrows translate the frame. With `resize`, left/right change
 width and up/down change height (top-left stays fixed when possible).

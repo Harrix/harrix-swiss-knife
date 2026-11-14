@@ -30,7 +30,7 @@ from PySide6.QtWidgets import (
 from harrix_swiss_knife.apps.common.chart_theme import chart_info_panel_qss
 from harrix_swiss_knife.apps.common.tracker_layout_chrome import quiet_group_box
 from harrix_swiss_knife.apps.common.ui_chrome import button_idle_qss, muted_caption_qss
-from harrix_swiss_knife.fluent.tokens import CONTROL_HEIGHT
+from harrix_swiss_knife.fluent.tokens import CONTROL_HEIGHT, SPACE_S
 from harrix_swiss_knife.qt_compact_spin_box import CompactSpinBox
 from harrix_swiss_knife.qt_lucide_icon import apply_lucide_button_icon, make_lucide_push_button
 
@@ -149,6 +149,7 @@ class ChartToolbar:
             self._ensure_missing_controls(host)
         self._normalize_preset_labels()
         self._ensure_month_items()
+        self._arrange()
         return self
 
     def build(self, parent: QWidget | None = None) -> QFrame:
@@ -160,7 +161,7 @@ class ChartToolbar:
         frame.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         root = QVBoxLayout(frame)
         root.setContentsMargins(0, 0, 0, 0)
-        root.setSpacing(6)
+        root.setSpacing(SPACE_S)
 
         self.row1 = QHBoxLayout()
         self.row2 = QHBoxLayout()
@@ -246,6 +247,7 @@ class ChartToolbar:
 
         self.frame = frame
         self._normalize_preset_labels()
+        self._arrange()
         return frame
 
     def connect_changed(self, callback: Callable[[], None]) -> None:
@@ -378,6 +380,7 @@ class ChartToolbar:
         ):
             if control is not None:
                 control.setMinimumHeight(CONTROL_HEIGHT)
+        self._arrange()
 
     def set_extra_slot(self, widget: QWidget | None) -> None:
         """Place a tracker-specific control on row 1 before the stretch."""
@@ -388,6 +391,7 @@ class ChartToolbar:
             self.row1.removeWidget(self.extra_slot)
         self.extra_slot = widget
         if widget is None:
+            self._arrange()
             return
         insert_at = self.row1.count()
         if self.refresh_button is not None:
@@ -401,6 +405,7 @@ class ChartToolbar:
                 insert_at = index
                 break
         self.row1.insertWidget(insert_at, widget)
+        self._arrange()
 
     def set_mode(
         self,
@@ -455,6 +460,71 @@ class ChartToolbar:
         _set_visible(self.spin_count, visible=show_spin)
         _set_visible(self.label_month, visible=show_month)
         _set_visible(self.combo_month, visible=show_month)
+
+    def _arrange(self) -> None:
+        """Order controls as parameters, then dates, with Refresh on the right."""
+        self._arrange_row(
+            self.row1,
+            [
+                self.label_period,
+                self.combo_period,
+                self.label_labels,
+                self.combo_labels,
+                self.extra_slot,
+            ],
+            [self.refresh_button],
+        )
+        self._arrange_row(
+            self.row2,
+            [
+                self.label_from,
+                self.date_from,
+                self.label_to,
+                self.date_to,
+                self.button_last_week,
+                self.button_last_month,
+                self.button_last_year,
+                self.button_all_time,
+                self.button_prev_year,
+                self.button_next_year,
+                self.label_count,
+                self.spin_count,
+                self.label_month,
+                self.combo_month,
+            ],
+            [],
+        )
+
+    def _arrange_row(
+        self,
+        layout: QHBoxLayout | None,
+        leading: list[QWidget | None],
+        trailing: list[QWidget | None],
+    ) -> None:
+        if layout is None:
+            return
+        known = {id(widget) for widget in (*leading, *trailing) if widget is not None}
+        unknown: list[QWidget] = []
+        seen: set[int] = set()
+        for index in range(layout.count()):
+            item = layout.itemAt(index)
+            widget = item.widget() if item is not None else None
+            if widget is None or id(widget) in known or id(widget) in seen:
+                continue
+            unknown.append(widget)
+            seen.add(id(widget))
+        while layout.count():
+            layout.takeAt(0)
+        for widget in leading:
+            if widget is not None:
+                layout.addWidget(widget)
+        for widget in unknown:
+            layout.addWidget(widget)
+        layout.addStretch(1)
+        for widget in trailing:
+            if widget is not None:
+                layout.addWidget(widget)
+        layout.setSpacing(SPACE_S)
 
     def _ensure_missing_controls(self, host: Any) -> None:
         if self.row1 is None or self.row2 is None:

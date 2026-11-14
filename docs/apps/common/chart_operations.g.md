@@ -121,7 +121,7 @@ class ChartOperationsBase:
         self._clear_layout(layout)
 
         if not data:
-            self._show_no_data_label(layout, "No data found for the selected period")
+            self._show_no_data_label(layout, NO_CHART_DATA)
             return
 
         # Fill missing periods with zeros if requested
@@ -262,30 +262,7 @@ class ChartOperationsBase:
         """
         if not dates:
             return
-
-        days_in_month = 31
-        days_in_year = 365
-
-        if period == "Days":
-            # Limit to max 10-15 ticks
-            ax.xaxis.set_major_locator(MaxNLocator(nbins=10, prune="both"))
-
-            date_range = (max(dates) - min(dates)).days
-            if date_range <= days_in_month or date_range <= days_in_year:
-                ax.xaxis.set_major_formatter(mdates.DateFormatter("%m-%d"))
-            else:
-                ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m"))
-
-        elif period == "Months":
-            ax.xaxis.set_major_locator(MaxNLocator(nbins=12, prune="both"))
-            ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m"))
-
-        elif period == "Years":
-            ax.xaxis.set_major_locator(MaxNLocator(nbins=10, prune="both"))
-            ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
-
-        # Rotate date labels for better readability
-        plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha="right")
+        setup_date_axis(ax, period=period)
 
     def _format_default_stats(
         self,
@@ -316,14 +293,21 @@ class ChartOperationsBase:
         min_val = min(values)
         max_val = max(values)
         avg_val = sum(values) / len(values)
-        # Non-breaking space before unit / currency (GOST typography).
-        unit_suffix = f"\u00a0{unit}" if unit else ""
+        whole = all(isinstance(value, int) or float(value).is_integer() for value in values)
+        money = bool(unit) and not unit.replace(" ", "").isalpha()
+        edge_decimals = 2 if money else (0 if whole else 1)
 
-        if all(isinstance(v, int) for v in values):
-            return (
-                f"Min: {int(min_val)}{unit_suffix} | Max: {int(max_val)}{unit_suffix} | Avg: {avg_val:.1f}{unit_suffix}"
-            )
-        return f"Min: {min_val:.1f}{unit_suffix} | Max: {max_val:.1f}{unit_suffix} | Avg: {avg_val:.1f}{unit_suffix}"
+        def _one(number: float, *, decimals: int) -> str:
+            if money:
+                return fmt_money(number, unit, decimals=decimals)
+            text = fmt_number(number, decimals=decimals)
+            return f"{text}\u00a0{unit}" if unit else text
+
+        return (
+            f"Min: {_one(min_val, decimals=edge_decimals)} | "
+            f"Max: {_one(max_val, decimals=edge_decimals)} | "
+            f"Avg: {_one(avg_val, decimals=1 if not money else 2)}"
+        )
 
     def _group_data_by_period(
         self, rows: list[tuple[str, str | int | float]], period: str, value_type: str = "float"
@@ -421,19 +405,7 @@ class ChartOperationsBase:
         _ = is_calories_chart
         x_nums: list[float] = date2num(x_values)
 
-        color_map = {
-            "blue": "b",
-            "green": "g",
-            "red": "r",
-            "orange": "orange",
-            "purple": "purple",
-            "brown": "brown",
-            "pink": "pink",
-            "gray": "gray",
-            "olive": "olive",
-            "cyan": "c",
-        }
-        plot_color = color_map.get(color, color)
+        plot_color = chart_series_color(0) if color in {"", "blue", "b"} else color
         point_count = non_zero_count if non_zero_count is not None else len(y_values)
         sparse = point_count <= self.max_count_points_in_charts
 
@@ -448,7 +420,7 @@ class ChartOperationsBase:
                 alpha=0.9,
                 markersize=CHART_MARKERSIZE,
                 markerfacecolor=plot_color,
-                markeredgecolor=f"dark{color}" if color in {"blue", "green", "red"} else plot_color,
+                markeredgecolor=plot_color,
             )
         else:
             ax.plot(x_nums, y_values, color=plot_color, linestyle="-", linewidth=CHART_LINEWIDTH, alpha=0.9)
@@ -460,7 +432,7 @@ class ChartOperationsBase:
             y = y_values[index]
             if y is None:
                 return ""
-            text = str(int(y)) if isinstance(y, int) or y == int(y) else f"{y:.1f}"
+            text = fmt_compact(float(y))
             x_dt = x_values[index]
             if period == "Years" and hasattr(x_dt, "year"):
                 text += f" ({x_dt.year})"
@@ -493,7 +465,7 @@ class ChartOperationsBase:
             [float(y) if y is not None else float("nan") for y in y_values],
             _label_for_index,
             enabled=True,
-            config=ChartExtremaLabelsConfig(max_annotations=8 if sparse else 6, max_local_extrema_each=3),
+            config=ChartExtremaLabelsConfig(max_annotations=3, max_local_extrema_each=0),
             point_color=plot_color,
         )
 

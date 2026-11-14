@@ -94,6 +94,7 @@ from harrix_swiss_knife.apps.common.apps_config import (
     set_apps_fitness_workout_duration_min,
     set_apps_fitness_workout_gender,
 )
+from harrix_swiss_knife.apps.common.chart_format import fmt_number
 from harrix_swiss_knife.apps.common.chart_hover import create_chart_canvas
 from harrix_swiss_knife.apps.common.chart_page_chrome import (
     ChartToolbar,
@@ -1308,7 +1309,7 @@ class MainWindow(
         # In on_compare_last_months, right before the early return where 'all months are empty'
         if all(len(d) == 0 for d in monthly_data):
             self._clear_layout(self.verticalLayout_charts_content)
-            self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected period")
+            self._show_no_data_label(self.verticalLayout_charts_content, "No data for the selected period")
             # Explicitly say last N months:
             months_count = self.spinBox_compare_last.value()
             self._set_no_data_info_label(f"No data for the last {months_count} months.")
@@ -1530,7 +1531,7 @@ class MainWindow(
         # In on_compare_same_months, right before early return on 'not yearly_data'
         if not yearly_data:
             self._clear_layout(self.verticalLayout_charts_content)
-            self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected period")
+            self._show_no_data_label(self.verticalLayout_charts_content, "No data for the selected period")
             years_count = self.spinBox_compare_last.value()
             # Tailored message for 'same months' mode:
             selected_month_name = self.comboBox_compare_same_months.currentText()
@@ -3393,7 +3394,7 @@ class MainWindow(
         if not grouped_data:
             # Clear existing chart before showing no data message
             self._clear_layout(self.verticalLayout_charts_content)
-            self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected period")
+            self._show_no_data_label(self.verticalLayout_charts_content, "No data for the selected period")
             return
 
         # Prepare chart data
@@ -3418,12 +3419,12 @@ class MainWindow(
             max_val = max(values)
             avg_val = sum(values) / len(values)
 
+            summary = (
+                f"Min: {fmt_number(min_val)} | Max: {fmt_number(max_val)} | Avg: {fmt_number(avg_val, decimals=1)}"
+            )
             if use_max_value:
-                # For max values, don't show total (it doesn't make sense)
-                return f"Min: {min_val:.1f} | Max: {max_val:.1f} | Avg: {avg_val:.1f}"
-            # For sum values, show total
-            total_val = sum(values)
-            return f"Min: {min_val:.1f} | Max: {max_val:.1f} | Avg: {avg_val:.1f} | Total: {total_val:.1f}"
+                return summary
+            return f"{summary} | Total: {fmt_number(sum(values))}"
 
         # Create chart configuration
         from harrix_swiss_knife.apps.common.chart_operations import label_mode_from_combo  # noqa: PLC0415
@@ -3432,7 +3433,7 @@ class MainWindow(
             "title": chart_title,
             "xlabel": "Date",
             "ylabel": f"{aggregation_type} value ({exercise_unit})" if exercise_unit else f"{aggregation_type} value",
-            "color": "blue",
+            "color": chart_series_color(0),
             "show_stats": True,
             "period": period,
             "stats_formatter": format_exercise_stats,
@@ -3615,8 +3616,9 @@ class MainWindow(
             weight_change = values[-1] - values[0] if len(values) > 1 else 0
 
             return (
-                f"Min: {min_weight:.1f} kg | Max: {max_weight:.1f} kg | "
-                f"Avg: {avg_weight:.1f} kg | Change: {weight_change:+.1f} kg"
+                f"Min: {fmt_number(min_weight)}\u00a0kg | Max: {fmt_number(max_weight)}\u00a0kg | "
+                f"Avg: {fmt_number(avg_weight, decimals=1)}\u00a0kg | "
+                f"Change: {weight_change:+.1f}\u00a0kg"
             )
 
         # Create chart configuration
@@ -3624,7 +3626,7 @@ class MainWindow(
             "title": "Weight Progress",
             "xlabel": "Date",
             "ylabel": "Weight (kg)",
-            "color": "blue",
+            "color": chart_series_color(0),
             "show_stats": True,
             "stats_unit": "kg",
             "period": "Days",  # Weight chart always shows days

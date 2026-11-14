@@ -244,7 +244,7 @@ Args:
 
 - `selected` (`str`): Current year-filter text, including `Last 365 days`.
 - `years` (`list[int]`): Years shown in the Charts year list.
-- [`step`](../../installer/log.g.md#%EF%B8%8F-method-step) (`int`): `-1` for previous year, `1` for next year.
+- `step` (`int`): `-1` for previous year, `1` for next year.
 - `today_year` (`int`): Current calendar year; later years are ignored.
 
 Returns:

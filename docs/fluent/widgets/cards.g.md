@@ -1805,7 +1805,7 @@ class FluentSettingEditorCard(FluentCard)
 
 Windows Settings detail card: title, optional description, and an editor body.
 
-Use `trailing_layout` for compact controls (toggle, Save) and `body_layout` for
+Use `trailing_layout` for compact controls (toggle, Save) and [`body_layout`](../../apps/common/chart_widgets.g.md#%EF%B8%8F-method-body_layout) for
 the main field. Unlike [`FluentSettingCard`](#%EF%B8%8F-class-fluentsettingcard), this is not a navigation row.
 
 <details>

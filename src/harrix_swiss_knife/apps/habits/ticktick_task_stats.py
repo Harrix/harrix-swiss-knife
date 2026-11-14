@@ -16,6 +16,11 @@ from harrix_swiss_knife.apps.common.calendar_heatmap import (
     date_at_heatmap_point,
     habit_heatmap_month_separated_positions,
 )
+from harrix_swiss_knife.apps.common.chart_compare import (
+    compare_last_month_windows,
+    compare_same_month_windows,
+    month_starts_going_back,
+)
 from harrix_swiss_knife.apps.common.chart_theme import (
     chart_annotation_style,
     chart_series_color,
@@ -53,7 +58,6 @@ _LIGHT_GREEN = "#b7e4b7"
 _DAY_TICK_STEP_THRESHOLD = 15
 _YEAR_LABEL_ROTATE_THRESHOLD = 12
 _MONTH_LINE_MARKER_THRESHOLD = 10
-_COMPARE_CURRENT = "#cc584c"
 
 
 @dataclass(frozen=True, slots=True)
@@ -366,32 +370,23 @@ def compare_last_months_series(
 ) -> list[TickTickMonthSeries]:
     """Build cumulative day-of-month series for the last ``months_count`` months (newest first)."""
     today_local = today or datetime.now().astimezone().date()
-    series: list[TickTickMonthSeries] = []
-    for index, start in enumerate(month_starts_going_back(months_count, today=today_local)):
-        days_in_month = calendar.monthrange(start.year, start.month)[1]
-        is_current = index == 0
-        end_day = min(today_local.day, days_in_month) if is_current else days_in_month
-        label = start.strftime("%B %Y")
-        if is_current:
-            label = f"{label} (Current)"
-        color = _COMPARE_CURRENT if is_current else chart_series_color(index)
-        series.append(
-            TickTickMonthSeries(
-                year=start.year,
-                month=start.month,
-                label=label,
-                color=color,
-                is_current=is_current,
-                points=cumulative_month_points(
-                    completions,
-                    start.year,
-                    start.month,
-                    end_day=end_day,
-                    project_id=project_id,
-                ),
+    return [
+        TickTickMonthSeries(
+            year=window.year,
+            month=window.month,
+            label=window.label,
+            color=window.color,
+            is_current=window.is_current,
+            points=cumulative_month_points(
+                completions,
+                window.year,
+                window.month,
+                end_day=window.end_day,
+                project_id=project_id,
             ),
         )
-    return series
+        for window in compare_last_month_windows(months_count, today=today_local)
+    ]
 
 
 def compare_same_months_series(
@@ -404,45 +399,23 @@ def compare_same_months_series(
 ) -> list[TickTickMonthSeries]:
     """Build cumulative series for the same calendar month across recent years (newest first)."""
     today_local = today or datetime.now().astimezone().date()
-    selected = max(1, min(int(month), 12))
-    series: list[TickTickMonthSeries] = []
-    color_index = 0
-    for offset in range(max(int(years_count), 0)):
-        year = today_local.year - offset
-        if year == today_local.year and today_local.month < selected:
-            continue
-        days_in_month = calendar.monthrange(year, selected)[1]
-        is_current = year == today_local.year and today_local.month == selected
-        if year == today_local.year and today_local.month == selected:
-            end_day = min(today_local.day, days_in_month)
-        elif year == today_local.year:
-            end_day = days_in_month
-        else:
-            end_day = days_in_month
-        label = date(year, selected, 1).strftime("%B %Y")
-        if is_current:
-            label = f"{label} (Current)"
-            color = _COMPARE_CURRENT
-        else:
-            color = chart_series_color(color_index + 1)
-            color_index += 1
-        series.append(
-            TickTickMonthSeries(
-                year=year,
-                month=selected,
-                label=label,
-                color=color,
-                is_current=is_current,
-                points=cumulative_month_points(
-                    completions,
-                    year,
-                    selected,
-                    end_day=end_day,
-                    project_id=project_id,
-                ),
+    return [
+        TickTickMonthSeries(
+            year=window.year,
+            month=window.month,
+            label=window.label,
+            color=window.color,
+            is_current=window.is_current,
+            points=cumulative_month_points(
+                completions,
+                window.year,
+                window.month,
+                end_day=window.end_day,
+                project_id=project_id,
             ),
         )
-    return series
+        for window in compare_same_month_windows(month, years_count, today=today_local)
+    ]
 
 
 def counts_by_month(
@@ -609,19 +582,6 @@ def longest_streak_days(counts_by_day: dict[date, int], start_date: date, end_da
             run = 0
         day += timedelta(days=1)
     return best
-
-
-def month_starts_going_back(months_count: int, *, today: date) -> list[date]:
-    """Return first-of-month dates newest first for ``months_count`` months ending at ``today``."""
-    count = max(int(months_count), 0)
-    if count <= 0:
-        return []
-    cursor = date(today.year, today.month, 1)
-    result: list[date] = []
-    for _ in range(count):
-        result.append(cursor)
-        cursor = date(cursor.year - 1, 12, 1) if cursor.month == 1 else date(cursor.year, cursor.month - 1, 1)
-    return result
 
 
 def resolve_period(

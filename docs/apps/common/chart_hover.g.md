@@ -13,7 +13,10 @@ lang: en
 
 - [🏛️ Class `ExpandingChartCanvas`](#%EF%B8%8F-class-expandingchartcanvas)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `paintEvent`](#%EF%B8%8F-method-paintevent)
   - [⚙️ Method `resizeEvent`](#%EF%B8%8F-method-resizeevent)
+  - [⚙️ Method `set_hover_cursor`](#%EF%B8%8F-method-set_hover_cursor)
+  - [⚙️ Method `show_centered_message`](#%EF%B8%8F-method-show_centered_message)
 - [🔧 Function `create_chart_canvas`](#-function-create_chart_canvas)
 - [🔧 Function `format_chart_point`](#-function-format_chart_point)
 - [🔧 Function `install_chart_hover`](#-function-install_chart_hover)
@@ -40,16 +43,60 @@ class ExpandingChartCanvas(FigureCanvas):
         super().__init__(figure)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.setMinimumSize(_MIN_CANVAS_PX, _MIN_CANVAS_PX)
+        register_chart_canvas(self)
+        self._cursor_x: int | None = None
+        self._resize_timer = QTimer(self)
+        self._resize_timer.setSingleShot(True)
+        self._resize_timer.setInterval(_RESIZE_DEBOUNCE_MS)
+        self._resize_timer.timeout.connect(self._flush_resize)
+
+    def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802
+        """Draw the figure, then a hover guide that is not part of the data."""
+        super().paintEvent(event)
+        if self._cursor_x is None:
+            return
+        painter = QPainter(self)
+        painter.setPen(QPen(QColor(chart_muted_ink()), 1, Qt.PenStyle.SolidLine))
+        painter.drawLine(self._cursor_x, 0, self._cursor_x, self.height())
+        painter.end()
 
     def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
         """Resize the Matplotlib figure to match the Qt widget size."""
         super().resizeEvent(event)
+        self._resize_timer.start(_RESIZE_DEBOUNCE_MS)
+
+    def set_hover_cursor(self, x_px: float | None) -> None:
+        """Move the vertical hover guide. `None` hides it.
+
+        The guide is painted by Qt. It is not a Matplotlib line, so it cannot
+        change the axis limits.
+
+        """
+        cursor_x = None if x_px is None else round(x_px)
+        if cursor_x == self._cursor_x:
+            return
+        self._cursor_x = cursor_x
+        self.update()
+
+    def show_centered_message(self, text: str = NO_CHART_DATA) -> None:
+        """Replace the figure with one centered line of text."""
+        self.figure.clear()
+        axis = self.figure.add_subplot(111)
+        apply_theme(self.figure, axis)
+        axis.set_axis_off()
+        axis.text(0.5, 0.5, text, ha="center", va="center", color=chart_muted_ink(), transform=axis.transAxes)
+        self.draw_idle()
+
+    def _flush_resize(self) -> None:
         width = max(self.width(), _MIN_CANVAS_PX)
         height = max(self.height(), _MIN_CANVAS_PX)
         dpi = float(self.figure.dpi) if self.figure.dpi else 100.0
         self.figure.set_size_inches(width / dpi, height / dpi, forward=False)
-        with contextlib.suppress(Exception):
-            self.figure.tight_layout()
+        engine = self.figure.get_layout_engine()
+        engine_name = type(engine).__name__.lower() if engine is not None else ""
+        if "constrained" not in engine_name:
+            with contextlib.suppress(Exception):
+                self.figure.tight_layout()
         self.draw_idle()
 ```
 
@@ -71,6 +118,36 @@ def __init__(self, figure: Figure) -> None:
         super().__init__(figure)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.setMinimumSize(_MIN_CANVAS_PX, _MIN_CANVAS_PX)
+        register_chart_canvas(self)
+        self._cursor_x: int | None = None
+        self._resize_timer = QTimer(self)
+        self._resize_timer.setSingleShot(True)
+        self._resize_timer.setInterval(_RESIZE_DEBOUNCE_MS)
+        self._resize_timer.timeout.connect(self._flush_resize)
+```
+
+</details>
+
+### ⚙️ Method `paintEvent`
+
+```python
+def paintEvent(self, event: QPaintEvent) -> None
+```
+
+Draw the figure, then a hover guide that is not part of the data.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802
+        super().paintEvent(event)
+        if self._cursor_x is None:
+            return
+        painter = QPainter(self)
+        painter.setPen(QPen(QColor(chart_muted_ink()), 1, Qt.PenStyle.SolidLine))
+        painter.drawLine(self._cursor_x, 0, self._cursor_x, self.height())
+        painter.end()
 ```
 
 </details>
@@ -89,12 +166,54 @@ Resize the Matplotlib figure to match the Qt widget size.
 ```python
 def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
         super().resizeEvent(event)
-        width = max(self.width(), _MIN_CANVAS_PX)
-        height = max(self.height(), _MIN_CANVAS_PX)
-        dpi = float(self.figure.dpi) if self.figure.dpi else 100.0
-        self.figure.set_size_inches(width / dpi, height / dpi, forward=False)
-        with contextlib.suppress(Exception):
-            self.figure.tight_layout()
+        self._resize_timer.start(_RESIZE_DEBOUNCE_MS)
+```
+
+</details>
+
+### ⚙️ Method `set_hover_cursor`
+
+```python
+def set_hover_cursor(self, x_px: float | None) -> None
+```
+
+Move the vertical hover guide. `None` hides it.
+
+The guide is painted by Qt. It is not a Matplotlib line, so it cannot
+change the axis limits.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_hover_cursor(self, x_px: float | None) -> None:
+        cursor_x = None if x_px is None else round(x_px)
+        if cursor_x == self._cursor_x:
+            return
+        self._cursor_x = cursor_x
+        self.update()
+```
+
+</details>
+
+### ⚙️ Method `show_centered_message`
+
+```python
+def show_centered_message(self, text: str = NO_CHART_DATA) -> None
+```
+
+Replace the figure with one centered line of text.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def show_centered_message(self, text: str = NO_CHART_DATA) -> None:
+        self.figure.clear()
+        axis = self.figure.add_subplot(111)
+        apply_theme(self.figure, axis)
+        axis.set_axis_off()
+        axis.text(0.5, 0.5, text, ha="center", va="center", color=chart_muted_ink(), transform=axis.transAxes)
         self.draw_idle()
 ```
 
@@ -135,9 +254,10 @@ Format one ``(x, y)`` chart point for a hover tooltip.
 def format_chart_point(x: Any, y: Any, *, label: str | None = None) -> str:
     x_text = _format_x_value(x)
     y_text = _format_y_value(y)
+    text = f"{x_text} — {y_text}"
     if label:
-        return f"{label}: {x_text} → {y_text}"
-    return f"{x_text}: {y_text}"
+        return f"{text} ({label})"
+    return text
 ```
 
 </details>
@@ -190,6 +310,7 @@ def install_chart_hover(
                 float(event.y),
                 max_pixel_distance=max_pixel_distance,
             )
+        _set_hover_cursor(canvas, None if event.inaxes is None or event.x is None else float(event.x))
         if tip:
             if tip != state["last_tip"]:
                 state["last_tip"] = tip
@@ -200,6 +321,7 @@ def install_chart_hover(
             QToolTip.hideText()
 
     def on_leave(_event: Event) -> None:
+        _set_hover_cursor(canvas, None)
         if state["last_tip"] is not None:
             state["last_tip"] = None
             QToolTip.hideText()

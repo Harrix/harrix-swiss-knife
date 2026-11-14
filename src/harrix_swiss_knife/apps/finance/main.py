@@ -2517,7 +2517,7 @@ class MainWindow(
             ctx=chart_ctx,
         )
         if not yearly_data or all(len(series) == 0 for series in yearly_data):
-            self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected period")
+            self._show_no_data_label(self.verticalLayout_charts_content, "No data for the selected period")
             return
 
         max_period = max((series[-1][0] for series in yearly_data if series), default=1)
@@ -2726,7 +2726,7 @@ class MainWindow(
             self._add_chart_canvas(fig)
 
         if not rendered_any:
-            self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected period")
+            self._show_no_data_label(self.verticalLayout_charts_content, "No data for the selected period")
 
     def _draw_expense_income_chart(
         self,
@@ -2866,7 +2866,7 @@ class MainWindow(
                 max_period = max(max_period, series[-1][0])
 
         if not all_series:
-            self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected period")
+            self._show_no_data_label(self.verticalLayout_charts_content, "No data for the selected period")
             return
 
         if year_start_month == 1 and year_start_day == 1:
@@ -6623,7 +6623,7 @@ class MainWindow(
                 if not year_rows:
                     self._show_no_data_label(
                         self.verticalLayout_charts_content,
-                        "No data found for the selected period",
+                        "No data for the selected period",
                     )
                     return
                 self._draw_average_salary_by_year_chart(
@@ -6646,7 +6646,7 @@ class MainWindow(
                 if not series:
                     self._show_no_data_label(
                         self.verticalLayout_charts_content,
-                        "No data found for the selected period",
+                        "No data for the selected period",
                     )
                     return
                 self._draw_balance_chart(series, period, currency_symbol)
@@ -6732,7 +6732,7 @@ class MainWindow(
                 if expense_series is None and income_series is None:
                     self._show_no_data_label(
                         self.verticalLayout_charts_content,
-                        "No data found for the selected period",
+                        "No data for the selected period",
                     )
                     return
                 self._draw_expense_income_chart(expense_series, income_series, period, currency_symbol)
@@ -6755,7 +6755,7 @@ class MainWindow(
                 if not category_series or all(not values for values in category_series.values()):
                     self._show_no_data_label(
                         self.verticalLayout_charts_content,
-                        "No data found for the selected period",
+                        "No data for the selected period",
                     )
                     return
                 self._draw_category_chart(category_series, period, currency_symbol)

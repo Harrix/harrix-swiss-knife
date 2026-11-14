@@ -1099,7 +1099,7 @@ def decade_panel_years(year: int) -> tuple[int, list[int]]:
 def decade_start(year: int) -> int
 ```
 
-Return the first year of the decade that contains `year`.
+Return the first year of the decade that contains [`year`](apps/common/chart_widgets.g.md#%EF%B8%8F-method-year).
 
 <details>
 <summary>Code:</summary>

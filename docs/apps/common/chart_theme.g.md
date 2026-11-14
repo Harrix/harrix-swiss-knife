@@ -11,26 +11,168 @@ lang: en
 
 ## Contents
 
+- [🏛️ Class `ChartTheme`](#%EF%B8%8F-class-charttheme)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
 - [🔧 Function `apply_chart_theme`](#-function-apply_chart_theme)
+- [🔧 Function `apply_theme`](#-function-apply_theme)
 - [🔧 Function `chart_annotation_style`](#-function-chart_annotation_style)
 - [🔧 Function `chart_danger_color`](#-function-chart_danger_color)
+- [🔧 Function `chart_font_family`](#-function-chart_font_family)
 - [🔧 Function `chart_info_panel_qss`](#-function-chart_info_panel_qss)
 - [🔧 Function `chart_ink`](#-function-chart_ink)
 - [🔧 Function `chart_label_bbox`](#-function-chart_label_bbox)
 - [🔧 Function `chart_label_edge`](#-function-chart_label_edge)
 - [🔧 Function `chart_label_face`](#-function-chart_label_face)
 - [🔧 Function `chart_muted_ink`](#-function-chart_muted_ink)
+- [🔧 Function `chart_neutral_color`](#-function-chart_neutral_color)
 - [🔧 Function `chart_series_color`](#-function-chart_series_color)
 - [🔧 Function `chart_series_palette`](#-function-chart_series_palette)
 - [🔧 Function `chart_success_color`](#-function-chart_success_color)
 - [🔧 Function `choose_currency_axis_scale`](#-function-choose_currency_axis_scale)
+- [🔧 Function `current_chart_theme`](#-function-current_chart_theme)
 - [🔧 Function `ensure_chart_theme`](#-function-ensure_chart_theme)
 - [🔧 Function `intensity_bin_label`](#-function-intensity_bin_label)
 - [🔧 Function `intensity_bin_ranges`](#-function-intensity_bin_ranges)
 - [🔧 Function `map_value_to_intensity_bin`](#-function-map_value_to_intensity_bin)
+- [🔧 Function `register_chart_canvas`](#-function-register_chart_canvas)
+- [🔧 Function `restyle_live_charts`](#-function-restyle_live_charts)
 - [🔧 Function `style_axes`](#-function-style_axes)
 - [🔧 Function `themed_axes`](#-function-themed_axes)
 - [🔧 Function `themed_figure`](#-function-themed_figure)
+
+</details>
+
+## 🏛️ Class `ChartTheme`
+
+```python
+class ChartTheme
+```
+
+Colors and font for one light or dark chart pass.
+
+Heatmap greens and habit-done greens are fixed scales. Everything else
+follows the Fluent palette so a theme switch repaints open charts.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class ChartTheme:
+
+    __slots__ = (
+        "accent",
+        "bg",
+        "border",
+        "dark",
+        "font_family",
+        "grid",
+        "habit_done",
+        "habit_empty",
+        "habit_outline",
+        "habit_skipped",
+        "heatmap",
+        "negative",
+        "neutral",
+        "positive",
+        "series",
+        "text",
+        "text_muted",
+    )
+
+    def __init__(
+        self,
+        *,
+        dark: bool,
+        font_family: str,
+        bg: str,
+        text: str,
+        text_muted: str,
+        grid: str,
+        border: str,
+        accent: str,
+        positive: str,
+        negative: str,
+        neutral: str,
+        series: tuple[str, ...],
+        heatmap: tuple[str, ...],
+        habit_done: str,
+        habit_skipped: str,
+        habit_empty: str,
+        habit_outline: str,
+    ) -> None:
+        """Store one resolved theme snapshot."""
+        self.dark = dark
+        self.font_family = font_family
+        self.bg = bg
+        self.text = text
+        self.text_muted = text_muted
+        self.grid = grid
+        self.border = border
+        self.accent = accent
+        self.positive = positive
+        self.negative = negative
+        self.neutral = neutral
+        self.series = series
+        self.heatmap = heatmap
+        self.habit_done = habit_done
+        self.habit_skipped = habit_skipped
+        self.habit_empty = habit_empty
+        self.habit_outline = habit_outline
+```
+
+</details>
+
+### ⚙️ Method `__init__`
+
+```python
+def __init__(self, *, dark: bool, font_family: str, bg: str, text: str, text_muted: str, grid: str, border: str, accent: str, positive: str, negative: str, neutral: str, series: tuple[str, ...], heatmap: tuple[str, ...], habit_done: str, habit_skipped: str, habit_empty: str, habit_outline: str) -> None
+```
+
+Store one resolved theme snapshot.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def __init__(
+        self,
+        *,
+        dark: bool,
+        font_family: str,
+        bg: str,
+        text: str,
+        text_muted: str,
+        grid: str,
+        border: str,
+        accent: str,
+        positive: str,
+        negative: str,
+        neutral: str,
+        series: tuple[str, ...],
+        heatmap: tuple[str, ...],
+        habit_done: str,
+        habit_skipped: str,
+        habit_empty: str,
+        habit_outline: str,
+    ) -> None:
+        self.dark = dark
+        self.font_family = font_family
+        self.bg = bg
+        self.text = text
+        self.text_muted = text_muted
+        self.grid = grid
+        self.border = border
+        self.accent = accent
+        self.positive = positive
+        self.negative = negative
+        self.neutral = neutral
+        self.series = series
+        self.heatmap = heatmap
+        self.habit_done = habit_done
+        self.habit_skipped = habit_skipped
+        self.habit_empty = habit_empty
+        self.habit_outline = habit_outline
+```
 
 </details>
 
@@ -40,55 +182,89 @@ lang: en
 def apply_chart_theme() -> None
 ```
 
-Write the current Fluent palette into `matplotlib.rcParams`.
+Write the current Fluent palette and UI font into `matplotlib.rcParams`.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def apply_chart_theme() -> None:
-    palette = FluentTheme.instance().palette()
-    surface = (palette.solid_tertiary_bg if palette.dark else palette.solid_quarternary_bg).name()
-    text = chart_ink()
-    secondary = chart_muted_ink()
-    divider = mix(palette.window_bg, palette.divider).name()
-    stroke = mix(palette.window_bg, palette.control_strong_stroke).name()
+    theme = current_chart_theme()
     mpl.rcParams.update(
         {
-            "figure.facecolor": surface,
-            "figure.edgecolor": surface,
-            "savefig.facecolor": surface,
-            "savefig.edgecolor": surface,
-            "axes.facecolor": surface,
-            "axes.edgecolor": stroke,
-            "axes.labelcolor": text,
-            "axes.titlecolor": text,
+            "figure.facecolor": theme.bg,
+            "figure.edgecolor": theme.bg,
+            "savefig.facecolor": theme.bg,
+            "savefig.edgecolor": theme.bg,
+            "axes.facecolor": theme.bg,
+            "axes.edgecolor": theme.border,
+            "axes.labelcolor": theme.text_muted,
+            "axes.titlecolor": theme.text,
             "axes.titlesize": CHART_TITLE_FONTSIZE,
             "axes.labelsize": CHART_LABEL_FONTSIZE,
             "axes.spines.top": False,
             "axes.spines.right": False,
             "axes.grid": True,
             "axes.axisbelow": True,
-            "text.color": text,
-            "xtick.color": secondary,
-            "ytick.color": secondary,
-            "xtick.labelcolor": text,
-            "ytick.labelcolor": text,
+            "text.color": theme.text,
+            "xtick.color": theme.text_muted,
+            "ytick.color": theme.text_muted,
+            "xtick.labelcolor": theme.text,
+            "ytick.labelcolor": theme.text,
             "xtick.labelsize": CHART_TICK_FONTSIZE,
             "ytick.labelsize": CHART_TICK_FONTSIZE,
-            "grid.color": divider,
+            "grid.color": theme.grid,
             "grid.alpha": CHART_GRID_ALPHA,
             "grid.linewidth": CHART_GRID_LINEWIDTH,
             "lines.linewidth": CHART_LINEWIDTH,
             "lines.markersize": CHART_MARKERSIZE,
-            "legend.facecolor": surface,
-            "legend.edgecolor": divider,
-            "legend.labelcolor": text,
+            "legend.facecolor": theme.bg,
+            "legend.edgecolor": theme.grid,
+            "legend.labelcolor": theme.text,
             "legend.fontsize": CHART_LEGEND_FONTSIZE,
             "legend.frameon": False,
+            "font.family": "sans-serif",
+            "font.sans-serif": [theme.font_family, "Segoe UI", "DejaVu Sans"],
             "font.size": CHART_LABEL_FONTSIZE,
         },
     )
+```
+
+</details>
+
+## 🔧 Function `apply_theme`
+
+```python
+def apply_theme(fig: Figure, ax: Axes | None = None) -> None
+```
+
+Paint `fig` (and `ax`, or every axes) with the current chart theme.
+
+New figures use constrained layout. Axes lose the top and right spines and
+keep a thin horizontal grid. Call again after a light/dark switch.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def apply_theme(fig: Figure, ax: Axes | None = None) -> None:
+    ensure_chart_theme()
+    theme = current_chart_theme()
+    fig.set_facecolor(theme.bg)
+    fig.set_edgecolor(theme.bg)
+    targets = list(fig.axes) if ax is None else [ax]
+    for axis in targets:
+        axis.set_facecolor(theme.bg)
+        style_axes(axis)
+        axis.xaxis.label.set_color(theme.text_muted)
+        axis.yaxis.label.set_color(theme.text_muted)
+        axis.title.set_color(theme.text)
+        axis.tick_params(axis="both", colors=theme.text_muted, labelcolor=theme.text)
+        for side in ("left", "bottom"):
+            axis.spines[side].set_color(theme.border)
+    if fig.get_layout_engine() is None:
+        with contextlib.suppress(Exception):
+            fig.set_layout_engine("constrained")
 ```
 
 </details>
@@ -130,6 +306,29 @@ Return the theme danger / expense red.
 ```python
 def chart_danger_color() -> str:
     return FluentTheme.instance().palette().critical.name()
+```
+
+</details>
+
+## 🔧 Function `chart_font_family`
+
+```python
+def chart_font_family() -> str
+```
+
+Return the application font family, or Segoe UI when Qt has no app yet.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def chart_font_family() -> str:
+    app = QApplication.instance()
+    if isinstance(app, QApplication):
+        family = app.font().family().strip()
+        if family:
+            return family
+    return "Segoe UI"
 ```
 
 </details>
@@ -266,6 +465,24 @@ def chart_muted_ink() -> str:
 
 </details>
 
+## 🔧 Function `chart_neutral_color`
+
+```python
+def chart_neutral_color() -> str
+```
+
+Return the theme neutral gray for past comparison series.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def chart_neutral_color() -> str:
+    return FluentTheme.instance().palette().neutral.name()
+```
+
+</details>
+
 ## 🔧 Function `chart_series_color`
 
 ```python
@@ -352,13 +569,53 @@ def choose_currency_axis_scale(max_abs_value: float) -> tuple[float, str]:
 
 </details>
 
+## 🔧 Function `current_chart_theme`
+
+```python
+def current_chart_theme() -> ChartTheme
+```
+
+Return chart colors and the UI font for the active light or dark palette.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def current_chart_theme() -> ChartTheme:
+    palette = FluentTheme.instance().palette()
+    dark = bool(palette.dark)
+    surface = palette.solid_tertiary_bg if dark else palette.solid_quarternary_bg
+    heatmap = HEATMAP_LEVELS_DARK if dark else HEATMAP_LEVELS_LIGHT
+    return ChartTheme(
+        dark=dark,
+        font_family=chart_font_family(),
+        bg=surface.name(),
+        text=chart_ink(),
+        text_muted=chart_muted_ink(),
+        grid=mix(palette.window_bg, palette.divider).name(),
+        border=mix(palette.window_bg, palette.control_strong_stroke).name(),
+        accent=palette.accent.name(),
+        positive=palette.success.name(),
+        negative=palette.critical.name(),
+        neutral=palette.neutral.name(),
+        series=tuple(chart_series_palette(_SERIES_COUNT)),
+        heatmap=heatmap,
+        habit_done=HABIT_DONE_DARK if dark else HABIT_DONE_LIGHT,
+        habit_skipped=palette.caution.name(),
+        habit_empty=heatmap[0],
+        habit_outline=mix(palette.window_bg, palette.control_strong_stroke).name(),
+    )
+```
+
+</details>
+
 ## 🔧 Function `ensure_chart_theme`
 
 ```python
 def ensure_chart_theme() -> None
 ```
 
-Apply the chart theme now and keep it in sync with `FluentTheme.changed`.
+Apply the chart theme now and restyle open canvases when the theme changes.
 
 <details>
 <summary>Code:</summary>
@@ -366,7 +623,7 @@ Apply the chart theme now and keep it in sync with `FluentTheme.changed`.
 ```python
 def ensure_chart_theme() -> None:
     if not _state["connected"]:
-        FluentTheme.instance().changed.connect(lambda _mode: apply_chart_theme())
+        FluentTheme.instance().changed.connect(lambda _mode: restyle_live_charts())
         _state["connected"] = True
     apply_chart_theme()
 ```
@@ -468,6 +725,51 @@ def map_value_to_intensity_bin(value: int, ranges: Sequence[tuple[int, int]]) ->
 
 </details>
 
+## 🔧 Function `register_chart_canvas`
+
+```python
+def register_chart_canvas(canvas: object) -> None
+```
+
+Remember a Qt canvas so a theme switch can restyle it without a restart.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def register_chart_canvas(canvas: object) -> None:
+    with contextlib.suppress(TypeError):
+        _LIVE_CANVASES.add(canvas)
+```
+
+</details>
+
+## 🔧 Function `restyle_live_charts`
+
+```python
+def restyle_live_charts() -> None
+```
+
+Push the current theme into rcParams and every registered canvas.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def restyle_live_charts() -> None:
+    apply_chart_theme()
+    for canvas in list(_LIVE_CANVASES):
+        figure = getattr(canvas, "figure", None)
+        if not isinstance(figure, Figure):
+            continue
+        apply_theme(figure)
+        draw = getattr(canvas, "draw_idle", None)
+        if callable(draw):
+            draw()
+```
+
+</details>
+
 ## 🔧 Function `style_axes`
 
 ```python
@@ -548,7 +850,9 @@ Returns:
 ```python
 def themed_figure(**kwargs: Any) -> Figure:
     ensure_chart_theme()
-    return Figure(**kwargs)
+    figure = Figure(**kwargs)
+    apply_theme(figure)
+    return figure
 ```
 
 </details>

@@ -73,6 +73,21 @@ def test_chart_toolbar_heatmap_shows_year_nav() -> None:
     assert toolbar.button_last_month.isHidden()
 
 
+def test_chart_toolbar_refresh_is_on_the_right() -> None:
+    """Period and Labels come first; Refresh is the last control on row 1."""
+    toolbar = _shown_toolbar()
+    assert toolbar.row1 is not None
+    widgets = [toolbar.row1.itemAt(index).widget() for index in range(toolbar.row1.count())]
+    widgets = [widget for widget in widgets if widget is not None]
+    assert widgets[-1] is toolbar.refresh_button
+    period = toolbar.combo_period
+    labels = toolbar.combo_labels
+    assert period is not None
+    assert labels is not None
+    assert widgets.index(period) < widgets.index(labels)
+    assert toolbar.row1.spacing() == 8
+
+
 def test_chart_toolbar_labels_only_hides_count() -> None:
     toolbar = _shown_toolbar()
     toolbar.set_mode("labels_only", show_count=False)
