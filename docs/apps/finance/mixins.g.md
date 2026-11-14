@@ -376,13 +376,14 @@ class ChartOperations(ChartOperationsBase):
         *,
         period: str,
         currency_symbol: str,
-        point_color: str = "steelblue",
+        point_color: str | None = None,
     ) -> None:
         """Label global and local extrema on the balance chart."""
         if not series:
             return
 
         y_values = [value for _date_str, value in series]
+        marker_color = chart_series_color(0) if point_color is None else point_color
 
         def label_for_index(index: int) -> str:
             date_str, value = series[index]
@@ -395,7 +396,7 @@ class ChartOperations(ChartOperationsBase):
             y_values,
             label_for_index,
             enabled=self._chart_labels_enabled(),
-            point_color=point_color,
+            point_color=marker_color,
         )
 
     def _annotate_chart_last_point(

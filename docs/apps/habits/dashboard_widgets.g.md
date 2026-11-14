@@ -1039,16 +1039,15 @@ class HabitRow(QFrame):
         palette = palette_for(self)
         selected_bg, hover_bg, marker, _text = selection_chrome_colors()
         if self._selected:
-            fill = QColor(selected_bg if palette.dark else SELECTION_BG)
+            fill = QColor(selected_bg)
         elif self._hovered:
-            fill = QColor(hover_bg if palette.dark else SELECTION_HOVER)
+            fill = QColor(hover_bg)
         else:
             fill = QColor(0, 0, 0, 0)
         if fill.alpha() > 0:
             painter.fillRect(self.rect(), fill)
         if self._selected:
-            marker_color = QColor(marker if palette.dark else SELECTION_BORDER)
-            painter.fillRect(1, 6, 3, max(8, self.height() - 12), marker_color)
+            painter.fillRect(1, 6, 3, max(8, self.height() - 12), QColor(marker))
         if self.hasFocus() and not self._selected:
             painter.setPen(QPen(palette.focus_stroke_outer, 1))
             painter.setBrush(Qt.BrushStyle.NoBrush)
@@ -1443,16 +1442,15 @@ def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802
         palette = palette_for(self)
         selected_bg, hover_bg, marker, _text = selection_chrome_colors()
         if self._selected:
-            fill = QColor(selected_bg if palette.dark else SELECTION_BG)
+            fill = QColor(selected_bg)
         elif self._hovered:
-            fill = QColor(hover_bg if palette.dark else SELECTION_HOVER)
+            fill = QColor(hover_bg)
         else:
             fill = QColor(0, 0, 0, 0)
         if fill.alpha() > 0:
             painter.fillRect(self.rect(), fill)
         if self._selected:
-            marker_color = QColor(marker if palette.dark else SELECTION_BORDER)
-            painter.fillRect(1, 6, 3, max(8, self.height() - 12), marker_color)
+            painter.fillRect(1, 6, 3, max(8, self.height() - 12), QColor(marker))
         if self.hasFocus() and not self._selected:
             painter.setPen(QPen(palette.focus_stroke_outer, 1))
             painter.setBrush(Qt.BrushStyle.NoBrush)

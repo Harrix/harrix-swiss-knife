@@ -17,6 +17,7 @@ lang: en
 - [🔧 Function `apply_chart_theme`](#-function-apply_chart_theme)
 - [🔧 Function `apply_theme`](#-function-apply_theme)
 - [🔧 Function `chart_annotation_style`](#-function-chart_annotation_style)
+- [🔧 Function `chart_compare_current_color`](#-function-chart_compare_current_color)
 - [🔧 Function `chart_danger_color`](#-function-chart_danger_color)
 - [🔧 Function `chart_font_family`](#-function-chart_font_family)
 - [🔧 Function `chart_info_panel_qss`](#-function-chart_info_panel_qss)
@@ -29,10 +30,12 @@ lang: en
 - [🔧 Function `chart_series_color`](#-function-chart_series_color)
 - [🔧 Function `chart_series_palette`](#-function-chart_series_palette)
 - [🔧 Function `chart_success_color`](#-function-chart_success_color)
+- [🔧 Function `chart_surface`](#-function-chart_surface)
 - [🔧 Function `chart_tint`](#-function-chart_tint)
 - [🔧 Function `choose_currency_axis_scale`](#-function-choose_currency_axis_scale)
 - [🔧 Function `current_chart_theme`](#-function-current_chart_theme)
 - [🔧 Function `ensure_chart_theme`](#-function-ensure_chart_theme)
+- [🔧 Function `finish_chart_layout`](#-function-finish_chart_layout)
 - [🔧 Function `heatmap_absent_color`](#-function-heatmap_absent_color)
 - [🔧 Function `heatmap_zero_color`](#-function-heatmap_zero_color)
 - [🔧 Function `intensity_bin_label`](#-function-intensity_bin_label)
@@ -55,8 +58,8 @@ class ChartTheme
 
 Colors and font for one light or dark chart pass.
 
-Heatmap greens and habit-done greens are fixed scales. Everything else
-follows the Fluent palette so a theme switch repaints open charts.
+Heatmap greens and habit-done greens are fixed scales. Series colors are the
+shared Fitness-derived palette; chrome ink follows the Fluent theme.
 
 <details>
 <summary>Code:</summary>
@@ -202,9 +205,8 @@ def accent_heatmap_colors(steps: int) -> list[str]:
         return [palette.accent.name()]
     pale = 0.32
     span = 0.68
-    return [
-        chart_tint(palette.card_bg, palette.accent, pale + span * index / (count - 1)).name() for index in range(count)
-    ]
+    surface = chart_surface()
+    return [chart_tint(surface, palette.accent, pale + span * index / (count - 1)).name() for index in range(count)]
 ```
 
 </details>
@@ -274,7 +276,8 @@ def apply_theme(fig: Figure, ax: Axes | None = None) -> None
 Paint `fig` (and `ax`, or every axes) with the current chart theme.
 
 New figures use constrained layout. Axes lose the top and right spines and
-keep a thin horizontal grid. Call again after a light/dark switch.
+keep a thin horizontal grid. Call again after a light/dark switch — including
+legend labels and value-label plates that were drawn under the previous theme.
 
 <details>
 <summary>Code:</summary>
@@ -295,6 +298,7 @@ def apply_theme(fig: Figure, ax: Axes | None = None) -> None:
         axis.tick_params(axis="both", colors=theme.text_muted, labelcolor=theme.text)
         for side in ("left", "bottom"):
             axis.spines[side].set_color(theme.border)
+    _restyle_figure_overlays(fig, theme)
     if fig.get_layout_engine() is None:
         with contextlib.suppress(Exception):
             fig.set_layout_engine("constrained")
@@ -321,6 +325,24 @@ def chart_annotation_style(*, fontsize: int | None = None) -> dict[str, Any]:
         "alpha": 1.0,
         "bbox": chart_label_bbox(),
     }
+```
+
+</details>
+
+## 🔧 Function `chart_compare_current_color`
+
+```python
+def chart_compare_current_color() -> str
+```
+
+Return the current-period color for multi-line compare charts.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def chart_compare_current_color() -> str:
+    return CHART_COMPARE_CURRENT_COLOR
 ```
 
 </details>
@@ -522,21 +544,14 @@ def chart_neutral_color() -> str:
 def chart_series_color(index: int = 0) -> str
 ```
 
-Return a stable comparative series color; index 0 is the app accent.
+Return a shared comparative series color (Fitness-derived soft palette).
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def chart_series_color(index: int = 0) -> str:
-    palette = FluentTheme.instance().palette()
-    colors = (
-        palette.accent.name(),
-        *(_c for _c in _SERIES_FALLBACK if _c.casefold() != palette.accent.name().casefold()),
-    )
-    if not colors:
-        return _SERIES_FALLBACK[0]
-    return colors[index % len(colors)]
+    return CHART_SERIES_COLORS[index % len(CHART_SERIES_COLORS)]
 ```
 
 </details>
@@ -547,7 +562,7 @@ def chart_series_color(index: int = 0) -> str:
 def chart_series_palette(count: int) -> list[str]
 ```
 
-Return `count` distinct series colors starting with the accent.
+Return `count` distinct series colors from the shared chart palette.
 
 <details>
 <summary>Code:</summary>
@@ -573,6 +588,29 @@ Return the theme success green (habits done / positive intensity).
 ```python
 def chart_success_color() -> str:
     return FluentTheme.instance().palette().success.name()
+```
+
+</details>
+
+## 🔧 Function `chart_surface`
+
+```python
+def chart_surface() -> QColor
+```
+
+Return an opaque card/plot surface for the active theme.
+
+Fluent `card_bg` is a translucent wash. Calling `.name()` on it yields pure
+white/black RGB and washes out dark heatmaps and legend plates — always mix
+it onto `window_bg` before painting or tinting.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def chart_surface() -> QColor:
+    palette = FluentTheme.instance().palette()
+    return mix(palette.window_bg, palette.card_bg)
 ```
 
 </details>
@@ -681,6 +719,33 @@ def ensure_chart_theme() -> None:
 
 </details>
 
+## 🔧 Function `finish_chart_layout`
+
+```python
+def finish_chart_layout(figure: Figure) -> None
+```
+
+Pack axes without replacing an existing constrained layout engine.
+
+[`apply_theme`](#-function-apply_theme) enables constrained layout. Calling `Figure.tight_layout`
+afterward switches the engine and emits Matplotlib's "layout has changed
+to tight" warning. Prefer this helper at the end of chart builders.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def finish_chart_layout(figure: Figure) -> None:
+    engine = figure.get_layout_engine()
+    engine_name = type(engine).__name__.casefold() if engine is not None else ""
+    if "constrained" in engine_name:
+        return
+    with contextlib.suppress(Exception):
+        figure.tight_layout()
+```
+
+</details>
+
 ## 🔧 Function `heatmap_absent_color`
 
 ```python
@@ -694,8 +759,7 @@ Return the no-record cell fill. It stays lighter than an explicit zero.
 
 ```python
 def heatmap_absent_color() -> str:
-    palette = FluentTheme.instance().palette()
-    return chart_tint(palette.card_bg, palette.text_secondary, 0.05).name()
+    return current_chart_theme().habit_empty
 ```
 
 </details>
@@ -714,7 +778,7 @@ Return the fill for a recorded zero (not done / no completions).
 ```python
 def heatmap_zero_color() -> str:
     palette = FluentTheme.instance().palette()
-    return chart_tint(palette.card_bg, palette.text_secondary, 0.32).name()
+    return chart_tint(chart_surface(), palette.text_secondary, 0.32).name()
 ```
 
 </details>

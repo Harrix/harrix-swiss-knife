@@ -4,13 +4,24 @@ from __future__ import annotations
 
 from datetime import date
 
+from matplotlib.colors import to_hex
 from PySide6.QtWidgets import QApplication, QComboBox, QListView, QSplitter, QWidget
 
-from harrix_swiss_knife.apps.common.chart_theme import quantile_intensity_ranges
-from harrix_swiss_knife.apps.common.chart_timeline import TimelineBar, build_timeline_figure
-from harrix_swiss_knife.apps.common.year_heatmap import heatmap_column_count
+from harrix_swiss_knife.apps.common.chart_theme import chart_series_color, quantile_intensity_ranges
+from harrix_swiss_knife.apps.common.chart_timeline import (
+    _PERCENT_FULL_HEADROOM,
+    _PERCENT_HEADROOM,
+    TimelineBar,
+    build_timeline_figure,
+)
+from harrix_swiss_knife.apps.common.chart_widgets import CHARTS_FILTER_MIN_WIDTH
+from harrix_swiss_knife.apps.common.year_heatmap import YearHeatmapStack, heatmap_column_count
 from harrix_swiss_knife.apps.habits.habit_process_charts import habit_calendar_model, habit_period_stats
-from harrix_swiss_knife.apps.habits.ticktick_task_stats import task_timeline_bars
+from harrix_swiss_knife.apps.habits.ticktick_task_stats import (
+    ALL_YEARS_LABEL,
+    LAST_365_DAYS_LABEL,
+    task_timeline_bars,
+)
 from harrix_swiss_knife.apps.habits.ticktick_task_stats_widget import TickTickTaskStatsWidget
 
 
@@ -86,11 +97,6 @@ def test_percent_timeline_leaves_room_above_full_bars() -> None:
     """A solid 100% habit must not weld the bars into the top edge of the plot."""
     if not isinstance(QApplication.instance(), QApplication):
         QApplication([])
-    from matplotlib.colors import to_hex
-
-    from harrix_swiss_knife.apps.common.chart_theme import chart_series_color
-    from harrix_swiss_knife.apps.common.chart_timeline import _PERCENT_FULL_HEADROOM
-
     bars = [
         TimelineBar(date(2024, 1, 1), date(2024, 1, 7), 100.0, 100.0, "week"),
         TimelineBar(date(2024, 1, 8), date(2024, 1, 14), 100.0, 100.0, "week"),
@@ -118,8 +124,6 @@ def test_percent_timeline_keeps_mild_headroom_for_mixed_bars() -> None:
     """Varied completion only needs the smaller top gutter."""
     if not isinstance(QApplication.instance(), QApplication):
         QApplication([])
-    from harrix_swiss_knife.apps.common.chart_timeline import _PERCENT_HEADROOM
-
     bars = [
         TimelineBar(date(2024, 1, 1), date(2024, 1, 7), 40.0, 50.0, "week"),
         TimelineBar(date(2024, 1, 8), date(2024, 1, 14), 100.0, 80.0, "week"),
@@ -148,8 +152,6 @@ def test_ticktick_heatmap_page_puts_tasks_in_a_side_column() -> None:
     assert filters is not None
     assert day_panel is not None
     assert splitter is not None
-    from harrix_swiss_knife.apps.common.chart_widgets import CHARTS_FILTER_MIN_WIDTH
-
     assert filters.minimumWidth() == CHARTS_FILTER_MIN_WIDTH
     assert day_panel.minimumWidth() == 240
     assert day_panel.maximumWidth() == 420
@@ -165,14 +167,11 @@ def test_ticktick_period_combo_includes_all_years() -> None:
     """Heatmap period filter offers All after Last 365 days."""
     if not isinstance(QApplication.instance(), QApplication):
         QApplication([])
-    from harrix_swiss_knife.apps.habits.ticktick_task_stats import ALL_YEARS_LABEL, LAST_365_DAYS_LABEL
-
     widget = TickTickTaskStatsWidget()
-    toolbar = widget._chart_toolbar  # noqa: SLF001
+    toolbar = widget._chart_toolbar
     assert toolbar is not None
     combo = toolbar.combo_period
     assert combo is not None
-    labels = [combo.itemText(index) for index in range(combo.count())]
     # Before reload the combo may be empty; seed the same choices reload uses.
     toolbar.set_period_choices(
         [(LAST_365_DAYS_LABEL, None), (ALL_YEARS_LABEL, ALL_YEARS_LABEL), ("2024", 2024)],
@@ -187,8 +186,6 @@ def test_year_heatmap_stack_orders_newest_year_on_top() -> None:
     """All-years mode stacks labeled calendars with the freshest year first."""
     if not isinstance(QApplication.instance(), QApplication):
         QApplication([])
-    from harrix_swiss_knife.apps.common.year_heatmap import YearHeatmapStack
-
     stack = YearHeatmapStack()
     stack.set_years(
         [
@@ -198,5 +195,5 @@ def test_year_heatmap_stack_orders_newest_year_on_top() -> None:
         {date(2026, 1, 1): "#3a78bc"},
         legend=[("#3a78bc", "Done")],
     )
-    assert [label.text() for label, _heatmap in stack._rows] == ["2026", "2025"]  # noqa: SLF001
+    assert [label.text() for label, _heatmap in stack._rows] == ["2026", "2025"]
     stack.close()

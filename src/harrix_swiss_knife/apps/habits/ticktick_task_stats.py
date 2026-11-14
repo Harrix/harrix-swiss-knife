@@ -608,10 +608,11 @@ def resolve_period(
     year: int | None,
     today: date | None = None,
 ) -> tuple[date, date]:
-    """Return inclusive ``(start, end)`` for a calendar year or last 365 days.
+    """Return inclusive `(start, end)` for a calendar year or last 365 days.
 
-    A selected calendar year always spans 1 Jan–31 Dec so an incomplete year
-    still draws a full heatmap; metrics and streaks stop at ``today`` elsewhere.
+    A selected calendar year always spans 1 Jan — 31 Dec so an incomplete year
+    still draws a full heatmap; metrics and streaks stop at `today` elsewhere.
+
     """
     today_local = today or datetime.now().astimezone().date()
     if year is None:

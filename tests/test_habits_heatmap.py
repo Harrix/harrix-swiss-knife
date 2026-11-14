@@ -13,6 +13,7 @@ from harrix_swiss_knife.apps.common.calendar_heatmap import (
     habit_heatmap_month_separated_positions,
     habit_heatmap_weekday_index,
     heatmap_year_after_step,
+    heatmap_year_bands,
     numeric_habit_heatmap_cell_labels,
 )
 from harrix_swiss_knife.apps.habits.window import Ui_MainWindow
@@ -72,9 +73,7 @@ def test_heatmap_year_after_step_walks_available_years() -> None:
 
 
 def test_heatmap_year_bands_newest_first_full_calendar_years() -> None:
-    """All-years heatmaps are stacked newest on top as complete Jan–Dec bands."""
-    from harrix_swiss_knife.apps.common.calendar_heatmap import heatmap_year_bands
-
+    """All-years heatmaps are stacked newest on top as complete Jan-Dec bands."""
     bands = heatmap_year_bands([2024, 2026, 2025], today=date(2026, 3, 15))
     assert [year for year, _start, _end in bands] == [2026, 2025, 2024]
     assert bands[0] == (2026, date(2026, 1, 1), date(2026, 12, 31))

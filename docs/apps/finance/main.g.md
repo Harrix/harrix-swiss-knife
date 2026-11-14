@@ -1373,7 +1373,7 @@ class MainWindow(
         from harrix_swiss_knife.apps.common.chart_hover import create_chart_canvas  # noqa: PLC0415
 
         canvas = create_chart_canvas(fig)
-        fig.tight_layout()
+        finish_chart_layout(fig)
         self.verticalLayout_charts_content.addWidget(canvas, stretch=1)
         if stats_text:
             self._add_stats_caption(self.verticalLayout_charts_content, stats_text)
@@ -1699,6 +1699,17 @@ class MainWindow(
     @staticmethod
     def _chart_date_nums(x_values: list[datetime]) -> list[float]:
         return list(date2num(x_values))
+
+    def _chart_type_uses_categories(self) -> bool:
+        """Return whether the selected chart type filters by category list."""
+        return (
+            self.radioButton_expense_and_income.isChecked()
+            or self.radioButton_expense_and_income_compare_last_years.isChecked()
+            or self.radioButton_type_of_chart_category.isChecked()
+            or self.radioButton_type_of_chart_compare_last.isChecked()
+            or self.radioButton_type_of_chart_compare_same_months.isChecked()
+            or self.radioButton_type_of_chart_compare_last_years.isChecked()
+        )
 
     def _clean_category_display_name(self, category_value: str) -> str:
         """Strip emoji / income marker from a category cell display value."""
@@ -2171,14 +2182,14 @@ class MainWindow(
                 [x - bar_width / 2 for x in x_positions],
                 averages,
                 width=bar_width,
-                color="forestgreen",
+                color=chart_series_color(0),
                 label="Average Monthly Income",
             )
             annual_bars = ax.bar(
                 [x + bar_width / 2 for x in x_positions],
                 annuals,
                 width=bar_width,
-                color="steelblue",
+                color=chart_series_color(1),
                 label="Annual Income",
             )
             bars_to_annotate.extend((average_bars, annual_bars))
@@ -2187,7 +2198,7 @@ class MainWindow(
                 x_positions,
                 averages,
                 width=bar_width,
-                color="forestgreen",
+                color=chart_series_color(0),
                 label="Average Monthly Income",
             )
             bars_to_annotate.append(average_bars)
@@ -2196,7 +2207,7 @@ class MainWindow(
                 x_positions,
                 annuals,
                 width=bar_width,
-                color="steelblue",
+                color=chart_series_color(1),
                 label="Annual Income",
             )
             bars_to_annotate.append(annual_bars)
@@ -2224,7 +2235,7 @@ class MainWindow(
                     va="bottom",
                     fontsize=8,
                 )
-        fig.tight_layout()
+        finish_chart_layout(fig)
         self._add_chart_canvas(fig)
         self._add_average_salary_series_controls()
 
@@ -2991,6 +3002,12 @@ class MainWindow(
             "description_filter": description_filter,
         }
 
+    def _hide_tag_suggestions(self) -> None:
+        """Close the live tag suggest popup under the Tags field."""
+        popup = getattr(self, "_tag_suggest_popup", None)
+        if isinstance(popup, TagSuggestPopup):
+            popup.hide_suggestions()
+
     def _init_chart_controls(self) -> None:
         """Initialize Charts tab date range and comparison month combobox."""
         chart_widgets = (
@@ -3042,6 +3059,7 @@ class MainWindow(
                 widget.blockSignals(False)  # noqa: FBT003
 
         self._populate_chart_categories_list()
+        self._sync_chart_categories_enabled()
 
     def _init_database(self) -> None:
         """Open the SQLite file from app config (create from `recover.sql` if missing)."""
@@ -3112,7 +3130,7 @@ class MainWindow(
         self._sync_finance_chart_toolbar_mode()
 
     def _install_tag_entry_picker(self) -> None:
-        """Add a trailing tags action on the entry Tags field."""
+        """Add a trailing tags action and live suggestions on the entry Tags field."""
         if self.lineEdit_tag.property("hskTagPickerInstalled") is True:
             return
         action = QAction(self.lineEdit_tag)
@@ -3123,6 +3141,9 @@ class MainWindow(
         self.lineEdit_tag.addAction(action, QLineEdit.ActionPosition.TrailingPosition)
         self.lineEdit_tag.setPlaceholderText("Optional — icon or double-click to choose")
         self.lineEdit_tag.setProperty("hskTagPickerInstalled", True)  # noqa: FBT003
+        self._tag_suggest_popup = TagSuggestPopup(self)
+        self._tag_suggest_popup.tag_chosen.connect(self._on_tag_suggest_chosen)
+        self.lineEdit_tag.textEdited.connect(self._on_tag_text_edited)
 
     def _is_current_tab(self, object_name: str) -> bool:
         """Return whether the current tab widget has `object_name`."""
@@ -4295,6 +4316,28 @@ class MainWindow(
         """Handle successful completion of startup update."""
         self._on_exchange_update_finished_success(processed_count, total_operations, startup=True)
 
+    def _on_tag_suggest_chosen(self, name: str) -> None:
+        """Insert a suggested tag in place of the fragment being typed."""
+        self.lineEdit_tag.setText(apply_tag_suggestion(self.lineEdit_tag.text(), name))
+        self._hide_tag_suggestions()
+
+    def _on_tag_text_edited(self, text: str) -> None:
+        """Show matching known tags once the current fragment is long enough."""
+        popup = getattr(self, "_tag_suggest_popup", None)
+        if not isinstance(popup, TagSuggestPopup):
+            return
+        prefix, fragment = tag_fragment_parts(text)
+        query = fragment.strip()
+        if len(query) <= TAG_SUGGEST_MIN_CHARS:
+            popup.hide_suggestions()
+            return
+        selected = parse_tag_text(prefix)
+        matches = matching_known_tags(self._get_tags_for_delegate(), query, exclude=selected)
+        if not matches:
+            popup.hide_suggestions()
+            return
+        popup.show_matches(self.lineEdit_tag, matches, selected)
+
     def _on_transaction_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
         """Handle transaction selection change and copy data to form fields (except tag).
 
@@ -4406,6 +4449,7 @@ class MainWindow(
 
     def _open_tag_picker_for_entry(self) -> None:
         """Open the tag check-list as a popup under the Tags field."""
+        self._hide_tag_suggestions()
         selected = parse_tag_text(self.lineEdit_tag.text())
         result = pick_transaction_tags(
             self.lineEdit_tag,
@@ -5647,7 +5691,7 @@ class MainWindow(
 
     def _show_chart_categories_context_menu(self, position: QPoint) -> None:
         """Context menu for bulk selection of chart categories."""
-        if self.list_chart_categories.model() is None:
+        if not self.list_chart_categories.isEnabled() or self.list_chart_categories.model() is None:
             return
 
         menu = QMenu(self)
@@ -6190,6 +6234,16 @@ class MainWindow(
                 subdivision = db_manager.get_currency_subdivision_by_code(currency_code)
         self.doubleSpinBox_amount.setMaximum(sqlite_max_major_amount(subdivision))
 
+    def _sync_chart_categories_enabled(self) -> None:
+        """Enable the category list only for chart types that use it."""
+        enabled = self._chart_type_uses_categories()
+        self.list_chart_categories.setEnabled(enabled)
+        self.pushButton_select_all.setEnabled(enabled)
+        self.pushButton_select_deselect_all.setEnabled(enabled)
+        self.pushButton_select_only_expense.setEnabled(enabled)
+        self.pushButton_select_only_income.setEnabled(enabled)
+        self.label_3.setEnabled(enabled)
+
     def _sync_finance_chart_toolbar_mode(self) -> None:
         """Show only toolbar slots that apply to the selected finance chart type."""
         toolbar = self._chart_toolbar
@@ -6387,6 +6441,7 @@ class MainWindow(
             return
 
         self._sync_finance_chart_toolbar_mode()
+        self._sync_chart_categories_enabled()
 
         year_start_radios = (
             self.radioButton_type_of_chart_balance_compare_last_years,

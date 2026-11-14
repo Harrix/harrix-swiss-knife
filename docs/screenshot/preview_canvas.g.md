@@ -31,6 +31,7 @@ lang: en
   - [⚙️ Method `delete_all`](#%EF%B8%8F-method-delete_all)
   - [⚙️ Method `delete_selected`](#%EF%B8%8F-method-delete_selected)
   - [⚙️ Method `duplicate_selected`](#%EF%B8%8F-method-duplicate_selected)
+  - [⚙️ Method `expand_canvas_to_view`](#%EF%B8%8F-method-expand_canvas_to_view)
   - [⚙️ Method `finish_text_at`](#%EF%B8%8F-method-finish_text_at)
   - [⚙️ Method `fit_to_view`](#%EF%B8%8F-method-fit_to_view)
   - [⚙️ Method `flatten_annotations`](#%EF%B8%8F-method-flatten_annotations)
@@ -70,11 +71,12 @@ lang: en
 class ScreenshotPreviewCanvas(QWidget)
 ```
 
-Show an image fitted with aspect ratio; Ctrl+wheel and Ctrl++ / Ctrl+- zoom; middle-drag pans.
+Show an image fitted with aspect ratio; Ctrl+wheel and Ctrl++ / Ctrl+- zoom.
 
-Left-drag draws with the active [`AnnotationTool`](annotations.g.md#%EF%B8%8F-class-annotationtool) when a document is attached.
-Crop mode uses the same dimmed blue selection frame as region capture.
-Right-click opens annotation edit commands (undo, cut/copy/paste, layer order).
+Middle-drag or Ctrl+left-drag pans the screenshot on the canvas. Left-drag
+draws with the active [`AnnotationTool`](annotations.g.md#%EF%B8%8F-class-annotationtool) when a document is attached. Crop
+mode uses the same dimmed blue selection frame as region capture. Right-click
+opens annotation edit commands (undo, cut/copy/paste, layer order).
 Double-click on the image in the view tool returns a zoomed image to that
 opening size; at the opening size, a small image is fitted into the view.
 Double-click in the empty margin beside the image pans it to the matching
@@ -250,14 +252,18 @@ class ScreenshotPreviewCanvas(QWidget):
         return False
 
     def confirm_crop(self) -> bool:
-        """Apply the pending crop rectangle. Return whether it succeeded."""
+        """Apply the pending crop rectangle. Return whether it succeeded.
+
+        The frame may extend outside the image: new pixels are filled white.
+
+        """
         document = self._document
         rect = self._crop_rect
         if document is None or rect is None or rect.width() < _MIN_CROP or rect.height() < _MIN_CROP:
             self.cancel_crop()
             return False
         identity = rect == self._image_bounds()
-        applied = False if identity else document.apply_crop(QRectF(rect))
+        applied = False if identity else document.apply_crop(QRectF(rect), fill=_CANVAS_FILL)
         self._clear_crop_state()
         self._tool = AnnotationTool.NONE
         self.setCursor(Qt.CursorShape.ArrowCursor)
@@ -353,6 +359,24 @@ class ScreenshotPreviewCanvas(QWidget):
             return False
         self._apply_selection_indices(new_indices)
         self.update()
+        self.document_changed.emit()
+        return True
+
+    def expand_canvas_to_view(self) -> bool:
+        """Grow the image so it covers the visible widget, filling new pixels white."""
+        document = self._document
+        visible = self._visible_image_rect()
+        if document is None or visible is None:
+            return False
+        image = QRectF(document.base_image.rect())
+        if image.contains(visible):
+            return False
+        target = visible.united(image)
+        if not document.apply_crop(target, fill=_CANVAS_FILL):
+            return False
+        self._refresh_pixmap()
+        self._rebuild_snap_edges()
+        self.fit_to_view()
         self.document_changed.emit()
         return True
 
@@ -535,10 +559,10 @@ class ScreenshotPreviewCanvas(QWidget):
 
     def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         """Start panning, select/edit a shape, or begin a draft annotation / crop."""
-        if event.button() == Qt.MouseButton.MiddleButton:
-            self._pan_start = event.position()
-            self._pan_origin = QPointF(self._offset)
-            self.setCursor(Qt.CursorShape.ClosedHandCursor)
+        if event.button() == Qt.MouseButton.MiddleButton or (
+            event.button() == Qt.MouseButton.LeftButton and _ctrl_pressed(event.modifiers())
+        ):
+            self._begin_pan(event.position())
             event.accept()
             return
         if event.button() == Qt.MouseButton.LeftButton and self._tool == AnnotationTool.CROP:
@@ -608,9 +632,11 @@ class ScreenshotPreviewCanvas(QWidget):
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         """End panning, finish a shape edit, or commit the draft annotation / crop drag."""
-        if event.button() == Qt.MouseButton.MiddleButton and self._pan_start is not None:
-            self._pan_start = None
-            self.set_tool(self._tool)
+        if self._pan_start is not None and event.button() in {
+            Qt.MouseButton.MiddleButton,
+            Qt.MouseButton.LeftButton,
+        }:
+            self._end_pan()
             event.accept()
             return
         if event.button() == Qt.MouseButton.LeftButton and self._tool == AnnotationTool.CROP:
@@ -860,6 +886,18 @@ class ScreenshotPreviewCanvas(QWidget):
             return self._crop_drag_rect()
         return self._crop_rect
 
+    def _add_view_actions(self, menu: QMenu) -> None:
+        """Append zoom / canvas size commands to `menu`."""
+        if self._size_changed():
+            original = add_lucide_action(menu, "Original size", "undo-2")
+            original.triggered.connect(lambda _checked=False: self.reset_to_original_size())
+        fit = add_lucide_action(menu, "Fit to view", "expand")
+        fit.triggered.connect(lambda _checked=False: self.fit_to_view())
+        expand = add_lucide_action(menu, "Expand canvas to view", "maximize-2")
+        expand.setToolTip("Grow the image to the visible area and fill new space with white")
+        expand.setEnabled(self._document is not None and self._visible_image_rect() is not None)
+        expand.triggered.connect(lambda _checked=False: self.expand_canvas_to_view())
+
     def _align_image_to_empty_margin(self, pos: QPointF) -> bool:
         """Pan the image into the nine-cell view slot under the empty-margin click.
 
@@ -979,11 +1017,7 @@ class ScreenshotPreviewCanvas(QWidget):
         to_back.setEnabled(has_selection and not at_back)
         to_back.triggered.connect(lambda _checked=False: self.send_to_back())
         menu.addSeparator()
-        if self._size_changed():
-            original = add_lucide_action(menu, "Original size", "undo-2")
-            original.triggered.connect(lambda _checked=False: self.reset_to_original_size())
-        fit = add_lucide_action(menu, "Fit to view", "expand")
-        fit.triggered.connect(lambda _checked=False: self.fit_to_view())
+        self._add_view_actions(menu)
         return menu
 
     def _annotation_snap_guides(self, *, exclude_indices: set[int] | None = None) -> tuple[list[float], list[float]]:
@@ -1112,6 +1146,19 @@ class ScreenshotPreviewCanvas(QWidget):
         self.update()
         return True
 
+    def _begin_pan(self, position: QPointF) -> None:
+        """Start a canvas pan from `position` (middle-drag or Ctrl+left-drag)."""
+        if self._text_edit_active:
+            self.commit_text_edit()
+        self._clear_edit_state()
+        self._draw_start = None
+        self._draw_current = None
+        if self._document is not None:
+            self._document.cancel_draft()
+        self._pan_start = QPointF(position)
+        self._pan_origin = QPointF(self._offset)
+        self.setCursor(Qt.CursorShape.ClosedHandCursor)
+
     def _begin_shape_draft(self, start: QPointF, current: QPointF, *, clicked: bool = False) -> None:
         if self._document is None:
             return
@@ -1203,8 +1250,8 @@ class ScreenshotPreviewCanvas(QWidget):
     def _crop_drag_rect(self) -> QRect | None:
         if self._crop_origin is None or self._crop_current is None:
             return None
-        bounds = self._image_bounds()
-        rect = QRect(self._crop_origin, self._crop_current).normalized().intersected(bounds)
+        bounds = self._crop_edit_bounds()
+        rect = QRect(self._crop_origin, self._crop_current).normalized()
         return snap_all_edges(
             rect,
             self._snap_x_edges,
@@ -1214,8 +1261,16 @@ class ScreenshotPreviewCanvas(QWidget):
             min_size=_MIN_CROP,
         )
 
+    def _crop_edit_bounds(self) -> QRect:
+        """Soft clamp for crop resize so the frame can grow past the image."""
+        bounds = self._image_bounds()
+        if not bounds.isValid() or bounds.isEmpty():
+            return QRect(-4096, -4096, 8192, 8192)
+        margin = max(bounds.width(), bounds.height(), 256) * _CROP_BOUNDS_MARGIN_FACTOR
+        return bounds.adjusted(-margin, -margin, margin, margin)
+
     def _crop_mouse_move(self, widget_pos: QPointF) -> None:
-        image_pos = self._widget_to_image_point(widget_pos)
+        image_pos = self._widget_to_image_point(widget_pos, clamp=False)
         if image_pos is None:
             return
 
@@ -1225,7 +1280,7 @@ class ScreenshotPreviewCanvas(QWidget):
                 and self._crop_press_pos is not None
                 and self._crop_press_rect is not None
             ):
-                bounds = self._image_bounds()
+                bounds = self._crop_edit_bounds()
                 transformed = transform_selection_rect(
                     self._crop_press_rect,
                     self._crop_edit_handle,
@@ -1259,7 +1314,7 @@ class ScreenshotPreviewCanvas(QWidget):
         self.update()
 
     def _crop_mouse_press(self, widget_pos: QPointF) -> None:
-        image_pos = self._widget_to_image_point(widget_pos)
+        image_pos = self._widget_to_image_point(widget_pos, clamp=False)
         if image_pos is None:
             return
 
@@ -1287,7 +1342,7 @@ class ScreenshotPreviewCanvas(QWidget):
             self._crop_edit_handle = None
             self._crop_press_pos = None
             self._crop_press_rect = None
-            image_pos = self._widget_to_image_point(widget_pos)
+            image_pos = self._widget_to_image_point(widget_pos, clamp=False)
             if image_pos is not None and self._crop_rect is not None:
                 handle = hit_test_selection_handle(self._crop_rect, image_pos)
                 self.setCursor(getattr(Qt.CursorShape, cursor_for_handle(handle)))
@@ -1296,7 +1351,7 @@ class ScreenshotPreviewCanvas(QWidget):
 
         if self._crop_origin is None:
             return
-        image_pos = self._widget_to_image_point(widget_pos)
+        image_pos = self._widget_to_image_point(widget_pos, clamp=False)
         if image_pos is not None:
             self._crop_current = image_pos
         rect = self._crop_drag_rect()
@@ -1329,6 +1384,11 @@ class ScreenshotPreviewCanvas(QWidget):
             return
         self._selected_index = remaining[-1]
         self._selected_others = set(remaining[:-1])
+
+    def _end_pan(self) -> None:
+        """Stop an active canvas pan and restore the tool cursor."""
+        self._pan_start = None
+        self.set_tool(self._tool)
 
     def _eyedrop_mouse_move(self, widget_pos: QPointF) -> None:
         color = self.sample_color_at(widget_pos)
@@ -1473,19 +1533,34 @@ class ScreenshotPreviewCanvas(QWidget):
         painter.drawRect(QRectF(points[0], points[-1]).normalized())
 
     def _paint_crop_overlay(self, painter: QPainter, image_rect: QRectF) -> None:
-        bounds = image_rect.toRect()
         crop = self._active_crop_rect()
         clear_widget: QRect | None = None
-        source: QRect | None = None
         if crop is not None and crop.isValid() and not crop.isEmpty():
             clear_widget = self._image_to_widget_rect(crop, image_rect)
-            source = crop
+        image_bounds = self._image_bounds()
+        extends = (
+            crop is not None and clear_widget is not None and clear_widget.isValid() and not image_bounds.contains(crop)
+        )
+        if extends and clear_widget is not None and crop is not None:
+            painter.fillRect(self.rect(), SELECTION_DIM_COLOR)
+            painter.fillRect(clear_widget, _CANVAS_FILL)
+            overlap = crop.intersected(image_bounds)
+            if not overlap.isEmpty() and not self._pixmap.isNull():
+                dest = self._image_to_widget_rect(overlap, image_rect)
+                painter.drawPixmap(dest, self._pixmap, overlap)
+            pen = QPen(SELECTION_BORDER_COLOR, SELECTION_BORDER_WIDTH)
+            painter.setPen(pen)
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+            painter.drawRect(clear_widget.adjusted(0, 0, -1, -1))
+            if self._crop_pending:
+                paint_selection_handles(painter, clear_widget)
+            return
         paint_selection_frame(
             painter,
-            bounds,
+            image_rect.toRect(),
             clear_widget,
             pixmap=self._pixmap if clear_widget is not None else None,
-            pixmap_source=source,
+            pixmap_source=crop,
             show_handles=bool(self._crop_pending and clear_widget is not None),
             border_width=SELECTION_BORDER_WIDTH,
         )
@@ -1759,11 +1834,7 @@ class ScreenshotPreviewCanvas(QWidget):
     def _view_menu(self) -> QMenu:
         """Zoom helpers kept for tests and as the trailing context-menu section."""
         menu = QMenu(self)
-        if self._size_changed():
-            original = add_lucide_action(menu, "Original size", "undo-2")
-            original.triggered.connect(lambda _checked=False: self.reset_to_original_size())
-        fit = add_lucide_action(menu, "Fit to view", "expand")
-        fit.triggered.connect(lambda _checked=False: self.fit_to_view())
+        self._add_view_actions(menu)
         return menu
 
     def _visible_annotations(self) -> list[Annotation]:
@@ -1783,26 +1854,48 @@ class ScreenshotPreviewCanvas(QWidget):
             items.append(draft)
         return items
 
-    def _widget_to_image(self, pos: QPointF) -> QPointF | None:
+    def _visible_image_rect(self) -> QRectF | None:
+        """Return the widget viewport in image coordinates at the current zoom."""
+        image_rect = self._image_rect()
+        width, height = self._source_size()
+        if image_rect.isEmpty() or width <= 0 or height <= 0:
+            return None
+        scale_x = image_rect.width() / width
+        scale_y = image_rect.height() / height
+        if scale_x <= 0 or scale_y <= 0:
+            return None
+        left = (0.0 - image_rect.left()) / scale_x
+        top = (0.0 - image_rect.top()) / scale_y
+        right = (float(self.width()) - image_rect.left()) / scale_x
+        bottom = (float(self.height()) - image_rect.top()) / scale_y
+        return QRectF(QPointF(left, top), QPointF(right, bottom)).normalized()
+
+    def _widget_to_image(self, pos: QPointF, *, clamp: bool = True) -> QPointF | None:
         rect = self._image_rect()
         width, height = self._source_size()
         if rect.isEmpty() or width <= 0 or height <= 0:
             return None
-        x = min(max(pos.x(), rect.left()), rect.right())
-        y = min(max(pos.y(), rect.top()), rect.bottom())
+        if clamp:
+            x = min(max(pos.x(), rect.left()), rect.right())
+            y = min(max(pos.y(), rect.top()), rect.bottom())
+        else:
+            x = pos.x()
+            y = pos.y()
         rel_x = (x - rect.left()) / rect.width()
         rel_y = (y - rect.top()) / rect.height()
         return QPointF(rel_x * width, rel_y * height)
 
-    def _widget_to_image_point(self, pos: QPointF) -> QPoint | None:
-        image_pos = self._widget_to_image(pos)
+    def _widget_to_image_point(self, pos: QPointF, *, clamp: bool = True) -> QPoint | None:
+        image_pos = self._widget_to_image(pos, clamp=clamp)
         if image_pos is None:
             return None
-        width, height = self._source_size()
-        return QPoint(
-            min(max(0, round(image_pos.x())), max(0, width - 1)),
-            min(max(0, round(image_pos.y())), max(0, height - 1)),
-        )
+        if clamp:
+            width, height = self._source_size()
+            return QPoint(
+                min(max(0, round(image_pos.x())), max(0, width - 1)),
+                min(max(0, round(image_pos.y())), max(0, height - 1)),
+            )
+        return QPoint(round(image_pos.x()), round(image_pos.y()))
 ```
 
 </details>
@@ -2110,6 +2203,8 @@ def confirm_crop(self) -> bool
 
 Apply the pending crop rectangle. Return whether it succeeded.
 
+The frame may extend outside the image: new pixels are filled white.
+
 <details>
 <summary>Code:</summary>
 
@@ -2121,7 +2216,7 @@ def confirm_crop(self) -> bool:
             self.cancel_crop()
             return False
         identity = rect == self._image_bounds()
-        applied = False if identity else document.apply_crop(QRectF(rect))
+        applied = False if identity else document.apply_crop(QRectF(rect), fill=_CANVAS_FILL)
         self._clear_crop_state()
         self._tool = AnnotationTool.NONE
         self.setCursor(Qt.CursorShape.ArrowCursor)
@@ -2327,6 +2422,38 @@ def duplicate_selected(self) -> bool:
             return False
         self._apply_selection_indices(new_indices)
         self.update()
+        self.document_changed.emit()
+        return True
+```
+
+</details>
+
+### ⚙️ Method `expand_canvas_to_view`
+
+```python
+def expand_canvas_to_view(self) -> bool
+```
+
+Grow the image so it covers the visible widget, filling new pixels white.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def expand_canvas_to_view(self) -> bool:
+        document = self._document
+        visible = self._visible_image_rect()
+        if document is None or visible is None:
+            return False
+        image = QRectF(document.base_image.rect())
+        if image.contains(visible):
+            return False
+        target = visible.united(image)
+        if not document.apply_crop(target, fill=_CANVAS_FILL):
+            return False
+        self._refresh_pixmap()
+        self._rebuild_snap_edges()
+        self.fit_to_view()
         self.document_changed.emit()
         return True
 ```
@@ -2634,10 +2761,10 @@ Start panning, select/edit a shape, or begin a draft annotation / crop.
 
 ```python
 def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
-        if event.button() == Qt.MouseButton.MiddleButton:
-            self._pan_start = event.position()
-            self._pan_origin = QPointF(self._offset)
-            self.setCursor(Qt.CursorShape.ClosedHandCursor)
+        if event.button() == Qt.MouseButton.MiddleButton or (
+            event.button() == Qt.MouseButton.LeftButton and _ctrl_pressed(event.modifiers())
+        ):
+            self._begin_pan(event.position())
             event.accept()
             return
         if event.button() == Qt.MouseButton.LeftButton and self._tool == AnnotationTool.CROP:
@@ -2721,9 +2848,11 @@ End panning, finish a shape edit, or commit the draft annotation / crop drag.
 
 ```python
 def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
-        if event.button() == Qt.MouseButton.MiddleButton and self._pan_start is not None:
-            self._pan_start = None
-            self.set_tool(self._tool)
+        if self._pan_start is not None and event.button() in {
+            Qt.MouseButton.MiddleButton,
+            Qt.MouseButton.LeftButton,
+        }:
+            self._end_pan()
             event.accept()
             return
         if event.button() == Qt.MouseButton.LeftButton and self._tool == AnnotationTool.CROP:

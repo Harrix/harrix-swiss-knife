@@ -6,6 +6,7 @@ from PySide6.QtWidgets import QApplication, QLabel
 
 from harrix_swiss_knife.apps.common.chart_widgets import (
     ALL_YEARS_KEY,
+    CHARTS_FILTER_MIN_WIDTH,
     LAST_365_KEY,
     ChartPage,
     ChartSidebar,
@@ -68,10 +69,10 @@ def test_kpi_row_keeps_six_equal_cards() -> None:
 
 
 def test_chart_page_sidebar_limits() -> None:
-    """The shell sidebar stays inside 220-420 px and the bottom row has a minimum height."""
+    """The shell sidebar stays inside the shared filter min-max and the bottom row has a floor."""
     _ensure_app()
     page = ChartPage()
-    assert page.sidebar.minimumWidth() == 220
+    assert page.sidebar.minimumWidth() == CHARTS_FILTER_MIN_WIDTH
     assert page.sidebar.maximumWidth() == 420
     assert page.bottom.minimumHeight() == 240
     page.close()

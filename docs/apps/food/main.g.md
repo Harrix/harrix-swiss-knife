@@ -2096,7 +2096,7 @@ class MainWindow(
         ax.set_xlim(1, max(max_days, 1))
         ax.legend(fontsize=CHART_LEGEND_FONTSIZE, loc="best")
         style_axes(ax)
-        fig.tight_layout()
+        finish_chart_layout(fig)
         layout.addWidget(canvas, stretch=1)
 
     def _end_day_macros_toast_pin_chain(self) -> None:

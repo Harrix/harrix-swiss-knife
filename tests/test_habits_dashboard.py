@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 from PySide6.QtCore import QEvent, QPoint, QRectF, Qt
 from PySide6.QtGui import (
+    QColor,
     QContextMenuEvent,
     QCursor,
     QImage,
@@ -30,11 +31,13 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife.apps.common.ui_chrome import selection_chrome_colors
 from harrix_swiss_knife.apps.habits.dashboard import HabitDashboardWidget
 from harrix_swiss_knife.apps.habits.dashboard_widgets import (
     CheckCircle,
     HabitRow,
     MonthCalendarGrid,
+    _absent_fill,
     absent_dates_in_month,
     calendar_month_for_year,
     decode_habit_id_mime,
@@ -55,6 +58,7 @@ from harrix_swiss_knife.apps.habits.habit_day_picker import (
     habit_picker_date_parts,
     is_not_done_hotkey,
 )
+from harrix_swiss_knife.fluent.theme import FluentTheme, ThemeMode, mix
 
 RECOVER_SQL = Path(__file__).resolve().parents[1] / "src/harrix_swiss_knife/apps/habits/recover.sql"
 
@@ -288,13 +292,8 @@ def test_set_habit_checkin_four_kinds(habits_db: DatabaseManager) -> None:
 
 
 def test_dark_selection_chrome_colors_are_qcolor_safe(qapp: QApplication) -> None:
-    """Dark hover/selection fills must be opaque hex — not rgba that QColor turns black."""
+    """Dark hover/selection fills must be opaque hex - not rgba that QColor turns black."""
     assert qapp is not None
-    from PySide6.QtGui import QColor
-
-    from harrix_swiss_knife.apps.common.ui_chrome import selection_chrome_colors
-    from harrix_swiss_knife.fluent.theme import FluentTheme, ThemeMode
-
     theme = FluentTheme.instance()
     previous = theme.mode()
     theme.set_mode(ThemeMode.DARK, persist=False)
@@ -314,11 +313,6 @@ def test_dark_selection_chrome_colors_are_qcolor_safe(qapp: QApplication) -> Non
 def test_dark_absent_day_circles_contrast_against_card_surface(qapp: QApplication) -> None:
     """No-record disks must stay lighter than the dark card so they do not vanish."""
     assert qapp is not None
-    from PySide6.QtGui import QColor
-
-    from harrix_swiss_knife.apps.habits.dashboard_widgets import _absent_fill
-    from harrix_swiss_knife.fluent.theme import FluentTheme, ThemeMode, mix
-
     theme = FluentTheme.instance()
     previous = theme.mode()
     theme.set_mode(ThemeMode.DARK, persist=False)

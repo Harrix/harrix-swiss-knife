@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import date
 from typing import Any, cast
 
+from harrix_swiss_knife.apps.common.chart_theme import CHART_COMPARE_CURRENT_COLOR
 from harrix_swiss_knife.apps.finance.transaction_helpers import (
     compute_balance_compare_last_years,
     compute_balance_series,
@@ -96,7 +97,7 @@ def test_compute_balance_compare_last_years_aligns_months() -> None:
     )
     assert len(yearly_data) == 2
     assert len(labels) == 2
-    assert colors[0] == "red"
+    assert colors[0] == CHART_COMPARE_CURRENT_COLOR
     assert "(Current)" in labels[0]
     # Current year through April: Jan..Apr → 4 points
     assert [point[0] for point in yearly_data[0]] == [1, 2, 3, 4]

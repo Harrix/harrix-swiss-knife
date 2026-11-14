@@ -738,10 +738,17 @@ def test_view_menu_restores_original_size_and_fits_small_image(qapp: QApplicatio
     image.fill(Qt.GlobalColor.red)
     canvas = ScreenshotPreviewCanvas(image)
     canvas.resize(400, 200)
-    assert [action.text() for action in canvas._view_menu().actions()] == ["Fit to view"]
+    assert [action.text() for action in canvas._view_menu().actions()] == [
+        "Fit to view",
+        "Expand canvas to view",
+    ]
     canvas.zoom_by(2.0, anchor=QPointF(200, 100))
     menu = canvas._view_menu()
-    assert [action.text() for action in menu.actions()] == ["Original size", "Fit to view"]
+    assert [action.text() for action in menu.actions()] == [
+        "Original size",
+        "Fit to view",
+        "Expand canvas to view",
+    ]
     menu.actions()[0].trigger()
     assert canvas.zoom == pytest.approx(1.0)
     rect = canvas._image_rect()

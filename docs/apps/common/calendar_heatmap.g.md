@@ -19,6 +19,7 @@ lang: en
 - [🔧 Function `habit_heatmap_week_start`](#-function-habit_heatmap_week_start)
 - [🔧 Function `habit_heatmap_weekday_index`](#-function-habit_heatmap_weekday_index)
 - [🔧 Function `heatmap_year_after_step`](#-function-heatmap_year_after_step)
+- [🔧 Function `heatmap_year_bands`](#-function-heatmap_year_bands)
 - [🔧 Function `numeric_habit_heatmap_cell_labels`](#-function-numeric_habit_heatmap_cell_labels)
 
 </details>
@@ -242,7 +243,7 @@ Return the next filter year after a heatmap prev/next step.
 
 Args:
 
-- `selected` (`str`): Current year-filter text, including `Last 365 days`.
+- `selected` (`str`): Current year-filter text, including `Last 365 days` / `All`.
 - `years` (`list[int]`): Years shown in the Charts year list.
 - `step` (`int`): `-1` for previous year, `1` for next year.
 - `today_year` (`int`): Current calendar year; later years are ignored.
@@ -266,7 +267,10 @@ def heatmap_year_after_step(
     years_sorted = [year for year in years_sorted if year <= today_year]
     if not years_sorted:
         return None
-    if selected == "Last 365 days" or not str(selected).strip():
+    label = str(selected).strip()
+    if label.casefold() == "all":
+        return None
+    if label == "Last 365 days" or not label:
         return years_sorted[-1] if step < 0 else None
     try:
         current = int(selected)
@@ -277,6 +281,38 @@ def heatmap_year_after_step(
         return older[-1] if older else None
     newer = [year for year in years_sorted if year > current]
     return newer[0] if newer else None
+```
+
+</details>
+
+## 🔧 Function `heatmap_year_bands`
+
+```python
+def heatmap_year_bands(years: Sequence[int], *, today: date) -> list[tuple[int, date, date]]
+```
+
+Return `(year, start, end)` bands newest-first for full calendar years.
+
+The current year still runs through 31 December so the grid is complete;
+callers leave future days empty when painting cells.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def heatmap_year_bands(
+    years: Sequence[int],
+    *,
+    today: date,
+) -> list[tuple[int, date, date]]:
+    ordered = sorted({int(year) for year in years if year and int(year) <= today.year}, reverse=True)
+    bands: list[tuple[int, date, date]] = []
+    for year in ordered:
+        start = date(year, 1, 1)
+        end = date(year, 12, 31)
+        if start <= end:
+            bands.append((year, start, end))
+    return bands
 ```
 
 </details>

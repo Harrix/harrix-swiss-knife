@@ -38,7 +38,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from harrix_swiss_knife.apps.finance.tags import format_tag_text, parse_tag_text
+from harrix_swiss_knife.apps.finance.tags import format_tag_text, parse_tag_text, tag_fragment_parts
 from harrix_swiss_knife.fluent.paint import antialiased_painter, paint_surface
 from harrix_swiss_knife.fluent.theme import enable_fluent_theme, is_fluent_themed, palette_for
 from harrix_swiss_knife.fluent.tokens import RADIUS_OVERLAY, SPACE_S, SPACE_XS, FluentPalette
@@ -301,6 +301,92 @@ class TagDelegate(QStyledItemDelegate):
         return list(self._tags)
 
 
+class TagSuggestPopup(QFrame):
+    """Live filtered tag list under the Tags field (same Fluent checklist look)."""
+
+    tag_chosen = Signal(str)
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        """Build an empty suggest popup; call `show_matches` after the user types."""
+        super().__init__(
+            parent,
+            Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint | Qt.WindowType.NoDropShadowWindowHint,
+        )
+        self.setObjectName("financeTagSuggestPopup")
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
+        self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, on=True)
+        self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        if parent is not None and is_fluent_themed(parent):
+            enable_fluent_theme(self)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(SPACE_S, SPACE_S, SPACE_S, SPACE_S)
+        layout.setSpacing(SPACE_S)
+
+        self._scroll = FluentScrollArea(self)
+        self._scroll.setWidgetResizable(True)
+        self._scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self._scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self._scroll.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+
+        self._host = QWidget(self._scroll)
+        self._host.setObjectName("financeTagSuggestHost")
+        self._checks_layout = QVBoxLayout(self._host)
+        self._checks_layout.setContentsMargins(SPACE_XS, SPACE_XS, SPACE_XS, SPACE_XS)
+        self._checks_layout.setSpacing(2)
+        self._checks_layout.addStretch(1)
+        self._scroll.setWidget(self._host)
+        layout.addWidget(self._scroll, stretch=1)
+        self._checks: list[FluentCheckBox] = []
+
+    def hide_suggestions(self) -> None:
+        """Close the popup if it is open."""
+        if self.isVisible():
+            self.hide()
+
+    def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802
+        """Paint the same Fluent popup surface as `TagCheckListEditor`."""
+        del event
+        palette = palette_for(self)
+        fill = palette.solid_tertiary_bg if palette.dark else palette.solid_quarternary_bg
+        painter = antialiased_painter(self)
+        paint_surface(painter, self.rect(), fill, palette.popup_stroke, RADIUS_OVERLAY)
+        painter.end()
+
+    def show_matches(self, anchor: QWidget, matches: list[str], selected: list[str]) -> None:
+        """Rebuild the checklist for `matches` and place it under `anchor`."""
+        self._rebuild_checks(matches, selected)
+        if not matches:
+            self.hide()
+            return
+        width = max(anchor.width(), _EDITOR_MIN_WIDTH)
+        row_h = 28
+        height = min(_POPUP_HEIGHT, max(96, 24 + len(matches) * row_h + SPACE_S * 2))
+        self.resize(width, height)
+        _place_popup_under_anchor(self, anchor)
+        self.show()
+        self.raise_()
+
+    def _on_box_clicked(self, name: str) -> None:
+        self.tag_chosen.emit(name)
+        self.hide()
+
+    def _rebuild_checks(self, matches: list[str], selected: list[str]) -> None:
+        for box in self._checks:
+            self._checks_layout.removeWidget(box)
+            box.hide()
+            box.deleteLater()
+        self._checks.clear()
+        selected_keys = {name.casefold() for name in selected}
+        for name in matches:
+            box = FluentCheckBox(name, self._host)
+            box.setChecked(name.casefold() in selected_keys)
+            box.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+            box.clicked.connect(lambda _checked=False, tag=name: self._on_box_clicked(tag))
+            self._checks_layout.insertWidget(self._checks_layout.count() - 1, box)
+            self._checks.append(box)
+
+
 class _TagPickerPopup(QFrame):
     """Frameless Qt.Popup hosting `TagCheckListEditor` under an anchor field."""
 
@@ -345,6 +431,15 @@ class _TagPickerPopup(QFrame):
     def _reject(self) -> None:
         self._emit_finished(None)
         self.hide()
+
+
+def apply_tag_suggestion(field_text: str, chosen: str) -> str:
+    """Replace the typed fragment with `chosen`, keeping earlier comma-separated tags."""
+    prefix, _fragment = tag_fragment_parts(field_text)
+    names = parse_tag_text(prefix)
+    if chosen.casefold() not in {name.casefold() for name in names}:
+        names.append(chosen)
+    return ", ".join(names)
 
 
 def pick_transaction_tags(

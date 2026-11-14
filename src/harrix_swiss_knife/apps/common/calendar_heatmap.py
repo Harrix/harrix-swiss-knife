@@ -7,9 +7,11 @@ Used by Habits charts and TickTick task-stats contribution calendars.
 from __future__ import annotations
 
 from calendar import monthrange
-from collections.abc import Sequence
 from datetime import date, timedelta
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 HEATMAP_WEEK_STARTS_ON = 6  # Sunday, same as dayplot default
 HEATMAP_MONTH_GAP = 0.7
@@ -184,10 +186,11 @@ def heatmap_year_bands(
     *,
     today: date,
 ) -> list[tuple[int, date, date]]:
-    """Return ``(year, start, end)`` bands newest-first for full calendar years.
+    """Return `(year, start, end)` bands newest-first for full calendar years.
 
     The current year still runs through 31 December so the grid is complete;
     callers leave future days empty when painting cells.
+
     """
     ordered = sorted({int(year) for year in years if year and int(year) <= today.year}, reverse=True)
     bands: list[tuple[int, date, date]] = []

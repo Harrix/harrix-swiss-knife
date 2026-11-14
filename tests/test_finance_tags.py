@@ -15,9 +15,17 @@ from harrix_swiss_knife.apps.finance.delegates import tag_delegate as tag_delega
 from harrix_swiss_knife.apps.finance.delegates.tag_delegate import (
     TagCheckListEditor,
     TagDelegate,
+    TagSuggestPopup,
+    apply_tag_suggestion,
     pick_transaction_tags,
 )
-from harrix_swiss_knife.apps.finance.tags import format_tag_text, parse_tag_text
+from harrix_swiss_knife.apps.finance.tags import (
+    TAG_SUGGEST_MIN_CHARS,
+    format_tag_text,
+    matching_known_tags,
+    parse_tag_text,
+    tag_fragment_parts,
+)
 from harrix_swiss_knife.fluent.widgets.button_base import FluentPushButton
 from harrix_swiss_knife.fluent.widgets.buttons import FluentCheckBox, FluentPrimaryButton
 from harrix_swiss_knife.fluent.widgets.input_base import FluentLineEdit
@@ -41,6 +49,40 @@ def test_parse_and_format_tag_text() -> None:
     assert parse_tag_text("  trip, food, trip ,  ") == ["trip", "food"]
     assert parse_tag_text("Trip, trip") == ["Trip"]
     assert format_tag_text(["food", "Trip", "food"]) == "food, Trip"
+
+
+def test_tag_fragment_and_matching_known_tags() -> None:
+    """Suggestions use the fragment after the last comma and skip already chosen tags."""
+    assert tag_fragment_parts("food, tri") == ("food,", " tri")
+    assert tag_fragment_parts("trip") == ("", "trip")
+    known = ["trip", "transport", "food", "gift"]
+    assert matching_known_tags(known, "tri") == ["trip"]
+    assert matching_known_tags(known, "tr", exclude=["trip"]) == ["transport"]
+    assert matching_known_tags(known, "x") == []
+    assert apply_tag_suggestion("food, tri", "trip") == "food, trip"
+    assert apply_tag_suggestion("tri", "trip") == "trip"
+    assert TAG_SUGGEST_MIN_CHARS == 2
+
+
+def test_tag_suggest_popup_lists_matches(qapp: QApplication) -> None:
+    """Typing enough characters opens the Fluent checklist of matching tags."""
+    assert qapp is not None
+    anchor = QWidget()
+    anchor.setGeometry(80, 80, 220, 32)
+    anchor.show()
+    qapp.processEvents()
+    popup = TagSuggestPopup(anchor)
+    chosen: list[str] = []
+    popup.tag_chosen.connect(chosen.append)
+    popup.show_matches(anchor, ["trip", "transport"], [])
+    assert popup.isVisible()
+    boxes = popup.findChildren(FluentCheckBox)
+    assert len(boxes) == 2
+    boxes[0].click()
+    assert chosen == ["trip"]
+    assert not popup.isVisible()
+    popup.close()
+    anchor.close()
 
 
 def test_tag_delegate_writes_checked_and_typed_tags(qapp: QApplication) -> None:

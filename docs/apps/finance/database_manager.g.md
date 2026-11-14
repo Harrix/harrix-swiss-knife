@@ -1142,14 +1142,15 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         return 1
 
     def get_distinct_transaction_tags(self) -> list[str]:
-        """Return unique transaction tags in database appearance order.
+        """Return unique transaction tags with the newest first.
 
-        Order follows `tags._id` (first time each tag was inserted). Opening the
-        tag picker again after a newer transaction adds a tag refreshes this list.
+        Order follows `tags._id` descending (most recently created tag first).
+        Opening the tag picker again after a newer transaction adds a tag
+        refreshes this list.
 
         Returns:
 
-        - `list[str]`: Tag names oldest-created first.
+        - `list[str]`: Tag names newest-created first.
 
         """
         rows = self.get_rows(
@@ -1158,7 +1159,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             FROM tags tg
             JOIN transaction_tags tt ON tt._id_tags = tg._id
             GROUP BY tg._id, tg.name
-            ORDER BY tg._id ASC
+            ORDER BY tg._id DESC
             """
         )
         return [str(row[0]) for row in rows]
@@ -4449,14 +4450,15 @@ def get_default_currency_id(self) -> int:
 def get_distinct_transaction_tags(self) -> list[str]
 ```
 
-Return unique transaction tags in database appearance order.
+Return unique transaction tags with the newest first.
 
-Order follows `tags._id` (first time each tag was inserted). Opening the
-tag picker again after a newer transaction adds a tag refreshes this list.
+Order follows `tags._id` descending (most recently created tag first).
+Opening the tag picker again after a newer transaction adds a tag
+refreshes this list.
 
 Returns:
 
-- `list[str]`: Tag names oldest-created first.
+- `list[str]`: Tag names newest-created first.
 
 <details>
 <summary>Code:</summary>
@@ -4469,7 +4471,7 @@ def get_distinct_transaction_tags(self) -> list[str]:
             FROM tags tg
             JOIN transaction_tags tt ON tt._id_tags = tg._id
             GROUP BY tg._id, tg.name
-            ORDER BY tg._id ASC
+            ORDER BY tg._id DESC
             """
         )
         return [str(row[0]) for row in rows]

@@ -1297,6 +1297,18 @@ class MainWindow(
         self._habits_heatmap_canvas = None
         self._habits_chart_canvas = None
 
+    def _clear_habit_timeline(self) -> None:
+        """Remove the completion chart under the calendar."""
+        layout = getattr(self, "_habits_time_layout", None)
+        if not isinstance(layout, QVBoxLayout):
+            return
+        while layout.count():
+            item = layout.takeAt(0)
+            widget = item.widget() if item is not None else None
+            if widget is not None:
+                widget.hide()
+                widget.deleteLater()
+
     def _configure_habits_table_columns(self) -> None:
         """Keep compact flag columns and use remaining width for the habit name."""
         header = self.tableView_habits.horizontalHeader()
@@ -2077,6 +2089,24 @@ class MainWindow(
                 self.listView_filter_habit_year.setCurrentIndex(index)
                 return
 
+    def _selected_habit_all_years(self) -> bool:
+        """Return whether the period combo is the stacked All-years heatmap mode."""
+        return self._get_selected_habit_year().strip().casefold() == ALL_YEARS_LABEL.casefold()
+
+    def _selected_habit_chart_year(self) -> int | None:
+        """Return the selected calendar year, or `None` for Last 365 days / All."""
+        selected_text = self._get_selected_habit_year().strip()
+        if (
+            not selected_text
+            or selected_text == LAST_365_DAYS_LABEL
+            or selected_text.casefold() == ALL_YEARS_LABEL.casefold()
+        ):
+            return None
+        try:
+            return int(selected_text)
+        except ValueError:
+            return None
+
     def _set_charts_splitter_size(self) -> None:
         """Keep the Charts filter column wide enough to read habit names."""
         if self._is_closing:
@@ -2094,24 +2124,6 @@ class MainWindow(
             self.splitter_charts.setSizes([filter_width, chart_width])
             return
         QTimer.singleShot(50, self._set_charts_splitter_size)
-
-    def _selected_habit_all_years(self) -> bool:
-        """True when the period combo is the stacked All-years heatmap mode."""
-        return self._get_selected_habit_year().strip().casefold() == ALL_YEARS_LABEL.casefold()
-
-    def _selected_habit_chart_year(self) -> int | None:
-        """Return the selected calendar year, or `None` for Last 365 days / All."""
-        selected_text = self._get_selected_habit_year().strip()
-        if (
-            not selected_text
-            or selected_text == LAST_365_DAYS_LABEL
-            or selected_text.casefold() == ALL_YEARS_LABEL.casefold()
-        ):
-            return None
-        try:
-            return int(selected_text)
-        except ValueError:
-            return None
 
     def _set_habit_heatmap_body_visible(self, *, visible: bool, all_years: bool = False) -> None:
         """Show the calendar stack, or hide it without leaving an empty stretched slot."""
@@ -2288,18 +2300,6 @@ class MainWindow(
         layout.insertWidget(insert_at, label, 0, Qt.AlignmentFlag.AlignTop)
         if self._habits_chart_info_strip is not None:
             self._habits_chart_info_strip.hide()
-
-    def _clear_habit_timeline(self) -> None:
-        """Remove the completion chart under the calendar."""
-        layout = getattr(self, "_habits_time_layout", None)
-        if not isinstance(layout, QVBoxLayout):
-            return
-        while layout.count():
-            item = layout.takeAt(0)
-            widget = item.widget() if item is not None else None
-            if widget is not None:
-                widget.hide()
-                widget.deleteLater()
 
     def _show_habit_timeline(self, figure: Figure) -> None:
         """Put the completion chart in the slot under the calendar."""

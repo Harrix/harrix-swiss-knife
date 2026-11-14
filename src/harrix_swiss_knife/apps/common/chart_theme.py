@@ -159,9 +159,7 @@ def accent_heatmap_colors(steps: int) -> list[str]:
     pale = 0.32
     span = 0.68
     surface = chart_surface()
-    return [
-        chart_tint(surface, palette.accent, pale + span * index / (count - 1)).name() for index in range(count)
-    ]
+    return [chart_tint(surface, palette.accent, pale + span * index / (count - 1)).name() for index in range(count)]
 
 
 def apply_chart_theme() -> None:
@@ -235,22 +233,6 @@ def apply_theme(fig: Figure, ax: Axes | None = None) -> None:
             fig.set_layout_engine("constrained")
 
 
-def finish_chart_layout(figure: Figure) -> None:
-    """Pack axes without replacing an existing constrained layout engine.
-
-    `apply_theme` enables constrained layout. Calling `Figure.tight_layout`
-    afterward switches the engine and emits Matplotlib's "layout has changed
-    to tight" warning. Prefer this helper at the end of chart builders.
-
-    """
-    engine = figure.get_layout_engine()
-    engine_name = type(engine).__name__.casefold() if engine is not None else ""
-    if "constrained" in engine_name:
-        return
-    with contextlib.suppress(Exception):
-        figure.tight_layout()
-
-
 def chart_annotation_style(*, fontsize: int | None = None) -> dict[str, Any]:
     """Return kwargs for opaque value labels on a themed chart."""
     return {
@@ -259,6 +241,11 @@ def chart_annotation_style(*, fontsize: int | None = None) -> dict[str, Any]:
         "alpha": 1.0,
         "bbox": chart_label_bbox(),
     }
+
+
+def chart_compare_current_color() -> str:
+    """Return the current-period color for multi-line compare charts."""
+    return CHART_COMPARE_CURRENT_COLOR
 
 
 def chart_danger_color() -> str:
@@ -335,11 +322,6 @@ def chart_muted_ink() -> str:
 def chart_neutral_color() -> str:
     """Return the theme neutral gray for past comparison series."""
     return FluentTheme.instance().palette().neutral.name()
-
-
-def chart_compare_current_color() -> str:
-    """Return the current-period color for multi-line compare charts."""
-    return CHART_COMPARE_CURRENT_COLOR
 
 
 def chart_series_color(index: int = 0) -> str:
@@ -421,6 +403,22 @@ def ensure_chart_theme() -> None:
         FluentTheme.instance().changed.connect(lambda _mode: restyle_live_charts())
         _state["connected"] = True
     apply_chart_theme()
+
+
+def finish_chart_layout(figure: Figure) -> None:
+    """Pack axes without replacing an existing constrained layout engine.
+
+    `apply_theme` enables constrained layout. Calling `Figure.tight_layout`
+    afterward switches the engine and emits Matplotlib's "layout has changed
+    to tight" warning. Prefer this helper at the end of chart builders.
+
+    """
+    engine = figure.get_layout_engine()
+    engine_name = type(engine).__name__.casefold() if engine is not None else ""
+    if "constrained" in engine_name:
+        return
+    with contextlib.suppress(Exception):
+        figure.tight_layout()
 
 
 def heatmap_absent_color() -> str:
@@ -550,34 +548,6 @@ def restyle_live_charts() -> None:
             draw()
 
 
-def _restyle_figure_overlays(fig: Figure, theme: ChartTheme) -> None:
-    """Repaint legend text and boxed annotations after a light/dark switch."""
-    ink = chart_ink()
-    face = chart_label_face()
-    edge = chart_label_edge()
-    legends: list[Any] = []
-    for axis in fig.axes:
-        legend = axis.get_legend()
-        if legend is not None:
-            legends.append(legend)
-        for text in axis.texts:
-            bbox = text.get_bbox_patch()
-            if bbox is None:
-                continue
-            text.set_color(ink)
-            bbox.set_facecolor(face)
-            bbox.set_edgecolor(edge)
-    figure_legends = getattr(fig, "legends", None)
-    if figure_legends:
-        legends.extend(figure_legends)
-    for legend in legends:
-        for text in legend.get_texts():
-            text.set_color(theme.text)
-        frame = legend.get_frame()
-        frame.set_facecolor(theme.bg)
-        frame.set_edgecolor(theme.grid)
-
-
 def style_axes(
     ax: Axes,
     *,
@@ -626,3 +596,31 @@ def themed_figure(**kwargs: Any) -> Figure:
     figure = Figure(**kwargs)
     apply_theme(figure)
     return figure
+
+
+def _restyle_figure_overlays(fig: Figure, theme: ChartTheme) -> None:
+    """Repaint legend text and boxed annotations after a light/dark switch."""
+    ink = chart_ink()
+    face = chart_label_face()
+    edge = chart_label_edge()
+    legends: list[Any] = []
+    for axis in fig.axes:
+        legend = axis.get_legend()
+        if legend is not None:
+            legends.append(legend)
+        for text in axis.texts:
+            bbox = text.get_bbox_patch()
+            if bbox is None:
+                continue
+            text.set_color(ink)
+            bbox.set_facecolor(face)
+            bbox.set_edgecolor(edge)
+    figure_legends = getattr(fig, "legends", None)
+    if figure_legends:
+        legends.extend(figure_legends)
+    for legend in legends:
+        for text in legend.get_texts():
+            text.set_color(theme.text)
+        frame = legend.get_frame()
+        frame.set_facecolor(theme.bg)
+        frame.set_edgecolor(theme.grid)

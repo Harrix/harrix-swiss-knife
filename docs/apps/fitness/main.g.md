@@ -1058,10 +1058,10 @@ class MainWindow(
 
             # Build label/color for every month regardless of data presence
             if i == 0:
-                colors.append(chart_series_color(0))
+                colors.append(chart_compare_current_color())
                 labels.append(f"{month_start.strftime('%B %Y')} (Current)")
             else:
-                colors.append(chart_series_color(i))
+                colors.append(chart_series_color(i - 1))
                 labels.append(f"{month_start.strftime('%B %Y')}")
 
         # In on_compare_last_months, right before the early return where 'all months are empty'
@@ -1107,7 +1107,7 @@ class MainWindow(
                 color=color,
                 linestyle="--",
                 linewidth=CHART_LINEWIDTH,
-                alpha=0.55,
+                alpha=0.88,
                 label=label,
                 marker="o" if len(x_values) <= _COMPARE_MARKER_MAX_POINTS else None,
                 markersize=CHART_MARKERSIZE,
@@ -1165,7 +1165,7 @@ class MainWindow(
         ax.set_xlim(1, max_x_limit)
         ax.set_xticks(range(1, max_x_limit + 1, 2))
 
-        fig.tight_layout()
+        finish_chart_layout(fig)
         self.verticalLayout_charts_content.addWidget(canvas, stretch=1)
         canvas.draw()
 
@@ -1280,10 +1280,10 @@ class MainWindow(
 
                     # Determine color based on whether it's current year or not
                     if year == current_year:
-                        colors.append(chart_series_color(0))
+                        colors.append(chart_compare_current_color())
                         labels.append(f"{month_start.strftime('%B %Y')} (Current)")
                     else:
-                        colors.append(chart_series_color(len(yearly_data)))
+                        colors.append(chart_series_color(max(len(yearly_data) - 1, 0)))
                         labels.append(f"{month_start.strftime('%B %Y')}")
 
         # In on_compare_same_months, right before early return on 'not yearly_data'
@@ -1331,7 +1331,7 @@ class MainWindow(
                     color=color,
                     linestyle="--",
                     linewidth=CHART_LINEWIDTH,
-                    alpha=0.55,
+                    alpha=0.88,
                     label=label,
                     marker="o" if len(x_values) <= _COMPARE_MARKER_MAX_POINTS else None,
                     markersize=CHART_MARKERSIZE,
@@ -1389,7 +1389,7 @@ class MainWindow(
         ax.set_xlim(1, days_in_selected_month)
         ax.set_xticks(range(1, days_in_selected_month + 1, 2))
 
-        fig.tight_layout()
+        finish_chart_layout(fig)
         self.verticalLayout_charts_content.addWidget(canvas, stretch=1)
         canvas.draw()
 
@@ -3497,7 +3497,7 @@ class MainWindow(
             stats_text = format_weight_stats(y_values)
             self._add_stats_box(ax, stats_text)
 
-        fig.tight_layout()
+        finish_chart_layout(fig)
         self.verticalLayout_weight_chart_content.addWidget(canvas, stretch=1)
         canvas.draw()
 
@@ -5205,7 +5205,7 @@ class MainWindow(
             monthly_data.append(series)
             label = month_date.strftime("%B %Y")
             labels.append(f"{label} (Current)" if i == 0 else label)
-            colors.append(chart_series_color(i))
+            colors.append(chart_compare_current_color() if i == 0 else chart_series_color(i - 1))
         self._render_weight_compare_chart(
             monthly_data,
             labels,
@@ -5250,7 +5250,7 @@ class MainWindow(
             yearly_data.append(series)
             label = f"{calendar.month_name[month_number]} {year}"
             labels.append(f"{label} (Current)" if i == 0 else label)
-            colors.append(chart_series_color(i))
+            colors.append(chart_compare_current_color() if i == 0 else chart_series_color(i - 1))
         self._render_weight_compare_chart(
             yearly_data,
             labels,
@@ -7706,7 +7706,7 @@ class MainWindow(
         ax.set_xlim(1, max(max_days, 1))
         ax.legend(fontsize=CHART_LEGEND_FONTSIZE, loc="best")
         style_axes(ax)
-        fig.tight_layout()
+        finish_chart_layout(fig)
         self.verticalLayout_weight_chart_content.addWidget(canvas, stretch=1)
 
     def _reset_process_pagination_state(self) -> None:
@@ -10557,10 +10557,10 @@ def on_compare_last_months(self) -> None:
 
             # Build label/color for every month regardless of data presence
             if i == 0:
-                colors.append(chart_series_color(0))
+                colors.append(chart_compare_current_color())
                 labels.append(f"{month_start.strftime('%B %Y')} (Current)")
             else:
-                colors.append(chart_series_color(i))
+                colors.append(chart_series_color(i - 1))
                 labels.append(f"{month_start.strftime('%B %Y')}")
 
         # In on_compare_last_months, right before the early return where 'all months are empty'
@@ -10606,7 +10606,7 @@ def on_compare_last_months(self) -> None:
                 color=color,
                 linestyle="--",
                 linewidth=CHART_LINEWIDTH,
-                alpha=0.55,
+                alpha=0.88,
                 label=label,
                 marker="o" if len(x_values) <= _COMPARE_MARKER_MAX_POINTS else None,
                 markersize=CHART_MARKERSIZE,
@@ -10664,7 +10664,7 @@ def on_compare_last_months(self) -> None:
         ax.set_xlim(1, max_x_limit)
         ax.set_xticks(range(1, max_x_limit + 1, 2))
 
-        fig.tight_layout()
+        finish_chart_layout(fig)
         self.verticalLayout_charts_content.addWidget(canvas, stretch=1)
         canvas.draw()
 
@@ -10790,10 +10790,10 @@ def on_compare_same_months(self) -> None:
 
                     # Determine color based on whether it's current year or not
                     if year == current_year:
-                        colors.append(chart_series_color(0))
+                        colors.append(chart_compare_current_color())
                         labels.append(f"{month_start.strftime('%B %Y')} (Current)")
                     else:
-                        colors.append(chart_series_color(len(yearly_data)))
+                        colors.append(chart_series_color(max(len(yearly_data) - 1, 0)))
                         labels.append(f"{month_start.strftime('%B %Y')}")
 
         # In on_compare_same_months, right before early return on 'not yearly_data'
@@ -10841,7 +10841,7 @@ def on_compare_same_months(self) -> None:
                     color=color,
                     linestyle="--",
                     linewidth=CHART_LINEWIDTH,
-                    alpha=0.55,
+                    alpha=0.88,
                     label=label,
                     marker="o" if len(x_values) <= _COMPARE_MARKER_MAX_POINTS else None,
                     markersize=CHART_MARKERSIZE,
@@ -10899,7 +10899,7 @@ def on_compare_same_months(self) -> None:
         ax.set_xlim(1, days_in_selected_month)
         ax.set_xticks(range(1, days_in_selected_month + 1, 2))
 
-        fig.tight_layout()
+        finish_chart_layout(fig)
         self.verticalLayout_charts_content.addWidget(canvas, stretch=1)
         canvas.draw()
 
@@ -13554,7 +13554,7 @@ def update_weight_chart(self) -> None:
             stats_text = format_weight_stats(y_values)
             self._add_stats_box(ax, stats_text)
 
-        fig.tight_layout()
+        finish_chart_layout(fig)
         self.verticalLayout_weight_chart_content.addWidget(canvas, stretch=1)
         canvas.draw()
 ```

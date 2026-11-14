@@ -110,12 +110,12 @@ def build_timeline_figure(
         axis.set_title(title)
         axis.text(0.5, 0.5, "No data for the selected period", ha="center", va="center", transform=axis.transAxes)
         style_axes(axis)
-        figure.tight_layout()
+        finish_chart_layout(figure)
         return figure
 
-    palette = FluentTheme.instance().palette()
-    card = palette.card_bg.name()
-    bar_color = chart_tint(palette.card_bg, palette.accent, 0.55).name()
+    theme = current_chart_theme()
+    card = chart_surface().name()
+    bar_color = chart_series_color(0)
     line_color = chart_series_color(0)
     centers = [mdates.date2num(bar.start) + (bar.end - bar.start).days / 2 for bar in bars]
     widths = [_bar_width_days(bar) for bar in bars]
@@ -163,7 +163,11 @@ def build_timeline_figure(
     axis.set_ylabel(ylabel)
     if y_max is not None:
         # Leave room above 100% so full bars do not weld into the top spine.
-        axis.set_ylim(0, y_max * _PERCENT_HEADROOM)
+        # A flat all-max series needs more space or it still reads as a solid wall.
+        headroom = _PERCENT_HEADROOM
+        if values and min(values) >= y_max - _PERCENT_AXIS_EPS:
+            headroom = _PERCENT_FULL_HEADROOM
+        axis.set_ylim(0, y_max * headroom)
         if abs(y_max - _PERCENT_AXIS) < _PERCENT_AXIS_EPS:
             axis.set_yticks([0, 20, 40, 60, 80, 100])
     setup_date_axis(axis)
@@ -175,11 +179,13 @@ def build_timeline_figure(
         labels += extra_labels
     if handles:
         legend = axis.legend(handles, labels, loc="upper left", frameon=True, fontsize=9)
+        for text in legend.get_texts():
+            text.set_color(theme.text)
         frame = legend.get_frame()
-        frame.set_facecolor(palette.card_bg.name())
-        frame.set_edgecolor(palette.card_bg.name())
+        frame.set_facecolor(theme.bg)
+        frame.set_edgecolor(theme.grid)
         frame.set_alpha(0.92)
-    figure.tight_layout()
+    finish_chart_layout(figure)
     return figure
 ```
 

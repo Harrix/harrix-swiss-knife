@@ -92,11 +92,7 @@ class ExpandingChartCanvas(FigureCanvas):
         height = max(self.height(), _MIN_CANVAS_PX)
         dpi = float(self.figure.dpi) if self.figure.dpi else 100.0
         self.figure.set_size_inches(width / dpi, height / dpi, forward=False)
-        engine = self.figure.get_layout_engine()
-        engine_name = type(engine).__name__.lower() if engine is not None else ""
-        if "constrained" not in engine_name:
-            with contextlib.suppress(Exception):
-                self.figure.tight_layout()
+        finish_chart_layout(self.figure)
         self.draw_idle()
 ```
 

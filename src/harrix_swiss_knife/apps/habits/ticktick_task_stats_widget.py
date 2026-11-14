@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife.apps.common.calendar_heatmap import heatmap_year_bands
 from harrix_swiss_knife.apps.common.chart_format import fmt_date, fmt_number
 from harrix_swiss_knife.apps.common.chart_hover import create_chart_canvas, install_chart_hover
 from harrix_swiss_knife.apps.common.chart_page_chrome import (
@@ -45,7 +46,6 @@ from harrix_swiss_knife.apps.common.chart_theme import (
 from harrix_swiss_knife.apps.common.chart_timeline import TimelineBar, bar_at_x, build_timeline_figure, calendar_days
 from harrix_swiss_knife.apps.common.chart_widgets import CHARTS_FILTER_MIN_WIDTH, apply_chart_list_chrome
 from harrix_swiss_knife.apps.common.ui_chrome import muted_caption_qss
-from harrix_swiss_knife.apps.common.calendar_heatmap import heatmap_year_bands
 from harrix_swiss_knife.apps.common.year_heatmap import YearHeatmap, YearHeatmapStack
 from harrix_swiss_knife.apps.habits.ticktick_local_db import (
     TickTickCompletion,
@@ -427,6 +427,9 @@ class TickTickTaskStatsWidget(QWidget):
     def _on_prev_year(self) -> None:
         self._step_year(-1)
 
+    def _on_project_selection_changed(self, *_args: object) -> None:
+        self._on_filters_changed()
+
     def _on_theme_changed(self) -> None:
         if self._loaded:
             self._redraw()
@@ -616,9 +619,6 @@ class TickTickTaskStatsWidget(QWidget):
                 widget.hide()
                 widget.deleteLater()
 
-    def _on_project_selection_changed(self, *_args: object) -> None:
-        self._on_filters_changed()
-
     def _repopulate_filters(self) -> None:
         current_project = self._selected_project_id()
         selection = self._project_list.selectionModel()
@@ -664,15 +664,6 @@ class TickTickTaskStatsWidget(QWidget):
         rows.sort(key=lambda item: item.completed_at)
         return rows
 
-    def _selected_project_id(self) -> str | None:
-        index = self._project_list.currentIndex()
-        if not index.isValid():
-            return None
-        data = index.data(Qt.ItemDataRole.UserRole)
-        if data is None or data == _ALL_PROJECTS:
-            return None
-        return str(data)
-
     def _selected_all_years(self) -> bool:
         toolbar = self._chart_toolbar
         combo = toolbar.combo_period if toolbar is not None else None
@@ -682,6 +673,15 @@ class TickTickTaskStatsWidget(QWidget):
         if data == ALL_YEARS_LABEL:
             return True
         return combo.currentText().strip().casefold() == ALL_YEARS_LABEL.casefold()
+
+    def _selected_project_id(self) -> str | None:
+        index = self._project_list.currentIndex()
+        if not index.isValid():
+            return None
+        data = index.data(Qt.ItemDataRole.UserRole)
+        if data is None or data == _ALL_PROJECTS:
+            return None
+        return str(data)
 
     def _selected_year(self) -> int | None:
         toolbar = self._chart_toolbar

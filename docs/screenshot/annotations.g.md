@@ -112,17 +112,42 @@ class AnnotationDocument:
             return
         self._draft.points.append(QPointF(point))
 
-    def apply_crop(self, rect: QRectF) -> bool:
-        """Crop the composite to `rect` (image coords) and clear annotations."""
-        bounds = QRectF(self._base.rect()).intersected(rect.normalized())
-        if bounds.width() < _MIN_CROP_SIZE or bounds.height() < _MIN_CROP_SIZE:
+    def apply_crop(self, rect: QRectF, *, fill: QColor | None = None) -> bool:
+        """Crop or expand the composite to `rect` (image coords) and clear annotations.
+
+        When `rect` extends outside the image, new pixels are filled with white
+        (or `fill`).
+
+        """
+        target = rect.normalized().toRect()
+        if target.width() < _MIN_CROP_SIZE or target.height() < _MIN_CROP_SIZE:
             return False
         composite = self.render()
-        cropped = composite.copy(bounds.toRect())
-        if cropped.isNull():
+        image_rect = composite.rect()
+        fill_color = QColor(Qt.GlobalColor.white) if fill is None else QColor(fill)
+
+        if image_rect.contains(target):
+            cropped = composite.copy(target)
+            if cropped.isNull():
+                return False
+            self._push_history()
+            self._base = cropped
+            self._annotations = []
+            self._draft = None
+            return True
+
+        fmt = composite.format()
+        if fmt == QImage.Format.Format_Invalid:
+            fmt = QImage.Format.Format_RGB32
+        expanded = QImage(target.width(), target.height(), fmt)
+        if expanded.isNull():
             return False
+        expanded.fill(fill_color)
+        painter = QPainter(expanded)
+        painter.drawImage(QPoint(-target.x(), -target.y()), composite)
+        painter.end()
         self._push_history()
-        self._base = cropped
+        self._base = expanded
         self._annotations = []
         self._draft = None
         return True
@@ -429,25 +454,48 @@ def append_draft_point(self, point: QPointF) -> None:
 ### ⚙️ Method `apply_crop`
 
 ```python
-def apply_crop(self, rect: QRectF) -> bool
+def apply_crop(self, rect: QRectF, *, fill: QColor | None = None) -> bool
 ```
 
-Crop the composite to `rect` (image coords) and clear annotations.
+Crop or expand the composite to `rect` (image coords) and clear annotations.
+
+When `rect` extends outside the image, new pixels are filled with white
+(or `fill`).
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def apply_crop(self, rect: QRectF) -> bool:
-        bounds = QRectF(self._base.rect()).intersected(rect.normalized())
-        if bounds.width() < _MIN_CROP_SIZE or bounds.height() < _MIN_CROP_SIZE:
+def apply_crop(self, rect: QRectF, *, fill: QColor | None = None) -> bool:
+        target = rect.normalized().toRect()
+        if target.width() < _MIN_CROP_SIZE or target.height() < _MIN_CROP_SIZE:
             return False
         composite = self.render()
-        cropped = composite.copy(bounds.toRect())
-        if cropped.isNull():
+        image_rect = composite.rect()
+        fill_color = QColor(Qt.GlobalColor.white) if fill is None else QColor(fill)
+
+        if image_rect.contains(target):
+            cropped = composite.copy(target)
+            if cropped.isNull():
+                return False
+            self._push_history()
+            self._base = cropped
+            self._annotations = []
+            self._draft = None
+            return True
+
+        fmt = composite.format()
+        if fmt == QImage.Format.Format_Invalid:
+            fmt = QImage.Format.Format_RGB32
+        expanded = QImage(target.width(), target.height(), fmt)
+        if expanded.isNull():
             return False
+        expanded.fill(fill_color)
+        painter = QPainter(expanded)
+        painter.drawImage(QPoint(-target.x(), -target.y()), composite)
+        painter.end()
         self._push_history()
-        self._base = cropped
+        self._base = expanded
         self._annotations = []
         self._draft = None
         return True

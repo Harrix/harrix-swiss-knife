@@ -437,7 +437,7 @@ Filter column: section titles without colons, lists elide with a tooltip.
 class ChartSidebar(QWidget):
 
     def __init__(self, parent: QWidget | None = None) -> None:
-        """Create a sidebar clamped to 220-420 px."""
+        """Create a sidebar clamped to the shared filter min-max width."""
         super().__init__(parent)
         self.setMinimumWidth(_SIDEBAR_MIN)
         self.setMaximumWidth(_SIDEBAR_MAX)
@@ -483,7 +483,7 @@ class ChartSidebar(QWidget):
 def __init__(self, parent: QWidget | None = None) -> None
 ```
 
-Create a sidebar clamped to 220-420 px.
+Create a sidebar clamped to the shared filter min-max width.
 
 <details>
 <summary>Code:</summary>

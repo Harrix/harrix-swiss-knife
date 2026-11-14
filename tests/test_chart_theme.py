@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import warnings
+
 import matplotlib as mpl
 import pytest
 from matplotlib.colors import to_hex
@@ -9,18 +11,27 @@ from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QApplication
 
 from harrix_swiss_knife.apps.common.chart_theme import (
+    CHART_COMPARE_CURRENT_COLOR,
+    CHART_SERIES_COLORS,
     HEATMAP_LEVELS_DARK,
     HEATMAP_LEVELS_LIGHT,
+    accent_heatmap_colors,
     apply_chart_theme,
     apply_theme,
     chart_annotation_style,
+    chart_compare_current_color,
     chart_info_panel_qss,
     chart_ink,
     chart_label_face,
+    chart_series_color,
+    chart_surface,
     current_chart_theme,
     finish_chart_layout,
+    heatmap_absent_color,
+    heatmap_zero_color,
     themed_figure,
 )
+from harrix_swiss_knife.apps.finance.transaction_helpers import CHART_COMPARE_COLOR_PALETTE
 from harrix_swiss_knife.fluent.theme import FluentTheme, ThemeMode
 from harrix_swiss_knife.fluent.tokens import DARK_PALETTE
 
@@ -68,8 +79,6 @@ def test_dark_chart_label_face_differs_from_axes_surface(qapp: QApplication) -> 
 def test_finish_chart_layout_keeps_constrained_engine(qapp: QApplication) -> None:
     """Themed figures stay on constrained layout instead of switching to tight."""
     assert qapp is not None
-    import warnings
-
     fig = themed_figure(figsize=(4, 3), dpi=100)
     fig.add_subplot(111).plot([1, 2], [1, 2])
     apply_theme(fig)
@@ -84,19 +93,11 @@ def test_finish_chart_layout_keeps_constrained_engine(qapp: QApplication) -> Non
 def test_shared_series_palette_matches_fitness_soft_colors(qapp: QApplication) -> None:
     """Comparative series use the Fitness-derived soft palette, not Fluent accent injection."""
     assert qapp is not None
-    from harrix_swiss_knife.apps.common.chart_theme import (
-        CHART_COMPARE_CURRENT_COLOR,
-        CHART_SERIES_COLORS,
-        chart_compare_current_color,
-        chart_series_color,
-    )
-    from harrix_swiss_knife.apps.finance.transaction_helpers import CHART_COMPARE_COLOR_PALETTE
-
     assert chart_series_color(0) == CHART_SERIES_COLORS[0] == "#699fdb"
     assert chart_series_color(1) == "#78cf7b"
     assert chart_series_color(2) == "#e67c71"
     assert chart_compare_current_color() == CHART_COMPARE_CURRENT_COLOR == "#de2b26"
-    assert CHART_COMPARE_COLOR_PALETTE == list(CHART_SERIES_COLORS)
+    assert list(CHART_SERIES_COLORS) == CHART_COMPARE_COLOR_PALETTE
     assert len(CHART_SERIES_COLORS) >= 12
 
 
@@ -119,13 +120,6 @@ def test_light_heatmap_scale(qapp: QApplication) -> None:
 def test_dark_heatmap_cells_are_not_white(qapp: QApplication) -> None:
     """Translucent card tokens must not collapse to #ffffff empty cells."""
     assert qapp is not None
-    from harrix_swiss_knife.apps.common.chart_theme import (
-        accent_heatmap_colors,
-        chart_surface,
-        heatmap_absent_color,
-        heatmap_zero_color,
-    )
-
     theme = FluentTheme.instance()
     previous = theme.mode()
     theme.set_mode(ThemeMode.DARK, persist=False)
@@ -134,8 +128,10 @@ def test_dark_heatmap_cells_are_not_white(qapp: QApplication) -> None:
         absent = QColor(heatmap_absent_color())
         zero = QColor(heatmap_zero_color())
         surface = chart_surface()
-        assert absent.isValid() and absent.lightness() < 80
-        assert zero.isValid() and zero.lightness() < 140
+        assert absent.isValid()
+        assert absent.lightness() < 80
+        assert zero.isValid()
+        assert zero.lightness() < 140
         assert surface.lightness() < 80
         for fill in accent_heatmap_colors(4):
             assert QColor(fill).lightness() < 200

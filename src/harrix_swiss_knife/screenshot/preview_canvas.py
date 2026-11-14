@@ -304,24 +304,6 @@ class ScreenshotPreviewCanvas(QWidget):
         self.document_changed.emit()
         return True
 
-    def expand_canvas_to_view(self) -> bool:
-        """Grow the image so it covers the visible widget, filling new pixels white."""
-        document = self._document
-        visible = self._visible_image_rect()
-        if document is None or visible is None:
-            return False
-        image = QRectF(document.base_image.rect())
-        if image.contains(visible):
-            return False
-        target = visible.united(image)
-        if not document.apply_crop(target, fill=_CANVAS_FILL):
-            return False
-        self._refresh_pixmap()
-        self._rebuild_snap_edges()
-        self.fit_to_view()
-        self.document_changed.emit()
-        return True
-
     def contextMenuEvent(self, event: QContextMenuEvent) -> None:  # noqa: N802
         """Show annotation edit commands; select the shape under the pointer when needed."""
         if self._tool == AnnotationTool.CROP:
@@ -401,6 +383,24 @@ class ScreenshotPreviewCanvas(QWidget):
             return False
         self._apply_selection_indices(new_indices)
         self.update()
+        self.document_changed.emit()
+        return True
+
+    def expand_canvas_to_view(self) -> bool:
+        """Grow the image so it covers the visible widget, filling new pixels white."""
+        document = self._document
+        visible = self._visible_image_rect()
+        if document is None or visible is None:
+            return False
+        image = QRectF(document.base_image.rect())
+        if image.contains(visible):
+            return False
+        target = visible.united(image)
+        if not document.apply_crop(target, fill=_CANVAS_FILL):
+            return False
+        self._refresh_pixmap()
+        self._rebuild_snap_edges()
+        self.fit_to_view()
         self.document_changed.emit()
         return True
 
@@ -910,6 +910,18 @@ class ScreenshotPreviewCanvas(QWidget):
             return self._crop_drag_rect()
         return self._crop_rect
 
+    def _add_view_actions(self, menu: QMenu) -> None:
+        """Append zoom / canvas size commands to `menu`."""
+        if self._size_changed():
+            original = add_lucide_action(menu, "Original size", "undo-2")
+            original.triggered.connect(lambda _checked=False: self.reset_to_original_size())
+        fit = add_lucide_action(menu, "Fit to view", "expand")
+        fit.triggered.connect(lambda _checked=False: self.fit_to_view())
+        expand = add_lucide_action(menu, "Expand canvas to view", "maximize-2")
+        expand.setToolTip("Grow the image to the visible area and fill new space with white")
+        expand.setEnabled(self._document is not None and self._visible_image_rect() is not None)
+        expand.triggered.connect(lambda _checked=False: self.expand_canvas_to_view())
+
     def _align_image_to_empty_margin(self, pos: QPointF) -> bool:
         """Pan the image into the nine-cell view slot under the empty-margin click.
 
@@ -1158,6 +1170,19 @@ class ScreenshotPreviewCanvas(QWidget):
         self.update()
         return True
 
+    def _begin_pan(self, position: QPointF) -> None:
+        """Start a canvas pan from `position` (middle-drag or Ctrl+left-drag)."""
+        if self._text_edit_active:
+            self.commit_text_edit()
+        self._clear_edit_state()
+        self._draw_start = None
+        self._draw_current = None
+        if self._document is not None:
+            self._document.cancel_draft()
+        self._pan_start = QPointF(position)
+        self._pan_origin = QPointF(self._offset)
+        self.setCursor(Qt.CursorShape.ClosedHandCursor)
+
     def _begin_shape_draft(self, start: QPointF, current: QPointF, *, clicked: bool = False) -> None:
         if self._document is None:
             return
@@ -1177,24 +1202,6 @@ class ScreenshotPreviewCanvas(QWidget):
                 text=text,
             )
         )
-
-    def _begin_pan(self, position: QPointF) -> None:
-        """Start a canvas pan from `position` (middle-drag or Ctrl+left-drag)."""
-        if self._text_edit_active:
-            self.commit_text_edit()
-        self._clear_edit_state()
-        self._draw_start = None
-        self._draw_current = None
-        if self._document is not None:
-            self._document.cancel_draft()
-        self._pan_start = QPointF(position)
-        self._pan_origin = QPointF(self._offset)
-        self.setCursor(Qt.CursorShape.ClosedHandCursor)
-
-    def _end_pan(self) -> None:
-        """Stop an active canvas pan and restore the tool cursor."""
-        self._pan_start = None
-        self.set_tool(self._tool)
 
     def _clear_crop_state(self) -> None:
         self._crop_pending = False
@@ -1402,6 +1409,11 @@ class ScreenshotPreviewCanvas(QWidget):
         self._selected_index = remaining[-1]
         self._selected_others = set(remaining[:-1])
 
+    def _end_pan(self) -> None:
+        """Stop an active canvas pan and restore the tool cursor."""
+        self._pan_start = None
+        self.set_tool(self._tool)
+
     def _eyedrop_mouse_move(self, widget_pos: QPointF) -> None:
         color = self.sample_color_at(widget_pos)
         self._eyedrop_hover = (QPointF(widget_pos), color) if color is not None else None
@@ -1551,10 +1563,7 @@ class ScreenshotPreviewCanvas(QWidget):
             clear_widget = self._image_to_widget_rect(crop, image_rect)
         image_bounds = self._image_bounds()
         extends = (
-            crop is not None
-            and clear_widget is not None
-            and clear_widget.isValid()
-            and not image_bounds.contains(crop)
+            crop is not None and clear_widget is not None and clear_widget.isValid() and not image_bounds.contains(crop)
         )
         if extends and clear_widget is not None and crop is not None:
             painter.fillRect(self.rect(), SELECTION_DIM_COLOR)
@@ -1846,18 +1855,6 @@ class ScreenshotPreviewCanvas(QWidget):
         else:
             self.setCursor(Qt.CursorShape.CrossCursor)
 
-    def _add_view_actions(self, menu: QMenu) -> None:
-        """Append zoom / canvas size commands to `menu`."""
-        if self._size_changed():
-            original = add_lucide_action(menu, "Original size", "undo-2")
-            original.triggered.connect(lambda _checked=False: self.reset_to_original_size())
-        fit = add_lucide_action(menu, "Fit to view", "expand")
-        fit.triggered.connect(lambda _checked=False: self.fit_to_view())
-        expand = add_lucide_action(menu, "Expand canvas to view", "maximize-2")
-        expand.setToolTip("Grow the image to the visible area and fill new space with white")
-        expand.setEnabled(self._document is not None and self._visible_image_rect() is not None)
-        expand.triggered.connect(lambda _checked=False: self.expand_canvas_to_view())
-
     def _view_menu(self) -> QMenu:
         """Zoom helpers kept for tests and as the trailing context-menu section."""
         menu = QMenu(self)
@@ -1925,16 +1922,16 @@ class ScreenshotPreviewCanvas(QWidget):
         return QPoint(round(image_pos.x()), round(image_pos.y()))
 
 
+def _ctrl_pressed(modifiers: Qt.KeyboardModifier) -> bool:
+    """Return whether Ctrl is in `modifiers`."""
+    return bool(modifiers & Qt.KeyboardModifier.ControlModifier)
+
+
 def _offset_annotation(annotation: Annotation, dx: float, dy: float) -> Annotation:
     """Return `annotation` with every point shifted by `(dx, dy)`."""
     shifted = clone_annotation(annotation)
     shifted.points = [QPointF(point.x() + dx, point.y() + dy) for point in shifted.points]
     return shifted
-
-
-def _ctrl_pressed(modifiers: Qt.KeyboardModifier) -> bool:
-    """Return whether Ctrl is in `modifiers`."""
-    return bool(modifiers & Qt.KeyboardModifier.ControlModifier)
 
 
 def _shift_pressed(modifiers: Qt.KeyboardModifier) -> bool:

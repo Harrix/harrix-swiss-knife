@@ -72,7 +72,7 @@ def compare_last_month_windows(months_count: int, *, today: date) -> list[Compar
                 end_day=end_day,
                 label=label,
                 is_current=is_current,
-                color=chart_series_color(0 if is_current else max(index, 1)),
+                color=(chart_compare_current_color() if is_current else chart_series_color(max(index - 1, 0))),
             ),
         )
     return windows
@@ -108,9 +108,9 @@ def compare_same_month_windows(month: int, years_count: int, *, today: date) -> 
         label = date(year, selected, 1).strftime("%B %Y")
         if is_current:
             label = f"{label} (Current)"
-            color = chart_series_color(0)
+            color = chart_compare_current_color()
         else:
-            color = chart_series_color(color_index + 1)
+            color = chart_series_color(color_index)
             color_index += 1
         windows.append(
             CompareMonthWindow(
