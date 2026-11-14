@@ -3282,6 +3282,7 @@ class MainWindow(
                 widget.blockSignals(False)  # noqa: FBT003
 
         self._populate_chart_categories_list()
+        self._sync_chart_categories_enabled()
 
     def _init_database(self) -> None:
         """Open the SQLite file from app config (create from `recover.sql` if missing)."""
@@ -5887,7 +5888,7 @@ class MainWindow(
 
     def _show_chart_categories_context_menu(self, position: QPoint) -> None:
         """Context menu for bulk selection of chart categories."""
-        if self.list_chart_categories.model() is None:
+        if not self.list_chart_categories.isEnabled() or self.list_chart_categories.model() is None:
             return
 
         menu = QMenu(self)
@@ -6430,6 +6431,27 @@ class MainWindow(
                 subdivision = db_manager.get_currency_subdivision_by_code(currency_code)
         self.doubleSpinBox_amount.setMaximum(sqlite_max_major_amount(subdivision))
 
+    def _chart_type_uses_categories(self) -> bool:
+        """Return whether the selected chart type filters by category list."""
+        return (
+            self.radioButton_expense_and_income.isChecked()
+            or self.radioButton_expense_and_income_compare_last_years.isChecked()
+            or self.radioButton_type_of_chart_category.isChecked()
+            or self.radioButton_type_of_chart_compare_last.isChecked()
+            or self.radioButton_type_of_chart_compare_same_months.isChecked()
+            or self.radioButton_type_of_chart_compare_last_years.isChecked()
+        )
+
+    def _sync_chart_categories_enabled(self) -> None:
+        """Enable the category list only for chart types that use it."""
+        enabled = self._chart_type_uses_categories()
+        self.list_chart_categories.setEnabled(enabled)
+        self.pushButton_select_all.setEnabled(enabled)
+        self.pushButton_select_deselect_all.setEnabled(enabled)
+        self.pushButton_select_only_expense.setEnabled(enabled)
+        self.pushButton_select_only_income.setEnabled(enabled)
+        self.label_3.setEnabled(enabled)
+
     def _sync_finance_chart_toolbar_mode(self) -> None:
         """Show only toolbar slots that apply to the selected finance chart type."""
         toolbar = self._chart_toolbar
@@ -6627,6 +6649,7 @@ class MainWindow(
             return
 
         self._sync_finance_chart_toolbar_mode()
+        self._sync_chart_categories_enabled()
 
         year_start_radios = (
             self.radioButton_type_of_chart_balance_compare_last_years,

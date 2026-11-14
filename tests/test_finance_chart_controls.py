@@ -35,3 +35,17 @@ def test_finance_toolbar_mode_sync_covers_compare_and_salary() -> None:
     assert 'toolbar.set_mode("compare_same")' in source
     assert 'toolbar.set_mode("compare_years")' in source
     assert 'toolbar.set_mode("labels_only", show_count=False)' in source
+
+
+def test_chart_categories_list_enabled_only_for_category_charts() -> None:
+    """Balance / salary charts disable the category list; category charts keep it on."""
+    uses = inspect.getsource(MainWindow._chart_type_uses_categories)
+    assert "radioButton_type_of_chart_category.isChecked()" in uses
+    assert "radioButton_type_of_chart_compare_last.isChecked()" in uses
+    assert "radioButton_expense_and_income.isChecked()" in uses
+    assert "radioButton_type_of_chart_balance" not in uses
+    assert "radioButton_type_of_chart_average_salary" not in uses
+    sync = inspect.getsource(MainWindow._sync_chart_categories_enabled)
+    assert "list_chart_categories.setEnabled(enabled)" in sync
+    update = inspect.getsource(MainWindow._update_finance_chart)
+    assert "self._sync_chart_categories_enabled()" in update
