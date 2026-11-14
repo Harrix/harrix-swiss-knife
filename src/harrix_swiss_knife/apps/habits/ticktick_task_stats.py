@@ -21,6 +21,7 @@ from harrix_swiss_knife.apps.common.chart_compare import (
     compare_same_month_windows,
     month_starts_going_back,
 )
+from harrix_swiss_knife.apps.common.chart_format import fmt_date, fmt_number
 from harrix_swiss_knife.apps.common.chart_theme import (
     chart_annotation_style,
     chart_series_color,
@@ -30,6 +31,13 @@ from harrix_swiss_knife.apps.common.chart_theme import (
     map_value_to_intensity_bin,
     style_axes,
     themed_figure,
+)
+from harrix_swiss_knife.apps.common.chart_timeline import (
+    TimelineBar,
+    calendar_days,
+    needs_weekly_bars,
+    rolling_mean,
+    week_spans,
 )
 
 if TYPE_CHECKING:
@@ -546,11 +554,15 @@ def filter_completions_for_period(
 
 def format_period_summary(stats: TickTickPeriodStats) -> str:
     """Return a one-line summary for the TickTick stats tab header."""
-    busiest = "—"
+    busiest = "none"
     if stats.busiest_day is not None and stats.busiest_count > 0:
-        busiest = f"{stats.busiest_day.isoformat()} ({stats.busiest_count})"
+        busiest = (
+            f"{fmt_number(stats.busiest_count, decimals=0)} · "
+            f"{stats.busiest_day.day} {calendar.month_abbr[stats.busiest_day.month]}"
+        )
     return (
-        f"Completions: {stats.total_completions} · Active days: {stats.active_days} · "
+        f"Completed: {fmt_number(stats.total_completions, decimals=0)} · "
+        f"Active days: {fmt_number(stats.active_days, decimals=0)} · "
         f"Current streak: {stats.current_streak} · Longest streak: {stats.longest_streak} · "
         f"Busiest day: {busiest}"
     )
@@ -598,6 +610,56 @@ def resolve_period(
     if year == today_local.year:
         end = today_local
     return start, end
+
+
+def task_timeline_bars(
+    counts_by_day: dict[date, int],
+    start: date,
+    end: date,
+    *,
+    width_px: int,
+) -> tuple[list[TimelineBar], bool]:
+    """Return daily or weekly bars plus whether the line uses tasks/day on a second axis.
+
+    Days with no completions stay at zero. That is recorded inactivity, not a missing load.
+
+    """
+    days = calendar_days(start, end)
+    if not days:
+        return [], False
+    values = [float(counts_by_day.get(day, 0)) for day in days]
+    means = rolling_mean(values, 7)
+    if not needs_weekly_bars(len(days), width_px):
+        bars = [
+            TimelineBar(
+                start=day,
+                end=day,
+                value=value,
+                line=line,
+                tooltip=f"{fmt_date(day)}\n{fmt_number(value, decimals=0)} tasks",
+            )
+            for day, value, line in zip(days, values, means, strict=True)
+        ]
+        return bars, False
+
+    bars: list[TimelineBar] = []
+    for span_start, span_end in week_spans(start, end):
+        chunk = calendar_days(span_start, span_end)
+        if not chunk:
+            continue
+        total = sum(counts_by_day.get(day, 0) for day in chunk)
+        average = total / len(chunk)
+        label = fmt_date(span_start) if span_start == span_end else f"{fmt_date(span_start)} - {fmt_date(span_end)}"
+        bars.append(
+            TimelineBar(
+                start=span_start,
+                end=span_end,
+                value=float(total),
+                line=average,
+                tooltip=f"{label}\n{fmt_number(total, decimals=0)} tasks\n7-day average, tasks/day: {average:.1f}",
+            ),
+        )
+    return bars, True
 
 
 def _annotate_bars(ax: Any, bars: Any) -> None:

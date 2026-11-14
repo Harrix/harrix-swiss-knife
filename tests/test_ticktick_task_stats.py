@@ -151,7 +151,7 @@ def test_aggregate_completions_counts_streaks_and_filter() -> None:
     assert stats.busiest_count == 2
     assert stats.current_streak == 1
     assert stats.longest_streak == 3
-    assert "Completions: 5" in format_period_summary(stats)
+    assert "Completed: 5" in format_period_summary(stats)
 
     work = aggregate_completions(
         completions,

@@ -21,12 +21,14 @@ import matplotlib as mpl
 from matplotlib.figure import Figure
 from PySide6.QtWidgets import QApplication
 
+from harrix_swiss_knife.fluent.paint import with_alpha
 from harrix_swiss_knife.fluent.theme import FluentTheme, css, mix
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Iterable, Sequence
 
     from matplotlib.axes import Axes
+    from PySide6.QtGui import QColor
 
 _CURRENCY_SCALE_MILLIONS = 1_000_000
 _CURRENCY_SCALE_THOUSANDS = 10_000
@@ -136,6 +138,21 @@ class ChartTheme:
         self.habit_skipped = habit_skipped
         self.habit_empty = habit_empty
         self.habit_outline = habit_outline
+
+
+def accent_heatmap_colors(steps: int) -> list[str]:
+    """Return `steps` fills from a pale accent to the theme accent."""
+    palette = FluentTheme.instance().palette()
+    count = max(0, int(steps))
+    if count == 0:
+        return []
+    if count == 1:
+        return [palette.accent.name()]
+    pale = 0.32
+    span = 0.68
+    return [
+        chart_tint(palette.card_bg, palette.accent, pale + span * index / (count - 1)).name() for index in range(count)
+    ]
 
 
 def apply_chart_theme() -> None:
@@ -315,6 +332,11 @@ def chart_success_color() -> str:
     return FluentTheme.instance().palette().success.name()
 
 
+def chart_tint(base: QColor, overlay: QColor, amount: float) -> QColor:
+    """Blend `overlay` over `base`. `amount` is 0 for `base` and 1 for `overlay`."""
+    return mix(base, with_alpha(overlay, round(amount * 255)))
+
+
 def choose_currency_axis_scale(max_abs_value: float) -> tuple[float, str]:
     """Pick a readable currency axis divisor and short unit label.
 
@@ -362,6 +384,18 @@ def ensure_chart_theme() -> None:
         FluentTheme.instance().changed.connect(lambda _mode: restyle_live_charts())
         _state["connected"] = True
     apply_chart_theme()
+
+
+def heatmap_absent_color() -> str:
+    """Return the no-record cell fill. It stays lighter than an explicit zero."""
+    palette = FluentTheme.instance().palette()
+    return chart_tint(palette.card_bg, palette.text_secondary, 0.05).name()
+
+
+def heatmap_zero_color() -> str:
+    """Return the fill for a recorded zero (not done / no completions)."""
+    palette = FluentTheme.instance().palette()
+    return chart_tint(palette.card_bg, palette.text_secondary, 0.32).name()
 
 
 def intensity_bin_label(lo: int, hi: int) -> str:
@@ -420,6 +454,45 @@ def map_value_to_intensity_bin(value: int, ranges: Sequence[tuple[int, int]]) ->
         if lo <= value <= hi:
             return index
     return len(ranges)
+
+
+def quantile_intensity_ranges(values: Iterable[int], *, max_bins: int = 4) -> list[tuple[int, int]]:
+    """Split positive counts into non-overlapping quantile ranges.
+
+    Zero is omitted so callers can show it as its own legend entry. Equal values
+    collapse to one range. A short set of unique values becomes one range each
+    instead of empty bins.
+
+    Args:
+
+    - `values` (`Iterable[int]`): Observed counts, including zeros.
+    - `max_bins` (`int`): Upper bound on nonzero ranges.
+
+    Returns:
+
+    - `list[tuple[int, int]]`: Inclusive `(lo, hi)` ranges covering every positive value.
+
+    """
+    positive = sorted({int(value) for value in values if int(value) > 0})
+    if not positive:
+        return []
+    bins = max(1, min(int(max_bins), len(positive)))
+    if len(positive) <= bins:
+        return [(value, value) for value in positive]
+    ranges: list[tuple[int, int]] = []
+    count = len(positive)
+    for index in range(bins):
+        start_index = round(index * count / bins)
+        end_index = round((index + 1) * count / bins) - 1
+        if end_index < start_index:
+            continue
+        lo = positive[start_index]
+        hi = positive[end_index]
+        if ranges and lo <= ranges[-1][1]:
+            ranges[-1] = (ranges[-1][0], max(ranges[-1][1], hi))
+        else:
+            ranges.append((lo, hi))
+    return ranges
 
 
 def register_chart_canvas(canvas: object) -> None:

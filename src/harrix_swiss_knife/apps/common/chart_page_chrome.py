@@ -11,7 +11,7 @@ from __future__ import annotations
 import calendar
 from typing import TYPE_CHECKING, Any, Literal
 
-from PySide6.QtCore import QDate, Qt
+from PySide6.QtCore import QDate, QSize, Qt
 from PySide6.QtWidgets import (
     QButtonGroup,
     QComboBox,
@@ -30,8 +30,10 @@ from PySide6.QtWidgets import (
 from harrix_swiss_knife.apps.common.chart_theme import chart_info_panel_qss
 from harrix_swiss_knife.apps.common.tracker_layout_chrome import quiet_group_box
 from harrix_swiss_knife.apps.common.ui_chrome import button_idle_qss, muted_caption_qss
+from harrix_swiss_knife.fluent.theme import FluentTheme, bind_theme, css, mix
 from harrix_swiss_knife.fluent.tokens import CONTROL_HEIGHT, SPACE_S
 from harrix_swiss_knife.qt_compact_spin_box import CompactSpinBox
+from harrix_swiss_knife.qt_flow_layout import FlowLayout
 from harrix_swiss_knife.qt_lucide_icon import apply_lucide_button_icon, make_lucide_push_button
 
 if TYPE_CHECKING:
@@ -424,7 +426,7 @@ class ChartToolbar:
         is_count = mode == "count"
         is_heatmap = mode == "heatmap"
 
-        show_period = is_range
+        show_period = is_range or is_heatmap
         show_labels = mode != "heatmap"
         show_dates = is_range
         show_presets = is_range
@@ -460,9 +462,77 @@ class ChartToolbar:
         _set_visible(self.spin_count, visible=show_spin)
         _set_visible(self.label_month, visible=show_month)
         _set_visible(self.combo_month, visible=show_month)
+        self._apply_year_button_chrome(compact=is_heatmap)
+        self._arrange()
+
+    def set_period_choices(self, choices: Sequence[tuple[str, object]], *, current: str | None = None) -> None:
+        """Replace period-combo entries. Heatmap uses Last 365 days and calendar years."""
+        combo = self.combo_period
+        if combo is None:
+            return
+        combo.blockSignals(True)  # noqa: FBT003
+        previous = current if current is not None else combo.currentText()
+        combo.clear()
+        for label, data in choices:
+            combo.addItem(label, data)
+        index = combo.findText(previous) if previous else -1
+        combo.setCurrentIndex(max(index, 0))
+        combo.blockSignals(False)  # noqa: FBT003
+
+    def _apply_year_button_chrome(self, *, compact: bool) -> None:
+        pairs = (
+            (self.button_prev_year, "Previous period"),
+            (self.button_next_year, "Next period"),
+        )
+        for button, tip in pairs:
+            if button is None:
+                continue
+            if compact:
+                button.setText("")
+                button.setToolTip(tip)
+                button.setFixedWidth(CONTROL_HEIGHT)
+            else:
+                label = "Previous year" if button is self.button_prev_year else "Next year"
+                button.setText(label)
+                button.setToolTip(label)
+                button.setMinimumWidth(0)
+                button.setMaximumWidth(16_777_215)
 
     def _arrange(self) -> None:
         """Order controls as parameters, then dates, with Refresh on the right."""
+        if self.mode == "heatmap":
+            self._arrange_row(
+                self.row1,
+                [
+                    self.label_period,
+                    self.combo_period,
+                    self.button_prev_year,
+                    self.button_next_year,
+                    self.label_labels,
+                    self.combo_labels,
+                    self.extra_slot,
+                ],
+                [self.refresh_button],
+            )
+            self._arrange_row(
+                self.row2,
+                [
+                    self.label_from,
+                    self.date_from,
+                    self.label_to,
+                    self.date_to,
+                    self.button_last_week,
+                    self.button_last_month,
+                    self.button_last_year,
+                    self.button_all_time,
+                    self.label_count,
+                    self.spin_count,
+                    self.label_month,
+                    self.combo_month,
+                ],
+                [],
+            )
+            return
         self._arrange_row(
             self.row1,
             [
@@ -615,6 +685,56 @@ class ChartToolbar:
             self.label_period.setText("Period")
         if self.label_month is not None:
             self.label_month.setText("Month")
+
+
+class MetricStrip(QWidget):
+    """One wrapping row of `Name: value` pairs. It never takes leftover window height."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        """Build an empty strip. `set_metrics` fills it."""
+        super().__init__(parent)
+        self._items: list[tuple[str, str]] = []
+        self._flow = FlowLayout(self, margin=0, h_spacing=18, v_spacing=2)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum)
+        self.setMinimumHeight(CONTROL_HEIGHT)
+        self.setMaximumHeight(72)
+        bind_theme(self, self._rebuild)
+
+    def hasHeightForWidth(self) -> bool:  # noqa: N802
+        """Tell Qt the row grows taller only when a whole metric wraps."""
+        return True
+
+    def heightForWidth(self, width: int) -> int:  # noqa: N802
+        """Return the wrapped height, capped so the row cannot fill the page."""
+        return min(max(self._flow.heightForWidth(width), CONTROL_HEIGHT), 72)
+
+    def set_metrics(self, items: Sequence[tuple[str, str]]) -> None:
+        """Replace the visible metrics. Names use the secondary text color."""
+        self._items = list(items)
+        self._rebuild()
+
+    def sizeHint(self) -> QSize:  # noqa: N802
+        """Return the single-line size, still capped at two wrapped lines."""
+        hint = self._flow.sizeHint()
+        return QSize(hint.width(), min(max(hint.height(), CONTROL_HEIGHT), 72))
+
+    def _rebuild(self) -> None:
+        while self._flow.count():
+            item = self._flow.takeAt(0)
+            widget = item.widget() if item is not None else None
+            if widget is not None:
+                widget.deleteLater()
+        palette = FluentTheme.instance().palette()
+        muted = css(mix(palette.window_bg, palette.text_secondary))
+        ink = css(mix(palette.window_bg, palette.text_primary))
+        for name, value in self._items:
+            label = QLabel(self)
+            label.setTextFormat(Qt.TextFormat.RichText)
+            label.setText(
+                f'<span style="color:{muted}">{name}: </span><span style="color:{ink}; font-weight:600">{value}</span>',
+            )
+            self._flow.addWidget(label)
+        self.updateGeometry()
 
 
 def build_chart_type_radios(

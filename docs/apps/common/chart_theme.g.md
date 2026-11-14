@@ -13,6 +13,7 @@ lang: en
 
 - [🏛️ Class `ChartTheme`](#%EF%B8%8F-class-charttheme)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+- [🔧 Function `accent_heatmap_colors`](#-function-accent_heatmap_colors)
 - [🔧 Function `apply_chart_theme`](#-function-apply_chart_theme)
 - [🔧 Function `apply_theme`](#-function-apply_theme)
 - [🔧 Function `chart_annotation_style`](#-function-chart_annotation_style)
@@ -28,12 +29,16 @@ lang: en
 - [🔧 Function `chart_series_color`](#-function-chart_series_color)
 - [🔧 Function `chart_series_palette`](#-function-chart_series_palette)
 - [🔧 Function `chart_success_color`](#-function-chart_success_color)
+- [🔧 Function `chart_tint`](#-function-chart_tint)
 - [🔧 Function `choose_currency_axis_scale`](#-function-choose_currency_axis_scale)
 - [🔧 Function `current_chart_theme`](#-function-current_chart_theme)
 - [🔧 Function `ensure_chart_theme`](#-function-ensure_chart_theme)
+- [🔧 Function `heatmap_absent_color`](#-function-heatmap_absent_color)
+- [🔧 Function `heatmap_zero_color`](#-function-heatmap_zero_color)
 - [🔧 Function `intensity_bin_label`](#-function-intensity_bin_label)
 - [🔧 Function `intensity_bin_ranges`](#-function-intensity_bin_ranges)
 - [🔧 Function `map_value_to_intensity_bin`](#-function-map_value_to_intensity_bin)
+- [🔧 Function `quantile_intensity_ranges`](#-function-quantile_intensity_ranges)
 - [🔧 Function `register_chart_canvas`](#-function-register_chart_canvas)
 - [🔧 Function `restyle_live_charts`](#-function-restyle_live_charts)
 - [🔧 Function `style_axes`](#-function-style_axes)
@@ -172,6 +177,34 @@ def __init__(
         self.habit_skipped = habit_skipped
         self.habit_empty = habit_empty
         self.habit_outline = habit_outline
+```
+
+</details>
+
+## 🔧 Function `accent_heatmap_colors`
+
+```python
+def accent_heatmap_colors(steps: int) -> list[str]
+```
+
+Return `steps` fills from a pale accent to the theme accent.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def accent_heatmap_colors(steps: int) -> list[str]:
+    palette = FluentTheme.instance().palette()
+    count = max(0, int(steps))
+    if count == 0:
+        return []
+    if count == 1:
+        return [palette.accent.name()]
+    pale = 0.32
+    span = 0.68
+    return [
+        chart_tint(palette.card_bg, palette.accent, pale + span * index / (count - 1)).name() for index in range(count)
+    ]
 ```
 
 </details>
@@ -544,6 +577,24 @@ def chart_success_color() -> str:
 
 </details>
 
+## 🔧 Function `chart_tint`
+
+```python
+def chart_tint(base: QColor, overlay: QColor, amount: float) -> QColor
+```
+
+Blend `overlay` over `base`. `amount` is 0 for `base` and 1 for `overlay`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def chart_tint(base: QColor, overlay: QColor, amount: float) -> QColor:
+    return mix(base, with_alpha(overlay, round(amount * 255)))
+```
+
+</details>
+
 ## 🔧 Function `choose_currency_axis_scale`
 
 ```python
@@ -626,6 +677,44 @@ def ensure_chart_theme() -> None:
         FluentTheme.instance().changed.connect(lambda _mode: restyle_live_charts())
         _state["connected"] = True
     apply_chart_theme()
+```
+
+</details>
+
+## 🔧 Function `heatmap_absent_color`
+
+```python
+def heatmap_absent_color() -> str
+```
+
+Return the no-record cell fill. It stays lighter than an explicit zero.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def heatmap_absent_color() -> str:
+    palette = FluentTheme.instance().palette()
+    return chart_tint(palette.card_bg, palette.text_secondary, 0.05).name()
+```
+
+</details>
+
+## 🔧 Function `heatmap_zero_color`
+
+```python
+def heatmap_zero_color() -> str
+```
+
+Return the fill for a recorded zero (not done / no completions).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def heatmap_zero_color() -> str:
+    palette = FluentTheme.instance().palette()
+    return chart_tint(palette.card_bg, palette.text_secondary, 0.32).name()
 ```
 
 </details>
@@ -721,6 +810,56 @@ def map_value_to_intensity_bin(value: int, ranges: Sequence[tuple[int, int]]) ->
         if lo <= value <= hi:
             return index
     return len(ranges)
+```
+
+</details>
+
+## 🔧 Function `quantile_intensity_ranges`
+
+```python
+def quantile_intensity_ranges(values: Iterable[int], *, max_bins: int = 4) -> list[tuple[int, int]]
+```
+
+Split positive counts into non-overlapping quantile ranges.
+
+Zero is omitted so callers can show it as its own legend entry. Equal values
+collapse to one range. A short set of unique values becomes one range each
+instead of empty bins.
+
+Args:
+
+- `values` (`Iterable[int]`): Observed counts, including zeros.
+- `max_bins` (`int`): Upper bound on nonzero ranges.
+
+Returns:
+
+- `list[tuple[int, int]]`: Inclusive `(lo, hi)` ranges covering every positive value.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def quantile_intensity_ranges(values: Iterable[int], *, max_bins: int = 4) -> list[tuple[int, int]]:
+    positive = sorted({int(value) for value in values if int(value) > 0})
+    if not positive:
+        return []
+    bins = max(1, min(int(max_bins), len(positive)))
+    if len(positive) <= bins:
+        return [(value, value) for value in positive]
+    ranges: list[tuple[int, int]] = []
+    count = len(positive)
+    for index in range(bins):
+        start_index = round(index * count / bins)
+        end_index = round((index + 1) * count / bins) - 1
+        if end_index < start_index:
+            continue
+        lo = positive[start_index]
+        hi = positive[end_index]
+        if ranges and lo <= ranges[-1][1]:
+            ranges[-1] = (ranges[-1][0], max(ranges[-1][1], hi))
+        else:
+            ranges.append((lo, hi))
+    return ranges
 ```
 
 </details>

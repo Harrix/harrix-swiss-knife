@@ -22,10 +22,10 @@ from harrix_swiss_knife.fluent.tokens import ICON_SIZE, SPACE_S
 TABLE_ROW_HEIGHT = 30
 _HABITS_SPLITTER_KEY = "habits_process_splitter_sizes_v1"
 _HABITS_SPLITTER_DEFAULT = (320, 1248)
-_CHARTS_SPLITTER_KEY = "habits_charts_splitter_sizes_v1"
-_CHARTS_SPLITTER_DEFAULT = (220, 1348)
+_CHARTS_SPLITTER_KEY = "habits_charts_splitter_sizes_v2"
+_CHARTS_SPLITTER_DEFAULT = (260, 1348)
 _FORM_MIN = 280
-_FILTER_MIN = 180
+_FILTER_MIN = 220
 _CONTENT_MIN = 400
 _SPLITTER_SAVE_DELAY_MS = 400
 _TWO_PANE = 2

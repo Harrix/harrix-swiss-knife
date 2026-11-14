@@ -10,6 +10,7 @@ from __future__ import annotations
 import calendar
 import contextlib
 import logging
+import unicodedata
 import warnings
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, date, datetime, timedelta
@@ -18,12 +19,8 @@ from pathlib import Path
 from time import sleep
 from typing import TYPE_CHECKING, Any, Literal, cast
 
-import dayplot as dp
 import harrix_pylib as h
-import pandas as pd
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.colors import LinearSegmentedColormap, Normalize, to_rgb
-from matplotlib.patches import Patch
 from PySide6.QtCore import (
     QDate,
     QItemSelection,
@@ -50,6 +47,7 @@ from PySide6.QtWidgets import (
     QFileDialog,
     QGroupBox,
     QLabel,
+    QLineEdit,
     QListView,
     QMainWindow,
     QMenu,
@@ -65,22 +63,18 @@ from harrix_swiss_knife import resources_rc  # noqa: F401
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.app_entry import run_app_main
 from harrix_swiss_knife.apps.common.apps_config import get_apps_list_limits, set_habits_sport_habit_name
-from harrix_swiss_knife.apps.common.calendar_heatmap import (
-    apply_habit_heatmap_month_separation,
-    date_at_heatmap_point,
-    habit_heatmap_month_separated_positions,
-    heatmap_year_after_step,
-    numeric_habit_heatmap_cell_labels,
-)
-from harrix_swiss_knife.apps.common.chart_hover import create_chart_canvas, format_chart_point, install_chart_hover
+from harrix_swiss_knife.apps.common.chart_format import fmt_date, fmt_number
+from harrix_swiss_knife.apps.common.chart_hover import create_chart_canvas, install_chart_hover
 from harrix_swiss_knife.apps.common.chart_page_chrome import (
     ChartToolbar,
+    MetricStrip,
     build_chart_type_radios,
     create_info_strip,
     move_layout_widget,
     polish_chart_type_group,
 )
-from harrix_swiss_knife.apps.common.chart_theme import themed_figure
+from harrix_swiss_knife.apps.common.chart_timeline import bar_at_x, build_timeline_figure
+from harrix_swiss_knife.apps.common.chart_widgets import mark_chart_list_separator
 from harrix_swiss_knife.apps.common.day_bands import day_band_color, set_day_band
 from harrix_swiss_knife.apps.common.db_init import init_tracker_database
 from harrix_swiss_knife.apps.common.qt_database_manager_base import QtSqliteDatabaseManagerBase
@@ -103,6 +97,7 @@ from harrix_swiss_knife.apps.common.table_models import (
 from harrix_swiss_knife.apps.common.ui_helpers import close_table_editor_if_open
 from harrix_swiss_knife.apps.common.widgets.shrinkable_scroll_area import install_shrinkable_tab_scroll
 from harrix_swiss_knife.apps.common.word_wrap_header import WordWrapHeaderView, install_word_wrap_header
+from harrix_swiss_knife.apps.common.year_heatmap import YearHeatmap
 from harrix_swiss_knife.apps.habits import database_manager, window
 from harrix_swiss_knife.apps.habits.dashboard import HabitDashboardWidget
 from harrix_swiss_knife.apps.habits.delegates import (
@@ -118,13 +113,20 @@ from harrix_swiss_knife.apps.habits.habit_process_charts import (
     CHART_MODE_COMPARE_SAME,
     CHART_MODE_HEATMAP,
     HABIT_CHART_MODE_LABELS,
+    HabitPeriodStats,
     aggregate_daily_values,
     build_habit_by_month_chart,
     build_habit_compare_chart,
     compare_last_months_series,
     compare_same_months_series,
     counts_by_month,
+    habit_calendar_model,
     habit_is_bool_flag,
+    habit_legend_colors,
+    habit_period_stats,
+    habit_timeline_bars,
+    habit_token_color,
+    recorded_daily,
 )
 from harrix_swiss_knife.apps.habits.habits_backup import export_hsk_habits_json, write_habits_backup
 from harrix_swiss_knife.apps.habits.habits_entry_chrome import install_habits_entry_chrome
@@ -158,7 +160,7 @@ from harrix_swiss_knife.apps.habits.ticktick_api import (
 )
 from harrix_swiss_knife.apps.habits.ticktick_task_stats_widget import TickTickTaskStatsWidget
 from harrix_swiss_knife.fluent.app_chrome import style_fluent_table
-from harrix_swiss_knife.fluent.theme import mix, palette_for
+from harrix_swiss_knife.fluent.theme import FluentTheme, mix, palette_for
 from harrix_swiss_knife.installer.icon_assets import apply_window_icon
 from harrix_swiss_knife.paths import get_config_path_str, get_project_root
 from harrix_swiss_knife.qt_lucide_icon import (
@@ -175,6 +177,8 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 PROCESS_HABIT_VALUE_COLUMN_MIN_WIDTH = 86
+_CHARTS_FILTER_MIN = 220
+_CHARTS_FILTER_WIDTH = 260
 
 
 class MainWindow(
@@ -691,7 +695,7 @@ class MainWindow(
 
         """
         if index.isValid() and self.habits_filter_list_model:
-            item = self.habits_filter_list_model.itemFromIndex(index)
+            item = self.habits_filter_list_model.itemFromIndex(self._habit_filter_source_index(index))
             habit_name = (item.data(Qt.ItemDataRole.UserRole) if item is not None else None) or (
                 self.habits_filter_list_model.data(index) or ""
             )
@@ -719,7 +723,7 @@ class MainWindow(
 
         """
         if current.isValid() and self.habits_filter_list_model:
-            item = self.habits_filter_list_model.itemFromIndex(current)
+            item = self.habits_filter_list_model.itemFromIndex(self._habit_filter_source_index(current))
             habit_name = (item.data(Qt.ItemDataRole.UserRole) if item is not None else None) or (
                 self.habits_filter_list_model.data(current) or ""
             )
@@ -749,7 +753,7 @@ class MainWindow(
         if indexes and self.habits_filter_list_model:
             index = indexes[0]
             if index.isValid():
-                item = self.habits_filter_list_model.itemFromIndex(index)
+                item = self.habits_filter_list_model.itemFromIndex(self._habit_filter_source_index(index))
                 habit_name = (item.data(Qt.ItemDataRole.UserRole) if item is not None else None) or (
                     self.habits_filter_list_model.data(index) or ""
                 )
@@ -1053,262 +1057,8 @@ class MainWindow(
             date_from=start_date.strftime("%Y-%m-%d"),
             date_to=end_date.strftime("%Y-%m-%d"),
         )
-        if not rows:
-            period_text = f"year {year}" if year is not None else "last 365 days"
-            self._habits_heatmap_counts = {}
-            self._habits_heatmap_positions = {}
-            self._show_habit_heatmap_message(f"No data found for habit '{habit_name}' for {period_text}")
-            return
-
-        # Convert to pandas DataFrame
-        dates = [datetime.fromisoformat(row[0]).date() for row in rows]
-        values = [row[1] for row in rows]
-        df = pd.DataFrame({"dates": dates, "values": values})
-
-        # start_date and end_date are already calculated above
-
-        figure = self._habit_heatmap_figure()
-        ax = figure.add_subplot(111)
-
-        # Create calendar heatmap using dayplot
-        try:
-            # --- Color/legend rules for habits ---
-            # Requirements:
-            # - 0 is ALWAYS gray
-            # - if is_bool=1 and only {0,1} are present: 1 is dark green
-            # - otherwise: positives are green shades, negatives are red shades
-            # - legend must contain exactly the values that appear on the plot
-            #
-            # dayplot switches to a diverging scale when negatives exist and then ignores
-            # `color_for_none`, so we map real values -> non-negative indices to keep the
-            # "0 gray" behavior stable, and draw a custom legend.
-
-            def _lerp(
-                a: tuple[float, float, float],
-                b: tuple[float, float, float],
-                t: float,
-            ) -> tuple[float, float, float]:
-                return (
-                    a[0] + (b[0] - a[0]) * t,
-                    a[1] + (b[1] - a[1]) * t,
-                    a[2] + (b[2] - a[2]) * t,
-                )
-
-            def _gradient(
-                a: tuple[float, float, float],
-                b: tuple[float, float, float],
-                n: int,
-            ) -> list[tuple[float, float, float]]:
-                if n <= 0:
-                    return []
-                if n == 1:
-                    return [a]
-                return [_lerp(a, b, i / (n - 1)) for i in range(n)]
-
-            # Aggregate per-date like dayplot does (sum), then collect actual displayed values.
-            df_agg = df.groupby("dates", as_index=False)["values"].sum()
-            display_values_set = {int(v) for v in df_agg["values"].tolist()}
-            display_values_set.add(0)  # missing days are displayed as 0
-
-            # Fetch is_bool flag for this habit
-            is_bool_flag: bool | None = None
-            try:
-                rows_is_bool = self.db_manager.get_rows(
-                    "SELECT is_bool FROM habits WHERE name = :name LIMIT 1",
-                    {"name": habit_name},
-                )
-                if rows_is_bool and rows_is_bool[0]:
-                    raw_is_bool = rows_is_bool[0][0]
-                    if raw_is_bool in (0, 1):
-                        is_bool_flag = bool(raw_is_bool)
-            except Exception:
-                logger.exception("Error reading is_bool for habit %s", habit_name)
-                is_bool_flag = None
-
-            is_bool_case = is_bool_flag is True and display_values_set.issubset({0, 1})
-
-            # Base colors
-            gray = "#e9e9e9"
-            dark_green = "#006400"
-            light_green = "#b7e4b7"
-            dark_red = "#8b0000"
-            light_red = "#f3b0b0"
-            # Special color for maximum value in non-binary habits
-            max_value_color = "#3141DA"  # Very dark green to highlight maximum
-
-            # Map real value -> non-negative index, ensuring real 0 maps to 0 (for gray).
-            value_to_mapped: dict[int, int] = {0: 0}
-
-            if is_bool_case:
-                value_to_mapped[1] = 1
-                mapped_vmax = 1
-                colors = [to_rgb(gray), to_rgb(dark_green)]
-                cmap = LinearSegmentedColormap.from_list("habits_bool_map", colors, N=len(colors))
-                legend_order = [0, 1]
-            else:
-                neg_values = sorted([v for v in display_values_set if v < 0])
-                pos_values = sorted([v for v in display_values_set if v > 0])
-
-                # Find maximum value (could be positive or negative)
-                max_value = max(display_values_set) if display_values_set else 0
-
-                # Check if values are binary (only 0 and 1) - if not, highlight maximum
-                is_binary_values = display_values_set.issubset({0, 1})
-                should_highlight_max = not is_binary_values and max_value != 0
-
-                idx = 1
-                for v in neg_values:
-                    value_to_mapped[v] = idx
-                    idx += 1
-                for v in pos_values:
-                    value_to_mapped[v] = idx
-                    idx += 1
-
-                mapped_vmax = max(idx - 1, 0)
-
-                # Build discrete palette: [0]=gray (unused by cmap for 0), then reds, then greens.
-                colors_list: list[tuple[float, float, float]] = [to_rgb(gray)]
-
-                # Handle negative values
-                if neg_values:
-                    if should_highlight_max and max_value < 0:
-                        # Maximum is negative and should be highlighted
-                        non_max_neg = [v for v in neg_values if v != max_value]
-                        if non_max_neg:
-                            # Gradient for non-maximum negative values
-                            colors_list.extend(_gradient(to_rgb(dark_red), to_rgb(light_red), len(non_max_neg)))
-                        # Add very dark red for maximum negative value
-                        colors_list.append(to_rgb("#5b0000"))  # Very dark red
-                    else:
-                        # Normal gradient for all negative values
-                        colors_list.extend(_gradient(to_rgb(dark_red), to_rgb(light_red), len(neg_values)))
-
-                # Handle positive values
-                if pos_values:
-                    if should_highlight_max and max_value > 0:
-                        # Maximum value should be highlighted - put it at the end
-                        non_max_pos = [v for v in pos_values if v != max_value]
-                        if non_max_pos:
-                            # Gradient for non-maximum positive values
-                            colors_list.extend(_gradient(to_rgb(light_green), to_rgb(dark_green), len(non_max_pos)))
-                        # Add special very dark green color for maximum value at the end
-                        colors_list.append(to_rgb(max_value_color))
-                    else:
-                        # Normal gradient for all positive values
-                        colors_list.extend(_gradient(to_rgb(light_green), to_rgb(dark_green), len(pos_values)))
-
-                # dayplot requires a LinearSegmentedColormap; ensure at least 2 colors.
-                if len(colors_list) == 1:
-                    colors_list.append(to_rgb(gray))
-
-                cmap = LinearSegmentedColormap.from_list(
-                    "habits_signed_map",
-                    colors_list,
-                    N=len(colors_list),
-                )
-                legend_order = [*neg_values, 0, *pos_values]
-
-            df_mapped = df.copy()
-            df_mapped["values_mapped"] = [value_to_mapped.get(int(v), 0) for v in df_mapped["values"].tolist()]
-
-            cell_patches = dp.calendar(
-                dates=df_mapped["dates"].tolist(),
-                values=df_mapped["values_mapped"],
-                start_date=start_date.strftime("%Y-%m-%d"),
-                end_date=end_date.strftime("%Y-%m-%d"),
-                legend=False,  # custom legend below
-                color_for_none=gray,
-                vmin=0,
-                vmax=max(mapped_vmax, 1),
-                cmap=cmap,
-                boxstyle="round",
-                ax=ax,
-            )
-            apply_habit_heatmap_month_separation(ax, cell_patches, start_date, end_date)
-
-            # Custom legend: binary habits use state names; numeric keep values
-            norm = Normalize(vmin=0, vmax=max(mapped_vmax, 1))
-            handles: list[Patch] = []
-            for v in legend_order:
-                if v == 0:
-                    color = gray
-                    label = "Not done" if is_bool_case else "0"
-                else:
-                    mapped = value_to_mapped.get(v, 0)
-                    color = cmap(norm(mapped))
-                    label = "Done" if is_bool_case and v == 1 else str(v)
-                handles.append(Patch(facecolor=color, edgecolor="none", label=label))
-
-            ax.legend(
-                handles=handles,
-                title="State" if is_bool_case else "Value",
-                loc="upper center",
-                bbox_to_anchor=(0.5, -0.10),
-                ncol=min(len(handles), 10),
-                frameon=False,
-                fontsize=8,
-                title_fontsize=8,
-            )
-            # Set smaller font size for title
-            period_label = str(year) if year is not None else "Last 365 days"
-            ax.set_title(f"Calendar Heatmap: {habit_name} ({period_label})", fontsize=10, fontweight="bold")
-            # Reduce font size for all text elements (axes labels and ticks)
-            ax.tick_params(labelsize=8)
-            if ax.xaxis.label:
-                ax.xaxis.label.set_fontsize(8)
-            if ax.yaxis.label:
-                ax.yaxis.label.set_fontsize(8)
-            # Reduce font size for all text elements in the plot
-            for text in ax.texts:
-                text.set_fontsize(8)
-            date_values: dict[date, int] = {}
-            for raw_date, raw_value in zip(
-                df_agg["dates"].tolist(),
-                df_agg["values"].tolist(),
-                strict=True,
-            ):
-                if isinstance(raw_date, datetime):
-                    day = raw_date.date()
-                elif isinstance(raw_date, date):
-                    day = raw_date
-                else:
-                    day = date.fromisoformat(str(raw_date)[:10])
-                date_values[day] = int(raw_value)
-            self._habits_heatmap_counts = date_values
-            self._habits_heatmap_positions, _labels, _width = habit_heatmap_month_separated_positions(
-                start_date,
-                end_date,
-            )
-            if is_bool_flag is not True:
-                for index, value in numeric_habit_heatmap_cell_labels(
-                    start_date,
-                    len(cell_patches),
-                    date_values,
-                ):
-                    ax.annotate(
-                        str(value),
-                        xy=(0.5, 0.5),
-                        xycoords=cell_patches[index],
-                        ha="center",
-                        va="center",
-                        color="white",
-                        fontsize=6,
-                        fontweight="bold",
-                    )
-            figure.tight_layout(rect=(0, 0.06, 1, 1))
-        except Exception as e:
-            logger.exception("Error creating calendar heatmap")
-            self._habits_heatmap_counts = {}
-            self._habits_heatmap_positions = {}
-            self._show_habit_heatmap_message(f"Error creating calendar heatmap: {e}")
-            return
-
-        period_label = str(year) if year is not None else "Last 365 days"
-        active_days = len([value for value in date_values.values() if value > 0])
-        self._set_habits_chart_info(
-            f"<b>{habit_name}</b> ({period_label}) — {active_days} active day{'s' if active_days != 1 else ''}",
-        )
-        self._display_habit_heatmap_figure(figure)
+        recorded = recorded_daily(rows)
+        self._present_habit_heatmap(habit_name, recorded, start_date, end_date)
 
     def update_habits_filter_combobox(self) -> None:
         """Refresh habit filter list view in the filter group."""
@@ -1374,6 +1124,10 @@ class MainWindow(
                 item.setData(str(habit_name), Qt.ItemDataRole.UserRole)
                 item.setData(int(habit_id) if habit_id is not None else None, Qt.ItemDataRole.UserRole + 1)
                 item.setData(is_archived, Qt.ItemDataRole.UserRole + 2)
+                if _is_habit_separator(str(habit_name)):
+                    mark_chart_list_separator(item)
+                else:
+                    item.setToolTip(str(habit_name))
                 self.habits_filter_list_model.appendRow(item)
 
             # Restore previous selection if it exists, otherwise select first habit
@@ -1385,16 +1139,19 @@ class MainWindow(
                         selected_index = self.habits_filter_list_model.index(row, 0)
                         break
 
-            # If no previous selection, select first habit (index 0)
-            if selected_index is None and self.habits_filter_list_model.rowCount() > 0:
-                selected_index = self.habits_filter_list_model.index(0, 0)  # First habit
+            if selected_index is None:
+                for row in range(self.habits_filter_list_model.rowCount()):
+                    candidate = self.habits_filter_list_model.item(row)
+                    if candidate is not None and candidate.isEnabled() and candidate.isSelectable():
+                        selected_index = self.habits_filter_list_model.index(row, 0)
+                        break
 
-            # If we need to select first habit (no previous selection), do it before unblocking signals
             if selected_index is not None:
+                view_index = self._habit_filter_view_index(selected_index)
                 if selection_model:
-                    selection_model.setCurrentIndex(selected_index, selection_model.SelectionFlag.ClearAndSelect)
+                    selection_model.setCurrentIndex(view_index, selection_model.SelectionFlag.ClearAndSelect)
                 else:
-                    self.listView_filter_habit.setCurrentIndex(selected_index)
+                    self.listView_filter_habit.setCurrentIndex(view_index)
 
                 # Trigger the update manually while signals are blocked to avoid double call
                 if selected_index.isValid():
@@ -1482,6 +1239,7 @@ class MainWindow(
             if selection_model:
                 selection_model.blockSignals(False)  # noqa: FBT003
             self._sync_heatmap_year_nav_buttons()
+            self._fill_habit_period_combo()
 
         except Exception:
             logger.exception("Error updating habits year list view")
@@ -1564,7 +1322,7 @@ class MainWindow(
             if item is None or item.layout() is not None:
                 continue
             widget = item.widget()
-            if widget is self.scrollArea_charts_process_habits:
+            if widget is None or widget in self._habit_chart_keepers():
                 continue
             if isinstance(widget, (FigureCanvas, QLabel)):
                 layout.takeAt(index)
@@ -1620,46 +1378,10 @@ class MainWindow(
                 return key
         return CHART_MODE_HEATMAP
 
-    def _display_habit_heatmap_figure(self, figure: Figure) -> None:
-        """Show the heatmap top-aligned at natural height (7 weekday rows + legend)."""
-        self._clear_habit_heatmap_layout()
-        canvas = FigureCanvas(figure)
-        # ~7 rows + month labels + bottom legend; do not stretch cells to fill the window.
-        natural_height = max(200, min(280, int(figure.get_figheight() * figure.dpi * 0.72)))
-        canvas.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        canvas.setFixedHeight(natural_height)
-
-        def resolve_tooltip(event: Any) -> str | None:
-            if event.inaxes is None or event.xdata is None or event.ydata is None:
-                return None
-            day = date_at_heatmap_point(
-                self._habits_heatmap_positions,
-                float(event.xdata),
-                float(event.ydata),
-            )
-            if day is None:
-                return None
-            value = self._habits_heatmap_counts.get(day, 0)
-            return format_chart_point(day, value)
-
-        install_chart_hover(canvas, resolve_tooltip=resolve_tooltip)
-        # Place canvas in the outer heatmap layout so unused space is page background,
-        # not an expanded white scroll-area content pane.
-        self.scrollArea_charts_process_habits.hide()
-        layout = self.verticalLayout_charts_heatmap
-        insert_at = self._charts_body_insert_index()
-        layout.insertWidget(insert_at, canvas, 0, Qt.AlignmentFlag.AlignTop)
-        # Ensure a single trailing stretch exists for leftover height.
-        if layout.count() == insert_at + 1:
-            layout.addStretch(1)
-        layout.setStretch(insert_at, 0)
-        layout.setStretch(layout.count() - 1, 1)
-        self._habits_heatmap_canvas = canvas
-        canvas.draw()
-
     def _display_habit_line_chart(self, figure: Figure) -> None:
         """Show a line/bar chart inside the charts scroll area."""
         self._clear_habit_heatmap_layout()
+        self._set_habit_heatmap_body_visible(visible=False)
         self.scrollArea_charts_process_habits.show()
         canvas = create_chart_canvas(figure)
         canvas.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
@@ -1695,6 +1417,23 @@ class MainWindow(
         if path is not None:
             message_box.information(self, "Success", f"Exported to {path}")
 
+    def _fill_habit_period_combo(self) -> None:
+        """Copy the year list into the toolbar, newest year first."""
+        toolbar = getattr(self, "_habits_chart_toolbar", None)
+        model = self.habits_year_list_model
+        if toolbar is None or model is None:
+            return
+        labels = [str(model.data(model.index(row, 0)) or "") for row in range(model.rowCount())]
+        labels = [label for label in labels if label]
+        head = [label for label in labels if not label.isdigit()]
+        years = sorted((int(label) for label in labels if label.isdigit()), reverse=True)
+        choices: list[tuple[str, object]] = [(label, None) for label in head]
+        choices.extend((str(year), year) for year in years)
+        current = self._get_selected_habit_year()
+        if current not in {item for item, _data in choices}:
+            current = head[0] if head else None
+        toolbar.set_period_choices(choices, current=current)
+
     def _finish_window_initialization(self) -> None:
         """Finish window initialization by showing the window."""
         if self._is_closing:
@@ -1706,7 +1445,7 @@ class MainWindow(
         """Get the currently selected habit from the filter list view."""
         if not self.habits_filter_list_model:
             return ""
-        current_index = self.listView_filter_habit.currentIndex()
+        current_index = self._habit_filter_source_index(self.listView_filter_habit.currentIndex())
         if current_index.isValid():
             item = self.habits_filter_list_model.itemFromIndex(current_index)
             if item is None:
@@ -1743,7 +1482,11 @@ class MainWindow(
         return str(habit_name) if habit_name else None
 
     def _get_selected_habit_year(self) -> str:
-        """Get the currently selected year from the year list view."""
+        """Get the currently selected year from the period combo, then the hidden year list."""
+        toolbar = getattr(self, "_habits_chart_toolbar", None)
+        combo = toolbar.combo_period if toolbar is not None else None
+        if combo is not None and combo.findText("Last 365 days") >= 0 and combo.currentText():
+            return str(combo.currentText())
         year_model = getattr(self, "habits_year_list_model", None)
         if not year_model:
             return ""
@@ -1763,27 +1506,32 @@ class MainWindow(
             height_px = max(360, min(int(self.widget_charts_heatmap.height()), 520))
         return (width_px / dpi, height_px / dpi)
 
-    def _habit_filter_years(self) -> list[int]:
-        """Return calendar years listed in the Charts year filter."""
-        if self.habits_year_list_model is None:
-            return []
-        years: list[int] = []
-        for row in range(self.habits_year_list_model.rowCount()):
-            text = self.habits_year_list_model.data(self.habits_year_list_model.index(row, 0)) or ""
-            try:
-                years.append(int(text))
-            except (TypeError, ValueError):
-                continue
-        return years
+    def _habit_chart_keepers(self) -> set[QWidget]:
+        """Widgets the heatmap page owns and must not delete on a chart switch."""
+        keepers = {
+            self.scrollArea_charts_process_habits,
+            getattr(self, "frame_charts_controls", None),
+            getattr(self, "_habits_chart_info_strip", None),
+            getattr(self, "_habits_metrics", None),
+            getattr(self, "_habits_heatmap_title", None),
+            getattr(self, "_habits_year_heatmap", None),
+            getattr(self, "_habits_time_host", None),
+        }
+        return {widget for widget in keepers if isinstance(widget, QWidget)}
 
-    def _habit_heatmap_figure(self) -> Figure:
-        """Create a heatmap figure sized to the visible charts pane."""
-        viewport = self.scrollArea_charts_process_habits.viewport()
-        dpi = 100
-        min_px = 200
-        width_px = max(int(viewport.width()), min_px)
-        height_px = max(int(viewport.height()), min_px)
-        return themed_figure(figsize=(width_px / dpi, height_px / dpi), dpi=dpi)
+    def _habit_filter_source_index(self, index: QModelIndex) -> QModelIndex:
+        """Map a habit-list index from the search proxy back to the source model."""
+        proxy = getattr(self, "_habits_filter_proxy", None)
+        if isinstance(proxy, QSortFilterProxyModel) and index.model() is proxy:
+            return proxy.mapToSource(index)
+        return index
+
+    def _habit_filter_view_index(self, index: QModelIndex) -> QModelIndex:
+        """Map a source habit index to the index the list view can select."""
+        proxy = getattr(self, "_habits_filter_proxy", None)
+        if isinstance(proxy, QSortFilterProxyModel) and index.model() is self.habits_filter_list_model:
+            return proxy.mapFromSource(index)
+        return index
 
     def _habit_id_from_table_index(self, index: QModelIndex) -> int | None:
         """Return habit database ID for a habits table model index."""
@@ -1884,7 +1632,10 @@ class MainWindow(
     def _init_habits_filter_list(self) -> None:
         """Initialize the habits filter list view with a model and connect signals."""
         self.habits_filter_list_model = QStandardItemModel()
-        self.listView_filter_habit.setModel(self.habits_filter_list_model)
+        self._habits_filter_proxy = QSortFilterProxyModel(self)
+        self._habits_filter_proxy.setSourceModel(self.habits_filter_list_model)
+        self._habits_filter_proxy.setFilterCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        self.listView_filter_habit.setModel(self._habits_filter_proxy)
 
         # Disable editing for habits filter list
         self.listView_filter_habit.setEditTriggers(QListView.EditTrigger.NoEditTriggers)
@@ -1992,6 +1743,55 @@ class MainWindow(
         self._habits_chart_toolbar = toolbar
         self._habits_chart_info_strip = info_strip
         self.frame_charts_controls = frame
+        self.label_filter_habit.setText("Habit")
+        self.label_filter_habit_year.hide()
+        self.listView_filter_habit_year.hide()
+        search = QLineEdit(self.layoutWidget)
+        search.setPlaceholderText("Search")
+        search.setClearButtonEnabled(True)
+        self._habit_search = search
+        list_index = self.verticalLayout_24.indexOf(self.listView_filter_habit)
+        if list_index >= 0:
+            self.verticalLayout_24.insertWidget(list_index, search)
+        proxy = getattr(self, "_habits_filter_proxy", None)
+        if isinstance(proxy, QSortFilterProxyModel):
+            search.textChanged.connect(proxy.setFilterFixedString)
+
+        metrics = MetricStrip(self.widget_charts_heatmap)
+        title = QLabel(self.widget_charts_heatmap)
+        title.setWordWrap(True)
+        title_font = title.font()
+        title_font.setBold(True)
+        title.setFont(title_font)
+        heatmap = YearHeatmap(self.widget_charts_heatmap)
+        time_host = QWidget(self.widget_charts_heatmap)
+        time_layout = QVBoxLayout(time_host)
+        time_layout.setContentsMargins(0, 0, 0, 0)
+        time_host.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self._habits_metrics = metrics
+        self._habits_heatmap_title = title
+        self._habits_year_heatmap = heatmap
+        self._habits_time_host = time_host
+        self._habits_time_layout = time_layout
+        chart_layout = self.verticalLayout_charts_heatmap
+        scroll_index = chart_layout.indexOf(self.scrollArea_charts_process_habits)
+        if scroll_index < 0:
+            scroll_index = chart_layout.count()
+        chart_layout.insertWidget(scroll_index, metrics)
+        chart_layout.insertWidget(scroll_index + 1, title)
+        chart_layout.insertWidget(scroll_index + 2, heatmap)
+        chart_layout.insertWidget(scroll_index + 3, time_host)
+        chart_layout.setStretch(chart_layout.indexOf(time_host), 1)
+        chart_layout.setStretch(chart_layout.indexOf(self.scrollArea_charts_process_habits), 1)
+        for index in range(self.horizontalLayout_charts_heatmap_year.count()):
+            item = self.horizontalLayout_charts_heatmap_year.itemAt(index)
+            spacer = item.spacerItem() if item is not None else None
+            if spacer is not None:
+                spacer.changeSize(0, 0, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        self._fill_habit_period_combo()
+        if not getattr(self, "_habits_chart_theme_bound", False):
+            FluentTheme.instance().changed.connect(self._refresh_habits_chart_after_theme)
+            self._habits_chart_theme_bound = True
         self._sync_habits_chart_toolbar_mode()
         self._sync_heatmap_year_nav_buttons()
 
@@ -2085,6 +1885,63 @@ class MainWindow(
         if widget is self.tab_ticktick_stats:
             QTimer.singleShot(0, self._ensure_ticktick_stats_loaded)
 
+    def _present_habit_heatmap(
+        self,
+        habit_name: str,
+        recorded: dict[date, int],
+        start_date: date,
+        end_date: date,
+    ) -> None:
+        """Fill the shared heatmap, compact stats, and the chart under the calendar."""
+        heatmap = getattr(self, "_habits_year_heatmap", None)
+        if not isinstance(heatmap, YearHeatmap) or self.db_manager is None:
+            return
+        self._clear_habit_heatmap_layout()
+        is_bool = habit_is_bool_flag(
+            self.db_manager.get_rows(
+                "SELECT is_bool FROM habits WHERE name = :name LIMIT 1",
+                {"name": habit_name},
+            ),
+        )
+        tokens, marks, legend, bin_count = habit_calendar_model(recorded, start_date, end_date, is_bool=is_bool)
+        colors = {day: habit_token_color(state, bin_count=bin_count) for day, state in tokens.items()}
+        tips = {day: _habit_cell_tip(day, state, recorded) for day, state in tokens.items()}
+        heatmap.set_calendar(
+            start_date,
+            end_date,
+            colors,
+            legend=habit_legend_colors(legend, bin_count=bin_count),
+            marks=marks,
+            tooltips=tips,
+        )
+        title = getattr(self, "_habits_heatmap_title", None)
+        if isinstance(title, QLabel):
+            title.setText(habit_name)
+        today = datetime.now(UTC).astimezone().date()
+        stats = habit_period_stats(recorded, start_date, end_date, is_bool=is_bool, today=today)
+        metrics = getattr(self, "_habits_metrics", None)
+        if isinstance(metrics, MetricStrip):
+            metrics.set_metrics(_habit_metric_pairs(stats))
+            metrics.show()
+        bars, percent_scale = habit_timeline_bars(recorded, start_date, end_date, is_bool=is_bool, today=today)
+        self._habit_timeline_bars = bars
+        host = getattr(self, "_habits_time_host", None)
+        width = host.width() if isinstance(host, QWidget) else 640
+        height = host.height() if isinstance(host, QWidget) else 280
+        figure = build_timeline_figure(
+            bars,
+            title="Completion over time" if is_bool else "Value over time",
+            ylabel="Completion" if percent_scale else "Value",
+            bar_label="Weekly completion" if percent_scale else "Weekly total",
+            line_label="30-day average" if percent_scale else "7-day average",
+            figsize=(max(width, 480) / 100, max(height, 220) / 100),
+            y_max=100 if percent_scale else None,
+            line_on_twin=not percent_scale,
+            line_ylabel="" if percent_scale else "7-day average",
+        )
+        self._show_habit_timeline(figure)
+        self._set_habit_heatmap_body_visible(visible=True)
+
     def _refresh_after_ticktick_sync(self) -> None:
         """Reload dashboard and tables after TickTick sync writes."""
         self.refresh_habits_and_process_habits()
@@ -2174,6 +2031,10 @@ class MainWindow(
             self._set_habits_chart_info(f"<b>{habit_name}</b> — {month_name} across {years} years")
             self._display_habit_line_chart(figure)
 
+    def _refresh_habits_chart_after_theme(self, _mode: str = "") -> None:
+        """Redraw after a theme change. The signal's mode string is not a habit name."""
+        self._refresh_habits_chart()
+
     def _release_habit_heatmap_display(self) -> None:
         """Remove heatmap canvas before window destruction."""
         self._clear_habit_heatmap_layout()
@@ -2206,7 +2067,7 @@ class MainWindow(
                 return
 
     def _set_charts_splitter_size(self) -> None:
-        """Set initial width for heatmap filters to 150 pixels."""
+        """Keep the Charts filter column wide enough to read habit names."""
         if self._is_closing:
             return
         min_count_of_widgets = 2
@@ -2214,11 +2075,25 @@ class MainWindow(
             return
         total_width = self.splitter_charts.width()
         if total_width > 0:
-            filter_width = 150
+            sizes = self.splitter_charts.sizes()
+            if sizes and sizes[0] >= _CHARTS_FILTER_MIN:
+                return
+            filter_width = _CHARTS_FILTER_WIDTH
             chart_width = max(100, total_width - filter_width)
             self.splitter_charts.setSizes([filter_width, chart_width])
             return
         QTimer.singleShot(50, self._set_charts_splitter_size)
+
+    def _set_habit_heatmap_body_visible(self, *, visible: bool) -> None:
+        """Show the calendar stack, or hide it without leaving an empty stretched slot."""
+        for name in ("_habits_metrics", "_habits_heatmap_title", "_habits_year_heatmap", "_habits_time_host"):
+            widget = getattr(self, name, None)
+            if isinstance(widget, QWidget):
+                widget.setVisible(visible)
+        if visible:
+            self.scrollArea_charts_process_habits.hide()
+            if self._habits_chart_info_strip is not None:
+                self._habits_chart_info_strip.hide()
 
     def _set_habits_chart_info(self, html: str) -> None:
         strip = self._habits_chart_info_strip
@@ -2285,14 +2160,13 @@ class MainWindow(
         apply_leading_chrome_buttons(self)
 
         self._install_word_wrap_table_headers(
-            skip={self.tableView_process_habits, self._ticktick_stats_widget.day_table},
+            skip={self.tableView_process_habits},
         )
         install_word_wrap_header(
             self.tableView_process_habits,
             wrap_width=PROCESS_HABIT_VALUE_COLUMN_MIN_WIDTH,
             wrap_first_section=False,
         )
-        self._ticktick_stats_widget.configure_day_table_columns()
         style_fluent_table(self.tableView_process_habits)
         enable_table_header_sorting(self.tableView_process_habits)
 
@@ -2300,7 +2174,7 @@ class MainWindow(
         self.splitter_habits.setStretchFactor(1, 3)
         self.splitter_charts.setStretchFactor(0, 0)
         self.splitter_charts.setStretchFactor(1, 1)
-        self.splitter_charts.setSizes([150, 1000])
+        self.splitter_charts.setSizes([_CHARTS_FILTER_WIDTH, 1000])
         self.scrollArea_charts_process_habits.setWidgetResizable(True)
         self.scrollAreaWidgetContents_charts_process_habits.setSizePolicy(
             QSizePolicy.Policy.Expanding,
@@ -2319,7 +2193,7 @@ class MainWindow(
 
         index = self.listView_filter_habit.indexAt(position)
         item = (
-            self.habits_filter_list_model.itemFromIndex(index)
+            self.habits_filter_list_model.itemFromIndex(self._habit_filter_source_index(index))
             if (index.isValid() and self.habits_filter_list_model)
             else None
         )
@@ -2365,20 +2239,42 @@ class MainWindow(
     def _show_habit_heatmap_message(self, text: str) -> None:
         """Show a text placeholder instead of the heatmap chart."""
         self._clear_habit_heatmap_layout()
+        self._set_habit_heatmap_body_visible(visible=False)
         self.scrollArea_charts_process_habits.hide()
         label = QLabel(text)
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        label.setAlignment(Qt.AlignmentFlag.AlignTop)
         label.setWordWrap(True)
         layout = self.verticalLayout_charts_heatmap
         insert_at = self._charts_body_insert_index()
         layout.insertWidget(insert_at, label, 0, Qt.AlignmentFlag.AlignTop)
-        placeholder_slots = insert_at + 1
-        if layout.count() == placeholder_slots:
-            layout.addStretch(1)
-        layout.setStretch(insert_at, 0)
-        layout.setStretch(layout.count() - 1, 1)
         if self._habits_chart_info_strip is not None:
             self._habits_chart_info_strip.hide()
+
+    def _show_habit_timeline(self, figure: Figure) -> None:
+        """Put the completion chart in the slot under the calendar."""
+        layout = getattr(self, "_habits_time_layout", None)
+        if not isinstance(layout, QVBoxLayout):
+            return
+        while layout.count():
+            item = layout.takeAt(0)
+            widget = item.widget() if item is not None else None
+            if widget is not None:
+                widget.hide()
+                widget.deleteLater()
+        canvas = create_chart_canvas(figure)
+        bars = list(getattr(self, "_habit_timeline_bars", []))
+
+        def resolve_tooltip(event: Any) -> str | None:
+            if event.xdata is None:
+                return None
+            bar = bar_at_x(bars, float(event.xdata))
+            return None if bar is None else bar.tooltip
+
+        install_chart_hover(canvas, resolve_tooltip=resolve_tooltip)
+        canvas.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        layout.addWidget(canvas, stretch=1)
+        canvas.show()
+        canvas.draw()
 
     def _show_habit_year_filter_context_menu(self, position: QPoint) -> None:
         """Show context menu for habit year filter list view."""
@@ -2514,15 +2410,14 @@ class MainWindow(
             self.db_manager = None
 
     def _step_heatmap_year(self, step: int) -> None:
-        next_year = heatmap_year_after_step(
-            self._get_selected_habit_year(),
-            self._habit_filter_years(),
-            step=step,
-            today_year=datetime.now(UTC).astimezone().date().year,
-        )
-        if next_year is None:
+        toolbar = getattr(self, "_habits_chart_toolbar", None)
+        combo = toolbar.combo_period if toolbar is not None else None
+        if combo is None:
             return
-        self._select_habit_year_text(str(next_year))
+        # The combo is newest-first. Previous period is the next row.
+        index = combo.currentIndex() - step
+        if 0 <= index < combo.count():
+            combo.setCurrentIndex(index)
 
     def _sync_habits_chart_toolbar_mode(self) -> None:
         toolbar = self._habits_chart_toolbar
@@ -2537,10 +2432,10 @@ class MainWindow(
             toolbar.set_mode("compare_last")
         elif mode == CHART_MODE_COMPARE_SAME:
             toolbar.set_mode("compare_same")
-        show_year = mode == CHART_MODE_HEATMAP
-        self.label_filter_habit_year.setVisible(show_year)
-        self.listView_filter_habit_year.setVisible(show_year)
-        if not show_year and self._habits_chart_info_strip is not None:
+        self.label_filter_habit_year.hide()
+        self.listView_filter_habit_year.hide()
+        self._set_habit_heatmap_body_visible(visible=mode == CHART_MODE_HEATMAP)
+        if mode != CHART_MODE_HEATMAP and self._habits_chart_info_strip is not None:
             self._habits_chart_info_strip.hide()
 
     def _sync_heatmap_year_nav_buttons(self) -> None:
@@ -2549,11 +2444,15 @@ class MainWindow(
         next_btn = getattr(self, "pushButton_charts_heatmap_next_year", None)
         if prev_btn is None or next_btn is None:
             return
-        selected = self._get_selected_habit_year()
-        years = self._habit_filter_years()
-        today_year = datetime.now(UTC).astimezone().date().year
-        prev_btn.setEnabled(heatmap_year_after_step(selected, years, step=-1, today_year=today_year) is not None)
-        next_btn.setEnabled(heatmap_year_after_step(selected, years, step=1, today_year=today_year) is not None)
+        toolbar = getattr(self, "_habits_chart_toolbar", None)
+        combo = toolbar.combo_period if toolbar is not None else None
+        if combo is None:
+            prev_btn.setEnabled(False)
+            next_btn.setEnabled(False)
+            return
+        index = combo.currentIndex()
+        prev_btn.setEnabled(0 <= index < combo.count() - 1)
+        next_btn.setEnabled(index > 0)
 
     def _sync_tables_after_dashboard_change(self) -> None:
         """Reload process/habits tables after the dashboard has painted."""
@@ -2767,6 +2666,43 @@ class MainWindow(
         small_window_threshold = 911
         is_small = self.height() < small_window_threshold
         self._is_small_window_layout = is_small
+
+
+def _habit_cell_tip(day: date, state: str | None, recorded: dict[date, int]) -> str:
+    """Hover text that keeps no-record days distinct from an explicit zero."""
+    when = fmt_date(day)
+    if state is None or state == "absent":
+        return f"{when}\nNo data"
+    if state == "done":
+        return f"{when}\nDone"
+    if state == "not_done":
+        return f"{when}\nNot done"
+    value = recorded.get(day, 0)
+    return f"{when}\n{fmt_number(value, decimals=0)}"
+
+
+def _habit_metric_pairs(stats: HabitPeriodStats) -> list[tuple[str, str]]:
+    """Compact summary. Percent is only shown for boolean habits."""
+    if stats.is_bool:
+        percent = "none" if stats.completion_percent is None else f"{stats.completion_percent:.0f}%"
+        return [
+            ("Completed", fmt_number(stats.completed, decimals=0)),
+            ("Completion", percent),
+            ("Current streak", str(stats.current_streak)),
+            ("Longest streak", str(stats.longest_streak)),
+        ]
+    return [
+        ("Total", fmt_number(stats.total, decimals=0)),
+        ("Active days", fmt_number(stats.completed, decimals=0)),
+        ("Current streak", str(stats.current_streak)),
+        ("Longest streak", str(stats.longest_streak)),
+    ]
+
+
+def _is_habit_separator(name: str) -> bool:
+    """Return whether a habit name is only dash punctuation used as a section break."""
+    compact = "".join(name.split())
+    return bool(compact) and all(unicodedata.category(char) == "Pd" for char in compact)
 
 
 def _process_habits_ink(host: QWidget) -> QColor:
