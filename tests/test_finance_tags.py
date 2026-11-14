@@ -115,8 +115,8 @@ def test_transaction_can_keep_several_tags(finance_db: DatabaseManager) -> None:
     trip_ids = {int(row[0]) for row in finance_db.get_transactions_for_tag("Trip")}
     assert lunch_id in lunch_ids
     assert lunch_id in trip_ids
-    # "trip, food" is stored as links in first-seen parse order → trip then food by _id.
-    assert finance_db.get_distinct_transaction_tags() == ["trip", "food"]
+    # "trip, food" is stored as links in first-seen parse order; picker lists newest _id first.
+    assert finance_db.get_distinct_transaction_tags() == ["food", "trip"]
 
     assert finance_db.remove_transaction_tag(lunch_id, "food")
     assert finance_db.get_rows("SELECT tag FROM transactions WHERE _id = :id", {"id": lunch_id})[0][0] == "trip"
@@ -127,15 +127,15 @@ def test_transaction_can_keep_several_tags(finance_db: DatabaseManager) -> None:
     assert totals[0][3] == 2000
 
 
-def test_distinct_tags_follow_appearance_order_and_refresh(finance_db: DatabaseManager) -> None:
-    """New tags from a later transaction appear at the end when the picker refreshes."""
+def test_distinct_tags_follow_newest_first_and_refresh(finance_db: DatabaseManager) -> None:
+    """Newer tags appear at the top of the picker list when it refreshes."""
     category_id = _category_id(finance_db, "Food")
     assert finance_db.add_transaction(5.0, "A", category_id, RUB_ID, "2024-05-01", "alpha")
     assert finance_db.get_distinct_transaction_tags() == ["alpha"]
     assert finance_db.add_transaction(6.0, "B", category_id, RUB_ID, "2024-05-02", "beta")
-    assert finance_db.get_distinct_transaction_tags() == ["alpha", "beta"]
+    assert finance_db.get_distinct_transaction_tags() == ["beta", "alpha"]
     assert finance_db.add_transaction(7.0, "C", category_id, RUB_ID, "2024-05-03", "alpha, gamma")
-    assert finance_db.get_distinct_transaction_tags() == ["alpha", "beta", "gamma"]
+    assert finance_db.get_distinct_transaction_tags() == ["gamma", "beta", "alpha"]
 
 
 def test_tag_checklist_has_ok_and_close_buttons(qapp: QApplication) -> None:

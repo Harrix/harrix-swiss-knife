@@ -98,7 +98,7 @@ def test_expense_for_date_sums_only_expense_categories(finance_db: DatabaseManag
     assert finance_db.get_expense_minor_by_currency_for_date("2020-01-01") == {}
 
 
-def test_distinct_transaction_tags_are_trimmed_in_appearance_order(finance_db: DatabaseManager) -> None:
+def test_distinct_transaction_tags_are_trimmed_newest_first(finance_db: DatabaseManager) -> None:
     assert finance_db.get_distinct_transaction_tags() == []
 
     finance_db.set_transaction_tags(1, " work ")
@@ -106,7 +106,7 @@ def test_distinct_transaction_tags_are_trimmed_in_appearance_order(finance_db: D
     finance_db.set_transaction_tags(3, "work")
     finance_db.set_transaction_tags(4, "   ")
 
-    assert finance_db.get_distinct_transaction_tags() == ["work", "food"]
+    assert finance_db.get_distinct_transaction_tags() == ["food", "work"]
 
 
 def test_currency_lookups_are_served_from_cache(
