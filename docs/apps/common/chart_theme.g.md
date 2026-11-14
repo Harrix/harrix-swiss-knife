@@ -425,8 +425,7 @@ def intensity_bin_ranges(max_positive: int, *, max_bins: int = 5) -> list[tuple[
         edge = 1 + round(index * max_positive / bins)
         if edge <= edges[-1]:
             edge = edges[-1] + 1
-        if edge > max_positive:
-            edge = max_positive
+        edge = min(edge, max_positive)
         edges.append(edge)
     ranges: list[tuple[int, int]] = []
     for index, start in enumerate(edges):

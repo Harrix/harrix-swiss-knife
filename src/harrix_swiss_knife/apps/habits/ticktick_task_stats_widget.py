@@ -413,7 +413,7 @@ class TickTickTaskStatsWidget(QWidget):
         self._project_combo.clear()
         self._project_combo.addItem("All lists", _ALL_PROJECTS)
         for project in self._projects:
-            self._project_combo.addItem(project.name, project.project_id)
+            self._project_combo.addItem(project.name, project.id)
         period_index = self._period_combo.findData(current_period)
         self._period_combo.setCurrentIndex(max(period_index, 0))
         project_index = self._project_combo.findData(current_project)

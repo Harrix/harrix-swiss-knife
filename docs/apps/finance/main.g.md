@@ -1587,8 +1587,7 @@ class MainWindow(
 
         def _fmt(value: float, _pos: int) -> str:
             scaled = value / divisor
-            text = f"{scaled:,.2f}".rstrip("0").rstrip(".")
-            return text
+            return f"{scaled:,.2f}".rstrip("0").rstrip(".")
 
         ax.yaxis.set_major_formatter(FuncFormatter(_fmt))
         return f"{axis_noun}, {unit} {currency_symbol}"
@@ -2235,7 +2234,7 @@ class MainWindow(
         y_values = [value for _date_str, value in series]
         x_nums = self._chart_date_nums(x_values)
         color = chart_series_color(0)
-        sparse = len(y_values) <= 40
+        sparse = len(y_values) <= _SPARSE_CHART_MARKER_LIMIT
         ax.plot(
             x_nums,
             y_values,
@@ -2364,7 +2363,7 @@ class MainWindow(
                 x_nums = self._chart_date_nums(x_values)
             y_values = [value for _date_str, value in series]
             color = chart_series_color(index)
-            sparse = len(y_values) <= 40
+            sparse = len(y_values) <= _SPARSE_CHART_MARKER_LIMIT
             ax.plot(
                 x_nums,
                 y_values,
@@ -2522,7 +2521,7 @@ class MainWindow(
         if expense_series is not None:
             expense_values = [value for _date_str, value in expense_series]
             expense_color = chart_danger_color()
-            sparse = len(expense_values) <= 40
+            sparse = len(expense_values) <= _SPARSE_CHART_MARKER_LIMIT
             ax.plot(
                 x_nums,
                 expense_values,
@@ -2544,7 +2543,7 @@ class MainWindow(
         if income_series is not None:
             income_values = [value for _date_str, value in income_series]
             income_color = chart_success_color()
-            sparse = len(income_values) <= 40
+            sparse = len(income_values) <= _SPARSE_CHART_MARKER_LIMIT
             ax.plot(
                 x_nums,
                 income_values,
