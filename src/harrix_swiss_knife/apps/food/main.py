@@ -92,7 +92,6 @@ from harrix_swiss_knife.apps.common.chart_theme import (
     CHART_TITLE_FONTSIZE,
     chart_annotation_style,
     chart_series_color,
-    finish_chart_layout,
     style_axes,
     themed_figure,
 )
@@ -2373,7 +2372,7 @@ class MainWindow(
         ax.set_xlim(1, max(max_days, 1))
         ax.legend(fontsize=CHART_LEGEND_FONTSIZE, loc="best")
         style_axes(ax)
-        finish_chart_layout(fig)
+        fig.tight_layout()
         layout.addWidget(canvas, stretch=1)
 
     def _end_day_macros_toast_pin_chain(self) -> None:

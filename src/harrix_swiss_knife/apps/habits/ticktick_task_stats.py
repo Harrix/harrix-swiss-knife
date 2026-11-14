@@ -27,7 +27,6 @@ from harrix_swiss_knife.apps.common.chart_theme import (
     chart_series_color,
     chart_success_color,
     current_chart_theme,
-    finish_chart_layout,
     intensity_bin_label,
     intensity_bin_ranges,
     map_value_to_intensity_bin,
@@ -176,7 +175,7 @@ def build_compare_months_chart(
     if not plotted:
         ax.set_title(title)
         ax.text(0.5, 0.5, "No completed tasks", ha="center", va="center", transform=ax.transAxes)
-        finish_chart_layout(figure)
+        figure.tight_layout()
         return figure
 
     current: TickTickMonthSeries | None = None
@@ -197,7 +196,7 @@ def build_compare_months_chart(
     ax.set_title(title)
     ax.grid(visible=True, alpha=0.3)
     ax.legend(loc="upper left", fontsize=9)
-    finish_chart_layout(figure)
+    figure.tight_layout()
     return figure
 
 
@@ -307,7 +306,8 @@ def build_contribution_heatmap(
     legend.get_title().set_color(theme.text)
     for text in legend.get_texts():
         text.set_color(theme.text)
-    # Legend is outside the axes on a short figure; keep a fixed right gutter.
+    # Legend is outside the axes on a short figure; tight_layout cannot fit it
+    # and warns about top/bottom margins. Keep a fixed right gutter instead.
     figure.subplots_adjust(left=0.02, right=0.86, top=0.96, bottom=0.12)
     return TickTickHeatmapResult(
         figure=figure,
@@ -329,7 +329,7 @@ def build_month_counts_chart(
     if not month_counts:
         ax.set_title("Completed tasks by month")
         ax.text(0.5, 0.5, "No completed tasks", ha="center", va="center", transform=ax.transAxes)
-        finish_chart_layout(figure)
+        figure.tight_layout()
         return figure
     labels = [start.strftime("%b %Y") for start, _count in month_counts]
     values = [count for _start, count in month_counts]
@@ -341,7 +341,7 @@ def build_month_counts_chart(
     ax.set_title(f"Completed tasks by month (last {len(month_counts)})")
     style_axes(ax)
     _annotate_bars(ax, bars)
-    finish_chart_layout(figure)
+    figure.tight_layout()
     return figure
 
 
@@ -357,7 +357,7 @@ def build_year_counts_chart(
     if not year_counts:
         ax.set_title("Completed tasks by year")
         ax.text(0.5, 0.5, "No completed tasks", ha="center", va="center", transform=ax.transAxes)
-        finish_chart_layout(figure)
+        figure.tight_layout()
         return figure
     labels = [str(year) for year, _count in year_counts]
     values = [count for _year, count in year_counts]
@@ -370,7 +370,7 @@ def build_year_counts_chart(
     ax.set_title("Completed tasks by year")
     style_axes(ax)
     _annotate_bars(ax, bars)
-    finish_chart_layout(figure)
+    figure.tight_layout()
     return figure
 
 

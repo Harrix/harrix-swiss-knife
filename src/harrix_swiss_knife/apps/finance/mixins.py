@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Any, cast
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.chart_extrema_labels import annotate_chart_extrema_labels
 from harrix_swiss_knife.apps.common.chart_operations import ChartOperationsBase
-from harrix_swiss_knife.apps.common.chart_theme import LabelMode, chart_annotation_style, chart_primary_color
+from harrix_swiss_knife.apps.common.chart_theme import LabelMode, chart_annotation_style, chart_series_color
 from harrix_swiss_knife.apps.common.db_guard import requires_database
 from harrix_swiss_knife.apps.common.qt_mixins import (
     AutoSaveMixin,
@@ -385,7 +385,7 @@ class ChartOperations(ChartOperationsBase):
             return
 
         y_values = [value for _date_str, value in series]
-        marker_color = chart_primary_color() if point_color is None else point_color
+        marker_color = chart_series_color(0) if point_color is None else point_color
 
         def label_for_index(index: int) -> str:
             date_str, value = series[index]

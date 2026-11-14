@@ -93,11 +93,9 @@ from harrix_swiss_knife.apps.common.chart_theme import (
     CHART_MARKERSIZE,
     CHART_TITLE_FONTSIZE,
     chart_danger_color,
-    chart_primary_color,
     chart_series_color,
     chart_success_color,
     choose_currency_axis_scale,
-    finish_chart_layout,
     style_axes,
     themed_figure,
 )
@@ -1614,7 +1612,7 @@ class MainWindow(
         from harrix_swiss_knife.apps.common.chart_hover import create_chart_canvas  # noqa: PLC0415
 
         canvas = create_chart_canvas(fig)
-        finish_chart_layout(fig)
+        fig.tight_layout()
         self.verticalLayout_charts_content.addWidget(canvas, stretch=1)
         if stats_text:
             self._add_stats_caption(self.verticalLayout_charts_content, stats_text)
@@ -2412,14 +2410,14 @@ class MainWindow(
                 [x - bar_width / 2 for x in x_positions],
                 averages,
                 width=bar_width,
-                color=chart_success_color(),
+                color=chart_series_color(0),
                 label="Average Monthly Income",
             )
             annual_bars = ax.bar(
                 [x + bar_width / 2 for x in x_positions],
                 annuals,
                 width=bar_width,
-                color=chart_primary_color(),
+                color=chart_series_color(1),
                 label="Annual Income",
             )
             bars_to_annotate.extend((average_bars, annual_bars))
@@ -2428,7 +2426,7 @@ class MainWindow(
                 x_positions,
                 averages,
                 width=bar_width,
-                color=chart_success_color(),
+                color=chart_series_color(0),
                 label="Average Monthly Income",
             )
             bars_to_annotate.append(average_bars)
@@ -2437,7 +2435,7 @@ class MainWindow(
                 x_positions,
                 annuals,
                 width=bar_width,
-                color=chart_primary_color(),
+                color=chart_series_color(1),
                 label="Annual Income",
             )
             bars_to_annotate.append(annual_bars)
@@ -2465,7 +2463,7 @@ class MainWindow(
                     va="bottom",
                     fontsize=8,
                 )
-        finish_chart_layout(fig)
+        fig.tight_layout()
         self._add_chart_canvas(fig)
         self._add_average_salary_series_controls()
 
@@ -2480,7 +2478,7 @@ class MainWindow(
         x_values = [datetime.fromisoformat(date_str).replace(tzinfo=UTC) for date_str, _value in series]
         y_values = [value for _date_str, value in series]
         x_nums = self._chart_date_nums(x_values)
-        color = chart_primary_color()
+        color = chart_series_color(0)
         sparse = len(y_values) <= _SPARSE_CHART_MARKER_LIMIT
         ax.plot(
             x_nums,

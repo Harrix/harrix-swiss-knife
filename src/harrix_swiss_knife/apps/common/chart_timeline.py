@@ -12,10 +12,9 @@ from matplotlib import patheffects
 from harrix_swiss_knife.apps.common.calendar_heatmap import HEATMAP_WEEK_STARTS_ON, habit_heatmap_week_start
 from harrix_swiss_knife.apps.common.chart_format import setup_date_axis
 from harrix_swiss_knife.apps.common.chart_theme import (
-    chart_primary_color,
+    chart_series_color,
     chart_surface,
     current_chart_theme,
-    finish_chart_layout,
     style_axes,
     themed_figure,
 )
@@ -85,13 +84,13 @@ def build_timeline_figure(
         axis.set_title(title)
         axis.text(0.5, 0.5, "No data for the selected period", ha="center", va="center", transform=axis.transAxes)
         style_axes(axis)
-        finish_chart_layout(figure)
+        figure.tight_layout()
         return figure
 
     theme = current_chart_theme()
     card = chart_surface().name()
-    bar_color = chart_primary_color()
-    line_color = chart_primary_color()
+    bar_color = chart_series_color(0)
+    line_color = chart_series_color(0)
     centers = [mdates.date2num(bar.start) + (bar.end - bar.start).days / 2 for bar in bars]
     widths = [_bar_width_days(bar) for bar in bars]
     values = [bar.value for bar in bars]
@@ -156,7 +155,7 @@ def build_timeline_figure(
         frame.set_facecolor(theme.bg)
         frame.set_edgecolor(theme.grid)
         frame.set_alpha(0.92)
-    finish_chart_layout(figure)
+    figure.tight_layout()
     return figure
 
 

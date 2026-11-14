@@ -20,12 +20,7 @@ from PySide6.QtWidgets import QAbstractItemView, QMessageBox, QWidget
 from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.chart_hover import create_chart_canvas
-from harrix_swiss_knife.apps.common.chart_theme import (
-    chart_ink,
-    chart_label_bbox,
-    finish_chart_layout,
-    themed_figure,
-)
+from harrix_swiss_knife.apps.common.chart_theme import chart_ink, chart_label_bbox, themed_figure
 from harrix_swiss_knife.apps.common.day_bands import day_band_color
 from harrix_swiss_knife.apps.common.scroll_pagination import on_scroll_load_more
 from harrix_swiss_knife.apps.common.table_models import (
@@ -623,7 +618,7 @@ class ExchangeRatesOperations:
                     )
 
             # Add the canvas to the layout
-            finish_chart_layout(fig)
+            fig.tight_layout()
             self.verticalLayout_exchange_rates_content.addWidget(canvas, stretch=1)
             canvas.draw()
 

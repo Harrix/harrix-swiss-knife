@@ -18,7 +18,6 @@ from harrix_swiss_knife.apps.common.chart_theme import (
     chart_ink,
     chart_label_face,
     current_chart_theme,
-    finish_chart_layout,
     themed_figure,
 )
 from harrix_swiss_knife.fluent.theme import FluentTheme, ThemeMode
@@ -58,51 +57,11 @@ def test_dark_chart_label_face_differs_from_axes_surface(qapp: QApplication) -> 
         dark_theme = current_chart_theme()
         assert dark_theme.dark is True
         assert dark_theme.heatmap == HEATMAP_LEVELS_DARK
-        assert dark_theme.accent == "#4682b4"
+        assert dark_theme.accent == theme.palette().accent.name()
         assert "DejaVu Sans" in mpl.rcParams["font.sans-serif"]
     finally:
         theme.set_mode(previous, persist=False)
         apply_chart_theme()
-
-
-def test_finish_chart_layout_keeps_constrained_engine(qapp: QApplication) -> None:
-    """Themed figures stay on constrained layout instead of switching to tight."""
-    assert qapp is not None
-    import warnings
-
-    fig = themed_figure(figsize=(4, 3), dpi=100)
-    fig.add_subplot(111).plot([1, 2], [1, 2])
-    apply_theme(fig)
-    engine_before = type(fig.get_layout_engine()).__name__
-    with warnings.catch_warnings(record=True) as caught:
-        warnings.simplefilter("always")
-        finish_chart_layout(fig)
-    assert type(fig.get_layout_engine()).__name__ == engine_before
-    assert not any("layout has changed to tight" in str(item.message) for item in caught)
-
-
-def test_classic_finance_series_palette_is_shared(qapp: QApplication) -> None:
-    """Shared series colors match the pre-Fluent Finance Charts CSS palette."""
-    assert qapp is not None
-    from harrix_swiss_knife.apps.common.chart_theme import (
-        CHART_COMPARE_CURRENT_COLOR,
-        CHART_PRIMARY_COLOR,
-        CHART_SERIES_COLORS,
-        chart_danger_color,
-        chart_primary_color,
-        chart_series_color,
-        chart_success_color,
-    )
-    from harrix_swiss_knife.apps.finance.transaction_helpers import CHART_COMPARE_COLOR_PALETTE
-
-    assert CHART_SERIES_COLORS[0] == "#0000ff"
-    assert chart_series_color(0) == "#0000ff"
-    assert chart_series_color(1) == "#008000"
-    assert chart_primary_color() == CHART_PRIMARY_COLOR == "#4682b4"
-    assert chart_danger_color() == "#dc143c"
-    assert chart_success_color() == "#228b22"
-    assert CHART_COMPARE_CURRENT_COLOR == "#ff0000"
-    assert CHART_COMPARE_COLOR_PALETTE == list(CHART_SERIES_COLORS)
 
 
 def test_light_heatmap_scale(qapp: QApplication) -> None:

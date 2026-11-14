@@ -1,7 +1,7 @@
 """Shared month Windows for Compare last months and Compare same months.
 
 Habits and TickTick keep their own point builders. Both walk these Windows
-so the current period uses classic red and earlier periods use the series palette.
+so the current period uses the accent and earlier periods use the series palette.
 
 """
 
@@ -11,7 +11,7 @@ import calendar
 from dataclasses import dataclass
 from datetime import date
 
-from harrix_swiss_knife.apps.common.chart_theme import CHART_COMPARE_CURRENT_COLOR, chart_series_color
+from harrix_swiss_knife.apps.common.chart_theme import chart_series_color
 
 
 @dataclass(frozen=True, slots=True)
@@ -47,7 +47,7 @@ def compare_last_month_windows(months_count: int, *, today: date) -> list[Compar
                 end_day=end_day,
                 label=label,
                 is_current=is_current,
-                color=CHART_COMPARE_CURRENT_COLOR if is_current else chart_series_color(max(index - 1, 0)),
+                color=chart_series_color(0 if is_current else max(index, 1)),
             ),
         )
     return windows
@@ -72,9 +72,9 @@ def compare_same_month_windows(month: int, years_count: int, *, today: date) -> 
         label = date(year, selected, 1).strftime("%B %Y")
         if is_current:
             label = f"{label} (Current)"
-            color = CHART_COMPARE_CURRENT_COLOR
+            color = chart_series_color(0)
         else:
-            color = chart_series_color(color_index)
+            color = chart_series_color(color_index + 1)
             color_index += 1
         windows.append(
             CompareMonthWindow(
