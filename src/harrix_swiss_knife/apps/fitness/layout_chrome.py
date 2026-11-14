@@ -8,6 +8,7 @@ from PySide6.QtCore import QSize, Qt, QTimer
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QAbstractItemView, QLabel, QListView, QTableView
 
+from harrix_swiss_knife.apps.common.chart_theme import chart_info_panel_qss
 from harrix_swiss_knife.apps.common.tracker_layout_chrome import (
     apply_tracker_column_surfaces,
     polish_left_field_labels,
@@ -210,6 +211,9 @@ def _polish_charts(host: Any) -> None:
                 font = QFont(label.font())
                 font.setBold(True)
                 label.setFont(font)
+    info = getattr(host, "label_chart_info", None)
+    if isinstance(info, QLabel) and bool(info.text().strip()):
+        info.setStyleSheet(chart_info_panel_qss())
 
     for name, text, icon in (
         ("pushButton_update_chart", "Refresh", "refresh-cw"),

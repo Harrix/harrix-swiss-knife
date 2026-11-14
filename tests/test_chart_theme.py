@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import matplotlib as mpl
 import pytest
+from matplotlib.colors import to_hex
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QApplication
 
@@ -11,11 +12,13 @@ from harrix_swiss_knife.apps.common.chart_theme import (
     HEATMAP_LEVELS_DARK,
     HEATMAP_LEVELS_LIGHT,
     apply_chart_theme,
+    apply_theme,
     chart_annotation_style,
     chart_info_panel_qss,
     chart_ink,
     chart_label_face,
     current_chart_theme,
+    themed_figure,
 )
 from harrix_swiss_knife.fluent.theme import FluentTheme, ThemeMode
 from harrix_swiss_knife.fluent.tokens import DARK_PALETTE
@@ -72,6 +75,37 @@ def test_light_heatmap_scale(qapp: QApplication) -> None:
         assert chart.dark is False
         assert chart.heatmap == HEATMAP_LEVELS_LIGHT
         assert chart.habit_done == "#30A14E"
+    finally:
+        theme.set_mode(previous, persist=False)
+        apply_chart_theme()
+
+
+def test_apply_theme_updates_legend_and_annotation_after_switch(qapp: QApplication) -> None:
+    """Open charts keep readable legend / value labels when light/dark flips."""
+    assert qapp is not None
+    theme = FluentTheme.instance()
+    previous = theme.mode()
+    theme.set_mode(ThemeMode.DARK, persist=False)
+    apply_chart_theme()
+    fig = themed_figure(figsize=(4, 3), dpi=100)
+    ax = fig.add_subplot(111)
+    ax.plot([1, 2, 3], [1, 2, 1], label="Series A")
+    ax.legend(loc="upper left")
+    ax.annotate("12", xy=(2, 2), **chart_annotation_style())
+    dark_legend = ax.get_legend().get_texts()[0].get_color()
+    dark_ink = QColor(to_hex(dark_legend, keep_alpha=False))
+    assert dark_ink.lightness() > 180
+    try:
+        theme.set_mode(ThemeMode.LIGHT, persist=False)
+        apply_theme(fig)
+        light_legend = ax.get_legend().get_texts()[0].get_color()
+        light_ink = QColor(to_hex(light_legend, keep_alpha=False))
+        assert light_ink.lightness() < 80
+        annotation = ax.texts[0]
+        assert QColor(to_hex(annotation.get_color(), keep_alpha=False)).lightness() < 80
+        face = annotation.get_bbox_patch()
+        assert face is not None
+        assert QColor(to_hex(face.get_facecolor(), keep_alpha=False)).lightness() > 180
     finally:
         theme.set_mode(previous, persist=False)
         apply_chart_theme()

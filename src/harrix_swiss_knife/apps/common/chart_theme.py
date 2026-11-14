@@ -202,7 +202,8 @@ def apply_theme(fig: Figure, ax: Axes | None = None) -> None:
     """Paint `fig` (and `ax`, or every axes) with the current chart theme.
 
     New figures use constrained layout. Axes lose the top and right spines and
-    keep a thin horizontal grid. Call again after a light/dark switch.
+    keep a thin horizontal grid. Call again after a light/dark switch — including
+    legend labels and value-label plates that were drawn under the previous theme.
 
     """
     ensure_chart_theme()
@@ -219,6 +220,7 @@ def apply_theme(fig: Figure, ax: Axes | None = None) -> None:
         axis.tick_params(axis="both", colors=theme.text_muted, labelcolor=theme.text)
         for side in ("left", "bottom"):
             axis.spines[side].set_color(theme.border)
+    _restyle_figure_overlays(fig, theme)
     if fig.get_layout_engine() is None:
         with contextlib.suppress(Exception):
             fig.set_layout_engine("constrained")
@@ -512,6 +514,34 @@ def restyle_live_charts() -> None:
         draw = getattr(canvas, "draw_idle", None)
         if callable(draw):
             draw()
+
+
+def _restyle_figure_overlays(fig: Figure, theme: ChartTheme) -> None:
+    """Repaint legend text and boxed annotations after a light/dark switch."""
+    ink = chart_ink()
+    face = chart_label_face()
+    edge = chart_label_edge()
+    legends: list[Any] = []
+    for axis in fig.axes:
+        legend = axis.get_legend()
+        if legend is not None:
+            legends.append(legend)
+        for text in axis.texts:
+            bbox = text.get_bbox_patch()
+            if bbox is None:
+                continue
+            text.set_color(ink)
+            bbox.set_facecolor(face)
+            bbox.set_edgecolor(edge)
+    figure_legends = getattr(fig, "legends", None)
+    if figure_legends:
+        legends.extend(figure_legends)
+    for legend in legends:
+        for text in legend.get_texts():
+            text.set_color(theme.text)
+        frame = legend.get_frame()
+        frame.set_facecolor(theme.bg)
+        frame.set_edgecolor(theme.grid)
 
 
 def style_axes(
