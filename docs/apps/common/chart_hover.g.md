@@ -11,10 +11,92 @@ lang: en
 
 ## Contents
 
+- [🏛️ Class `ExpandingChartCanvas`](#%EF%B8%8F-class-expandingchartcanvas)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `resizeEvent`](#%EF%B8%8F-method-resizeevent)
 - [🔧 Function `create_chart_canvas`](#-function-create_chart_canvas)
 - [🔧 Function `format_chart_point`](#-function-format_chart_point)
 - [🔧 Function `install_chart_hover`](#-function-install_chart_hover)
 - [🔧 Function `nearest_artist_tooltip`](#-function-nearest_artist_tooltip)
+
+</details>
+
+## 🏛️ Class `ExpandingChartCanvas`
+
+```python
+class ExpandingChartCanvas(FigureCanvas)
+```
+
+Qt Matplotlib canvas that fills its layout cell on resize.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class ExpandingChartCanvas(FigureCanvas):
+
+    def __init__(self, figure: Figure) -> None:
+        """Bind `figure` and expand to fill the parent layout cell."""
+        super().__init__(figure)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.setMinimumSize(_MIN_CANVAS_PX, _MIN_CANVAS_PX)
+
+    def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
+        """Resize the Matplotlib figure to match the Qt widget size."""
+        super().resizeEvent(event)
+        width = max(self.width(), _MIN_CANVAS_PX)
+        height = max(self.height(), _MIN_CANVAS_PX)
+        dpi = float(self.figure.dpi) if self.figure.dpi else 100.0
+        self.figure.set_size_inches(width / dpi, height / dpi, forward=False)
+        with contextlib.suppress(Exception):
+            self.figure.tight_layout()
+        self.draw_idle()
+```
+
+</details>
+
+### ⚙️ Method `__init__`
+
+```python
+def __init__(self, figure: Figure) -> None
+```
+
+Bind `figure` and expand to fill the parent layout cell.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def __init__(self, figure: Figure) -> None:
+        super().__init__(figure)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.setMinimumSize(_MIN_CANVAS_PX, _MIN_CANVAS_PX)
+```
+
+</details>
+
+### ⚙️ Method `resizeEvent`
+
+```python
+def resizeEvent(self, event: QResizeEvent) -> None
+```
+
+Resize the Matplotlib figure to match the Qt widget size.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
+        super().resizeEvent(event)
+        width = max(self.width(), _MIN_CANVAS_PX)
+        height = max(self.height(), _MIN_CANVAS_PX)
+        dpi = float(self.figure.dpi) if self.figure.dpi else 100.0
+        self.figure.set_size_inches(width / dpi, height / dpi, forward=False)
+        with contextlib.suppress(Exception):
+            self.figure.tight_layout()
+        self.draw_idle()
+```
 
 </details>
 
@@ -31,9 +113,7 @@ Create a Qt Matplotlib canvas with point-value hover tooltips enabled.
 
 ```python
 def create_chart_canvas(fig: Figure) -> FigureCanvas:
-    from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas  # noqa: PLC0415
-
-    canvas = FigureCanvas(fig)
+    canvas = ExpandingChartCanvas(fig)
     install_chart_hover(canvas)
     return canvas
 ```

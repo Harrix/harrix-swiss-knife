@@ -1102,20 +1102,22 @@ class MainWindow(
             )
             apply_habit_heatmap_month_separation(ax, cell_patches, start_date, end_date)
 
-            # Custom legend: exactly the displayed values
+            # Custom legend: binary habits use state names; numeric keep values
             norm = Normalize(vmin=0, vmax=max(mapped_vmax, 1))
             handles: list[Patch] = []
             for v in legend_order:
                 if v == 0:
                     color = gray
+                    label = "Not done" if is_bool_case else "0"
                 else:
                     mapped = value_to_mapped.get(v, 0)
                     color = cmap(norm(mapped))
-                handles.append(Patch(facecolor=color, edgecolor="none", label=str(v)))
+                    label = "Done" if is_bool_case and v == 1 else str(v)
+                handles.append(Patch(facecolor=color, edgecolor="none", label=label))
 
             ax.legend(
                 handles=handles,
-                title="Value",
+                title="State" if is_bool_case else "Value",
                 loc="upper center",
                 bbox_to_anchor=(0.5, -0.10),
                 ncol=min(len(handles), 10),
@@ -1414,6 +1416,21 @@ class MainWindow(
     def _clear_habit_heatmap_layout(self) -> None:
         """Remove heatmap canvas and placeholder labels from the charts pane."""
         self._clear_layout(self.verticalLayout_charts_process_habits_content, close_matplotlib_figures=True)
+        # Canvas may live in the outer heatmap layout (after year nav), not the scroll area.
+        layout = self.verticalLayout_charts_heatmap
+        for index in reversed(range(layout.count())):
+            item = layout.itemAt(index)
+            if item is None or item.layout() is not None:
+                continue
+            widget = item.widget()
+            if widget is self.scrollArea_charts_process_habits:
+                continue
+            if isinstance(widget, (FigureCanvas, QLabel)):
+                layout.takeAt(index)
+                widget.hide()
+                widget.deleteLater()
+            elif item.spacerItem() is not None:
+                layout.takeAt(index)
         self._habits_heatmap_canvas = None
 
     def _configure_habits_table_columns(self) -> None:
@@ -1453,11 +1470,13 @@ class MainWindow(
         self.tableView_process_habits.clicked.connect(self._on_process_habits_table_clicked)
 
     def _display_habit_heatmap_figure(self, figure: Figure) -> None:
-        """Show the heatmap in an expanding Matplotlib canvas that fills the pane."""
+        """Show the heatmap top-aligned at natural height (7 weekday rows + legend)."""
         self._clear_habit_heatmap_layout()
         canvas = FigureCanvas(figure)
-        canvas.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        canvas.setMinimumSize(0, 0)
+        # ~7 rows + month labels + bottom legend; do not stretch cells to fill the window.
+        natural_height = max(200, min(280, int(figure.get_figheight() * figure.dpi * 0.72)))
+        canvas.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        canvas.setFixedHeight(natural_height)
 
         def resolve_tooltip(event: Any) -> str | None:
             if event.inaxes is None or event.xdata is None or event.ydata is None:
@@ -1473,7 +1492,18 @@ class MainWindow(
             return format_chart_point(day, value)
 
         install_chart_hover(canvas, resolve_tooltip=resolve_tooltip)
-        self.verticalLayout_charts_process_habits_content.addWidget(canvas)
+        # Place canvas in the outer heatmap layout so unused space is page background,
+        # not an expanded white scroll-area content pane.
+        self.scrollArea_charts_process_habits.hide()
+        layout = self.verticalLayout_charts_heatmap
+        # Year nav is index 0; insert canvas after it, then a stretch for page bg.
+        insert_at = 1
+        layout.insertWidget(insert_at, canvas, 0, Qt.AlignmentFlag.AlignTop)
+        # Ensure a single trailing stretch exists for leftover height.
+        if layout.count() == insert_at + 1:
+            layout.addStretch(1)
+        layout.setStretch(insert_at, 0)
+        layout.setStretch(layout.count() - 1, 1)
         self._habits_heatmap_canvas = canvas
         canvas.draw()
 
@@ -1743,7 +1773,12 @@ class MainWindow(
         style_calendar_nav_button(next_btn)
         prev_btn.clicked.connect(self._on_heatmap_prev_year)
         next_btn.clicked.connect(self._on_heatmap_next_year)
-        self.verticalLayout_charts_heatmap.setStretch(1, 1)
+        # Do not stretch the scroll area into a tall empty panel; leftover height is page bg.
+        self.verticalLayout_charts_heatmap.setStretch(1, 0)
+        self.scrollArea_charts_process_habits.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Preferred,
+        )
         self._sync_heatmap_year_nav_buttons()
 
     # Add to MainWindow class (near other small helpers)
@@ -2033,7 +2068,17 @@ class MainWindow(
     def _show_habit_heatmap_message(self, text: str) -> None:
         """Show a text placeholder instead of the heatmap chart."""
         self._clear_habit_heatmap_layout()
-        self._show_no_data_label(self.verticalLayout_charts_process_habits_content, text)
+        self.scrollArea_charts_process_habits.hide()
+        label = QLabel(text)
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        label.setWordWrap(True)
+        layout = self.verticalLayout_charts_heatmap
+        layout.insertWidget(1, label, 0, Qt.AlignmentFlag.AlignTop)
+        year_nav_and_label_count = 2
+        if layout.count() == year_nav_and_label_count:
+            layout.addStretch(1)
+        layout.setStretch(1, 0)
+        layout.setStretch(layout.count() - 1, 1)
 
     def _show_habit_year_filter_context_menu(self, position: QPoint) -> None:
         """Show context menu for habit year filter list view."""
@@ -3729,20 +3774,22 @@ def update_habit_calendar_heatmap(self, habit_name: str | None = None, year: int
             )
             apply_habit_heatmap_month_separation(ax, cell_patches, start_date, end_date)
 
-            # Custom legend: exactly the displayed values
+            # Custom legend: binary habits use state names; numeric keep values
             norm = Normalize(vmin=0, vmax=max(mapped_vmax, 1))
             handles: list[Patch] = []
             for v in legend_order:
                 if v == 0:
                     color = gray
+                    label = "Not done" if is_bool_case else "0"
                 else:
                     mapped = value_to_mapped.get(v, 0)
                     color = cmap(norm(mapped))
-                handles.append(Patch(facecolor=color, edgecolor="none", label=str(v)))
+                    label = "Done" if is_bool_case and v == 1 else str(v)
+                handles.append(Patch(facecolor=color, edgecolor="none", label=label))
 
             ax.legend(
                 handles=handles,
-                title="Value",
+                title="State" if is_bool_case else "Value",
                 loc="upper center",
                 bbox_to_anchor=(0.5, -0.10),
                 ncol=min(len(handles), 10),

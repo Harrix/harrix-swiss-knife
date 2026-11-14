@@ -184,7 +184,18 @@ def _polish_all(host: Any) -> None:
 
 def _polish_charts(host: Any) -> None:
     if hasattr(host, "groupBox_type_of_charts"):
-        host.groupBox_type_of_charts.setTitle("Chart type")
+        host.groupBox_type_of_charts.setTitle("Chart")
+        quiet_group_box(host.groupBox_type_of_charts)
+    for name, text in (
+        ("radioButton_type_of_chart_standart", "Standard"),
+        ("radioButton_type_of_chart_show_sets_chart", "Sets"),
+        ("radioButton_type_of_chart_kcal", "Kcal"),
+        ("radioButton_type_of_chart_compare_last", "Compare last months"),
+        ("radioButton_type_of_chart_compare_same_months", "Compare same months"),
+    ):
+        radio = getattr(host, name, None)
+        if radio is not None:
+            radio.setText(text)
     for name in (
         "label_chart_exercise",
         "label_chart_type",
@@ -223,6 +234,8 @@ def _polish_charts(host: Any) -> None:
     for view_name in ("listView_chart_exercise", "listView_chart_type"):
         view = getattr(host, view_name, None)
         if isinstance(view, QListView):
+            # Drop legacy green border QSS from the .ui file; Fluent list chrome applies next.
+            view.setStyleSheet("")
             _compact_list(view)
     if hasattr(host, "verticalLayout_18"):
         host.verticalLayout_18.setSpacing(SPACE_S)

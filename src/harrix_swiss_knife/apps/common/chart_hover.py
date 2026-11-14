@@ -2,22 +2,23 @@
 
 from __future__ import annotations
 
+import contextlib
 from collections.abc import Callable
 from datetime import date, datetime
 from typing import TYPE_CHECKING, Any
 
 import matplotlib.dates as mdates
 import numpy as np
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.collections import PathCollection
 from matplotlib.container import BarContainer, ErrorbarContainer
 from matplotlib.patches import Rectangle
-from PySide6.QtGui import QCursor
-from PySide6.QtWidgets import QToolTip
+from PySide6.QtGui import QCursor, QResizeEvent
+from PySide6.QtWidgets import QSizePolicy, QToolTip
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
     from matplotlib.backend_bases import Event, MouseEvent
-    from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
     from matplotlib.figure import Figure
     from matplotlib.lines import Line2D
 
@@ -27,13 +28,33 @@ _LEAVE_ATTR = "_hsk_chart_leave_cid"
 _HOVER_STATE_ATTR = "_hsk_chart_hover_state"
 _MPL_DATE_NUMBER_MIN = 1000.0
 _INT_EPSILON = 1e-9
+_MIN_CANVAS_PX = 80
+
+
+class ExpandingChartCanvas(FigureCanvas):
+    """Qt Matplotlib canvas that fills its layout cell on resize."""
+
+    def __init__(self, figure: Figure) -> None:
+        """Bind `figure` and expand to fill the parent layout cell."""
+        super().__init__(figure)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.setMinimumSize(_MIN_CANVAS_PX, _MIN_CANVAS_PX)
+
+    def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
+        """Resize the Matplotlib figure to match the Qt widget size."""
+        super().resizeEvent(event)
+        width = max(self.width(), _MIN_CANVAS_PX)
+        height = max(self.height(), _MIN_CANVAS_PX)
+        dpi = float(self.figure.dpi) if self.figure.dpi else 100.0
+        self.figure.set_size_inches(width / dpi, height / dpi, forward=False)
+        with contextlib.suppress(Exception):
+            self.figure.tight_layout()
+        self.draw_idle()
 
 
 def create_chart_canvas(fig: Figure) -> FigureCanvas:
     """Create a Qt Matplotlib canvas with point-value hover tooltips enabled."""
-    from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas  # noqa: PLC0415
-
-    canvas = FigureCanvas(fig)
+    canvas = ExpandingChartCanvas(fig)
     install_chart_hover(canvas)
     return canvas
 

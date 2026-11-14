@@ -248,7 +248,7 @@ def build_compare_months_chart(
 ## 🔧 Function `build_contribution_heatmap`
 
 ```python
-def build_contribution_heatmap(stats: TickTickPeriodStats, *, figsize: tuple[float, float] = (14.0, 3.2), dpi: int = 100) -> TickTickHeatmapResult
+def build_contribution_heatmap(stats: TickTickPeriodStats, *, figsize: tuple[float, float] = (14.0, 3.2), dpi: int = 100, selected_day: date | None = None) -> TickTickHeatmapResult
 ```
 
 Build a green GitHub-like contribution calendar for `[`stats`](../icons/thumb_cache.g.md#%EF%B8%8F-method-stats)`.
@@ -262,31 +262,29 @@ def build_contribution_heatmap(
     *,
     figsize: tuple[float, float] = (14.0, 3.2),
     dpi: int = 100,
+    selected_day: date | None = None,
 ) -> TickTickHeatmapResult:
     start_date = stats.start_date
     end_date = stats.end_date
     figure = themed_figure(figsize=figsize, dpi=dpi)
     ax = figure.add_subplot(111)
 
-    display_values = set(stats.counts_by_day.values())
-    display_values.add(0)
-    pos_values = sorted(v for v in display_values if v > 0)
-
-    value_to_mapped: dict[int, int] = {0: 0, **{value: index for index, value in enumerate(pos_values, start=1)}}
+    pos_max = max((int(v) for v in stats.counts_by_day.values() if int(v) > 0), default=0)
+    bins = intensity_bin_ranges(pos_max, max_bins=5)
+    dark_green = chart_success_color()
     colors_list: list[tuple[float, float, float]] = [to_rgb(_GRAY)]
-    if pos_values:
-        n = len(pos_values)
-        for index in range(n):
-            t = 0.0 if n == 1 else index / (n - 1)
-            colors_list.append(_lerp(to_rgb(_LIGHT_GREEN), to_rgb(_DARK_GREEN), t))
+    if bins:
+        for index in range(len(bins)):
+            t = 0.0 if len(bins) == 1 else index / (len(bins) - 1)
+            colors_list.append(_lerp(to_rgb(_LIGHT_GREEN), to_rgb(dark_green), t))
     else:
-        colors_list.append(to_rgb(_GRAY))
+        colors_list.append(to_rgb(_LIGHT_GREEN))
 
-    mapped_vmax = max(value_to_mapped.values()) if value_to_mapped else 1
+    mapped_vmax = max(len(bins), 1)
     cmap = LinearSegmentedColormap.from_list("ticktick_contrib", colors_list, N=len(colors_list))
 
     day_keys = list(stats.counts_by_day.keys())
-    mapped_values = [value_to_mapped.get(int(stats.counts_by_day[day]), 0) for day in day_keys]
+    mapped_values = [map_value_to_intensity_bin(int(stats.counts_by_day[day]), bins) for day in day_keys]
     # dayplot types `dates` as list[date | datetime | str]; list[date] is invariant.
     calendar_dates: list[date | datetime | str] = list(day_keys)
 
@@ -303,37 +301,64 @@ def build_contribution_heatmap(
         legend=False,
         color_for_none=_GRAY,
         vmin=0,
-        vmax=max(mapped_vmax, 1),
+        vmax=mapped_vmax,
         cmap=cmap,
         boxstyle="round",
         ax=ax,
     )
     apply_habit_heatmap_month_separation(ax, cell_patches, start_date, end_date)
 
-    legend_order = [0, *pos_values]
-    norm = Normalize(vmin=0, vmax=max(mapped_vmax, 1))
-    handles: list[Patch] = []
-    for value in legend_order:
-        if value == 0:
-            color: Any = _GRAY
-        else:
-            color = cmap(norm(value_to_mapped[value]))
-        handles.append(Patch(facecolor=color, edgecolor="none", label=str(value)))
-    if handles:
-        ax.legend(
-            handles=handles,
-            loc="upper left",
-            bbox_to_anchor=(1.01, 1.0),
-            frameon=False,
-            fontsize=8,
-            title="Tasks",
-        )
-        # Legend is outside the axes on a short figure; tight_layout cannot fit it
-        # and warns about top/bottom margins. Keep a fixed right gutter instead.
-        figure.subplots_adjust(left=0.02, right=0.86, top=0.96, bottom=0.12)
-    else:
-        figure.tight_layout()
     positions, _labels, _width = habit_heatmap_month_separated_positions(start_date, end_date)
+    today = datetime.now().astimezone().date()
+    for day, (cx, cy) in positions.items():
+        if day == selected_day:
+            ax.add_patch(
+                Rectangle(
+                    (cx - 0.42, cy - 0.42),
+                    0.84,
+                    0.84,
+                    fill=False,
+                    edgecolor=chart_series_color(0),
+                    linewidth=2.0,
+                    zorder=6,
+                ),
+            )
+        elif day == today and start_date <= today <= end_date:
+            ax.add_patch(
+                Rectangle(
+                    (cx - 0.42, cy - 0.42),
+                    0.84,
+                    0.84,
+                    fill=False,
+                    edgecolor=chart_series_color(0),
+                    linewidth=1.1,
+                    linestyle="--",
+                    alpha=0.85,
+                    zorder=5,
+                ),
+            )
+
+    norm = Normalize(vmin=0, vmax=mapped_vmax)
+    handles: list[Patch] = [Patch(facecolor=_GRAY, edgecolor="none", label="None")]
+    for index, (lo, hi) in enumerate(bins, start=1):
+        handles.append(
+            Patch(
+                facecolor=cmap(norm(index)),
+                edgecolor="none",
+                label=intensity_bin_label(lo, hi),
+            ),
+        )
+    ax.legend(
+        handles=handles,
+        loc="upper left",
+        bbox_to_anchor=(1.01, 1.0),
+        frameon=False,
+        fontsize=8,
+        title="Tasks",
+    )
+    # Legend is outside the axes on a short figure; tight_layout cannot fit it
+    # and warns about top/bottom margins. Keep a fixed right gutter instead.
+    figure.subplots_adjust(left=0.02, right=0.86, top=0.96, bottom=0.12)
     return TickTickHeatmapResult(
         figure=figure,
         positions=positions,
@@ -371,13 +396,13 @@ def build_month_counts_chart(
         return figure
     labels = [start.strftime("%b %Y") for start, _count in month_counts]
     values = [count for _start, count in month_counts]
-    bars = ax.bar(range(len(labels)), values, color=_BAR_GREEN, width=0.7)
+    bars = ax.bar(range(len(labels)), values, color=chart_success_color(), width=0.7)
     ax.set_xticks(range(len(labels)))
     ax.set_xticklabels(labels, rotation=45, ha="right")
     ax.set_xlabel("Month")
     ax.set_ylabel("Completed tasks")
     ax.set_title(f"Completed tasks by month (last {len(month_counts)})")
-    ax.grid(visible=True, axis="y", alpha=0.3)
+    style_axes(ax)
     _annotate_bars(ax, bars)
     figure.tight_layout()
     return figure
@@ -412,14 +437,14 @@ def build_year_counts_chart(
         return figure
     labels = [str(year) for year, _count in year_counts]
     values = [count for _year, count in year_counts]
-    bars = ax.bar(range(len(labels)), values, color=_BAR_GREEN, width=0.7)
+    bars = ax.bar(range(len(labels)), values, color=chart_success_color(), width=0.7)
     ax.set_xticks(range(len(labels)))
     rotate = len(labels) > _YEAR_LABEL_ROTATE_THRESHOLD
     ax.set_xticklabels(labels, rotation=45 if rotate else 0, ha="right" if rotate else "center")
     ax.set_xlabel("Year")
     ax.set_ylabel("Completed tasks")
     ax.set_title("Completed tasks by year")
-    ax.grid(visible=True, axis="y", alpha=0.3)
+    style_axes(ax)
     _annotate_bars(ax, bars)
     figure.tight_layout()
     return figure
@@ -455,7 +480,7 @@ def compare_last_months_series(
         label = start.strftime("%B %Y")
         if is_current:
             label = f"{label} (Current)"
-        color = _COMPARE_CURRENT if is_current else _COMPARE_PALETTE[(index - 1) % len(_COMPARE_PALETTE)]
+        color = _COMPARE_CURRENT if is_current else chart_series_color(index)
         series.append(
             TickTickMonthSeries(
                 year=start.year,
@@ -518,7 +543,7 @@ def compare_same_months_series(
             label = f"{label} (Current)"
             color = _COMPARE_CURRENT
         else:
-            color = _COMPARE_PALETTE[color_index % len(_COMPARE_PALETTE)]
+            color = chart_series_color(color_index + 1)
             color_index += 1
         series.append(
             TickTickMonthSeries(

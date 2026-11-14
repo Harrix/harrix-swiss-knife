@@ -280,7 +280,7 @@ def test_compare_last_months_marks_current() -> None:
     )
     assert len(series) == 2
     assert series[0].is_current is True
-    assert series[0].color == "red"
+    assert series[0].color == "#cc584c"
     assert "(Current)" in series[0].label
     assert series[0].points[-1] == (10, 1)
     assert series[1].points[-1][1] == 2

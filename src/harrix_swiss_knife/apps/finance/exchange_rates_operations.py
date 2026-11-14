@@ -619,7 +619,7 @@ class ExchangeRatesOperations:
 
             # Add the canvas to the layout
             fig.tight_layout()
-            self.verticalLayout_exchange_rates_content.addWidget(canvas)
+            self.verticalLayout_exchange_rates_content.addWidget(canvas, stretch=1)
             canvas.draw()
 
             # Mark as initialized

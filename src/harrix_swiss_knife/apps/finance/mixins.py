@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Any, cast
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.chart_extrema_labels import annotate_chart_extrema_labels
 from harrix_swiss_knife.apps.common.chart_operations import ChartOperationsBase
-from harrix_swiss_knife.apps.common.chart_theme import chart_annotation_style
+from harrix_swiss_knife.apps.common.chart_theme import LabelMode, chart_annotation_style
 from harrix_swiss_knife.apps.common.db_guard import requires_database
 from harrix_swiss_knife.apps.common.qt_mixins import (
     AutoSaveMixin,
@@ -475,11 +475,20 @@ class ChartOperations(ChartOperationsBase):
 
         self._annotate_chart_last_point(ax, x_nums[-1], y_values[-1], label_text)
 
-    def _chart_labels_enabled(self) -> bool:
+    def _chart_label_mode(self) -> LabelMode:
+        """Return Auto / All / Off for chart value labels."""
+        combo = getattr(self, "comboBox_chart_label_mode", None)
+        if combo is not None:
+            data = combo.currentData()
+            if data in {"auto", "all", "off"}:
+                return data  # type: ignore[return-value]
         checkbox = getattr(self, "checkBox_chart_show_labels", None)
         if checkbox is None:
-            return True
-        return checkbox.isChecked()
+            return "auto"
+        return "auto" if checkbox.isChecked() else "off"
+
+    def _chart_labels_enabled(self) -> bool:
+        return self._chart_label_mode() != "off"
 
     @staticmethod
     def _format_chart_last_point_value(value: float) -> str:

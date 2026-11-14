@@ -6,6 +6,17 @@ lang: en
 
 # 📄 File `chart_operations.py`
 
+<details>
+<summary>📖 Contents ⬇️</summary>
+
+## Contents
+
+- [🏛️ Class `ChartOperationsBase`](#%EF%B8%8F-class-chartoperationsbase)
+- [🔧 Function `install_chart_label_mode_combo`](#-function-install_chart_label_mode_combo)
+- [🔧 Function `label_mode_from_combo`](#-function-label_mode_from_combo)
+
+</details>
+
 ## 🏛️ Class `ChartOperationsBase`
 
 ```python
@@ -23,13 +34,9 @@ class ChartOperationsBase:
     max_count_points_in_charts: int
 
     def _add_stats_box(self, ax: Axes, stats_text: str, color: str | None = None) -> None:
-        """Add a statistics box at the bottom-center of an axes.
+        """Draw a compact bottom stats chip on axes (prefer `_add_stats_caption`).
 
-        Args:
-
-        - `ax` (`Axes`): Matplotlib axes object.
-        - `stats_text` (`str`): Text to display.
-        - `color` (`str | None`): Background color. Defaults to the themed chart label fill.
+        Kept for call sites that still pass an axes.
 
         """
         if color is None:
@@ -41,9 +48,22 @@ class ChartOperationsBase:
             transform=ax.transAxes,
             ha="center",
             va="bottom",
-            fontsize=10,
+            fontsize=CHART_LABEL_FONTSIZE,
             bbox={"boxstyle": "round,pad=0.3", "facecolor": color, "alpha": 0.8},
         )
+
+    def _add_stats_caption(self, layout: QLayout, stats_text: str) -> None:
+        """Add a compact Min/Max/Avg line under the chart (outside the plot face)."""
+        label = QLabel(stats_text)
+        label.setObjectName("chartStatsCaption")
+        label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        label.setWordWrap(True)
+        label.setStyleSheet(f"color: {chart_label_face()}; font-size: {CHART_LABEL_FONTSIZE}pt;")
+        # Prefer muted ink via palette when available; face is for chips — use muted text QSS.
+        from harrix_swiss_knife.apps.common.ui_chrome import muted_caption_qss  # noqa: PLC0415
+
+        label.setStyleSheet(f"{muted_caption_qss(bold=False)} padding: 2px 0px;")
+        layout.addWidget(label)
 
     def _clear_layout(self, layout: QLayout, *, close_matplotlib_figures: bool = True) -> None:
         """Clear all widgets from a layout.
@@ -114,6 +134,7 @@ class ChartOperationsBase:
         fig = themed_figure(figsize=(12, 6), dpi=100)
         canvas = create_chart_canvas(fig)
         ax = fig.add_subplot(111)
+        style_axes(ax)
 
         # Extract data
         x_values = [item[0] for item in data]
@@ -121,23 +142,28 @@ class ChartOperationsBase:
 
         # Count non-zero / non-None values for label display decision
         non_zero_count = sum(1 for y in y_values if y is not None and y != 0)
+        label_mode = _resolve_label_mode(chart_config)
 
         # Plot data
         self._plot_data(
             ax,
             x_values,
             y_values,
-            chart_config.get("color", "b"),
+            chart_config.get("color") or chart_series_color(0),
             non_zero_count,
             chart_config.get("period"),
             is_calories_chart=bool(chart_config.get("is_calories_chart", False)),
+            label_mode=label_mode,
+            figure=fig,
         )
 
         # Customize plot
-        ax.set_xlabel(chart_config.get("xlabel", "X"), fontsize=12)
-        ax.set_ylabel(chart_config.get("ylabel", "Y"), fontsize=12)
-        ax.set_title(chart_config.get("title", "Chart"), fontsize=14, fontweight="bold")
-        ax.grid(visible=True, alpha=0.3)
+        ax.set_xlabel(chart_config.get("xlabel", "X"), fontsize=CHART_LABEL_FONTSIZE)
+        ax.set_ylabel(chart_config.get("ylabel", "Y"), fontsize=CHART_LABEL_FONTSIZE)
+        title = chart_config.get("title", "")
+        if title and not chart_config.get("suppress_axes_title", False):
+            ax.set_title(title, fontsize=CHART_TITLE_FONTSIZE, fontweight="bold")
+        style_axes(ax)
 
         # Set Y-axis limits to start from non-zero value
         self._set_y_axis_limits(ax, y_values)
@@ -146,22 +172,23 @@ class ChartOperationsBase:
         if x_values and isinstance(x_values[0], datetime):
             self._format_chart_x_axis(ax, x_values, chart_config.get("period", "Days"))
 
-        # Add statistics if requested (exclude zero / None values from stats)
+        stats_text = ""
         if chart_config.get("show_stats", True) and len(y_values) > 1:
             stats_formatter = chart_config.get("stats_formatter")
-            if stats_formatter:
-                non_zero_values = [y for y in y_values if y is not None and y != 0]
-                if non_zero_values:
+            non_zero_values = [y for y in y_values if y is not None and y != 0]
+            if non_zero_values:
+                if stats_formatter:
                     stats_text = stats_formatter(non_zero_values)
-                    self._add_stats_box(ax, stats_text)
-            else:
-                non_zero_values = [y for y in y_values if y is not None and y != 0]
-                if non_zero_values:
+                else:
                     stats_text = self._format_default_stats(non_zero_values, chart_config.get("stats_unit", ""))
-                    self._add_stats_box(ax, stats_text)
 
         fig.tight_layout()
         layout.addWidget(canvas)
+        set_stretch = getattr(layout, "setStretch", None)
+        if callable(set_stretch):
+            set_stretch(layout.count() - 1, 1)
+        if stats_text:
+            self._add_stats_caption(layout, stats_text)
         canvas.draw()
 
     def _fill_missing_periods_with_zeros(
@@ -373,8 +400,10 @@ class ChartOperationsBase:
         period: str | None = None,
         *,
         is_calories_chart: bool = False,
+        label_mode: LabelMode = "auto",
+        figure: Any | None = None,
     ) -> None:
-        """Plot data with automatic marker selection based on data points.
+        """Plot data with markers for sparse series and Auto/All/Off value labels.
 
         Args:
 
@@ -382,21 +411,21 @@ class ChartOperationsBase:
         - `x_values` (`list[datetime]`): X-axis values.
         - `y_values` (`list[float]`): Y-axis values.
         - `color` (`str`): Plot color.
-        - `non_zero_count` (`int | None`): Number of non-zero points for label decision. Defaults to `None`.
-        - `period` (`str | None`): Time period for formatting labels. Defaults to `None`.
-        - `is_calories_chart` (`bool`): Reserved for subclasses (e.g. food calorie zones). Defaults to `False`.
+        - `non_zero_count` (`int | None`): Number of non-zero points for marker decision.
+        - `period` (`str | None`): Time period for formatting labels.
+        - `is_calories_chart` (`bool`): Reserved for subclasses (e.g. food calorie zones).
+        - `label_mode` (`LabelMode`): `auto` (extrema), `all` (every non-zero when sparse), `off`.
+        - `figure` (`Any | None`): Figure for extrema label layout measurement.
 
         """
         _ = is_calories_chart
-        # Convert datetime to numerical date values for type safety and plotting
-        x_nums: list[float] = date2num(x_values)  # This satisfies the type checker
+        x_nums: list[float] = date2num(x_values)
 
-        # Map color names to matplotlib single-letter codes
         color_map = {
             "blue": "b",
             "green": "g",
             "red": "r",
-            "orange": "orange",  # Keep full name for colors without single-letter codes
+            "orange": "orange",
             "purple": "purple",
             "brown": "brown",
             "pink": "pink",
@@ -404,74 +433,69 @@ class ChartOperationsBase:
             "olive": "olive",
             "cyan": "c",
         }
-
-        # Use mapped color or original if not in map
         plot_color = color_map.get(color, color)
+        point_count = non_zero_count if non_zero_count is not None else len(y_values)
+        sparse = point_count <= self.max_count_points_in_charts
 
-        # Use non_zero_count if provided, otherwise use total length
-        point_count_for_labels = non_zero_count if non_zero_count is not None else len(y_values)
-
-        if point_count_for_labels <= self.max_count_points_in_charts:
+        if sparse:
             ax.plot(
-                x_nums,  # Use numerical x-values
+                x_nums,
                 y_values,
                 color=plot_color,
                 marker="o",
                 linestyle="-",
-                linewidth=2,
-                alpha=0.8,
-                markersize=6,
+                linewidth=CHART_LINEWIDTH,
+                alpha=0.9,
+                markersize=CHART_MARKERSIZE,
                 markerfacecolor=plot_color,
-                markeredgecolor=f"dark{color}" if color in ["blue", "green", "red"] else plot_color,
+                markeredgecolor=f"dark{color}" if color in {"blue", "green", "red"} else plot_color,
             )
-            # Add value labels only for non-zero values
-            for x_dt, y in zip(x_values, y_values, strict=False):
-                if y != 0:  # Only label non-zero points
-                    # Format label based on value type - remove unnecessary .0
-                    label_text = str(int(y)) if isinstance(y, int) or y == int(y) else f"{y:.1f}"
-
-                    # Add year in parentheses for Years period
-                    if period == "Years" and hasattr(x_dt, "year"):
-                        label_text += f" ({x_dt.year})"
-
-                    # Annotate using numerical x-value
-                    ax.annotate(
-                        label_text,
-                        (date2num(x_dt), y),  # Convert to num here for consistency
-                        textcoords="offset points",
-                        xytext=(0, 10),
-                        ha="center",
-                        **chart_annotation_style(),
-                    )
         else:
-            ax.plot(x_nums, y_values, color=plot_color, linestyle="-", linewidth=2, alpha=0.8)  # Use numerical x-values
+            ax.plot(x_nums, y_values, color=plot_color, linestyle="-", linewidth=CHART_LINEWIDTH, alpha=0.9)
 
-            # Always label the last point, even when there are many points
-            if x_values and y_values:
-                last_x_dt = x_values[-1]
-                last_y = y_values[-1]
+        if label_mode == "off" or not x_values or not y_values:
+            return
 
-                # Only label if the last point is non-zero
-                if last_y != 0:
-                    # Format label based on value type - remove unnecessary .0
-                    if isinstance(last_y, int) or last_y == int(last_y):
-                        label_text = str(int(last_y))
-                    else:
-                        label_text = f"{last_y:.1f}"
+        def _label_for_index(index: int) -> str:
+            y = y_values[index]
+            if y is None:
+                return ""
+            text = str(int(y)) if isinstance(y, int) or y == int(y) else f"{y:.1f}"
+            x_dt = x_values[index]
+            if period == "Years" and hasattr(x_dt, "year"):
+                text += f" ({x_dt.year})"
+            return text
 
-                    # Add year in parentheses for Years period
-                    if period == "Years" and hasattr(last_x_dt, "year"):
-                        label_text += f" ({last_x_dt.year})"
+        if label_mode == "all" and sparse:
+            for index, y in enumerate(y_values):
+                if y is None or y == 0:
+                    continue
+                ax.annotate(
+                    _label_for_index(index),
+                    (x_nums[index], y),
+                    textcoords="offset points",
+                    xytext=(0, 10),
+                    ha="center",
+                    **chart_annotation_style(),
+                )
+            return
 
-                    # Annotate using numerical x-value
-                    ax.annotate(
-                        label_text,
-                        (date2num(last_x_dt), last_y),  # Convert to num here for consistency
-                        textcoords="offset points",
-                        xytext=(0, 10),
-                        ha="center",
-                        **chart_annotation_style(),
-                    )
+        # Auto: extrema + last point (works for dense Food series without labeling every day).
+        from matplotlib.figure import Figure as MplFigure  # noqa: PLC0415
+
+        fig = figure if figure is not None else ax.figure
+        if not isinstance(fig, MplFigure):
+            return
+        annotate_chart_extrema_labels(
+            ax,
+            fig,
+            x_nums,
+            [float(y) if y is not None else float("nan") for y in y_values],
+            _label_for_index,
+            enabled=True,
+            config=ChartExtremaLabelsConfig(max_annotations=8 if sparse else 6, max_local_extrema_each=3),
+            point_color=plot_color,
+        )
 
     def _set_y_axis_limits(self, ax: Axes, y_values: list[float]) -> None:
         """Set Y-axis limits for clearer non-zero data visualization."""
@@ -508,6 +532,85 @@ class ChartOperationsBase:
         label = QLabel(text)
         label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(label)
+```
+
+</details>
+
+## 🔧 Function `install_chart_label_mode_combo`
+
+```python
+def install_chart_label_mode_combo(host: Any, layout: Any, *, replace_widget: Any | None = None, on_changed: Any | None = None, insert_index: int | None = None) -> Any
+```
+
+Add or reuse Labels Auto/All/Off combo on a chart toolbar layout.
+
+Returns the combo. Idempotent when `host.comboBox_chart_label_mode` exists.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def install_chart_label_mode_combo(
+    host: Any,
+    layout: Any,
+    *,
+    replace_widget: Any | None = None,
+    on_changed: Any | None = None,
+    insert_index: int | None = None,
+) -> Any:
+    from PySide6.QtWidgets import QComboBox, QLabel  # noqa: PLC0415
+
+    existing = getattr(host, "comboBox_chart_label_mode", None)
+    if existing is not None:
+        return existing
+
+    if replace_widget is not None:
+        replace_widget.hide()
+        index = layout.indexOf(replace_widget)
+    elif insert_index is not None:
+        index = insert_index
+    else:
+        index = -1
+
+    caption = QLabel("Labels")
+    combo = QComboBox()
+    combo.setObjectName("comboBox_chart_label_mode")
+    for mode, text in (("auto", "Auto"), ("all", "All"), ("off", "Off")):
+        combo.addItem(text, mode)
+    combo.setCurrentIndex(0)
+    if index >= 0:
+        layout.insertWidget(index, caption)
+        layout.insertWidget(index + 1, combo)
+    else:
+        layout.addWidget(caption)
+        layout.addWidget(combo)
+    host.comboBox_chart_label_mode = combo
+    if on_changed is not None:
+        combo.currentIndexChanged.connect(on_changed)
+    return combo
+```
+
+</details>
+
+## 🔧 Function `label_mode_from_combo`
+
+```python
+def label_mode_from_combo(host: Any) -> LabelMode
+```
+
+Read Auto / All / Off from `comboBox_chart_label_mode` on `host`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def label_mode_from_combo(host: Any) -> LabelMode:
+    combo = getattr(host, "comboBox_chart_label_mode", None)
+    if combo is not None:
+        data = combo.currentData()
+        if data in {"auto", "all", "off"}:
+            return data  # type: ignore[return-value]
+    return "auto"
 ```
 
 </details>

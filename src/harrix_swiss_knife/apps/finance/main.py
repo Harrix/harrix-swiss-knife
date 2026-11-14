@@ -82,7 +82,20 @@ from harrix_swiss_knife import (
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.app_entry import run_app_main
 from harrix_swiss_knife.apps.common.apps_config import get_apps_list_limits
-from harrix_swiss_knife.apps.common.chart_theme import themed_figure
+from harrix_swiss_knife.apps.common.chart_theme import (
+    CHART_LABEL_FONTSIZE,
+    CHART_LEGEND_FONTSIZE,
+    CHART_LINEWIDTH,
+    CHART_LINEWIDTH_EMPHASIS,
+    CHART_MARKERSIZE,
+    CHART_TITLE_FONTSIZE,
+    chart_danger_color,
+    chart_series_color,
+    chart_success_color,
+    choose_currency_axis_scale,
+    style_axes,
+    themed_figure,
+)
 from harrix_swiss_knife.apps.common.date_edit_quick import (
     attach_date_edit_quick_controls,
     match_control_heights,
@@ -281,6 +294,7 @@ from harrix_swiss_knife.qt_lucide_icon import (
 from harrix_swiss_knife.win11_caption import install_win11_caption, try_handle_win11_caption_native_event
 
 logger = logging.getLogger(__name__)
+_SPARSE_CHART_MARKER_LIMIT = 40
 
 # Debounce interval after transaction inserts before another silent AI translate pass.
 _BACKGROUND_TX_TRANSLATE_INTERVAL_MS = 1 * 60 * 1000
@@ -1575,12 +1589,14 @@ class MainWindow(
         self._average_salary_annual_check = annual_check
         self.verticalLayout_charts_content.addWidget(row, 0)
 
-    def _add_chart_canvas(self, fig: Figure) -> None:
+    def _add_chart_canvas(self, fig: Figure, *, stats_text: str = "") -> None:
         from harrix_swiss_knife.apps.common.chart_hover import create_chart_canvas  # noqa: PLC0415
 
         canvas = create_chart_canvas(fig)
         fig.tight_layout()
-        self.verticalLayout_charts_content.addWidget(canvas)
+        self.verticalLayout_charts_content.addWidget(canvas, stretch=1)
+        if stats_text:
+            self._add_stats_caption(self.verticalLayout_charts_content, stats_text)
         canvas.draw()
 
     def _add_record(
@@ -1788,6 +1804,28 @@ class MainWindow(
             apply_sizes = getattr(self, apply_name, None)
             if callable(apply_sizes):
                 apply_sizes()
+
+    def _apply_currency_axis_scale(
+        self,
+        ax: Any,
+        values: list[float],
+        currency_symbol: str,
+        axis_noun: str,
+    ) -> str:
+        """Label Y axis with k/mln when values are large; data stay unscaled."""
+        from matplotlib.ticker import FuncFormatter  # noqa: PLC0415
+
+        max_abs = max((abs(v) for v in values), default=0.0)
+        divisor, unit = choose_currency_axis_scale(max_abs)
+        if divisor == 1.0:
+            return f"{axis_noun} ({currency_symbol})"
+
+        def _fmt(value: float, _pos: int) -> str:
+            scaled = value / divisor
+            return f"{scaled:,.2f}".rstrip("0").rstrip(".")
+
+        ax.yaxis.set_major_formatter(FuncFormatter(_fmt))
+        return f"{axis_noun}, {unit} {currency_symbol}"
 
     def _apply_transactions_splitter_sizes(self) -> None:
         """Restore Transactions-tab splitter widths (persisted or defaults)."""
@@ -2109,6 +2147,7 @@ class MainWindow(
         self.dateEdit_chart_from.dateChanged.connect(self._update_finance_chart)
         self.dateEdit_chart_to.dateChanged.connect(self._update_finance_chart)
         self.checkBox_chart_show_labels.toggled.connect(self._update_finance_chart)
+        self._install_chart_label_mode_control()
         self.spinBox_compare_last.valueChanged.connect(self._update_finance_chart)
         self.comboBox_compare_same_months.currentIndexChanged.connect(self._update_finance_chart)
 
@@ -2393,15 +2432,15 @@ class MainWindow(
 
         ax.set_xticks(x_positions)
         ax.set_xticklabels(labels, rotation=45, ha="right")
-        ax.set_xlabel("Year", fontsize=12)
-        ax.set_ylabel(f"Amount ({currency_symbol})", fontsize=12)
+        ax.set_xlabel("Year", fontsize=CHART_LABEL_FONTSIZE)
+        ax.set_ylabel(f"Amount ({currency_symbol})", fontsize=CHART_LABEL_FONTSIZE)
         if year_start_month == 1 and year_start_day == 1:
             title = "Average Salary by Year"
         else:
             title = f"Average Salary by Year (from {year_start_day:02d}.{year_start_month:02d})"
-        ax.set_title(title, fontsize=14, fontweight="bold")
-        ax.grid(visible=True, axis="y", alpha=0.3)
-        ax.legend(loc="upper left", fontsize=9)
+        ax.set_title(title, fontsize=CHART_TITLE_FONTSIZE, fontweight="bold")
+        ax.legend(loc="upper left", fontsize=CHART_LEGEND_FONTSIZE)
+        self._finish_finance_axes(ax)
         for bars in bars_to_annotate:
             for bar in bars:
                 height = bar.get_height()
@@ -2429,7 +2468,16 @@ class MainWindow(
         x_values = [datetime.fromisoformat(date_str).replace(tzinfo=UTC) for date_str, _value in series]
         y_values = [value for _date_str, value in series]
         x_nums = self._chart_date_nums(x_values)
-        ax.plot(x_nums, y_values, color="steelblue", linewidth=2, marker="o", markersize=4)
+        color = chart_series_color(0)
+        sparse = len(y_values) <= _SPARSE_CHART_MARKER_LIMIT
+        ax.plot(
+            x_nums,
+            y_values,
+            color=color,
+            linewidth=CHART_LINEWIDTH,
+            marker="o" if sparse else None,
+            markersize=CHART_MARKERSIZE,
+        )
         self._annotate_balance_chart_extrema(
             ax,
             series,
@@ -2437,14 +2485,16 @@ class MainWindow(
             fig,
             period=period,
             currency_symbol=currency_symbol,
+            point_color=color,
         )
-        ax.set_xlabel("Period", fontsize=12)
-        ax.set_ylabel(f"Balance ({currency_symbol})", fontsize=12)
-        ax.set_title("Balance", fontsize=14, fontweight="bold")
-        ax.grid(visible=True, alpha=0.3)
+        ax.set_xlabel("Period", fontsize=CHART_LABEL_FONTSIZE)
+        y_label = self._apply_currency_axis_scale(ax, y_values, currency_symbol, "Balance")
+        ax.set_ylabel(y_label, fontsize=CHART_LABEL_FONTSIZE)
+        ax.set_title("Balance", fontsize=CHART_TITLE_FONTSIZE, fontweight="bold")
         self._format_chart_x_axis(ax, x_values, period)
-        self._add_finance_chart_stats_box(ax, y_values, currency_symbol)
-        self._add_chart_canvas(fig)
+        self._finish_finance_axes(ax)
+        stats = self._format_default_stats(y_values, currency_symbol) if len(y_values) > 1 else ""
+        self._add_chart_canvas(fig, stats_text=stats)
 
     def _draw_balance_compare_last_years_chart(
         self,
@@ -2510,7 +2560,7 @@ class MainWindow(
                 period="Months",
                 currency_symbol=currency_symbol,
                 linestyle="-",
-                linewidth=3,
+                linewidth=CHART_LINEWIDTH_EMPHASIS,
             )
 
         ax.set_xlim(1, max(max_period, 1))
@@ -2523,11 +2573,11 @@ class MainWindow(
             year_start_day=year_start_day,
         )
         ax.set_xticklabels([month_labels.get(tick, str(tick)) for tick in ticks], rotation=45, ha="right")
-        ax.set_xlabel("Month", fontsize=12)
-        ax.set_ylabel(f"Balance ({currency_symbol})", fontsize=12)
-        ax.set_title(chart_title, fontsize=14, fontweight="bold")
-        ax.grid(visible=True, alpha=0.3)
-        ax.legend(loc="best", fontsize=9)
+        ax.set_xlabel("Month", fontsize=CHART_LABEL_FONTSIZE)
+        ax.set_ylabel(f"Balance ({currency_symbol})", fontsize=CHART_LABEL_FONTSIZE)
+        ax.set_title(chart_title, fontsize=CHART_TITLE_FONTSIZE, fontweight="bold")
+        ax.legend(loc="best", fontsize=CHART_LEGEND_FONTSIZE)
+        self._finish_finance_axes(ax)
         self._add_chart_canvas(fig)
 
     def _draw_category_chart(
@@ -2538,24 +2588,6 @@ class MainWindow(
     ) -> None:
         fig = themed_figure(figsize=(12, 6), dpi=100)
         ax = fig.add_subplot(111)
-        color_palette = [
-            "blue",
-            "green",
-            "orange",
-            "purple",
-            "brown",
-            "pink",
-            "gray",
-            "olive",
-            "cyan",
-            "magenta",
-            "teal",
-            "navy",
-            "maroon",
-            "lime",
-            "indigo",
-            "coral",
-        ]
         x_values: list[datetime] = []
         x_nums: list[float] = []
         for index, (category_name, series) in enumerate(category_series.items()):
@@ -2565,14 +2597,15 @@ class MainWindow(
                 x_values = [datetime.fromisoformat(date_str).replace(tzinfo=UTC) for date_str, _value in series]
                 x_nums = self._chart_date_nums(x_values)
             y_values = [value for _date_str, value in series]
-            color = color_palette[index % len(color_palette)]
+            color = chart_series_color(index)
+            sparse = len(y_values) <= _SPARSE_CHART_MARKER_LIMIT
             ax.plot(
                 x_nums,
                 y_values,
                 color=color,
-                linewidth=2,
-                marker="o",
-                markersize=3,
+                linewidth=CHART_LINEWIDTH,
+                marker="o" if sparse else None,
+                markersize=CHART_MARKERSIZE,
                 label=category_name,
             )
             self._annotate_datetime_line_last_point(
@@ -2584,15 +2617,16 @@ class MainWindow(
                 currency_symbol=currency_symbol,
                 period=period,
             )
-        ax.set_xlabel("Period", fontsize=12)
-        ax.set_ylabel(f"Amount ({currency_symbol})", fontsize=12)
-        ax.set_title("Category", fontsize=14, fontweight="bold")
-        ax.grid(visible=True, alpha=0.3)
-        ax.legend(loc="upper left", fontsize=9)
+        ax.set_xlabel("Period", fontsize=CHART_LABEL_FONTSIZE)
+        ax.set_ylabel(f"Amount ({currency_symbol})", fontsize=CHART_LABEL_FONTSIZE)
+        ax.set_title("Category", fontsize=CHART_TITLE_FONTSIZE, fontweight="bold")
+        if len(category_series) > 1:
+            ax.legend(loc="upper left", fontsize=CHART_LEGEND_FONTSIZE)
         self._format_chart_x_axis(ax, x_values, period)
+        self._finish_finance_axes(ax)
         all_values: list[float] = [value for series in category_series.values() for _date_str, value in series]
-        self._add_finance_chart_stats_box(ax, all_values, currency_symbol)
-        self._add_chart_canvas(fig)
+        stats = self._format_default_stats(all_values, currency_symbol) if len(all_values) > 1 else ""
+        self._add_chart_canvas(fig, stats_text=stats)
 
     def _draw_compare_chart(
         self,
@@ -2695,9 +2729,10 @@ class MainWindow(
                 colors,
                 max_x_limit=max_days_in_all_periods or default_max_x,
             )
-            ax.set_xlabel(x_label, fontsize=12)
-            ax.set_ylabel(f"Cumulative Amount ({currency_symbol})", fontsize=12)
-            ax.set_title(chart_title, fontsize=14, fontweight="bold")
+            ax.set_xlabel(x_label, fontsize=CHART_LABEL_FONTSIZE)
+            ax.set_ylabel(f"Cumulative Amount ({currency_symbol})", fontsize=CHART_LABEL_FONTSIZE)
+            ax.set_title(chart_title, fontsize=CHART_TITLE_FONTSIZE, fontweight="bold")
+            self._finish_finance_axes(ax)
             self._add_chart_canvas(fig)
 
         if not rendered_any:
@@ -2720,7 +2755,17 @@ class MainWindow(
         x_nums = self._chart_date_nums(x_values)
         if expense_series is not None:
             expense_values = [value for _date_str, value in expense_series]
-            ax.plot(x_nums, expense_values, color="crimson", linewidth=2, marker="o", markersize=4, label="Expense")
+            expense_color = chart_danger_color()
+            sparse = len(expense_values) <= _SPARSE_CHART_MARKER_LIMIT
+            ax.plot(
+                x_nums,
+                expense_values,
+                color=expense_color,
+                linewidth=CHART_LINEWIDTH,
+                marker="o" if sparse else None,
+                markersize=CHART_MARKERSIZE,
+                label="Expense",
+            )
             self._annotate_balance_chart_extrema(
                 ax,
                 expense_series,
@@ -2728,11 +2773,21 @@ class MainWindow(
                 fig,
                 period=period,
                 currency_symbol=currency_symbol,
-                point_color="crimson",
+                point_color=expense_color,
             )
         if income_series is not None:
             income_values = [value for _date_str, value in income_series]
-            ax.plot(x_nums, income_values, color="forestgreen", linewidth=2, marker="o", markersize=4, label="Income")
+            income_color = chart_success_color()
+            sparse = len(income_values) <= _SPARSE_CHART_MARKER_LIMIT
+            ax.plot(
+                x_nums,
+                income_values,
+                color=income_color,
+                linewidth=CHART_LINEWIDTH,
+                marker="o" if sparse else None,
+                markersize=CHART_MARKERSIZE,
+                label="Income",
+            )
             self._annotate_balance_chart_extrema(
                 ax,
                 income_series,
@@ -2740,16 +2795,24 @@ class MainWindow(
                 fig,
                 period=period,
                 currency_symbol=currency_symbol,
-                point_color="forestgreen",
+                point_color=income_color,
             )
-        ax.set_xlabel("Period", fontsize=12)
-        ax.set_ylabel(f"Amount ({currency_symbol})", fontsize=12)
-        ax.set_title("Expense and Income", fontsize=14, fontweight="bold")
-        ax.grid(visible=True, alpha=0.3)
-        ax.legend(loc="upper left", fontsize=10)
+        ax.set_xlabel("Period", fontsize=CHART_LABEL_FONTSIZE)
+        ax.set_ylabel(f"Amount ({currency_symbol})", fontsize=CHART_LABEL_FONTSIZE)
+        ax.set_title("Expense and Income", fontsize=CHART_TITLE_FONTSIZE, fontweight="bold")
+        ax.legend(loc="upper left", fontsize=CHART_LEGEND_FONTSIZE)
         self._format_chart_x_axis(ax, x_values, period)
-        self._add_finance_expense_income_stats_box(ax, expense_series, income_series, currency_symbol)
-        self._add_chart_canvas(fig)
+        self._finish_finance_axes(ax)
+        parts: list[str] = []
+        if expense_series is not None:
+            expense_values = [value for _date_str, value in expense_series]
+            if len(expense_values) > 1:
+                parts.append(f"Expense — {self._format_default_stats(expense_values, currency_symbol)}")
+        if income_series is not None:
+            income_values = [value for _date_str, value in income_series]
+            if len(income_values) > 1:
+                parts.append(f"Income — {self._format_default_stats(income_values, currency_symbol)}")
+        self._add_chart_canvas(fig, stats_text="\n".join(parts))
 
     def _draw_expense_income_compare_last_years_chart(
         self,
@@ -2851,7 +2914,7 @@ class MainWindow(
                 period=period,
                 currency_symbol=currency_symbol,
                 linestyle="-",
-                linewidth=3,
+                linewidth=CHART_LINEWIDTH_EMPHASIS,
             )
 
         ax.set_xlim(1, max(max_period, 1))
@@ -2865,13 +2928,13 @@ class MainWindow(
                 year_start_day=year_start_day,
             )
             ax.set_xticklabels([month_labels.get(tick, str(tick)) for tick in ticks], rotation=45, ha="right")
-            ax.set_xlabel("Month", fontsize=12)
+            ax.set_xlabel("Month", fontsize=CHART_LABEL_FONTSIZE)
         else:
-            ax.set_xlabel(period, fontsize=12)
-        ax.set_ylabel(f"Amount ({currency_symbol})", fontsize=12)
-        ax.set_title(chart_title, fontsize=14, fontweight="bold")
-        ax.grid(visible=True, alpha=0.3)
-        ax.legend(loc="upper left", fontsize=9)
+            ax.set_xlabel(period, fontsize=CHART_LABEL_FONTSIZE)
+        ax.set_ylabel(f"Amount ({currency_symbol})", fontsize=CHART_LABEL_FONTSIZE)
+        ax.set_title(chart_title, fontsize=CHART_TITLE_FONTSIZE, fontweight="bold")
+        ax.legend(loc="upper left", fontsize=CHART_LEGEND_FONTSIZE)
+        self._finish_finance_axes(ax)
         self._add_chart_canvas(fig)
 
     def _exchange_id_from_table_index(self, index: QModelIndex) -> int | None:
@@ -2947,6 +3010,10 @@ class MainWindow(
         except (TypeError, ValueError):
             limit = 250
         return max(1, limit)
+
+    def _finish_finance_axes(self, ax: Any, *, horizontal_grid_only: bool = True) -> None:
+        """Apply shared Fluent chart chrome after titles/labels are set."""
+        style_axes(ax, horizontal_grid_only=horizontal_grid_only)
 
     def _finish_window_initialization(self) -> None:
         """Show the window only after the transactions columns match the final size."""
@@ -3257,6 +3324,20 @@ class MainWindow(
 
         # Setup exchange rates controls
         self._setup_exchange_rates_controls()
+
+    def _install_chart_label_mode_control(self) -> None:
+        """Replace Show labels checkbox with Auto / All / Off combo (default Auto)."""
+        from harrix_swiss_knife.apps.common.chart_operations import (  # noqa: PLC0415
+            install_chart_label_mode_combo,
+        )
+
+        checkbox = getattr(self, "checkBox_chart_show_labels", None)
+        install_chart_label_mode_combo(
+            self,
+            self.horizontalLayout_charts_controls_1,
+            replace_widget=checkbox,
+            on_changed=self._update_finance_chart,
+        )
 
     def _is_current_tab(self, object_name: str) -> bool:
         """Return whether the current tab widget has `object_name`."""
@@ -4581,7 +4662,7 @@ class MainWindow(
         period: str,
         currency_symbol: str,
         linestyle: str = "--",
-        linewidth: float = 2,
+        linewidth: float = CHART_LINEWIDTH,
     ) -> None:
         x_values = [period_index for period_index, _value, _bucket_end in series]
         y_values = [value for _period_index, value, _bucket_end in series]

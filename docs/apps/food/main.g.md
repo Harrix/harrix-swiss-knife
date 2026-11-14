@@ -4144,6 +4144,16 @@ class MainWindow(
         charts.insertWidget(3, self.pushButton_food_stats_macros_fat)
         charts.insertWidget(4, self.pushButton_food_stats_macros_carb)
 
+        from harrix_swiss_knife.apps.common.chart_operations import (  # noqa: PLC0415
+            install_chart_label_mode_combo,
+        )
+
+        install_chart_label_mode_combo(
+            self,
+            self.horizontalLayout_food_stats_period,
+            on_changed=self.on_food_stats_update,
+        )
+
     def _setup_open_photos_action(self) -> None:
         """Add Commands → Open photos (`path_photos` in the image viewer)."""
         menu = getattr(self, "menuCommands", None)
@@ -4868,14 +4878,15 @@ class MainWindow(
                 "title": f"Drinks Consumed ({period})",
                 "xlabel": "Date",
                 "ylabel": "Volume (liters)",
-                "color": "cyan",
+                "color": None,
                 "show_stats": True,
                 "stats_unit": "L",
                 "period": period,
                 "fill_zero_periods": False,
                 "date_from": date_from,
                 "date_to": date_to,
-                "is_calories_chart": False,  # Not calories chart
+                "is_calories_chart": False,
+                "label_mode": label_mode_from_combo(self),
             }
 
             # Create chart
@@ -4935,14 +4946,15 @@ class MainWindow(
                 "title": f"Calories Consumed ({period})",
                 "xlabel": "Date",
                 "ylabel": "Calories (kcal)",
-                "color": "blue",
+                "color": None,
                 "show_stats": True,
                 "stats_unit": "kcal",
                 "period": period,
                 "fill_zero_periods": False,
                 "date_from": date_from,
                 "date_to": date_to,
-                "is_calories_chart": True,  # Add this parameter
+                "is_calories_chart": True,
+                "label_mode": label_mode_from_combo(self),
             }
 
             # Create chart
@@ -5126,14 +5138,15 @@ class MainWindow(
                 "title": f"Food Weight Consumed (excluding drinks) ({period})",
                 "xlabel": "Date",
                 "ylabel": "Weight (kg)",
-                "color": "green",
+                "color": None,
                 "show_stats": True,
                 "stats_unit": "kg",
                 "period": period,
                 "fill_zero_periods": False,
                 "date_from": date_from,
                 "date_to": date_to,
-                "is_calories_chart": False,  # Not calories chart
+                "is_calories_chart": False,
+                "label_mode": label_mode_from_combo(self),
             }
 
             # Create chart
@@ -5263,6 +5276,7 @@ class MainWindow(
                 "date_from": date_from,
                 "date_to": date_to,
                 "is_calories_chart": False,
+                "label_mode": label_mode_from_combo(self),
             }
             layout = self.scrollAreaWidgetContents_food_stats.layout()
             if layout is not None:

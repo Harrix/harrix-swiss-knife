@@ -13,8 +13,12 @@ from typing import TYPE_CHECKING, Any
 from matplotlib.dates import date2num
 
 from harrix_swiss_knife.apps.common import message_box
-from harrix_swiss_knife.apps.common.chart_operations import ChartOperationsBase
-from harrix_swiss_knife.apps.common.chart_theme import chart_annotation_style
+from harrix_swiss_knife.apps.common.chart_extrema_labels import (
+    ChartExtremaLabelsConfig,
+    annotate_chart_extrema_labels,
+)
+from harrix_swiss_knife.apps.common.chart_operations import ChartOperationsBase, LabelMode
+from harrix_swiss_knife.apps.common.chart_theme import CHART_LINEWIDTH, chart_annotation_style
 from harrix_swiss_knife.apps.common.db_guard import requires_database
 from harrix_swiss_knife.apps.common.qt_mixins import (
     AutoSaveMixin,
@@ -29,6 +33,8 @@ from harrix_swiss_knife.apps.food.delegates import parse_is_drink_cell
 from harrix_swiss_knife.apps.food.food_log_calories import FOOD_LOG_COL_NAME_EN
 
 _STORED_FOOD_LOG_NAME_INDEX = 4
+_DENSE_MARKER_POINT_LIMIT = 60
+_ALL_LABELS_POINT_LIMIT = 40
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -193,6 +199,8 @@ class ChartOperations(ChartOperationsBase):
         period: str | None = None,
         *,
         is_calories_chart: bool = False,
+        label_mode: LabelMode = "auto",
+        figure: Any | None = None,
     ) -> None:
         """Plot data; calorie charts get zone lines and per-point colors."""
         segments = iter_nonempty_chart_segments(x_values, y_values, period)
@@ -208,50 +216,60 @@ class ChartOperations(ChartOperationsBase):
                     len(segment_y),
                     period,
                     is_calories_chart=False,
+                    label_mode=label_mode,
+                    figure=figure,
                 )
             return
 
+        thresholds = calorie_thresholds_from_config(getattr(self, "_app_config", None))
         if period not in {"Months", "Years"}:
-            thresholds = calorie_thresholds_from_config(getattr(self, "_app_config", None))
             ax.axhline(
                 y=thresholds.low,
                 color="green",
                 linestyle="--",
                 linewidth=1,
-                alpha=0.5,
+                alpha=0.55,
                 zorder=1,
-                label="Low calories limit",
+                label=f"Low ≤ {thresholds.low:g} kcal",
             )
             ax.axhline(
                 y=thresholds.medium_low,
                 color="orange",
                 linestyle="--",
                 linewidth=1,
-                alpha=0.5,
+                alpha=0.55,
                 zorder=1,
-                label="Medium-low calories limit",
+                label=f"Medium-low ≤ {thresholds.medium_low:g} kcal",
             )
             ax.axhline(
                 y=thresholds.medium_high,
                 color="red",
                 linestyle="--",
                 linewidth=1,
-                alpha=0.5,
+                alpha=0.55,
                 zorder=1,
-                label="Medium-high calories limit",
+                label=f"Medium-high ≤ {thresholds.medium_high:g} kcal",
             )
+            ax.legend(loc="upper left", fontsize=8, frameon=False)
 
         min_points_for_line = 2
         for segment_x, segment_y in segments:
             if len(segment_x) < min_points_for_line:
                 continue
-            ax.plot(date2num(segment_x), segment_y, color="gray", linestyle="-", linewidth=1, alpha=0.6, zorder=2)
+            ax.plot(
+                date2num(segment_x),
+                segment_y,
+                color="gray",
+                linestyle="-",
+                linewidth=CHART_LINEWIDTH,
+                alpha=0.6,
+                zorder=2,
+            )
 
         if not plotted_x:
             return
 
         point_colors: list[str] = []
-        thresholds = calorie_thresholds_from_config(getattr(self, "_app_config", None))
         for y in plotted_y:
             if y <= thresholds.low:
                 point_colors.append("#90EE90")
@@ -262,31 +280,58 @@ class ChartOperations(ChartOperationsBase):
             else:
                 point_colors.append("#FFC0CB")
 
+        marker_scale = 28 if len(plotted_x) > _DENSE_MARKER_POINT_LIMIT else 36
         ax.scatter(
             date2num(plotted_x),
             plotted_y,
             c=point_colors,
-            s=36,
+            s=marker_scale,
             zorder=3,
             edgecolors="gray",
             linewidths=0.5,
         )
 
-        maximum_count_points_for_labels = 100
-        if len(plotted_x) < maximum_count_points_for_labels:
-            for x_dt, y in zip(plotted_x, plotted_y, strict=False):
-                label_text = str(int(y)) if isinstance(y, int) or y == int(y) else f"{y:.1f}"
-                if period == "Years" and hasattr(x_dt, "year"):
-                    label_text += f" ({x_dt.year})"
+        if label_mode == "off":
+            return
+
+        x_nums = date2num(plotted_x)
+
+        def _label_for_index(index: int) -> str:
+            y = plotted_y[index]
+            text = str(int(y)) if isinstance(y, int) or y == int(y) else f"{y:.1f}"
+            x_dt = plotted_x[index]
+            if period == "Years" and hasattr(x_dt, "year"):
+                text += f" ({x_dt.year})"
+            return text
+
+        if label_mode == "all" and len(plotted_x) <= _ALL_LABELS_POINT_LIMIT:
+            for index, y in enumerate(plotted_y):
                 ax.annotate(
-                    label_text,
-                    (date2num(x_dt), y),
+                    _label_for_index(index),
+                    (x_nums[index], y),
                     textcoords="offset points",
                     xytext=(0, 10),
                     ha="center",
                     zorder=4,
                     **chart_annotation_style(),
                 )
+            return
+
+        from matplotlib.figure import Figure as MplFigure  # noqa: PLC0415
+
+        fig = figure if figure is not None else ax.figure
+        if not isinstance(fig, MplFigure):
+            return
+        annotate_chart_extrema_labels(
+            ax,
+            fig,
+            list(x_nums),
+            [float(y) for y in plotted_y],
+            _label_for_index,
+            enabled=True,
+            config=ChartExtremaLabelsConfig(max_annotations=6, max_local_extrema_each=2),
+            point_color="gray",
+        )
 
 
 class DateOperations(DateMixin):

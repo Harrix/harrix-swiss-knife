@@ -336,8 +336,16 @@ def _polish_all_tabs(host: Any) -> None:
 
 
 def _polish_charts(host: Any) -> None:
-    host.groupBox_type_of_charts.setTitle("Chart type")
+    host.groupBox_type_of_charts.setTitle("Chart")
     quiet_group_box(host.groupBox_type_of_charts)
+    for name, text in (
+        ("pushButton_chart_last_month", "Last month"),
+        ("pushButton_chart_last_year", "Last year"),
+        ("pushButton_chart_all_time", "All time"),
+    ):
+        button = getattr(host, name, None)
+        if button is not None:
+            button.setText(text)
     host.verticalLayout_24.setSpacing(SPACE_S)
     host.verticalLayout_24.setContentsMargins(SPACE_S, SPACE_S, SPACE_S, SPACE_S)
     if isinstance(host.label_3, QLabel):
