@@ -1317,6 +1317,11 @@ class ScreenshotPreviewWindow(QMainWindow):
                     ShortcutHelpEntry("Ctrl+wheel", "Zoom the canvas", "View"),
                     ShortcutHelpEntry("Middle-drag", "Pan the canvas", "View"),
                     ShortcutHelpEntry("Ctrl+drag", "Pan the canvas", "View"),
+                    ShortcutHelpEntry(
+                        "Expand canvas to view",
+                        "Grow the image to the visible area with white fill",
+                        "View",
+                    ),
                     ShortcutHelpEntry("F1", "Show this keyboard shortcuts help", "Help"),
                 ],
             ),

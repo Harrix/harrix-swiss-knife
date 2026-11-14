@@ -541,6 +541,52 @@ def test_double_click_restores_large_image_without_upscaling(qapp: QApplication)
     canvas.close()
 
 
+def test_expand_canvas_to_view_pads_with_white(qapp: QApplication) -> None:  # noqa: ARG001
+    """Context-menu expand grows a small image to cover the visible canvas."""
+    image = QImage(40, 20, QImage.Format.Format_RGB32)
+    image.fill(QColor(12, 34, 56))
+    canvas = ScreenshotPreviewCanvas(image)
+    canvas.resize(400, 300)
+    document = AnnotationDocument(image)
+    canvas.set_document(document)
+    before = document.base_image.size()
+    assert canvas.expand_canvas_to_view()
+    after = document.base_image
+    assert after.width() > before.width()
+    assert after.height() > before.height()
+    assert after.pixelColor(0, 0) == QColor(255, 255, 255)
+    # Original pixels survive somewhere inside the expanded canvas.
+    found_original = False
+    for y in range(after.height()):
+        for x in range(after.width()):
+            if after.pixelColor(x, y) == QColor(12, 34, 56):
+                found_original = True
+                break
+        if found_original:
+            break
+    assert found_original
+    canvas.close()
+
+
+def test_confirm_crop_can_expand_canvas_with_white(qapp: QApplication) -> None:  # noqa: ARG001
+    """Crop OK accepts a frame larger than the image and pads with white."""
+    image = QImage(40, 20, QImage.Format.Format_RGB32)
+    image.fill(QColor(7, 8, 9))
+    canvas = ScreenshotPreviewCanvas(image)
+    canvas.resize(400, 300)
+    document = AnnotationDocument(image)
+    canvas.set_document(document)
+    canvas.set_tool(AnnotationTool.CROP)
+    canvas._crop_rect = QRect(-20, -10, 80, 50)
+    canvas._crop_pending = True
+    assert canvas.confirm_crop()
+    assert document.base_image.width() == 80
+    assert document.base_image.height() == 50
+    assert document.base_image.pixelColor(0, 0) == QColor(255, 255, 255)
+    assert document.base_image.pixelColor(20, 10) == QColor(7, 8, 9)
+    canvas.close()
+
+
 def test_ctrl_left_drag_pans_the_canvas(qapp: QApplication) -> None:  # noqa: ARG001
     """Ctrl+left-drag moves the screenshot like middle-button pan."""
     image = QImage(40, 20, QImage.Format.Format_RGB32)

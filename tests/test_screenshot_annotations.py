@@ -199,6 +199,20 @@ def test_crop_resets_annotations() -> None:
     assert len(doc.annotations) == 1
 
 
+def test_crop_can_expand_with_white_fill() -> None:
+    """A crop frame past the image edges grows the canvas and pads with white."""
+    image = QImage(40, 20, QImage.Format.Format_RGB32)
+    image.fill(QColor(10, 20, 30))
+    doc = AnnotationDocument(image)
+    assert doc.apply_crop(QRectF(-10, -5, 60, 40))
+    assert doc.base_image.width() == 60
+    assert doc.base_image.height() == 40
+    assert doc.base_image.pixelColor(0, 0) == QColor(255, 255, 255)
+    assert doc.base_image.pixelColor(10, 5) == QColor(10, 20, 30)
+    assert doc.base_image.pixelColor(49, 24) == QColor(10, 20, 30)
+    assert doc.base_image.pixelColor(59, 39) == QColor(255, 255, 255)
+
+
 def test_text_requires_non_empty() -> None:
     doc = AnnotationDocument(_blank())
     doc.begin_draft(Annotation(tool=AnnotationTool.TEXT, points=[QPointF(5, 5)], text="  ", style=AnnotationStyle()))
