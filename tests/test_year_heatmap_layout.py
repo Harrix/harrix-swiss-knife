@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import date
 
-from PySide6.QtWidgets import QApplication, QSplitter, QWidget
+from PySide6.QtWidgets import QApplication, QComboBox, QListView, QSplitter, QWidget
 
 from harrix_swiss_knife.apps.common.chart_theme import quantile_intensity_ranges
 from harrix_swiss_knife.apps.common.chart_timeline import TimelineBar, build_timeline_figure
@@ -131,4 +131,7 @@ def test_ticktick_heatmap_page_puts_tasks_in_a_side_column() -> None:
     assert day_panel.maximumWidth() == 420
     assert splitter.indexOf(day_panel) >= 0
     assert widget.findChild(QWidget, "ticktickHeatmapTitle") is not None
+    project_list = widget.findChild(QListView, "listView_ticktick_projects")
+    assert project_list is not None
+    assert filters.findChild(QComboBox) is None
     widget.close()

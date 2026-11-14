@@ -6,15 +6,16 @@ import calendar
 from datetime import date, datetime
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QFont, QResizeEvent
+from PySide6.QtCore import QItemSelectionModel, Qt, QTimer
+from PySide6.QtGui import QFont, QResizeEvent, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import (
-    QComboBox,
+    QAbstractItemView,
     QDialog,
     QFrame,
     QGroupBox,
     QHBoxLayout,
     QLabel,
+    QListView,
     QPushButton,
     QRadioButton,
     QScrollArea,
@@ -42,7 +43,7 @@ from harrix_swiss_knife.apps.common.chart_theme import (
     quantile_intensity_ranges,
 )
 from harrix_swiss_knife.apps.common.chart_timeline import TimelineBar, bar_at_x, build_timeline_figure, calendar_days
-from harrix_swiss_knife.apps.common.chart_widgets import CHARTS_FILTER_MIN_WIDTH
+from harrix_swiss_knife.apps.common.chart_widgets import CHARTS_FILTER_MIN_WIDTH, apply_chart_list_chrome
 from harrix_swiss_knife.apps.common.ui_chrome import muted_caption_qss
 from harrix_swiss_knife.apps.common.year_heatmap import YearHeatmap
 from harrix_swiss_knife.apps.habits.ticktick_local_db import (
@@ -119,7 +120,18 @@ class TickTickTaskStatsWidget(QWidget):
         self._time_canvas: QWidget | None = None
         self._chart_canvas: QWidget | None = None
 
-        self._project_combo = QComboBox()
+        self._project_model = QStandardItemModel(self)
+        self._project_list = QListView()
+        self._project_list.setObjectName("listView_ticktick_projects")
+        self._project_list.setModel(self._project_model)
+        self._project_list.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self._project_list.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self._project_list.setUniformItemSizes(True)
+        self._project_list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self._project_list.setVerticalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)
+        self._project_list.setTextElideMode(Qt.TextElideMode.ElideRight)
+        self._project_list.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        apply_chart_list_chrome(self._project_list)
         self._metrics = MetricStrip()
         self._heatmap_title = QLabel("Completed tasks")
         self._heatmap_title.setObjectName("ticktickHeatmapTitle")
@@ -203,8 +215,7 @@ class TickTickTaskStatsWidget(QWidget):
         list_caption = QLabel("List")
         list_caption.setStyleSheet(muted_caption_qss())
         left_layout.addWidget(list_caption)
-        left_layout.addWidget(self._project_combo)
-        left_layout.addStretch(1)
+        left_layout.addWidget(self._project_list, stretch=1)
         self._db_button = QPushButton("Database")
         self._db_button.setFlat(True)
         self._db_button.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -244,7 +255,7 @@ class TickTickTaskStatsWidget(QWidget):
         self._resize_timer.setInterval(120)
         self._resize_timer.timeout.connect(self._redraw_timeline)
 
-        self._project_combo.currentIndexChanged.connect(self._on_filters_changed)
+        self._project_list.selectionModel().selectionChanged.connect(self._on_project_selection_changed)
         self._heatmap.day_clicked.connect(self._on_heatmap_day)
         bind_theme(self, self._on_theme_changed)
         self._sync_mode_controls()
@@ -269,9 +280,7 @@ class TickTickTaskStatsWidget(QWidget):
             self._db_button.setToolTip("")
             self._clear_chart(str(exc))
             self._show_span_message("TickTick database is not available.")
-            self._project_combo.blockSignals(True)  # noqa: FBT003
-            self._project_combo.clear()
-            self._project_combo.blockSignals(False)  # noqa: FBT003
+            self._project_model.clear()
             return
         self._projects = projects
         self._completions = completions
@@ -546,16 +555,33 @@ class TickTickTaskStatsWidget(QWidget):
                 widget.hide()
                 widget.deleteLater()
 
+    def _on_project_selection_changed(self, *_args: object) -> None:
+        self._on_filters_changed()
+
     def _repopulate_filters(self) -> None:
-        self._project_combo.blockSignals(True)  # noqa: FBT003
-        current_project = self._project_combo.currentData()
-        self._project_combo.clear()
-        self._project_combo.addItem("All lists", _ALL_PROJECTS)
-        for project in self._projects:
-            self._project_combo.addItem(project.name, project.id)
-        project_index = self._project_combo.findData(current_project)
-        self._project_combo.setCurrentIndex(max(project_index, 0))
-        self._project_combo.blockSignals(False)  # noqa: FBT003
+        current_project = self._selected_project_id()
+        selection = self._project_list.selectionModel()
+        if selection is not None:
+            selection.blockSignals(True)  # noqa: FBT003
+        self._project_model.clear()
+        all_item = QStandardItem("All lists")
+        all_item.setData(_ALL_PROJECTS, Qt.ItemDataRole.UserRole)
+        all_item.setEditable(False)
+        self._project_model.appendRow(all_item)
+        selected_row = 0
+        for index, project in enumerate(self._projects, start=1):
+            item = QStandardItem(project.name)
+            item.setData(project.id, Qt.ItemDataRole.UserRole)
+            item.setEditable(False)
+            item.setToolTip(project.name)
+            self._project_model.appendRow(item)
+            if current_project is not None and project.id == current_project:
+                selected_row = index
+        target = self._project_model.index(selected_row, 0)
+        self._project_list.setCurrentIndex(target)
+        if selection is not None:
+            selection.select(target, QItemSelectionModel.SelectionFlag.ClearAndSelect)
+            selection.blockSignals(False)  # noqa: FBT003
 
         years = available_years(self._completions)
         choices: list[tuple[str, object]] = [(LAST_365_DAYS_LABEL, None)]
@@ -575,7 +601,10 @@ class TickTickTaskStatsWidget(QWidget):
         return rows
 
     def _selected_project_id(self) -> str | None:
-        data = self._project_combo.currentData()
+        index = self._project_list.currentIndex()
+        if not index.isValid():
+            return None
+        data = index.data(Qt.ItemDataRole.UserRole)
         if data is None or data == _ALL_PROJECTS:
             return None
         return str(data)
