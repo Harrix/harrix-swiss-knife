@@ -91,11 +91,12 @@ _annotation_clipboard: list[Annotation] = []
 
 
 class ScreenshotPreviewCanvas(QWidget):
-    """Show an image fitted with aspect ratio; Ctrl+wheel and Ctrl++ / Ctrl+- zoom; middle-drag pans.
+    """Show an image fitted with aspect ratio; Ctrl+wheel and Ctrl++ / Ctrl+- zoom.
 
-    Left-drag draws with the active `AnnotationTool` when a document is attached.
-    Crop mode uses the same dimmed blue selection frame as region capture.
-    Right-click opens annotation edit commands (undo, cut/copy/paste, layer order).
+    Middle-drag or Ctrl+left-drag pans the screenshot on the canvas. Left-drag
+    draws with the active `AnnotationTool` when a document is attached. Crop
+    mode uses the same dimmed blue selection frame as region capture. Right-click
+    opens annotation edit commands (undo, cut/copy/paste, layer order).
     Double-click on the image in the view tool returns a zoomed image to that
     opening size; at the opening size, a small image is fitted into the view.
     Double-click in the empty margin beside the image pans it to the matching
@@ -552,10 +553,10 @@ class ScreenshotPreviewCanvas(QWidget):
 
     def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         """Start panning, select/edit a shape, or begin a draft annotation / crop."""
-        if event.button() == Qt.MouseButton.MiddleButton:
-            self._pan_start = event.position()
-            self._pan_origin = QPointF(self._offset)
-            self.setCursor(Qt.CursorShape.ClosedHandCursor)
+        if event.button() == Qt.MouseButton.MiddleButton or (
+            event.button() == Qt.MouseButton.LeftButton and _ctrl_pressed(event.modifiers())
+        ):
+            self._begin_pan(event.position())
             event.accept()
             return
         if event.button() == Qt.MouseButton.LeftButton and self._tool == AnnotationTool.CROP:
@@ -625,9 +626,11 @@ class ScreenshotPreviewCanvas(QWidget):
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         """End panning, finish a shape edit, or commit the draft annotation / crop drag."""
-        if event.button() == Qt.MouseButton.MiddleButton and self._pan_start is not None:
-            self._pan_start = None
-            self.set_tool(self._tool)
+        if self._pan_start is not None and event.button() in {
+            Qt.MouseButton.MiddleButton,
+            Qt.MouseButton.LeftButton,
+        }:
+            self._end_pan()
             event.accept()
             return
         if event.button() == Qt.MouseButton.LeftButton and self._tool == AnnotationTool.CROP:
@@ -1148,6 +1151,24 @@ class ScreenshotPreviewCanvas(QWidget):
                 text=text,
             )
         )
+
+    def _begin_pan(self, position: QPointF) -> None:
+        """Start a canvas pan from `position` (middle-drag or Ctrl+left-drag)."""
+        if self._text_edit_active:
+            self.commit_text_edit()
+        self._clear_edit_state()
+        self._draw_start = None
+        self._draw_current = None
+        if self._document is not None:
+            self._document.cancel_draft()
+        self._pan_start = QPointF(position)
+        self._pan_origin = QPointF(self._offset)
+        self.setCursor(Qt.CursorShape.ClosedHandCursor)
+
+    def _end_pan(self) -> None:
+        """Stop an active canvas pan and restore the tool cursor."""
+        self._pan_start = None
+        self.set_tool(self._tool)
 
     def _clear_crop_state(self) -> None:
         self._crop_pending = False
@@ -1827,6 +1848,11 @@ def _offset_annotation(annotation: Annotation, dx: float, dy: float) -> Annotati
     shifted = clone_annotation(annotation)
     shifted.points = [QPointF(point.x() + dx, point.y() + dy) for point in shifted.points]
     return shifted
+
+
+def _ctrl_pressed(modifiers: Qt.KeyboardModifier) -> bool:
+    """Return whether Ctrl is in `modifiers`."""
+    return bool(modifiers & Qt.KeyboardModifier.ControlModifier)
 
 
 def _shift_pressed(modifiers: Qt.KeyboardModifier) -> bool:

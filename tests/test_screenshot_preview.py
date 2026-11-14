@@ -541,6 +541,56 @@ def test_double_click_restores_large_image_without_upscaling(qapp: QApplication)
     canvas.close()
 
 
+def test_ctrl_left_drag_pans_the_canvas(qapp: QApplication) -> None:  # noqa: ARG001
+    """Ctrl+left-drag moves the screenshot like middle-button pan."""
+    image = QImage(40, 20, QImage.Format.Format_RGB32)
+    image.fill(Qt.GlobalColor.red)
+    canvas = ScreenshotPreviewCanvas(image)
+    canvas.resize(400, 300)
+    document = AnnotationDocument(image)
+    canvas.set_document(document)
+    canvas.set_tool(AnnotationTool.RECTANGLE)
+    before = QPointF(canvas._offset)
+    start = QPointF(200, 150)
+    end = QPointF(260, 190)
+    canvas.mousePressEvent(
+        QMouseEvent(
+            QMouseEvent.Type.MouseButtonPress,
+            start,
+            canvas.mapToGlobal(start.toPoint()),
+            Qt.MouseButton.LeftButton,
+            Qt.MouseButton.LeftButton,
+            Qt.KeyboardModifier.ControlModifier,
+        )
+    )
+    canvas.mouseMoveEvent(
+        QMouseEvent(
+            QMouseEvent.Type.MouseMove,
+            end,
+            canvas.mapToGlobal(end.toPoint()),
+            Qt.MouseButton.NoButton,
+            Qt.MouseButton.LeftButton,
+            Qt.KeyboardModifier.ControlModifier,
+        )
+    )
+    canvas.mouseReleaseEvent(
+        QMouseEvent(
+            QMouseEvent.Type.MouseButtonRelease,
+            end,
+            canvas.mapToGlobal(end.toPoint()),
+            Qt.MouseButton.LeftButton,
+            Qt.MouseButton.NoButton,
+            Qt.KeyboardModifier.ControlModifier,
+        )
+    )
+    assert canvas._offset.x() == pytest.approx(before.x() + 60.0)
+    assert canvas._offset.y() == pytest.approx(before.y() + 40.0)
+    assert canvas._pan_start is None
+    assert document.draft is None
+    assert document.annotations == []
+    canvas.close()
+
+
 def test_double_click_empty_margin_aligns_image_to_edge(qapp: QApplication) -> None:  # noqa: ARG001
     image = QImage(40, 20, QImage.Format.Format_RGB32)
     image.fill(Qt.GlobalColor.red)

@@ -1316,6 +1316,7 @@ class ScreenshotPreviewWindow(QMainWindow):
                     ShortcutHelpEntry("Shift (while drawing)", "Constrain shapes / angles", "Tools"),
                     ShortcutHelpEntry("Ctrl+wheel", "Zoom the canvas", "View"),
                     ShortcutHelpEntry("Middle-drag", "Pan the canvas", "View"),
+                    ShortcutHelpEntry("Ctrl+drag", "Pan the canvas", "View"),
                     ShortcutHelpEntry("F1", "Show this keyboard shortcuts help", "Help"),
                 ],
             ),
