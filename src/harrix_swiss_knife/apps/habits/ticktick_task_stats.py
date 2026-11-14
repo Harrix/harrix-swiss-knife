@@ -27,6 +27,7 @@ from harrix_swiss_knife.apps.common.chart_theme import (
     chart_series_color,
     chart_success_color,
     current_chart_theme,
+    finish_chart_layout,
     intensity_bin_label,
     intensity_bin_ranges,
     map_value_to_intensity_bin,
@@ -175,7 +176,7 @@ def build_compare_months_chart(
     if not plotted:
         ax.set_title(title)
         ax.text(0.5, 0.5, "No completed tasks", ha="center", va="center", transform=ax.transAxes)
-        figure.tight_layout()
+        finish_chart_layout(figure)
         return figure
 
     current: TickTickMonthSeries | None = None
@@ -196,7 +197,7 @@ def build_compare_months_chart(
     ax.set_title(title)
     ax.grid(visible=True, alpha=0.3)
     ax.legend(loc="upper left", fontsize=9)
-    figure.tight_layout()
+    finish_chart_layout(figure)
     return figure
 
 
@@ -329,7 +330,7 @@ def build_month_counts_chart(
     if not month_counts:
         ax.set_title("Completed tasks by month")
         ax.text(0.5, 0.5, "No completed tasks", ha="center", va="center", transform=ax.transAxes)
-        figure.tight_layout()
+        finish_chart_layout(figure)
         return figure
     labels = [start.strftime("%b %Y") for start, _count in month_counts]
     values = [count for _start, count in month_counts]
@@ -341,7 +342,7 @@ def build_month_counts_chart(
     ax.set_title(f"Completed tasks by month (last {len(month_counts)})")
     style_axes(ax)
     _annotate_bars(ax, bars)
-    figure.tight_layout()
+    finish_chart_layout(figure)
     return figure
 
 
@@ -357,7 +358,7 @@ def build_year_counts_chart(
     if not year_counts:
         ax.set_title("Completed tasks by year")
         ax.text(0.5, 0.5, "No completed tasks", ha="center", va="center", transform=ax.transAxes)
-        figure.tight_layout()
+        finish_chart_layout(figure)
         return figure
     labels = [str(year) for year, _count in year_counts]
     values = [count for _year, count in year_counts]
@@ -370,7 +371,7 @@ def build_year_counts_chart(
     ax.set_title("Completed tasks by year")
     style_axes(ax)
     _annotate_bars(ax, bars)
-    figure.tight_layout()
+    finish_chart_layout(figure)
     return figure
 
 

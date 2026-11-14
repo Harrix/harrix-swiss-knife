@@ -96,6 +96,7 @@ from harrix_swiss_knife.apps.common.chart_theme import (
     chart_series_color,
     chart_success_color,
     choose_currency_axis_scale,
+    finish_chart_layout,
     style_axes,
     themed_figure,
 )
@@ -1612,7 +1613,7 @@ class MainWindow(
         from harrix_swiss_knife.apps.common.chart_hover import create_chart_canvas  # noqa: PLC0415
 
         canvas = create_chart_canvas(fig)
-        fig.tight_layout()
+        finish_chart_layout(fig)
         self.verticalLayout_charts_content.addWidget(canvas, stretch=1)
         if stats_text:
             self._add_stats_caption(self.verticalLayout_charts_content, stats_text)
@@ -2463,7 +2464,7 @@ class MainWindow(
                     va="bottom",
                     fontsize=8,
                 )
-        fig.tight_layout()
+        finish_chart_layout(fig)
         self._add_chart_canvas(fig)
         self._add_average_salary_series_controls()
 

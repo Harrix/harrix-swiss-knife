@@ -18,6 +18,7 @@ from harrix_swiss_knife.apps.common.chart_theme import (
     chart_ink,
     chart_label_face,
     current_chart_theme,
+    finish_chart_layout,
     themed_figure,
 )
 from harrix_swiss_knife.fluent.theme import FluentTheme, ThemeMode
@@ -62,6 +63,22 @@ def test_dark_chart_label_face_differs_from_axes_surface(qapp: QApplication) -> 
     finally:
         theme.set_mode(previous, persist=False)
         apply_chart_theme()
+
+
+def test_finish_chart_layout_keeps_constrained_engine(qapp: QApplication) -> None:
+    """Themed figures stay on constrained layout instead of switching to tight."""
+    assert qapp is not None
+    import warnings
+
+    fig = themed_figure(figsize=(4, 3), dpi=100)
+    fig.add_subplot(111).plot([1, 2], [1, 2])
+    apply_theme(fig)
+    engine_before = type(fig.get_layout_engine()).__name__
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        finish_chart_layout(fig)
+    assert type(fig.get_layout_engine()).__name__ == engine_before
+    assert not any("layout has changed to tight" in str(item.message) for item in caught)
 
 
 def test_shared_series_palette_matches_fitness_soft_colors(qapp: QApplication) -> None:

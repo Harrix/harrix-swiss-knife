@@ -235,6 +235,22 @@ def apply_theme(fig: Figure, ax: Axes | None = None) -> None:
             fig.set_layout_engine("constrained")
 
 
+def finish_chart_layout(figure: Figure) -> None:
+    """Pack axes without replacing an existing constrained layout engine.
+
+    `apply_theme` enables constrained layout. Calling `Figure.tight_layout`
+    afterward switches the engine and emits Matplotlib's "layout has changed
+    to tight" warning. Prefer this helper at the end of chart builders.
+
+    """
+    engine = figure.get_layout_engine()
+    engine_name = type(engine).__name__.casefold() if engine is not None else ""
+    if "constrained" in engine_name:
+        return
+    with contextlib.suppress(Exception):
+        figure.tight_layout()
+
+
 def chart_annotation_style(*, fontsize: int | None = None) -> dict[str, Any]:
     """Return kwargs for opaque value labels on a themed chart."""
     return {

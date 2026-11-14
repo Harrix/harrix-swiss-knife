@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import contextlib
 from collections.abc import Callable
 from datetime import date, datetime
 from typing import TYPE_CHECKING, Any
@@ -18,7 +17,12 @@ from PySide6.QtGui import QColor, QCursor, QPainter, QPaintEvent, QPen, QResizeE
 from PySide6.QtWidgets import QSizePolicy, QToolTip
 
 from harrix_swiss_knife.apps.common.chart_format import NO_CHART_DATA, fmt_date, fmt_number
-from harrix_swiss_knife.apps.common.chart_theme import apply_theme, chart_muted_ink, register_chart_canvas
+from harrix_swiss_knife.apps.common.chart_theme import (
+    apply_theme,
+    chart_muted_ink,
+    finish_chart_layout,
+    register_chart_canvas,
+)
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
@@ -92,11 +96,7 @@ class ExpandingChartCanvas(FigureCanvas):
         height = max(self.height(), _MIN_CANVAS_PX)
         dpi = float(self.figure.dpi) if self.figure.dpi else 100.0
         self.figure.set_size_inches(width / dpi, height / dpi, forward=False)
-        engine = self.figure.get_layout_engine()
-        engine_name = type(engine).__name__.lower() if engine is not None else ""
-        if "constrained" not in engine_name:
-            with contextlib.suppress(Exception):
-                self.figure.tight_layout()
+        finish_chart_layout(self.figure)
         self.draw_idle()
 
 

@@ -58,6 +58,7 @@ from harrix_swiss_knife.apps.common.chart_theme import (
     chart_annotation_style,
     chart_label_face,
     chart_series_color,
+    finish_chart_layout,
     style_axes,
     themed_figure,
 )
@@ -226,7 +227,7 @@ class ChartOperationsBase:
                 else:
                     stats_text = self._format_default_stats(non_zero_values, chart_config.get("stats_unit", ""))
 
-        fig.tight_layout()
+        finish_chart_layout(fig)
         layout.addWidget(canvas)
         set_stretch = getattr(layout, "setStretch", None)
         if callable(set_stretch):
