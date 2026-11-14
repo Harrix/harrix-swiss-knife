@@ -45,7 +45,8 @@ from harrix_swiss_knife.apps.common.chart_theme import (
 from harrix_swiss_knife.apps.common.chart_timeline import TimelineBar, bar_at_x, build_timeline_figure, calendar_days
 from harrix_swiss_knife.apps.common.chart_widgets import CHARTS_FILTER_MIN_WIDTH, apply_chart_list_chrome
 from harrix_swiss_knife.apps.common.ui_chrome import muted_caption_qss
-from harrix_swiss_knife.apps.common.year_heatmap import YearHeatmap
+from harrix_swiss_knife.apps.common.calendar_heatmap import heatmap_year_bands
+from harrix_swiss_knife.apps.common.year_heatmap import YearHeatmap, YearHeatmapStack
 from harrix_swiss_knife.apps.habits.ticktick_local_db import (
     TickTickCompletion,
     TickTickDbError,
@@ -53,6 +54,7 @@ from harrix_swiss_knife.apps.habits.ticktick_local_db import (
     load_ticktick_snapshot,
 )
 from harrix_swiss_knife.apps.habits.ticktick_task_stats import (
+    ALL_YEARS_LABEL,
     CHART_MODE_BY_MONTH,
     CHART_MODE_BY_YEAR,
     CHART_MODE_COMPARE_LAST,
@@ -139,6 +141,8 @@ class TickTickTaskStatsWidget(QWidget):
         title_font.setBold(True)
         self._heatmap_title.setFont(title_font)
         self._heatmap = YearHeatmap()
+        self._year_stack = YearHeatmapStack()
+        self._year_stack.hide()
         self._time_host = QWidget()
         self._time_layout = QVBoxLayout(self._time_host)
         self._time_layout.setContentsMargins(0, 0, 0, 0)
@@ -184,6 +188,7 @@ class TickTickTaskStatsWidget(QWidget):
         self._center_layout.setSpacing(8)
         self._center_layout.addWidget(self._heatmap_title, 0)
         self._center_layout.addWidget(self._heatmap, 0)
+        self._center_layout.addWidget(self._year_stack, 1)
         self._center_layout.addWidget(self._time_host, 1)
         self._center_layout.addWidget(self._chart_host, 1)
 
@@ -257,6 +262,7 @@ class TickTickTaskStatsWidget(QWidget):
 
         self._project_list.selectionModel().selectionChanged.connect(self._on_project_selection_changed)
         self._heatmap.day_clicked.connect(self._on_heatmap_day)
+        self._year_stack.day_clicked.connect(self._on_heatmap_day)
         bind_theme(self, self._on_theme_changed)
         self._sync_mode_controls()
         if autoload:
@@ -402,9 +408,12 @@ class TickTickTaskStatsWidget(QWidget):
             return
         self._selected_start = day
         self._selected_end = day
-        self._heatmap.set_selected({day})
+        selected = {day}
+        self._heatmap.set_selected(selected)
+        self._year_stack.set_selected(selected)
         self._show_span(day, day)
-        self._redraw_timeline()
+        if not self._selected_all_years():
+            self._redraw_timeline()
 
     def _on_next_year(self) -> None:
         self._step_year(1)
@@ -497,12 +506,54 @@ class TickTickTaskStatsWidget(QWidget):
         self._show_figure(build_compare_months_chart(series, title=title, figsize=self._figure_size(self._chart_host)))
 
     def _redraw_heatmap(self, project_id: str | None) -> None:
+        today = datetime.now().astimezone().date()
+        if self._selected_all_years():
+            scoped = self._completions
+            if project_id is not None:
+                scoped = [item for item in self._completions if item.project_id == project_id]
+            bands = heatmap_year_bands(available_years(scoped, today_year=today.year), today=today)
+            if not bands:
+                self._stats = None
+                self._metrics.hide()
+                self._clear_timeline()
+                self._heatmap.hide()
+                self._year_stack.hide()
+                self._time_host.hide()
+                self._show_span_message("No completed tasks in this period.")
+                self._sync_year_nav_buttons()
+                return
+            start_date = bands[-1][1]
+            end_date = bands[0][2]
+            self._stats = aggregate_completions(self._completions, start_date, end_date, project_id=project_id)
+            self._set_metrics(self._stats)
+            self._sync_year_nav_buttons()
+            if self._selected_start is None or self._selected_start < start_date or self._selected_start > end_date:
+                day = min(end_date, today)
+                self._selected_start = day
+                self._selected_end = day
+            colors, legend = self._heatmap_colors(self._stats)
+            selected = set(calendar_days(self._selected_start, self._selected_end or self._selected_start))
+            self._year_stack.set_years(
+                bands,
+                colors,
+                legend=legend,
+                tooltips=getattr(self, "_heatmap_tips", {}),
+                selected=selected,
+            )
+            self._heatmap.hide()
+            self._year_stack.show()
+            self._time_host.hide()
+            self._clear_timeline()
+            self._timeline_bars = []
+            self._show_span(self._selected_start, self._selected_end or self._selected_start)
+            return
+
         start_date, end_date = resolve_period(year=self._selected_year())
         self._stats = aggregate_completions(self._completions, start_date, end_date, project_id=project_id)
         self._set_metrics(self._stats)
         self._sync_year_nav_buttons()
         if self._selected_start is None or self._selected_start < start_date or self._selected_start > end_date:
-            day = min(end_date, datetime.now().astimezone().date())
+            day = min(end_date, today)
             self._selected_start = day
             self._selected_end = day
         colors, legend = self._heatmap_colors(self._stats)
@@ -515,11 +566,14 @@ class TickTickTaskStatsWidget(QWidget):
             tooltips=getattr(self, "_heatmap_tips", {}),
             selected=selected,
         )
+        self._heatmap.show()
+        self._year_stack.hide()
+        self._time_host.show()
         self._show_span(self._selected_start, self._selected_end or self._selected_start)
         self._redraw_timeline()
 
     def _redraw_timeline(self) -> None:
-        if self._chart_mode() != CHART_MODE_HEATMAP or self._stats is None:
+        if self._chart_mode() != CHART_MODE_HEATMAP or self._stats is None or self._selected_all_years():
             return
         stats = self._stats
         bars, weekly = task_timeline_bars(
@@ -584,7 +638,10 @@ class TickTickTaskStatsWidget(QWidget):
             selection.blockSignals(False)  # noqa: FBT003
 
         years = available_years(self._completions)
-        choices: list[tuple[str, object]] = [(LAST_365_DAYS_LABEL, None)]
+        choices: list[tuple[str, object]] = [
+            (LAST_365_DAYS_LABEL, None),
+            (ALL_YEARS_LABEL, ALL_YEARS_LABEL),
+        ]
         choices.extend((str(year), year) for year in reversed(years))
         toolbar = self._chart_toolbar
         if toolbar is not None:
@@ -609,10 +666,20 @@ class TickTickTaskStatsWidget(QWidget):
             return None
         return str(data)
 
-    def _selected_year(self) -> int | None:
+    def _selected_all_years(self) -> bool:
         toolbar = self._chart_toolbar
         combo = toolbar.combo_period if toolbar is not None else None
         if combo is None:
+            return False
+        data = combo.currentData()
+        if data == ALL_YEARS_LABEL:
+            return True
+        return combo.currentText().strip().casefold() == ALL_YEARS_LABEL.casefold()
+
+    def _selected_year(self) -> int | None:
+        toolbar = self._chart_toolbar
+        combo = toolbar.combo_period if toolbar is not None else None
+        if combo is None or self._selected_all_years():
             return None
         data = combo.currentData()
         return int(data) if isinstance(data, int) else None
@@ -718,10 +785,12 @@ class TickTickTaskStatsWidget(QWidget):
         else:
             toolbar.set_mode("compare_same")
         heatmap = mode == CHART_MODE_HEATMAP
+        all_years = heatmap and self._selected_all_years()
         self._metrics.setVisible(heatmap)
         self._heatmap_title.setVisible(heatmap)
-        self._heatmap.setVisible(heatmap)
-        self._time_host.setVisible(heatmap)
+        self._heatmap.setVisible(heatmap and not all_years)
+        self._year_stack.setVisible(heatmap and all_years)
+        self._time_host.setVisible(heatmap and not all_years)
         self._chart_host.setVisible(not heatmap)
         self._place_day_panel()
 
@@ -733,6 +802,10 @@ class TickTickTaskStatsWidget(QWidget):
         next_btn = toolbar.button_next_year
         combo = toolbar.combo_period
         if prev_btn is None or next_btn is None or combo is None:
+            return
+        if self._selected_all_years():
+            prev_btn.setEnabled(False)
+            next_btn.setEnabled(False)
             return
         index = combo.currentIndex()
         prev_btn.setEnabled(0 <= index < combo.count() - 1)

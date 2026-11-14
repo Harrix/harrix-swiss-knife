@@ -7,6 +7,7 @@ Used by Habits charts and TickTick task-stats contribution calendars.
 from __future__ import annotations
 
 from calendar import monthrange
+from collections.abc import Sequence
 from datetime import date, timedelta
 from typing import Any
 
@@ -148,7 +149,7 @@ def heatmap_year_after_step(
 
     Args:
 
-    - `selected` (`str`): Current year-filter text, including `Last 365 days`.
+    - `selected` (`str`): Current year-filter text, including `Last 365 days` / `All`.
     - `years` (`list[int]`): Years shown in the Charts year list.
     - `step` (`int`): `-1` for previous year, `1` for next year.
     - `today_year` (`int`): Current calendar year; later years are ignored.
@@ -162,7 +163,10 @@ def heatmap_year_after_step(
     years_sorted = [year for year in years_sorted if year <= today_year]
     if not years_sorted:
         return None
-    if selected == "Last 365 days" or not str(selected).strip():
+    label = str(selected).strip()
+    if label.casefold() == "all":
+        return None
+    if label == "Last 365 days" or not label:
         return years_sorted[-1] if step < 0 else None
     try:
         current = int(selected)
@@ -173,6 +177,24 @@ def heatmap_year_after_step(
         return older[-1] if older else None
     newer = [year for year in years_sorted if year > current]
     return newer[0] if newer else None
+
+
+def heatmap_year_bands(
+    years: Sequence[int],
+    *,
+    today: date,
+) -> list[tuple[int, date, date]]:
+    """Return ``(year, start, end)`` bands newest-first, capped at ``today``."""
+    ordered = sorted({int(year) for year in years if year and int(year) <= today.year}, reverse=True)
+    bands: list[tuple[int, date, date]] = []
+    for year in ordered:
+        start = date(year, 1, 1)
+        end = date(year, 12, 31)
+        if year == today.year:
+            end = today
+        if start <= end:
+            bands.append((year, start, end))
+    return bands
 
 
 def numeric_habit_heatmap_cell_labels(

@@ -50,6 +50,7 @@ if TYPE_CHECKING:
     from harrix_swiss_knife.apps.habits.ticktick_local_db import TickTickCompletion
 
 LAST_365_DAYS_LABEL = "Last 365 days"
+ALL_YEARS_LABEL = "All"
 ChartMode = Literal["heatmap", "by_year", "by_month", "compare_last", "compare_same"]
 CHART_MODE_HEATMAP: ChartMode = "heatmap"
 CHART_MODE_BY_YEAR: ChartMode = "by_year"

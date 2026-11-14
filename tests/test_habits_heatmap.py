@@ -60,6 +60,8 @@ def test_heatmap_year_after_step_walks_available_years() -> None:
     years = [2026, 2024, 2020]
     assert heatmap_year_after_step("Last 365 days", years, step=-1, today_year=2026) == 2026
     assert heatmap_year_after_step("Last 365 days", years, step=1, today_year=2026) is None
+    assert heatmap_year_after_step("All", years, step=-1, today_year=2026) is None
+    assert heatmap_year_after_step("All", years, step=1, today_year=2026) is None
     assert heatmap_year_after_step("2026", years, step=-1, today_year=2026) == 2024
     assert heatmap_year_after_step("2026", years, step=1, today_year=2026) is None
     assert heatmap_year_after_step("2024", years, step=1, today_year=2026) == 2026
@@ -67,6 +69,16 @@ def test_heatmap_year_after_step_walks_available_years() -> None:
     assert heatmap_year_after_step("2020", years, step=-1, today_year=2026) is None
     assert heatmap_year_after_step("2024", [2027, 2024], step=1, today_year=2026) is None
     assert heatmap_year_after_step("2024", [], step=-1, today_year=2026) is None
+
+
+def test_heatmap_year_bands_newest_first_and_capped_at_today() -> None:
+    """All-years heatmaps are stacked newest on top and stop at today."""
+    from harrix_swiss_knife.apps.common.calendar_heatmap import heatmap_year_bands
+
+    bands = heatmap_year_bands([2024, 2026, 2025], today=date(2026, 3, 15))
+    assert [year for year, _start, _end in bands] == [2026, 2025, 2024]
+    assert bands[0] == (2026, date(2026, 1, 1), date(2026, 3, 15))
+    assert bands[1] == (2025, date(2025, 1, 1), date(2025, 12, 31))
 
 
 def test_numeric_habit_heatmap_cell_labels_skips_zero() -> None:

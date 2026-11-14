@@ -77,7 +77,7 @@ class YearHeatmap(QWidget):
 
     day_clicked = Signal(object)
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(self, parent: QWidget | None = None, *, show_legend: bool = True) -> None:
         """Build an empty calendar. `set_calendar` supplies the days."""
         super().__init__(parent)
         self.week_starts_on = HEATMAP_WEEK_STARTS_ON
@@ -89,6 +89,7 @@ class YearHeatmap(QWidget):
         self._tips: dict[date, str] = {}
         self._layout_guard = False
         self._relayout_pending = False
+        self._show_legend = show_legend
 
         self._scroll = QScrollArea(self)
         self._scroll.setFrameShape(QScrollArea.Shape.NoFrame)
@@ -100,6 +101,7 @@ class YearHeatmap(QWidget):
         self._scroll.setSizeAdjustPolicy(QAbstractScrollArea.SizeAdjustPolicy.AdjustIgnored)
         self._scroll.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
         self._legend = _Legend(self)
+        self._legend.setVisible(show_legend)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -158,7 +160,7 @@ class YearHeatmap(QWidget):
     def _content_height(self) -> int:
         layout = self.layout()
         spacing = layout.spacing() if layout is not None else 0
-        legend_h = self._legend.sizeHint().height()
+        legend_h = self._legend.sizeHint().height() if self._show_legend else 0
         scroll_h = self._scroll.height()
         if scroll_h < _MONTH_LABEL_H + _CELL_MIN:
             scroll_h = _MONTH_LABEL_H + 7 * (_CELL_MIN + _CELL_GAP) + _PAD * 2
@@ -334,6 +336,86 @@ class _Legend(QWidget):
             box.addWidget(text)
             self._flow.addWidget(row)
         self.updateGeometry()
+
+
+class YearHeatmapStack(QWidget):
+    """Many year calendars stacked newest-first, with vertical scroll and one legend."""
+
+    day_clicked = Signal(object)
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        """Build an empty stack. Call `set_years` to fill it."""
+        super().__init__(parent)
+        self._scroll = QScrollArea(self)
+        self._scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        self._scroll.setWidgetResizable(True)
+        self._scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self._scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self._body = QWidget(self._scroll)
+        self._body_layout = QVBoxLayout(self._body)
+        self._body_layout.setContentsMargins(0, 0, 0, 0)
+        self._body_layout.setSpacing(12)
+        self._scroll.setWidget(self._body)
+        self._legend = _Legend(self)
+        self._rows: list[tuple[QLabel, YearHeatmap]] = []
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(6)
+        layout.addWidget(self._scroll, stretch=1)
+        layout.addWidget(self._legend, stretch=0)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+
+    def set_selected(self, days: set[date]) -> None:
+        """Update selection outlines on every visible year band."""
+        for _label, heatmap in self._rows:
+            heatmap.set_selected(days)
+
+    def set_years(
+        self,
+        years: Sequence[tuple[int, date, date]],
+        colors: dict[date, str | None],
+        *,
+        legend: Sequence[tuple[str, str]],
+        marks: dict[date, str] | None = None,
+        tooltips: dict[date, str] | None = None,
+        selected: set[date] | None = None,
+        week_starts_on: int | None = None,
+    ) -> None:
+        """Stack year calendars newest-first; each band is labeled with its year."""
+        self._clear_rows()
+        self._legend.set_items(legend)
+        for year, start, end in years:
+            label = QLabel(str(year), self._body)
+            font = label.font()
+            font.setBold(True)
+            label.setFont(font)
+            self._body_layout.addWidget(label, stretch=0)
+            heatmap = YearHeatmap(self._body, show_legend=False)
+            heatmap.day_clicked.connect(self.day_clicked.emit)
+            heatmap.set_calendar(
+                start,
+                end,
+                colors,
+                legend=(),
+                marks=marks,
+                tooltips=tooltips,
+                selected=selected,
+                week_starts_on=week_starts_on,
+            )
+            self._body_layout.addWidget(heatmap, stretch=0)
+            self._rows.append((label, heatmap))
+        self._body_layout.addStretch(1)
+        self.updateGeometry()
+
+    def _clear_rows(self) -> None:
+        while self._body_layout.count():
+            item = self._body_layout.takeAt(0)
+            widget = item.widget() if item is not None else None
+            if widget is not None:
+                widget.hide()
+                widget.deleteLater()
+        self._rows.clear()
 
 
 def heatmap_column_count(start: date, end: date, *, week_starts_on: int = HEATMAP_WEEK_STARTS_ON) -> int:

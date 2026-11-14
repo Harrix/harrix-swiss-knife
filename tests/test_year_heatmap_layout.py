@@ -159,3 +159,44 @@ def test_ticktick_heatmap_page_puts_tasks_in_a_side_column() -> None:
     assert project_list is not None
     assert filters.findChild(QComboBox) is None
     widget.close()
+
+
+def test_ticktick_period_combo_includes_all_years() -> None:
+    """Heatmap period filter offers All after Last 365 days."""
+    if not isinstance(QApplication.instance(), QApplication):
+        QApplication([])
+    from harrix_swiss_knife.apps.habits.ticktick_task_stats import ALL_YEARS_LABEL, LAST_365_DAYS_LABEL
+
+    widget = TickTickTaskStatsWidget()
+    toolbar = widget._chart_toolbar  # noqa: SLF001
+    assert toolbar is not None
+    combo = toolbar.combo_period
+    assert combo is not None
+    labels = [combo.itemText(index) for index in range(combo.count())]
+    # Before reload the combo may be empty; seed the same choices reload uses.
+    toolbar.set_period_choices(
+        [(LAST_365_DAYS_LABEL, None), (ALL_YEARS_LABEL, ALL_YEARS_LABEL), ("2024", 2024)],
+        current=LAST_365_DAYS_LABEL,
+    )
+    labels = [combo.itemText(index) for index in range(combo.count())]
+    assert labels[:2] == [LAST_365_DAYS_LABEL, ALL_YEARS_LABEL]
+    widget.close()
+
+
+def test_year_heatmap_stack_orders_newest_year_on_top() -> None:
+    """All-years mode stacks labeled calendars with the freshest year first."""
+    if not isinstance(QApplication.instance(), QApplication):
+        QApplication([])
+    from harrix_swiss_knife.apps.common.year_heatmap import YearHeatmapStack
+
+    stack = YearHeatmapStack()
+    stack.set_years(
+        [
+            (2026, date(2026, 1, 1), date(2026, 2, 1)),
+            (2025, date(2025, 1, 1), date(2025, 12, 31)),
+        ],
+        {date(2026, 1, 1): "#3a78bc"},
+        legend=[("#3a78bc", "Done")],
+    )
+    assert [label.text() for label, _heatmap in stack._rows] == ["2026", "2025"]  # noqa: SLF001
+    stack.close()

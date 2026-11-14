@@ -63,6 +63,7 @@ from harrix_swiss_knife import resources_rc  # noqa: F401
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.app_entry import run_app_main
 from harrix_swiss_knife.apps.common.apps_config import get_apps_list_limits, set_habits_sport_habit_name
+from harrix_swiss_knife.apps.common.calendar_heatmap import heatmap_year_bands
 from harrix_swiss_knife.apps.common.chart_format import fmt_date, fmt_number
 from harrix_swiss_knife.apps.common.chart_hover import create_chart_canvas, install_chart_hover
 from harrix_swiss_knife.apps.common.chart_page_chrome import (
@@ -97,7 +98,7 @@ from harrix_swiss_knife.apps.common.table_models import (
 from harrix_swiss_knife.apps.common.ui_helpers import close_table_editor_if_open
 from harrix_swiss_knife.apps.common.widgets.shrinkable_scroll_area import install_shrinkable_tab_scroll
 from harrix_swiss_knife.apps.common.word_wrap_header import WordWrapHeaderView, install_word_wrap_header
-from harrix_swiss_knife.apps.common.year_heatmap import YearHeatmap
+from harrix_swiss_knife.apps.common.year_heatmap import YearHeatmap, YearHeatmapStack
 from harrix_swiss_knife.apps.habits import database_manager, window
 from harrix_swiss_knife.apps.habits.dashboard import HabitDashboardWidget
 from harrix_swiss_knife.apps.habits.delegates import (
@@ -158,6 +159,7 @@ from harrix_swiss_knife.apps.habits.ticktick_api import (
     iso_to_ticktick_stamp,
     resolve_ticktick_api_token,
 )
+from harrix_swiss_knife.apps.habits.ticktick_task_stats import ALL_YEARS_LABEL, LAST_365_DAYS_LABEL
 from harrix_swiss_knife.apps.habits.ticktick_task_stats_widget import TickTickTaskStatsWidget
 from harrix_swiss_knife.fluent.app_chrome import style_fluent_table
 from harrix_swiss_knife.fluent.theme import FluentTheme, mix, palette_for
@@ -701,17 +703,10 @@ class MainWindow(
             )
             if habit_name and habit_name.strip():
                 # Get selected year from list view
-                selected_text = self._get_selected_habit_year()
-                year = None
-                if selected_text != "Last 365 days":
-                    try:
-                        year = int(selected_text)
-                    except ValueError:
-                        year = None
                 # Apply filter to process_habits table
                 self.load_process_habits_table(ignore_filter=False)
                 # Directly update heatmap - this is the most reliable way
-                self._refresh_habits_chart(habit_name, year=year)
+                self._refresh_habits_chart(habit_name, year=self._selected_habit_chart_year())
 
     def on_habit_filter_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
         """Handle habit filter list view selection change.
@@ -729,16 +724,9 @@ class MainWindow(
             )
             if habit_name and habit_name.strip():
                 # Get selected year from list view
-                selected_text = self._get_selected_habit_year()
-                year = None
-                if selected_text != "Last 365 days":
-                    try:
-                        year = int(selected_text)
-                    except ValueError:
-                        year = None
                 # Apply filter to process_habits table
                 self.load_process_habits_table(ignore_filter=False)
-                self._refresh_habits_chart(habit_name, year=year)
+                self._refresh_habits_chart(habit_name, year=self._selected_habit_chart_year())
 
     def on_habit_filter_selection_changed_slot(self, selected: QItemSelection, _deselected: QItemSelection) -> None:
         """Handle habit filter list view selection changed signal.
@@ -759,16 +747,9 @@ class MainWindow(
                 )
                 if habit_name and habit_name.strip():
                     # Get selected year from list view
-                    selected_text = self._get_selected_habit_year()
-                    year = None
-                    if selected_text != "Last 365 days":
-                        try:
-                            year = int(selected_text)
-                        except ValueError:
-                            year = None
                     # Apply filter to process_habits table
                     self.load_process_habits_table(ignore_filter=False)
-                    self._refresh_habits_chart(habit_name, year=year)
+                    self._refresh_habits_chart(habit_name, year=self._selected_habit_chart_year())
 
     def on_habit_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
         """Handle habit table selection change.
@@ -796,23 +777,14 @@ class MainWindow(
         if not index.isValid():
             return
 
-        selected_text = self._get_selected_habit_year()
         habit_name = self._get_selected_habit_filter()
 
         if not habit_name:
             return
 
-        # Parse year from selection
-        year = None
-        if selected_text != "Last 365 days":
-            try:
-                year = int(selected_text)
-            except ValueError:
-                year = None
-
         # Apply filter to process_habits table
         self.load_process_habits_table(ignore_filter=False)
-        self._refresh_habits_chart(habit_name, year=year)
+        self._refresh_habits_chart(habit_name, year=self._selected_habit_chart_year())
         self._sync_heatmap_year_nav_buttons()
 
     def on_habit_year_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
@@ -1023,7 +995,7 @@ class MainWindow(
 
         `listView_filter_habit`.
 
-        - `year` (`int | None`): Year to display. If `None`, shows last 365 days.
+        - `year` (`int | None`): Year to display. If `None`, shows last 365 days or All years.
 
         """
         if self.db_manager is None:
@@ -1036,6 +1008,10 @@ class MainWindow(
             if not habit_name:
                 self._show_habit_heatmap_message("Please select a habit")
                 return
+
+        if self._selected_habit_all_years():
+            self._present_habit_all_years_heatmap(habit_name)
+            return
 
         # Calculate date range based on year parameter
         today = datetime.now(UTC).astimezone().date()
@@ -1157,16 +1133,8 @@ class MainWindow(
                 if selected_index.isValid():
                     selected_habit = self.habits_filter_list_model.data(selected_index) or ""
                     if selected_habit and selected_habit.strip():
-                        # Get selected year from list view
-                        selected_text = self._get_selected_habit_year()
-                        year = None
-                        if selected_text != "Last 365 days":
-                            try:
-                                year = int(selected_text)
-                            except ValueError:
-                                year = None
                         # Manually trigger the selection change handler to build the graph
-                        self._refresh_habits_chart(selected_habit, year=year)
+                        self._refresh_habits_chart(selected_habit, year=self._selected_habit_chart_year())
 
             if selection_model:
                 selection_model.blockSignals(False)  # noqa: FBT003
@@ -1189,8 +1157,8 @@ class MainWindow(
                     self._init_habits_year_list()
                 if self.habits_year_list_model:
                     self.habits_year_list_model.clear()
-                    item = QStandardItem("Last 365 days")
-                    self.habits_year_list_model.appendRow(item)
+                    self.habits_year_list_model.appendRow(QStandardItem(LAST_365_DAYS_LABEL))
+                    self.habits_year_list_model.appendRow(QStandardItem(ALL_YEARS_LABEL))
                 return
 
             current_selection = self._get_selected_habit_year()
@@ -1206,9 +1174,8 @@ class MainWindow(
             if self.habits_year_list_model:
                 self.habits_year_list_model.clear()
 
-                # Add "Last 365 days" as first item
-                item = QStandardItem("Last 365 days")
-                self.habits_year_list_model.appendRow(item)
+                self.habits_year_list_model.appendRow(QStandardItem(LAST_365_DAYS_LABEL))
+                self.habits_year_list_model.appendRow(QStandardItem(ALL_YEARS_LABEL))
 
                 # Get years from database
                 years = self.db_manager.get_habits_years()
@@ -1485,7 +1452,7 @@ class MainWindow(
         """Get the currently selected year from the period combo, then the hidden year list."""
         toolbar = getattr(self, "_habits_chart_toolbar", None)
         combo = toolbar.combo_period if toolbar is not None else None
-        if combo is not None and combo.findText("Last 365 days") >= 0 and combo.currentText():
+        if combo is not None and combo.findText(LAST_365_DAYS_LABEL) >= 0 and combo.currentText():
             return str(combo.currentText())
         year_model = getattr(self, "habits_year_list_model", None)
         if not year_model:
@@ -1515,6 +1482,7 @@ class MainWindow(
             getattr(self, "_habits_metrics", None),
             getattr(self, "_habits_heatmap_title", None),
             getattr(self, "_habits_year_heatmap", None),
+            getattr(self, "_habits_year_stack", None),
             getattr(self, "_habits_time_host", None),
         }
         return {widget for widget in keepers if isinstance(widget, QWidget)}
@@ -1764,6 +1732,8 @@ class MainWindow(
         title_font.setBold(True)
         title.setFont(title_font)
         heatmap = YearHeatmap(self.widget_charts_heatmap)
+        year_stack = YearHeatmapStack(self.widget_charts_heatmap)
+        year_stack.hide()
         time_host = QWidget(self.widget_charts_heatmap)
         time_layout = QVBoxLayout(time_host)
         time_layout.setContentsMargins(0, 0, 0, 0)
@@ -1771,6 +1741,7 @@ class MainWindow(
         self._habits_metrics = metrics
         self._habits_heatmap_title = title
         self._habits_year_heatmap = heatmap
+        self._habits_year_stack = year_stack
         self._habits_time_host = time_host
         self._habits_time_layout = time_layout
         chart_layout = self.verticalLayout_charts_heatmap
@@ -1780,7 +1751,9 @@ class MainWindow(
         chart_layout.insertWidget(scroll_index, metrics)
         chart_layout.insertWidget(scroll_index + 1, title)
         chart_layout.insertWidget(scroll_index + 2, heatmap)
-        chart_layout.insertWidget(scroll_index + 3, time_host)
+        chart_layout.insertWidget(scroll_index + 3, year_stack)
+        chart_layout.insertWidget(scroll_index + 4, time_host)
+        chart_layout.setStretch(chart_layout.indexOf(year_stack), 1)
         chart_layout.setStretch(chart_layout.indexOf(time_host), 1)
         chart_layout.setStretch(chart_layout.indexOf(self.scrollArea_charts_process_habits), 1)
         for index in range(self.horizontalLayout_charts_heatmap_year.count()):
@@ -1885,6 +1858,50 @@ class MainWindow(
         if widget is self.tab_ticktick_stats:
             QTimer.singleShot(0, self._ensure_ticktick_stats_loaded)
 
+    def _present_habit_all_years_heatmap(self, habit_name: str) -> None:
+        """Stack one heatmap per year (newest on top) and hide the timeline chart."""
+        stack = getattr(self, "_habits_year_stack", None)
+        if not isinstance(stack, YearHeatmapStack) or self.db_manager is None:
+            return
+        self._clear_habit_heatmap_layout()
+        is_bool = habit_is_bool_flag(
+            self.db_manager.get_rows(
+                "SELECT is_bool FROM habits WHERE name = :name LIMIT 1",
+                {"name": habit_name},
+            ),
+        )
+        rows = self.db_manager.get_habit_calendar_data(habit_name)
+        recorded = recorded_daily(rows)
+        today = datetime.now(UTC).astimezone().date()
+        years = sorted({day.year for day in recorded if day.year <= today.year}, reverse=True)
+        bands = heatmap_year_bands(years, today=today)
+        if not bands:
+            self._show_habit_heatmap_message(f"No data for habit '{habit_name}'")
+            return
+        start_date = bands[-1][1]
+        end_date = bands[0][2]
+        tokens, marks, legend, bin_count = habit_calendar_model(recorded, start_date, end_date, is_bool=is_bool)
+        colors = {day: habit_token_color(state, bin_count=bin_count) for day, state in tokens.items()}
+        tips = {day: _habit_cell_tip(day, state, recorded) for day, state in tokens.items()}
+        stack.set_years(
+            bands,
+            colors,
+            legend=habit_legend_colors(legend, bin_count=bin_count),
+            marks=marks,
+            tooltips=tips,
+        )
+        title = getattr(self, "_habits_heatmap_title", None)
+        if isinstance(title, QLabel):
+            title.setText(habit_name)
+        stats = habit_period_stats(recorded, start_date, end_date, is_bool=is_bool, today=today)
+        metrics = getattr(self, "_habits_metrics", None)
+        if isinstance(metrics, MetricStrip):
+            metrics.set_metrics(_habit_metric_pairs(stats))
+            metrics.show()
+        self._habit_timeline_bars = []
+        self._clear_habit_timeline()
+        self._set_habit_heatmap_body_visible(visible=True, all_years=True)
+
     def _present_habit_heatmap(
         self,
         habit_name: str,
@@ -1940,7 +1957,7 @@ class MainWindow(
             line_ylabel="" if percent_scale else "7-day average",
         )
         self._show_habit_timeline(figure)
-        self._set_habit_heatmap_body_visible(visible=True)
+        self._set_habit_heatmap_body_visible(visible=True, all_years=False)
 
     def _refresh_after_ticktick_sync(self) -> None:
         """Reload dashboard and tables after TickTick sync writes."""
@@ -1963,11 +1980,8 @@ class MainWindow(
         self._sync_habits_chart_toolbar_mode()
         mode = self._current_habits_chart_mode()
         if mode == CHART_MODE_HEATMAP:
-            if year is None:
-                selected_text = self._get_selected_habit_year()
-                if selected_text != "Last 365 days":
-                    with contextlib.suppress(ValueError):
-                        year = int(selected_text)
+            if year is None and not self._selected_habit_all_years():
+                year = self._selected_habit_chart_year()
             self.update_habit_calendar_heatmap(habit_name, year=year)
             self._sync_heatmap_year_nav_buttons()
             return
@@ -2084,12 +2098,40 @@ class MainWindow(
             return
         QTimer.singleShot(50, self._set_charts_splitter_size)
 
-    def _set_habit_heatmap_body_visible(self, *, visible: bool) -> None:
+    def _selected_habit_all_years(self) -> bool:
+        """True when the period combo is the stacked All-years heatmap mode."""
+        return self._get_selected_habit_year().strip().casefold() == ALL_YEARS_LABEL.casefold()
+
+    def _selected_habit_chart_year(self) -> int | None:
+        """Return the selected calendar year, or `None` for Last 365 days / All."""
+        selected_text = self._get_selected_habit_year().strip()
+        if (
+            not selected_text
+            or selected_text == LAST_365_DAYS_LABEL
+            or selected_text.casefold() == ALL_YEARS_LABEL.casefold()
+        ):
+            return None
+        try:
+            return int(selected_text)
+        except ValueError:
+            return None
+
+    def _set_habit_heatmap_body_visible(self, *, visible: bool, all_years: bool = False) -> None:
         """Show the calendar stack, or hide it without leaving an empty stretched slot."""
-        for name in ("_habits_metrics", "_habits_heatmap_title", "_habits_year_heatmap", "_habits_time_host"):
-            widget = getattr(self, name, None)
+        metrics = getattr(self, "_habits_metrics", None)
+        title = getattr(self, "_habits_heatmap_title", None)
+        heatmap = getattr(self, "_habits_year_heatmap", None)
+        stack = getattr(self, "_habits_year_stack", None)
+        time_host = getattr(self, "_habits_time_host", None)
+        for widget in (metrics, title):
             if isinstance(widget, QWidget):
                 widget.setVisible(visible)
+        if isinstance(heatmap, QWidget):
+            heatmap.setVisible(visible and not all_years)
+        if isinstance(stack, QWidget):
+            stack.setVisible(visible and all_years)
+        if isinstance(time_host, QWidget):
+            time_host.setVisible(visible and not all_years)
         if visible:
             self.scrollArea_charts_process_habits.hide()
             if self._habits_chart_info_strip is not None:
@@ -2250,8 +2292,8 @@ class MainWindow(
         if self._habits_chart_info_strip is not None:
             self._habits_chart_info_strip.hide()
 
-    def _show_habit_timeline(self, figure: Figure) -> None:
-        """Put the completion chart in the slot under the calendar."""
+    def _clear_habit_timeline(self) -> None:
+        """Remove the completion chart under the calendar."""
         layout = getattr(self, "_habits_time_layout", None)
         if not isinstance(layout, QVBoxLayout):
             return
@@ -2261,6 +2303,13 @@ class MainWindow(
             if widget is not None:
                 widget.hide()
                 widget.deleteLater()
+
+    def _show_habit_timeline(self, figure: Figure) -> None:
+        """Put the completion chart in the slot under the calendar."""
+        self._clear_habit_timeline()
+        layout = getattr(self, "_habits_time_layout", None)
+        if not isinstance(layout, QVBoxLayout):
+            return
         canvas = create_chart_canvas(figure)
         bars = list(getattr(self, "_habit_timeline_bars", []))
 
@@ -2434,7 +2483,10 @@ class MainWindow(
             toolbar.set_mode("compare_same")
         self.label_filter_habit_year.hide()
         self.listView_filter_habit_year.hide()
-        self._set_habit_heatmap_body_visible(visible=mode == CHART_MODE_HEATMAP)
+        self._set_habit_heatmap_body_visible(
+            visible=mode == CHART_MODE_HEATMAP,
+            all_years=mode == CHART_MODE_HEATMAP and self._selected_habit_all_years(),
+        )
         if mode != CHART_MODE_HEATMAP and self._habits_chart_info_strip is not None:
             self._habits_chart_info_strip.hide()
 
@@ -2446,7 +2498,7 @@ class MainWindow(
             return
         toolbar = getattr(self, "_habits_chart_toolbar", None)
         combo = toolbar.combo_period if toolbar is not None else None
-        if combo is None:
+        if combo is None or self._selected_habit_all_years():
             prev_btn.setEnabled(False)
             next_btn.setEnabled(False)
             return
