@@ -440,6 +440,13 @@ class ChartToolbar:
             count_label = "Number of years" if is_compare_same or is_compare_years else "Number of months"
         if self.label_count is not None and count_label:
             self.label_count.setText(count_label)
+        if self.spin_count is not None:
+            if show_spin and (is_compare_same or is_compare_years):
+                self.spin_count.setSuffix(" yr")
+            elif show_spin and (is_compare_last or is_count):
+                self.spin_count.setSuffix(" mo")
+            else:
+                self.spin_count.setSuffix("")
 
         _set_visible(self.label_period, visible=show_period)
         _set_visible(self.combo_period, visible=show_period)

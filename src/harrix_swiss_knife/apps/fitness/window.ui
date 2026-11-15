@@ -857,7 +857,7 @@
                    <item>
                     <widget class="QLabel" name="label_compare_last">
                      <property name="text">
-                      <string>Number of months:</string>
+                      <string>Number of months</string>
                      </property>
                     </widget>
                    </item>

@@ -90,7 +90,7 @@ class Ui_MainWindow(object):
         self.pushButton_chart_last_month.setText(QCoreApplication.translate("MainWindow", u"Last Month", None))
         self.pushButton_chart_last_year.setText(QCoreApplication.translate("MainWindow", u"Last Year", None))
         self.pushButton_chart_all_time.setText(QCoreApplication.translate("MainWindow", u"All Time", None))
-        self.label_compare_last.setText(QCoreApplication.translate("MainWindow", u"Number of months:", None))
+        self.label_compare_last.setText(QCoreApplication.translate("MainWindow", u"Number of months", None))
         self.label_exercise_avif_4.setText(QCoreApplication.translate("MainWindow", u"No exercise selected", None))
         self.label_chart_info.setText("")
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_charts), QCoreApplication.translate("MainWindow", u"Charts", None))

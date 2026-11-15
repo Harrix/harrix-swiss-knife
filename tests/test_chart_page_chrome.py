@@ -37,10 +37,21 @@ def test_chart_toolbar_range_mode_shows_dates_hides_count() -> None:
     assert not toolbar.button_last_week.isHidden()
     assert toolbar.spin_count is not None
     assert toolbar.spin_count.isHidden()
+    assert toolbar.spin_count.suffix() == ""
     assert toolbar.combo_month is not None
     assert toolbar.combo_month.isHidden()
     assert toolbar.button_prev_year is not None
     assert toolbar.button_prev_year.isHidden()
+
+
+def test_chart_toolbar_compare_last_uses_months_suffix() -> None:
+    toolbar = _shown_toolbar()
+    toolbar.set_mode("compare_last")
+    assert toolbar.spin_count is not None
+    assert not toolbar.spin_count.isHidden()
+    assert toolbar.label_count is not None
+    assert "month" in toolbar.label_count.text().lower()
+    assert "mo" in toolbar.spin_count.suffix().lower()
 
 
 def test_chart_toolbar_compare_same_shows_years_and_month() -> None:
@@ -54,6 +65,7 @@ def test_chart_toolbar_compare_same_shows_years_and_month() -> None:
     assert not toolbar.spin_count.isHidden()
     assert toolbar.label_count is not None
     assert "year" in toolbar.label_count.text().lower()
+    assert "yr" in toolbar.spin_count.suffix().lower()
     assert toolbar.combo_month is not None
     assert not toolbar.combo_month.isHidden()
     assert toolbar.label_month is not None
