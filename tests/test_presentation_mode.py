@@ -5,7 +5,6 @@ from __future__ import annotations
 import sqlite3
 from datetime import UTC, datetime
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 import pytest
 from PySide6.QtGui import QAction
@@ -22,6 +21,7 @@ from harrix_swiss_knife.apps.common.presentation_mode import (
 )
 from harrix_swiss_knife.cli_menu import (
     OPEN_ALL_TRACKERS_MENU_LABEL,
+    OPEN_ALL_TRACKERS_PRESENTATION_MENU_LABEL,
     show_tracker_launcher_context_menu,
 )
 
@@ -95,24 +95,31 @@ def test_create_presentation_databases_include_today(tmp_path: Path) -> None:
         assert conn.execute("SELECT COUNT(*) FROM ProjectModel").fetchone()[0] >= 1
 
 
-def test_tracker_context_menu_has_presentation_action(qapp: QApplication) -> None:
+def test_tracker_context_menu_has_presentation_action(qapp: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:
     assert qapp is not None
     host = QMenu()
     tracker = QAction("Finance tracker", host)
     host.addAction(tracker)
-    seen: list[str] = []
+    shown: list[object] = []
 
-    menu = MagicMock()
-    menu.addAction.side_effect = lambda text: seen.append(text) or QAction(text)
-    menu.addSeparator.side_effect = lambda: seen.append("-")
+    def _capture_exec(self: object, *_args: object, **_kwargs: object) -> None:
+        shown.append(self)
 
-    with patch.object(cli_menu, "FluentMenu", return_value=menu):
-        show_tracker_launcher_context_menu(
-            parent=None,
-            global_pos=host.mapToGlobal(host.rect().center()),
-            host_menu=host,
-            tracker_action=tracker,
-        )
-
-    assert OPEN_IN_PRESENTATION_MENU_LABEL in seen
-    assert OPEN_ALL_TRACKERS_MENU_LABEL in seen
+    monkeypatch.setattr(cli_menu.FluentMenu, "exec", _capture_exec)
+    show_tracker_launcher_context_menu(
+        parent=None,
+        global_pos=host.mapToGlobal(host.rect().center()),
+        host_menu=host,
+        tracker_action=tracker,
+    )
+    assert len(shown) == 1
+    menu = shown[0]
+    assert isinstance(menu, cli_menu.FluentMenu)
+    actions = [action for action in menu.actions() if not action.isSeparator()]
+    labels = [action.text() for action in actions]
+    assert labels == [
+        OPEN_IN_PRESENTATION_MENU_LABEL,
+        OPEN_ALL_TRACKERS_MENU_LABEL,
+        OPEN_ALL_TRACKERS_PRESENTATION_MENU_LABEL,
+    ]
+    assert all(not action.icon().isNull() for action in actions)

@@ -16,6 +16,7 @@ from harrix_swiss_knife.cli_menu import (
     COPY_ACTION_NAME_PREVIEW_MAX_LEN,
     COPY_ACTION_PATH_MENU_PREFIX,
     OPEN_ALL_TRACKERS_MENU_LABEL,
+    OPEN_ALL_TRACKERS_PRESENTATION_MENU_LABEL,
     CliContextMenu,
     format_copy_action_class_menu_label,
     format_copy_action_name_menu_label,
@@ -24,6 +25,7 @@ from harrix_swiss_knife.cli_menu import (
     show_action_identity_context_menu,
     show_open_all_trackers_menu,
     trigger_all_tracker_launchers,
+    trigger_all_tracker_launchers_presentation_mode,
     truncate_action_name_preview,
 )
 from harrix_swiss_knife.fluent.theme import FluentTheme, ThemeMode, enable_fluent_theme
@@ -157,7 +159,9 @@ def test_trigger_all_tracker_launchers_triggers_only_trackers(qapp: QApplication
     assert triggered == ["Finance", "Fitness", "Food", "Habits"]
 
 
-def test_show_open_all_trackers_menu_has_single_action(qapp: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_show_open_all_trackers_menu_has_open_and_presentation_actions(
+    qapp: QApplication, monkeypatch: pytest.MonkeyPatch
+) -> None:
     assert qapp is not None
     host = CliContextMenu()
     shown: list[FluentMenu] = []
@@ -168,8 +172,29 @@ def test_show_open_all_trackers_menu_has_single_action(qapp: QApplication, monke
     monkeypatch.setattr(FluentMenu, "exec", _capture_exec)
     show_open_all_trackers_menu(parent=host, global_pos=QPoint(0, 0), host_menu=host)
     assert len(shown) == 1
-    labels = [action.text() for action in shown[0].actions()]
-    assert labels == [OPEN_ALL_TRACKERS_MENU_LABEL]
+    actions = [action for action in shown[0].actions() if not action.isSeparator()]
+    labels = [action.text() for action in actions]
+    assert labels == [OPEN_ALL_TRACKERS_MENU_LABEL, OPEN_ALL_TRACKERS_PRESENTATION_MENU_LABEL]
+    assert all(not action.icon().isNull() for action in actions)
+
+
+def test_trigger_all_tracker_launchers_presentation_mode(qapp: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:
+    assert qapp is not None
+    menu = CliContextMenu()
+    finance = _action_with_identity("OnFinance", "Finance")
+    fitness = _action_with_identity("OnFitness", "Fitness")
+    food = _action_with_identity("OnFood", "Food")
+    habits = _action_with_identity("OnHabits", "Habits")
+    icons = _action_with_identity("OnIcons", "Icons")
+    for action in (finance, fitness, food, habits, icons):
+        menu.addAction(action)
+    opened: list[str] = []
+    monkeypatch.setattr(
+        "harrix_swiss_knife.cli_menu.trigger_tracker_presentation_mode",
+        lambda action: opened.append(action.text()),
+    )
+    trigger_all_tracker_launchers_presentation_mode(menu)
+    assert opened == ["Finance", "Fitness", "Food", "Habits"]
 
 
 def test_cli_context_menu_right_click_opens_all_trackers_menu(
@@ -182,7 +207,7 @@ def test_cli_context_menu_right_click_opens_all_trackers_menu(
     menu.setFixedSize(200, 40)
     opened: list[dict[str, object]] = []
     monkeypatch.setattr(
-        "harrix_swiss_knife.cli_menu.show_open_all_trackers_menu",
+        "harrix_swiss_knife.cli_menu.show_tracker_launcher_context_menu",
         lambda **kwargs: opened.append(kwargs),
     )
     monkeypatch.setattr(menu, "actionAt", MagicMock(return_value=finance))
@@ -197,6 +222,7 @@ def test_cli_context_menu_right_click_opens_all_trackers_menu(
     menu.mouseReleaseEvent(event)
     assert len(opened) == 1
     assert opened[0]["host_menu"] is menu
+    assert opened[0]["tracker_action"] is finance
 
 
 def test_cli_context_menu_right_click_ignores_non_tracker(qapp: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -206,7 +232,7 @@ def test_cli_context_menu_right_click_ignores_non_tracker(qapp: QApplication, mo
     menu.addAction(icons)
     opened: list[dict[str, object]] = []
     monkeypatch.setattr(
-        "harrix_swiss_knife.cli_menu.show_open_all_trackers_menu",
+        "harrix_swiss_knife.cli_menu.show_tracker_launcher_context_menu",
         lambda **kwargs: opened.append(kwargs),
     )
     monkeypatch.setattr(menu, "actionAt", MagicMock(return_value=icons))

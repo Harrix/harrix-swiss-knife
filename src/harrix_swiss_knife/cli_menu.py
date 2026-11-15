@@ -13,7 +13,11 @@ from harrix_swiss_knife.action_identity import (
     format_action_identity_text,
 )
 from harrix_swiss_knife.fluent.widgets.menus import FluentMenu
-from harrix_swiss_knife.qt_lucide_icon import apply_leading_chrome_icons
+from harrix_swiss_knife.qt_lucide_icon import (
+    apply_leading_chrome_icons,
+    apply_lucide_action_icon,
+    apply_menu_icon_size,
+)
 from harrix_swiss_knife.qt_widget_identity_menu import add_widget_identity_actions
 
 if TYPE_CHECKING:
@@ -31,6 +35,7 @@ COPY_ACTION_PATH_MENU_PREFIX = "📋 Copy action path: "
 COPY_ACTION_NAME_PREVIEW_MAX_LEN = 40
 COPY_CLI_MENU_PREFIX = "📋 Copy CLI command: "
 OPEN_ALL_TRACKERS_MENU_LABEL = "Open all trackers"
+OPEN_ALL_TRACKERS_PRESENTATION_MENU_LABEL = "Open all trackers in presentation mode"
 # Tray top-level trackers that share the «Open all trackers» right-click menu.
 TRACKER_LAUNCHER_CLASS_NAMES: frozenset[str] = frozenset(
     {
@@ -40,6 +45,9 @@ TRACKER_LAUNCHER_CLASS_NAMES: frozenset[str] = frozenset(
         "OnHabits",
     }
 )
+_OPEN_ALL_TRACKERS_ICON = "layout-grid"
+_OPEN_ALL_TRACKERS_PRESENTATION_ICON = "monitor-play"
+_OPEN_IN_PRESENTATION_ICON = "presentation"
 _ELLIPSIS = "…"
 
 
@@ -251,7 +259,7 @@ def show_open_all_trackers_menu(
     global_pos: QPoint,
     host_menu: QMenu,
 ) -> None:
-    """Show a one-item menu that opens Finance, Fitness, Food, and Habits."""
+    """Show open-all actions that launch Finance, Fitness, Food, and Habits."""
     show_tracker_launcher_context_menu(
         parent=parent,
         global_pos=global_pos,
@@ -275,13 +283,20 @@ def show_tracker_launcher_context_menu(
     menu = FluentMenu("", parent)
     if tracker_action is not None:
         open_presentation = menu.addAction(OPEN_IN_PRESENTATION_MENU_LABEL)
+        apply_lucide_action_icon(open_presentation, _OPEN_IN_PRESENTATION_ICON)
         open_presentation.triggered.connect(
             lambda *_args, source=tracker_action: trigger_tracker_presentation_mode(source),
         )
         menu.addSeparator()
     open_all = menu.addAction(OPEN_ALL_TRACKERS_MENU_LABEL)
+    apply_lucide_action_icon(open_all, _OPEN_ALL_TRACKERS_ICON)
     open_all.triggered.connect(lambda *_args, source=host_menu: trigger_all_tracker_launchers(source))
-    apply_leading_chrome_icons(menu)
+    open_all_presentation = menu.addAction(OPEN_ALL_TRACKERS_PRESENTATION_MENU_LABEL)
+    apply_lucide_action_icon(open_all_presentation, _OPEN_ALL_TRACKERS_PRESENTATION_ICON)
+    open_all_presentation.triggered.connect(
+        lambda *_args, source=host_menu: trigger_all_tracker_launchers_presentation_mode(source),
+    )
+    apply_menu_icon_size(menu)
     menu.refresh_theme()
     menu.exec(global_pos)
 
@@ -290,6 +305,12 @@ def trigger_all_tracker_launchers(menu: QMenu) -> None:
     """Trigger every tracker launcher QAction found on `menu`."""
     for action in iter_tracker_launcher_actions(menu):
         action.trigger()
+
+
+def trigger_all_tracker_launchers_presentation_mode(menu: QMenu) -> None:
+    """Open every tracker launcher from `menu` in presentation mode."""
+    for action in iter_tracker_launcher_actions(menu):
+        trigger_tracker_presentation_mode(action)
 
 
 def trigger_tracker_presentation_mode(action: QAction) -> None:
