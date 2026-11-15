@@ -32,6 +32,9 @@ PRESENTATION_ENTER_INFO = (
 
 _APPS_PACKAGE = Path(__file__).resolve().parents[1]
 _HISTORY_DAYS = 21
+_FINANCE_HISTORY_DAYS = 60
+_FINANCE_QUIET_DAY_MOD = 11
+_FINANCE_QUIET_DAY_REMAINDER = 10
 _HABIT_SKIP_MOD = 3
 _HABIT_SKIP_REMAINDER = 2
 
@@ -88,6 +91,14 @@ def create_presentation_database(app: PresentationApp) -> Path:
         "habits": _seed_habits,
     }
     seeders[app](db_path)
+    if app == "food":
+        from harrix_swiss_knife.apps.food.schema import (  # noqa: PLC0415
+            ensure_food_indexes,
+            ensure_food_schema,
+        )
+
+        ensure_food_schema(db_path)
+        ensure_food_indexes(db_path)
     return db_path
 
 
@@ -181,70 +192,133 @@ def _seed_finance(db_path: Path) -> None:
     with sqlite3.connect(str(db_path)) as conn:
         rub = conn.execute("SELECT _id FROM currencies WHERE code = 'RUB'").fetchone()
         usd = conn.execute("SELECT _id FROM currencies WHERE code = 'USD'").fetchone()
-        food = conn.execute("SELECT _id FROM categories WHERE name = 'Food'").fetchone()
-        cafe = conn.execute("SELECT _id FROM categories WHERE name = 'Cafe'").fetchone()
-        transport = conn.execute("SELECT _id FROM categories WHERE name = 'Transport'").fetchone()
-        salary = conn.execute("SELECT _id FROM categories WHERE name = 'Salary'").fetchone()
-        if not all((rub, food, cafe, transport, salary)):
+        category_rows = conn.execute(
+            """
+            SELECT name, _id FROM categories
+            WHERE name IN (
+                'Food', 'Cafe', 'Transport', 'Salary', 'Entertainment',
+                'Healthcare', 'Utilities', 'Gifts', 'Freelance'
+            )
+            """
+        ).fetchall()
+        categories = {str(name): int(cid) for name, cid in category_rows}
+        required = ("Food", "Cafe", "Transport", "Salary")
+        if rub is None or any(name not in categories for name in required):
             msg = "Finance recover.sql is missing expected currencies/categories"
             raise RuntimeError(msg)
         rub_id = int(rub[0])
-        food_id = int(food[0])
-        cafe_id = int(cafe[0])
-        transport_id = int(transport[0])
-        salary_id = int(salary[0])
         usd_id = int(usd[0]) if usd else rub_id
 
-        samples = [
-            (0, -45000, "Grocery store", food_id, "demo"),
-            (0, -32000, "Coffee shop", cafe_id, "demo"),
-            (1, -18000, "Metro ride", transport_id, "commute"),
-            (2, -56000, "Lunch with colleagues", cafe_id, "demo"),
-            (3, -89000, "Weekly groceries", food_id, "demo"),
-            (5, -25000, "Taxi to office", transport_id, "commute"),
-            (7, 15000000, "Monthly salary", salary_id, "income"),
-            (10, -41000, "Bookstore cafe", cafe_id, "demo"),
-            (14, -72000, "Supermarket", food_id, "demo"),
-            (18, -15000, "Bus ticket", transport_id, "commute"),
-            (_HISTORY_DAYS - 1, -38000, "Bakery", food_id, "demo"),
+        expense_templates = [
+            ("Food", "Grocery store", -45000, "demo"),
+            ("Food", "Supermarket", -78000, "demo"),
+            ("Food", "Bakery", -28000, "demo"),
+            ("Cafe", "Coffee shop", -32000, "demo"),
+            ("Cafe", "Lunch with colleagues", -56000, "demo"),
+            ("Transport", "Metro ride", -18000, "commute"),
+            ("Transport", "Taxi to office", -25000, "commute"),
+            ("Transport", "Bus ticket", -15000, "commute"),
+            ("Entertainment", "Cinema tickets", -90000, "fun"),
+            ("Healthcare", "Pharmacy", -42000, "health"),
+            ("Utilities", "Internet bill", -89000, "home"),
+            ("Gifts", "Birthday gift", -150000, "gift"),
         ]
-        for days_ago, amount, description, category_id, tag in samples:
-            conn.execute(
-                """
-                INSERT INTO transactions
-                    (amount, description, description_en, _id_categories, _id_currencies, date, tag)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-                """,
-                (amount, description, description, category_id, rub_id, _date_iso(days_ago), tag),
-            )
-            tx_id = int(conn.execute("SELECT last_insert_rowid()").fetchone()[0])
-            conn.execute("INSERT OR IGNORE INTO tags (name) VALUES (?)", (tag,))
-            tag_id = int(conn.execute("SELECT _id FROM tags WHERE name = ?", (tag,)).fetchone()[0])
-            conn.execute(
-                "INSERT OR IGNORE INTO transaction_tags (_id_transactions, _id_tags) VALUES (?, ?)",
-                (tx_id, tag_id),
-            )
+        if "Entertainment" not in categories:
+            expense_templates = [row for row in expense_templates if row[0] in categories]
+        if "Healthcare" not in categories:
+            expense_templates = [row for row in expense_templates if row[0] != "Healthcare"]
+        if "Utilities" not in categories:
+            expense_templates = [row for row in expense_templates if row[0] != "Utilities"]
+        if "Gifts" not in categories:
+            expense_templates = [row for row in expense_templates if row[0] != "Gifts"]
 
-        conn.execute(
-            """
-            INSERT INTO exchange_rates (_id_currency, rate, date)
-            VALUES (?, ?, ?)
-            """,
-            (usd_id, 92.5, _date_iso(0)),
-        )
-        if usd_id != rub_id:
+        for days_ago in range(_FINANCE_HISTORY_DAYS):
+            # 1-3 expense rows most days; skip a few quiet days for variety.
+            if days_ago % _FINANCE_QUIET_DAY_MOD == _FINANCE_QUIET_DAY_REMAINDER:
+                continue
+            day_count = 1 + (days_ago % 3)
+            for offset in range(day_count):
+                name, description, amount, tag = expense_templates[(days_ago + offset) % len(expense_templates)]
+                _insert_finance_transaction(
+                    conn,
+                    amount=amount - (days_ago % 7) * 100,
+                    description=description,
+                    category_id=categories[name],
+                    currency_id=rub_id,
+                    days_ago=days_ago,
+                    tag=tag,
+                )
+            # Payday near the start of each demo month window.
+            if days_ago in {0, 30, 59}:
+                _insert_finance_transaction(
+                    conn,
+                    amount=15000000,
+                    description="Monthly salary",
+                    category_id=categories["Salary"],
+                    currency_id=rub_id,
+                    days_ago=days_ago,
+                    tag="income",
+                )
+            if "Freelance" in categories and days_ago in {14, 44}:
+                _insert_finance_transaction(
+                    conn,
+                    amount=2500000,
+                    description="Freelance project",
+                    category_id=categories["Freelance"],
+                    currency_id=rub_id,
+                    days_ago=days_ago,
+                    tag="income",
+                )
+
+        for days_ago in (0, 15, 30, 45):
             conn.execute(
                 """
-                INSERT INTO currency_exchanges
-                    (_id_currency_from, _id_currency_to, amount_from, amount_to,
-                     exchange_rate, fee, date, description)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO exchange_rates (_id_currency, rate, date)
+                VALUES (?, ?, ?)
                 """,
-                (rub_id, usd_id, 1000000, 10800, 92.5, 0, _date_iso(2), "Demo exchange"),
+                (usd_id, 90.0 + (days_ago % 5) * 0.4, _date_iso(days_ago)),
             )
+        if usd_id != rub_id:
+            for days_ago in (2, 32):
+                conn.execute(
+                    """
+                    INSERT INTO currency_exchanges
+                        (_id_currency_from, _id_currency_to, amount_from, amount_to,
+                         exchange_rate, fee, date, description)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (rub_id, usd_id, 1000000, 10800, 92.5, 0, _date_iso(days_ago), "Demo exchange"),
+                )
         conn.execute("UPDATE accounts SET balance = 25000000 WHERE name = 'Bank Account'")
         conn.execute("UPDATE accounts SET balance = 150000 WHERE name = 'Cash'")
         conn.commit()
+
+
+def _insert_finance_transaction(
+    conn: sqlite3.Connection,
+    *,
+    amount: int,
+    description: str,
+    category_id: int,
+    currency_id: int,
+    days_ago: int,
+    tag: str,
+) -> None:
+    conn.execute(
+        """
+        INSERT INTO transactions
+            (amount, description, description_en, _id_categories, _id_currencies, date, tag)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
+        (amount, description, description, category_id, currency_id, _date_iso(days_ago), tag),
+    )
+    tx_id = int(conn.execute("SELECT last_insert_rowid()").fetchone()[0])
+    conn.execute("INSERT OR IGNORE INTO tags (name) VALUES (?)", (tag,))
+    tag_id = int(conn.execute("SELECT _id FROM tags WHERE name = ?", (tag,)).fetchone()[0])
+    conn.execute(
+        "INSERT OR IGNORE INTO transaction_tags (_id_transactions, _id_tags) VALUES (?, ?)",
+        (tx_id, tag_id),
+    )
 
 
 def _seed_fitness(db_path: Path) -> None:

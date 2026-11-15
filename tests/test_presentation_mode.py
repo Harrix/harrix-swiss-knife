@@ -62,6 +62,12 @@ def test_create_presentation_databases_include_today(tmp_path: Path) -> None:
     assert "hsk_presentation_finance_" in str(finance_db)
     with sqlite3.connect(str(finance_db)) as conn:
         assert conn.execute("SELECT COUNT(*) FROM transactions WHERE date = ?", (today,)).fetchone()[0] > 0
+        assert conn.execute("SELECT COUNT(*) FROM transactions").fetchone()[0] >= 80
+        oldest = conn.execute("SELECT MIN(date) FROM transactions").fetchone()[0]
+        assert oldest is not None
+        oldest_day = datetime.fromisoformat(str(oldest)).date()
+        today_day = datetime.now(UTC).astimezone().date()
+        assert (today_day - oldest_day).days >= 50
 
     fitness_db = create_presentation_database("fitness")
     assert fitness_db.is_file()
@@ -73,6 +79,9 @@ def test_create_presentation_databases_include_today(tmp_path: Path) -> None:
     assert food_db.is_file()
     with sqlite3.connect(str(food_db)) as conn:
         assert conn.execute("SELECT COUNT(*) FROM food_log WHERE date = ?", (today,)).fetchone()[0] > 0
+        cols = {row[1] for row in conn.execute("PRAGMA table_info(food_day_nutrition_analysis)").fetchall()}
+        assert "fiber_g" in cols
+        assert "norm_fiber_g" in cols
 
     habits_db = create_presentation_database("habits")
     assert habits_db.is_file()

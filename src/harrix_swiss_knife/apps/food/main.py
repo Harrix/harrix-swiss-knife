@@ -2913,6 +2913,8 @@ class MainWindow(
         app_dir = Path(__file__).parent
         if self.presentation_mode:
             path = create_presentation_database("food")
+            ensure_food_schema(path)
+            ensure_food_indexes(path)
             self.db_manager = database_manager.DatabaseManager(str(path))
             return
 

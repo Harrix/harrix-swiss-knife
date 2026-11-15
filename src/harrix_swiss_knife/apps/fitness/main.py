@@ -151,6 +151,7 @@ from harrix_swiss_knife.apps.common.presentation_mode import (
     install_presentation_mode_action,
     sync_presentation_mode_action,
 )
+from harrix_swiss_knife.apps.common.qt_database_manager_base import QtSqliteDatabaseManagerBase
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
 from harrix_swiss_knife.apps.common.scroll_pagination import ScrollPagination, on_scroll_load_more
 from harrix_swiss_knife.apps.common.table_context_menu import (
@@ -6380,15 +6381,18 @@ class MainWindow(
         )
 
     def _init_avif_manager(self) -> None:
-        """Initialize AVIF manager after database is ready."""
+        """Initialize AVIF manager after database is ready.
+
+        Exercise images always come from the real configured fitness DB folder
+        (`fitness_img`), including presentation mode (temp DB has no media).
+
+        """
         if not self.db_manager:
             return
 
-        # Get the actual database path from the database manager
-        db_filename = getattr(self.db_manager, "_db_filename", None)
-        db_path = Path(db_filename) if db_filename else Path(self._app_config["sqlite_fitness"])
-
-        avif_dir = db_path.parent / "fitness_img"
+        configured = Path(self._app_config["sqlite_fitness"])
+        real_db = QtSqliteDatabaseManagerBase.resolve_db_path_with_fallback(configured, "fitness")
+        avif_dir = real_db.parent / "fitness_img"
         self.avif_manager = avif_manager.AvifManager(avif_dir)
 
     def _init_database(self) -> None:
