@@ -388,6 +388,24 @@ class MainWindow(
         self.filter_advanced_panel: QWidget
         self.filter_chips_host: QWidget
         self.filter_chips_layout: QHBoxLayout
+        # Status bar update during `_setup_ui` needs pagination / models ready first.
+        self.models: dict[str, QAbstractProxyModel | None] = {
+            "transactions": None,
+            "accounts": None,
+            "currency_exchanges": None,
+            "exchange_rates": None,
+        }
+        self._transactions_pagination = ScrollPagination()
+        self._transactions_dates_with_totals: set[str] = set()
+        self._transactions_date_color_map: dict[str, int] = {}
+        self._transactions_color_index: int = 0
+        initial_count, load_more_count = get_apps_list_limits(self._app_config)
+        self.count_transactions_to_show: int = initial_count
+        self.transactions_load_more_count: int = load_more_count
+        self.count_exchange_rates_to_show: int = initial_count
+        self.exchange_rates_load_more_count: int = load_more_count
+        self.description_autocomplete_limit: int = initial_count
+        self.show_all_transactions: bool = False
         self._exchange_rates = ExchangeRatesOperations(self)
         self._bind_exchange_rates_operations()
         self._setup_ui()
@@ -399,14 +417,6 @@ class MainWindow(
         app = QApplication.instance()
         if app is not None:
             app.aboutToQuit.connect(self._stop_exchange_rate_threads_for_quit)
-
-        # Table models dictionary (transactions may wrap a day-header proxy)
-        self.models: dict[str, QAbstractProxyModel | None] = {
-            "transactions": None,
-            "accounts": None,
-            "currency_exchanges": None,
-            "exchange_rates": None,
-        }
 
         # Delegates for transactions table
         self.description_delegate: DescriptionDelegate | None = None
@@ -429,13 +439,6 @@ class MainWindow(
         # Track whether account double-click handler is connected
         self._account_double_click_connected: bool = False
 
-        # Toggle for showing all records vs last self.count_transactions_to_show
-        initial_count, load_more_count = get_apps_list_limits(self._app_config)
-        self.count_transactions_to_show: int = initial_count
-        self.transactions_load_more_count: int = load_more_count
-        self.count_exchange_rates_to_show: int = initial_count
-        self.exchange_rates_load_more_count: int = load_more_count
-        self.description_autocomplete_limit: int = initial_count
         self._description_category_pairs: list[tuple[str, str, int]] = []
         self._category_suggest_timer = QTimer(self)
         self._category_suggest_timer.setSingleShot(True)
@@ -450,13 +453,6 @@ class MainWindow(
         self._category_suggest_delegate = CategorySuggestDelegate(self.listView_categories)
         self._category_suggest_delegate.use_clicked.connect(self._select_category_by_name)
         self.listView_categories.setItemDelegate(self._category_suggest_delegate)
-        self.show_all_transactions: bool = False
-
-        # Transactions table pagination state
-        self._transactions_pagination = ScrollPagination()
-        self._transactions_dates_with_totals: set[str] = set()
-        self._transactions_date_color_map: dict[str, int] = {}
-        self._transactions_color_index: int = 0
 
         # Exchange rates table pagination state
         self._exchange_rates_pagination = ScrollPagination()
@@ -6925,10 +6921,10 @@ class MainWindow(
 
     def _update_transactions_list_status(self) -> None:
         """Show filter and pagination context for the transactions table."""
-        label = self._transactions_list_status_label
-        if label is None:
+        label = getattr(self, "_transactions_list_status_label", None)
+        pagination = getattr(self, "_transactions_pagination", None)
+        if label is None or pagination is None:
             return
-        pagination = self._transactions_pagination
         label.setText(
             format_list_view_status(
                 filtered=self._transactions_filter_is_active(),

@@ -420,6 +420,11 @@ class MainWindow(
         self._fitness_context_status_label: QLabel | None = None
         self._sets_today_count: int = 0
         self.exercises_list_model: QStandardItemModel | None = None
+        initial_count, load_more_count = get_apps_list_limits(self._app_config)
+        self.count_records_to_show: int = initial_count
+        self.process_load_more_count: int = load_more_count
+        self.exercises_frequency_window: int = load_more_count
+        self.show_all_records = False
 
         self._setup_ui()
         self._finish_fluent_window_chrome()
@@ -459,12 +464,6 @@ class MainWindow(
         self._process_search_timer.setSingleShot(True)
         self._process_search_timer.setInterval(400)
         self._process_search_timer.timeout.connect(self.apply_filter)
-        # Process table display mode flag
-        initial_count, load_more_count = get_apps_list_limits(self._app_config)
-        self.count_records_to_show: int = initial_count
-        self.process_load_more_count: int = load_more_count
-        self.exercises_frequency_window: int = load_more_count
-        self.show_all_records = False
         self.icon_size = 64
         self.table_icon_size = 64
 
@@ -9470,13 +9469,14 @@ class MainWindow(
 
     def _update_fitness_status_bar(self) -> None:
         """Show sets today, selected exercise, and process list context."""
-        label = self._fitness_context_status_label
-        if label is None:
+        label = getattr(self, "_fitness_context_status_label", None)
+        pagination = getattr(self, "_process_pagination", None)
+        if label is None or pagination is None:
             return
-        sets_part = f"{self._sets_today_count} sets today"
+        sets_today = int(getattr(self, "_sets_today_count", 0) or 0)
+        sets_part = f"{sets_today} sets today"
         exercise = self._get_current_selected_exercise()
         exercise_part = exercise.strip() if exercise else ""
-        pagination = self._process_pagination
         list_part = format_list_view_status(
             filtered=self._process_filter_is_active(),
             loaded_count=pagination.loaded_count if pagination.loaded_count > 0 else None,

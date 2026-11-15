@@ -249,6 +249,11 @@ class MainWindow(
         self.db_manager: database_manager.DatabaseManager | None = None
         self.habits_filter_list_model: QStandardItemModel | None = None
         self.habits_year_list_model: QStandardItemModel | None = None
+        # Status bar during `_setup_ui` needs list-mode fields ready first.
+        initial_count, load_more_count = get_apps_list_limits(self._app_config)
+        self.count_records_to_show = initial_count
+        self.process_habits_load_more_count = load_more_count
+        self.show_all_records = False
         self._setup_ui()
         self._finish_fluent_window_chrome()
         install_habits_layout_chrome(self)
@@ -272,11 +277,6 @@ class MainWindow(
             "process_habits": None,
         }
 
-        # Process habits table display mode flag
-        initial_count, load_more_count = get_apps_list_limits(self._app_config)
-        self.count_records_to_show = initial_count
-        self.process_habits_load_more_count = load_more_count
-        self.show_all_records = False
         # Habits list view filter flag
         self.show_archived_habits = False
         # Boolean habit column indexes in process_habits pivot (1-based habit columns)
@@ -2815,7 +2815,7 @@ class MainWindow(
 
     def _update_habits_status_bar(self) -> None:
         """Show habit filter, period, list mode, and matrix row count."""
-        label = self._habits_context_status_label
+        label = getattr(self, "_habits_context_status_label", None)
         if label is None:
             return
         try:
@@ -2827,7 +2827,9 @@ class MainWindow(
         except AttributeError:
             period = ""
         mode = self._current_habits_chart_mode().replace("_", " ")
-        list_mode = "All days" if self.show_all_records else f"Last {self.count_records_to_show}"
+        show_all = bool(getattr(self, "show_all_records", False))
+        last_count = int(getattr(self, "count_records_to_show", 0) or 0)
+        list_mode = "All days" if show_all else f"Last {last_count}"
         rows_part = ""
         if self._habits_matrix_row_count > 0:
             day_word = "day" if self._habits_matrix_row_count == 1 else "days"

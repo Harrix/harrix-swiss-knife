@@ -439,6 +439,11 @@ class MainWindow(
         self._food_log_list_status_label: QLabel | None = None
         self._food_log_selection_status_label: QLabel | None = None
         self._food_log_selection_selection_model = None
+        initial_count, load_more_count = get_apps_list_limits(self._app_config)
+        self.count_food_records_to_show: int = initial_count
+        self.food_log_load_more_count: int = load_more_count
+        self.name_autocomplete_log_limit: int = initial_count
+        self.show_all_food_records: bool = False
         self._setup_ui()
         self._finish_fluent_window_chrome()
         install_food_layout_chrome(self)
@@ -453,13 +458,6 @@ class MainWindow(
 
         # Food items list model
         self.food_items_list_model: QStandardItemModel | None = None
-
-        # Food log display state
-        initial_count, load_more_count = get_apps_list_limits(self._app_config)
-        self.count_food_records_to_show: int = initial_count
-        self.food_log_load_more_count: int = load_more_count
-        self.name_autocomplete_log_limit: int = initial_count
-        self.show_all_food_records: bool = False
 
         # Dialog state to prevent multiple dialogs
         self._food_item_dialog_open: bool = False
@@ -5744,10 +5742,10 @@ class MainWindow(
 
     def _update_food_log_list_status(self) -> None:
         """Show filter and pagination context for the food log table."""
-        label = self._food_log_list_status_label
-        if label is None:
+        label = getattr(self, "_food_log_list_status_label", None)
+        pagination = getattr(self, "_food_log_pagination", None)
+        if label is None or pagination is None:
             return
-        pagination = self._food_log_pagination
         label.setText(
             format_list_view_status(
                 filtered=self._food_log_filter_is_active(),
