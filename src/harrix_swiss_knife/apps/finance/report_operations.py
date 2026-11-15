@@ -9,7 +9,7 @@ from typing import cast
 
 from PySide6.QtCore import QPoint, QSize, Qt
 from PySide6.QtGui import QColor, QFont, QStandardItem, QStandardItemModel
-from PySide6.QtWidgets import QAbstractItemView, QDialog, QMenu, QWidget
+from PySide6.QtWidgets import QAbstractItemView, QDialog, QHeaderView, QMenu, QWidget
 
 from harrix_swiss_knife import toast_countdown_notification
 from harrix_swiss_knife.apps.common import message_box
@@ -245,11 +245,11 @@ class ReportOperations:
         delegate = YearDeltaCellDelegate(self.tableView_reports)
         for column in range(1, model.columnCount()):
             self.tableView_reports.setItemDelegateForColumn(column, delegate)
-        reports_header = self.tableView_reports.horizontalHeader()
+        reports_header = self._reports_header()
         for column in range(reports_header.count()):
             reports_header.setSectionResizeMode(column, reports_header.ResizeMode.Interactive)
         self.tableView_reports.resizeColumnsToContents()
-        self.tableView_reports.resizeRowsToContents()
+        self.tableView_reports.setUniformRowHeights(False)
 
     def _apply_monthly_summary_report(
         self,
@@ -321,7 +321,7 @@ class ReportOperations:
                 col_idx, ReportAmountDelegate(self.tableView_reports, is_bold=False)
             )
 
-        reports_header = self.tableView_reports.horizontalHeader()
+        reports_header = self._reports_header()
         if reports_header.count() > 0:
             for i in range(reports_header.count()):
                 reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Interactive)
@@ -378,7 +378,7 @@ class ReportOperations:
             self.tableView_reports.setItemDelegateForColumn(column, None)
         amount_delegate = ReportAmountDelegate(self.tableView_reports, is_bold=True)
         self.tableView_reports.setItemDelegateForColumn(1, amount_delegate)
-        reports_header = self.tableView_reports.horizontalHeader()
+        reports_header = self._reports_header()
         for i in range(reports_header.count()):
             reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Interactive)
         self.tableView_reports.resizeColumnsToContents()
@@ -567,13 +567,18 @@ class ReportOperations:
                 continue
             header_item.setIcon(category_lucide_icon(emoji, lucide_name=lucide))
 
+    def _reports_header(self) -> QHeaderView:
+        """Return the reports view header (`QTreeView.header()`, not `horizontalHeader`)."""
+        return self.tableView_reports.header()
+
     def _set_reports_model_and_stretch(self, model: QStandardItemModel) -> None:
         """Set model on reports table and stretch columns."""
         self.tableView_reports.setSortingEnabled(False)
         self.tableView_reports.setRootIsDecorated(False)
         self.tableView_reports.setItemsExpandable(False)
+        self.tableView_reports.setUniformRowHeights(True)
         self.tableView_reports.setModel(model)
-        reports_header = self.tableView_reports.horizontalHeader()
+        reports_header = self._reports_header()
         if reports_header.count() > 0:
             for i in range(reports_header.count()):
                 reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Stretch)
