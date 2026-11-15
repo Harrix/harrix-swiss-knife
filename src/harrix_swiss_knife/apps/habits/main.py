@@ -102,6 +102,7 @@ from harrix_swiss_knife.apps.common.year_heatmap import YearHeatmap, YearHeatmap
 from harrix_swiss_knife.apps.habits import database_manager, window
 from harrix_swiss_knife.apps.habits.dashboard import HabitDashboardWidget
 from harrix_swiss_knife.apps.habits.delegates import (
+    HABIT_ICON_LUCIDE_ROLE,
     HabitEmojiDelegate,
     ProcessHabitBoolDelegate,
     ProcessHabitIntDelegate,
@@ -1308,16 +1309,17 @@ class MainWindow(
         return CHART_MODE_HEATMAP
 
     def _decorate_habits_emoji_column(self, lucide_names: list[str]) -> None:
-        """Paint Lucide decorations on the emoji column when `icon_lucide` is set."""
+        """Store Lucide ids and paint decorations on the emoji column."""
         model = self.tableView_habits.model()
         if model is None:
             return
         for row_index, lucide_name in enumerate(lucide_names):
-            icon = habit_lucide_icon(lucide_name)
-            if icon.isNull():
-                continue
             index = model.index(row_index, 1)
-            if index.isValid():
+            if not index.isValid():
+                continue
+            model.setData(index, lucide_name, HABIT_ICON_LUCIDE_ROLE)
+            icon = habit_lucide_icon(lucide_name)
+            if not icon.isNull():
                 model.setData(index, icon, Qt.ItemDataRole.DecorationRole)
 
     def _display_habit_line_chart(self, figure: Figure) -> None:
@@ -1628,8 +1630,8 @@ class MainWindow(
 
     def _init_habits_table_delegates(self) -> None:
         """Install delegates for habits table columns."""
-        # Column indexes: 0=Habit, 1=Emoji, 2=Is Boolean, 3=Is Archived
-        emoji_delegate = HabitEmojiDelegate(self.tableView_habits)
+        # Column indexes: 0=Habit, 1=Emoji/Lucide, 2=Is Boolean, 3=Is Archived
+        emoji_delegate = HabitEmojiDelegate(self.tableView_habits, app_config=self._app_config)
         yes_no_delegate = YesNoComboDelegate(self.tableView_habits)
         self.tableView_habits.setItemDelegateForColumn(1, emoji_delegate)
         self.tableView_habits.setItemDelegateForColumn(2, yes_no_delegate)

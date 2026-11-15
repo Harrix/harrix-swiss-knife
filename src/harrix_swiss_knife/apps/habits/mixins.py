@@ -16,6 +16,7 @@ from harrix_swiss_knife.apps.common.chart_operations import ChartOperationsBase
 from harrix_swiss_knife.apps.common.db_guard import requires_database
 from harrix_swiss_knife.apps.common.qt_mixins import AutoSaveMixin, DateMixin, TableOperations, ValidationMixin
 from harrix_swiss_knife.apps.habits.checkin_sounds import play_habit_checkin_sound
+from harrix_swiss_knife.apps.habits.delegates.habit_emoji_delegate import HABIT_ICON_LUCIDE_ROLE
 from harrix_swiss_knife.apps.habits.habit_emojis import capitalize_habit_name
 
 if TYPE_CHECKING:
@@ -53,7 +54,9 @@ class AutoSaveOperations(AutoSaveMixin):
         """
         current_name = str(model.data(model.index(row, 0)) or "")
         name = capitalize_habit_name(current_name)
-        emoji = model.data(model.index(row, 1)) or ""
+        emoji_index = model.index(row, 1)
+        emoji = model.data(emoji_index) or ""
+        icon_lucide = str(model.data(emoji_index, HABIT_ICON_LUCIDE_ROLE) or "").strip()
         is_bool_str = model.data(model.index(row, 2)) or ""
         is_archived_str = model.data(model.index(row, 3)) or ""
 
@@ -87,6 +90,7 @@ class AutoSaveOperations(AutoSaveMixin):
             is_bool=is_bool,
             is_archived=is_archived,
             emoji=str(emoji).strip(),
+            icon_lucide=icon_lucide,
         ):
             message_box.warning(None, "Database Error", "Failed to save habit record")
 

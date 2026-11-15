@@ -1,6 +1,9 @@
 """Delegates for habits app table views."""
 
-from harrix_swiss_knife.apps.habits.delegates.habit_emoji_delegate import HabitEmojiDelegate
+from harrix_swiss_knife.apps.habits.delegates.habit_emoji_delegate import (
+    HABIT_ICON_LUCIDE_ROLE,
+    HabitEmojiDelegate,
+)
 from harrix_swiss_knife.apps.habits.delegates.process_habit_bool_delegate import (
     ProcessHabitBoolDelegate,
     ProcessHabitBoolState,
@@ -15,6 +18,7 @@ from harrix_swiss_knife.apps.habits.delegates.process_habit_int_delegate import 
 from harrix_swiss_knife.apps.habits.delegates.yes_no_combo_delegate import YesNoComboDelegate
 
 __all__ = [
+    "HABIT_ICON_LUCIDE_ROLE",
     "HabitEmojiDelegate",
     "ProcessHabitBoolDelegate",
     "ProcessHabitBoolState",
