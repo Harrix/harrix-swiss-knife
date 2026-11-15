@@ -2,21 +2,19 @@
 
 from __future__ import annotations
 
-from PySide6.QtCore import QDate, QLocale, QPoint, QSize, Qt, QTime, Signal
-from PySide6.QtGui import QFont, QIcon, QTextCharFormat
+from PySide6.QtCore import QDate, QPoint, Qt, QTime, Signal
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
-    QCalendarWidget,
     QFrame,
     QToolButton,
     QVBoxLayout,
     QWidget,
 )
 
-from harrix_swiss_knife.fluent.style import lucide_qss_url, subtle_button_qss
-from harrix_swiss_knife.fluent.theme import bind_theme, css, mix, palette_for
+from harrix_swiss_knife.fluent.style import subtle_button_qss
+from harrix_swiss_knife.fluent.theme import bind_theme, css, palette_for
 from harrix_swiss_knife.fluent.tokens import (
     CONTROL_HEIGHT,
-    RADIUS_CONTROL,
     RADIUS_OVERLAY,
     SPACE_M,
     SPACE_S,
@@ -24,9 +22,9 @@ from harrix_swiss_knife.fluent.tokens import (
 )
 from harrix_swiss_knife.fluent.widgets.button_base import FluentPushButton
 from harrix_swiss_knife.fluent.widgets.picker_base import FluentRollerPicker
+from harrix_swiss_knife.qt_date_calendar import SoftCalendarWidget
 from harrix_swiss_knife.qt_flow_layout import FlowLayout
 
-_CALENDAR_SIZE = QSize(320, 300)
 _CLICK_SLOP_PX = 3
 _EMOJI_CELL = 36
 _EMOJI_DEFAULT = [
@@ -75,58 +73,13 @@ _HOURS = 24
 _MINUTES = 60
 
 
-class FluentCalendar(QCalendarWidget):
-    """Month calendar with Fluent navigation chrome and a round accent selection."""
+class FluentCalendar(SoftCalendarWidget):
+    """SoftCalendar chrome as the Fluent gallery and calendar-picker baseline."""
 
     def __init__(self, parent: QWidget | None = None) -> None:
-        """Create a calendar."""
+        """Create a SoftCalendar-based Fluent calendar."""
         super().__init__(parent)
-        self.setVerticalHeaderFormat(QCalendarWidget.VerticalHeaderFormat.NoVerticalHeader)
-        self.setHorizontalHeaderFormat(QCalendarWidget.HorizontalHeaderFormat.ShortDayNames)
-        self.setGridVisible(False)
-        self.setLocale(QLocale(QLocale.Language.English))
-        self.setFixedSize(_CALENDAR_SIZE)
         self.setObjectName("FluentCalendar")
-        bind_theme(self, self.refresh_theme)
-
-    def refresh_theme(self) -> None:
-        """Re-apply chrome and weekday/weekend text formats."""
-        palette = palette_for(self)
-        surface = palette.solid_tertiary_bg if palette.dark else palette.solid_quarternary_bg
-        previous = lucide_qss_url("chevron-left", palette.text_secondary, 14)
-        following = lucide_qss_url("chevron-right", palette.text_secondary, 14)
-        self.setStyleSheet(f"""
-QCalendarWidget#FluentCalendar {{
-    background: {css(surface)}; border: 1px solid {css(palette.popup_stroke)}; border-radius: {RADIUS_OVERLAY}px;
-}}
-QCalendarWidget#FluentCalendar QWidget#qt_calendar_navigationbar {{ background: transparent; padding: 4px; }}
-QCalendarWidget#FluentCalendar QToolButton {{
-    background: transparent; color: {css(palette.text_primary)}; border: none; border-radius: {RADIUS_CONTROL}px;
-    padding: 4px 8px; font-weight: 600;
-}}
-QCalendarWidget#FluentCalendar QToolButton:hover {{ background: {css(palette.subtle_hover)}; }}
-QCalendarWidget#FluentCalendar QToolButton::menu-indicator {{ image: none; }}
-QCalendarWidget#FluentCalendar QToolButton#qt_calendar_prevmonth {{ qproperty-icon: url("{previous}"); }}
-QCalendarWidget#FluentCalendar QToolButton#qt_calendar_nextmonth {{ qproperty-icon: url("{following}"); }}
-QCalendarWidget#FluentCalendar QSpinBox {{ background: transparent; color: {css(palette.text_primary)}; border: none; }}
-QCalendarWidget#FluentCalendar QAbstractItemView {{
-    background: {css(surface)}; alternate-background-color: {css(surface)};
-    color: {css(palette.text_primary)}; outline: none;
-    selection-background-color: {css(palette.accent)}; selection-color: {css(palette.text_on_accent)};
-}}
-QCalendarWidget#FluentCalendar QAbstractItemView:disabled {{ color: {css(palette.text_disabled)}; }}
-QCalendarWidget#FluentCalendar QMenu {{ background: {css(surface)}; color: {css(palette.text_primary)}; }}
-""")
-        normal = QTextCharFormat()
-        normal.setForeground(mix(surface, palette.text_primary))
-        for day in (Qt.DayOfWeek.Saturday, Qt.DayOfWeek.Sunday):
-            self.setWeekdayTextFormat(day, normal)
-        header = QTextCharFormat()
-        header.setForeground(mix(surface, palette.text_secondary))
-        header.setFontWeight(QFont.Weight.DemiBold)
-        self.setHeaderTextFormat(header)
-        for button in self.findChildren(QToolButton):
-            button.setCursor(Qt.CursorShape.PointingHandCursor)
 
 
 class FluentCalendarPicker(FluentPushButton):
@@ -156,6 +109,8 @@ class FluentCalendarPicker(FluentPushButton):
         self.calendar = FluentCalendar(self._popup)
         layout.addWidget(self.calendar)
         self.calendar.clicked.connect(self._on_pick)
+        # SoftCalendar footer presets emit activated (Yesterday / Today / ±1 day).
+        self.calendar.activated.connect(self._on_pick)
         self.clicked.connect(self.open_popup)
         self._sync_text()
 
@@ -167,6 +122,7 @@ class FluentCalendarPicker(FluentPushButton):
         """Show the calendar below the button."""
         if self._date is not None:
             self.calendar.setSelectedDate(self._date)
+            self.calendar.setCurrentPage(self._date.year(), self._date.month())
         self._popup.adjustSize()
         self._popup.move(self.mapToGlobal(QPoint(0, self.height() + SPACE_XS)))
         self._popup.show()
@@ -178,9 +134,12 @@ class FluentCalendarPicker(FluentPushButton):
 
     def _on_pick(self, date: QDate) -> None:
         self._date = date
+        was_visible = self._popup.isVisible()
         self._popup.hide()
         self._sync_text()
-        self.date_changed.emit(date)
+        # clicked + activated can both fire on double-click; emit once per close.
+        if was_visible:
+            self.date_changed.emit(date)
 
     def _sync_text(self) -> None:
         self.setText(self._date.toString(self._format) if self._date is not None else self._placeholder)

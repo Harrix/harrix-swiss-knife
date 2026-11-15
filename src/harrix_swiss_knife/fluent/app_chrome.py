@@ -639,7 +639,7 @@ def _skip_fluent_button(button: QWidget) -> bool:
         return True
     parent = button.parentWidget()
     while parent is not None:
-        if parent.metaObject().className() == "SoftCalendarWidget" or parent.inherits("QAbstractItemView"):
+        if parent.inherits("SoftCalendarWidget") or parent.inherits("QAbstractItemView"):
             return True
         parent = parent.parentWidget()
     return False

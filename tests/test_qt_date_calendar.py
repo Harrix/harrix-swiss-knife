@@ -7,6 +7,7 @@ from PySide6.QtCore import QDate, QEvent, QPointF, Qt
 from PySide6.QtGui import QMouseEvent
 from PySide6.QtWidgets import QApplication, QDateEdit, QPushButton, QTableView, QWidget
 
+from harrix_swiss_knife.fluent.widgets import FluentCalendar
 from harrix_swiss_knife.qt_date_calendar import (
     SoftCalendarWidget,
     apply_date_calendar_popup,
@@ -41,6 +42,20 @@ def test_apply_date_calendar_popup_replaces_widget(qapp: QApplication) -> None: 
     # Idempotent.
     apply_date_calendar_popup(date_edit)
     assert date_edit.calendarWidget() is calendar
+
+
+def test_fluent_calendar_uses_soft_calendar_chrome(qapp: QApplication) -> None:
+    calendar = FluentCalendar()
+    calendar.show()
+    qapp.processEvents()
+    assert isinstance(calendar, SoftCalendarWidget)
+    assert calendar.objectName() == "FluentCalendar"
+    nav = calendar.findChild(QWidget, "qt_calendar_navigationbar")
+    assert nav is None or not nav.isVisible()
+    assert calendar.findChild(QWidget, "hskCalendarHeader") is not None
+    labels = {button.text() for button in calendar.findChildren(QPushButton)}
+    assert {"Yesterday", "Today", "+1 day", "-1 day"} <= labels
+    calendar.close()
 
 
 def test_soft_calendar_today_and_month_title(qapp: QApplication) -> None:  # noqa: ARG001
