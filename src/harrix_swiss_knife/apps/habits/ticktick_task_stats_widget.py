@@ -29,7 +29,7 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife.apps.common import message_box
-from harrix_swiss_knife.apps.common.calendar_heatmap import heatmap_year_bands
+from harrix_swiss_knife.apps.common.calendar_heatmap import heatmap_day_before_activity, heatmap_year_bands
 from harrix_swiss_knife.apps.common.chart_format import fmt_date, fmt_number
 from harrix_swiss_knife.apps.common.chart_hover import create_chart_canvas, install_chart_hover
 from harrix_swiss_knife.apps.common.chart_page_chrome import (
@@ -395,16 +395,27 @@ class TickTickTaskStatsWidget(QWidget):
                 self._day_list_layout.addWidget(line)
         self._day_list_layout.addStretch(1)
 
+    def _first_completion_day(self, project_id: str | None) -> date | None:
+        """Return the earliest completed-task day for the current project filter."""
+        days = [
+            item.completed_at.date()
+            for item in self._completions
+            if project_id is None or item.project_id == project_id
+        ]
+        return min(days) if days else None
+
     def _heatmap_colors(self, stats: TickTickPeriodStats) -> tuple[dict[date, str | None], list[tuple[str, str]]]:
         ranges = quantile_intensity_ranges(stats.counts_by_day.values(), max_bins=4)
         scale = accent_heatmap_colors(len(ranges))
         zero = heatmap_zero_color()
         today = datetime.now().astimezone().date()
+        activity_start = self._first_completion_day(self._selected_project_id())
         colors: dict[date, str | None] = {}
         tips: dict[date, str] = {}
         for day in calendar_days(stats.start_date, stats.end_date):
-            if day > today:
-                # Keep the full-year grid; future days stay unfilled outlines.
+            if day > today or heatmap_day_before_activity(day, activity_start):
+                # Full-year grid: future days and pre-start days in the first year
+                # stay unfilled outlines (not the zero / inactive fill).
                 colors[day] = None
                 tips[day] = day.isoformat()
                 continue

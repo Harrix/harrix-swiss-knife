@@ -53,6 +53,7 @@ def test_habit_calendar_keeps_a_missing_day_distinct_from_zero() -> None:
         date(2024, 1, 1),
         date(2024, 1, 3),
         is_bool=True,
+        today=date(2024, 1, 3),
     )
     assert tokens[date(2024, 1, 1)] is None
     assert tokens[date(2024, 1, 2)] == "not_done"
@@ -60,6 +61,33 @@ def test_habit_calendar_keeps_a_missing_day_distinct_from_zero() -> None:
     assert ("absent", "No data") in legend
     assert ("not_done", "Not done") in legend
     assert ("done", "Done") in legend
+
+
+def test_habit_calendar_empties_days_before_first_activity_in_start_year() -> None:
+    """In the first activity year, days before the habit started stay empty outlines."""
+    recorded = {date(2020, 6, 10): 1, date(2020, 6, 11): 0, date(2021, 1, 5): 0}
+    tokens, _marks, _legend, _bins = habit_calendar_model(
+        recorded,
+        date(2020, 1, 1),
+        date(2020, 12, 31),
+        is_bool=True,
+        activity_start=date(2020, 6, 10),
+        today=date(2026, 1, 1),
+    )
+    assert tokens[date(2020, 6, 1)] is None
+    assert tokens[date(2020, 6, 10)] == "done"
+    assert tokens[date(2020, 6, 11)] == "not_done"
+
+    later_year, _m, _l, _b = habit_calendar_model(
+        recorded,
+        date(2021, 1, 1),
+        date(2021, 1, 10),
+        is_bool=True,
+        activity_start=date(2020, 6, 10),
+        today=date(2026, 1, 1),
+    )
+    # Later years keep ordinary not-done cells; pre-start blanking is first-year only.
+    assert later_year[date(2021, 1, 5)] == "not_done"
 
 
 def test_habit_completion_percent_ignores_days_without_a_record() -> None:

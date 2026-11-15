@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import re
 from datetime import UTC, datetime
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 from PySide6.QtCore import QPoint, QSize, Qt
 from PySide6.QtGui import QColor, QFont, QStandardItem, QStandardItemModel
@@ -23,7 +23,6 @@ from harrix_swiss_knife.apps.finance.exchange_rates_operations import (
 from harrix_swiss_knife.apps.finance.layout_chrome import TABLE_ROW_HEIGHT
 from harrix_swiss_knife.apps.finance.mixins import requires_database
 from harrix_swiss_knife.apps.finance.report_build_worker import ReportBuildResult, ReportBuildWorker
-from harrix_swiss_knife.apps.finance.report_generators import PeriodExpenseCategory
 from harrix_swiss_knife.apps.finance.report_period_dialog import ReportPeriodDialog
 from harrix_swiss_knife.fluent.tokens import ICON_SIZE
 from harrix_swiss_knife.qt_lucide_icon import (
@@ -37,9 +36,13 @@ from harrix_swiss_knife.qt_lucide_icon import (
     set_action_text_with_lucide_icon,
 )
 
+if TYPE_CHECKING:
+    from harrix_swiss_knife.apps.finance.report_generators import PeriodExpenseCategory
+
 logger = logging.getLogger(__name__)
 
 _MONTH_KEY_RE = re.compile(r"^(\d{4})-(\d{2})$")
+_MONTHS_IN_YEAR = 12
 
 # Lucide id, CodeStyle stroke, report title (UserRole / worker key).
 REPORT_TYPES: tuple[tuple[str, str, str], ...] = (
@@ -373,8 +376,6 @@ class ReportOperations:
         tree.setItemsExpandable(True)
         tree.setModel(model)
         tree.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        for column in range(model.columnCount()):
-            tree.setItemDelegateForColumn(column, None)
         amount_delegate = ReportAmountDelegate(tree, is_bold=True)
         tree.setItemDelegateForColumn(1, amount_delegate)
         reports_header = tree.header()
@@ -430,6 +431,22 @@ class ReportOperations:
             toast.close()
             self._report_build_toast = None
 
+    def _ensure_reports_tree_view(self) -> QTreeView:
+        """Create the expandable Month/Year Summary tree beside the flat reports table."""
+        tree = getattr(self, "_reports_tree_view", None)
+        if isinstance(tree, QTreeView):
+            return tree
+        tree = QTreeView(self.splitter_5)
+        tree.setObjectName("treeView_reports")
+        tree.setUniformRowHeights(True)
+        tree.setIndentation(18)
+        tree.setWordWrap(False)
+        tree.setTextElideMode(Qt.TextElideMode.ElideRight)
+        tree.setStyleSheet(f"QTreeView::item {{ min-height: {TABLE_ROW_HEIGHT}px; }}")
+        tree.hide()
+        self._reports_tree_view = tree
+        return tree
+
     def _on_report_build_completed(self, result: ReportBuildResult) -> None:
         """Apply report data to the reports table after background computation."""
         self._close_report_build_toast()
@@ -463,7 +480,7 @@ class ReportOperations:
             return None
         year = int(match.group(1))
         month = int(match.group(2))
-        if not 1 <= month <= 12:
+        if not 1 <= month <= _MONTHS_IN_YEAR:
             return None
         return year, month
 
@@ -532,25 +549,6 @@ class ReportOperations:
                 return text
         return REPORT_TYPES[0][2]
 
-    def _show_reports_table_context_menu(self, position: QPoint) -> None:
-        """Context menu on Monthly Summary rows to open Month Summary for that month."""
-        period = self._reports_month_key_at(position)
-        if period is None:
-            return
-        year, month = period
-        index = self.tableView_reports.indexAt(position)
-        if index.isValid():
-            self.tableView_reports.setCurrentIndex(index.sibling(index.row(), 0))
-
-        menu = QMenu(cast("QWidget", self))
-        action = menu.addAction("Month Summary")
-        set_action_text_with_lucide_icon(action, "Month Summary", "list-tree")
-        action.triggered.connect(lambda: self._open_month_summary_for_period(year, month))
-        viewport = self.tableView_reports.viewport()
-        if viewport is None:
-            return
-        menu.exec(viewport.mapToGlobal(position))
-
     @staticmethod
     def _set_monthly_summary_header_icons(
         model: QStandardItemModel,
@@ -573,37 +571,6 @@ class ReportOperations:
             if header_item is None:
                 continue
             header_item.setIcon(category_lucide_icon(emoji, lucide_name=lucide))
-
-    def _ensure_reports_tree_view(self) -> QTreeView:
-        """Create the expandable Month/Year Summary tree beside the flat reports table."""
-        tree = getattr(self, "_reports_tree_view", None)
-        if isinstance(tree, QTreeView):
-            return tree
-        tree = QTreeView(self.splitter_5)
-        tree.setObjectName("treeView_reports")
-        tree.setUniformRowHeights(True)
-        tree.setIndentation(18)
-        tree.setWordWrap(False)
-        tree.setTextElideMode(Qt.TextElideMode.ElideRight)
-        tree.setStyleSheet(f"QTreeView::item {{ min-height: {TABLE_ROW_HEIGHT}px; }}")
-        tree.hide()
-        self._reports_tree_view = tree
-        return tree
-
-    def _show_reports_flat_view(self) -> None:
-        """Show the QTableView used for matrix / flat reports."""
-        tree = getattr(self, "_reports_tree_view", None)
-        if isinstance(tree, QTreeView):
-            tree.hide()
-            tree.setModel(None)
-        self.tableView_reports.show()
-
-    def _show_reports_tree_view(self) -> QTreeView:
-        """Show the QTreeView used for expandable Month/Year Summary."""
-        tree = self._ensure_reports_tree_view()
-        self.tableView_reports.hide()
-        tree.show()
-        return tree
 
     def _set_reports_model_and_stretch(self, model: QStandardItemModel) -> None:
         """Set model on reports table and stretch columns."""
@@ -632,3 +599,37 @@ class ReportOperations:
             self.listView_report_type.setCurrentIndex(model.index(0, 0))
         self.tableView_reports.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tableView_reports.customContextMenuRequested.connect(self._show_reports_table_context_menu)
+
+    def _show_reports_flat_view(self) -> None:
+        """Show the QTableView used for matrix / flat reports."""
+        tree = getattr(self, "_reports_tree_view", None)
+        if isinstance(tree, QTreeView):
+            tree.hide()
+            tree.setModel(None)
+        self.tableView_reports.show()
+
+    def _show_reports_table_context_menu(self, position: QPoint) -> None:
+        """Context menu on Monthly Summary rows to open Month Summary for that month."""
+        period = self._reports_month_key_at(position)
+        if period is None:
+            return
+        year, month = period
+        index = self.tableView_reports.indexAt(position)
+        if index.isValid():
+            self.tableView_reports.setCurrentIndex(index.sibling(index.row(), 0))
+
+        menu = QMenu(cast("QWidget", self))
+        action = menu.addAction("Month Summary")
+        set_action_text_with_lucide_icon(action, "Month Summary", "list-tree")
+        action.triggered.connect(lambda: self._open_month_summary_for_period(year, month))
+        viewport = self.tableView_reports.viewport()
+        if viewport is None:
+            return
+        menu.exec(viewport.mapToGlobal(position))
+
+    def _show_reports_tree_view(self) -> QTreeView:
+        """Show the QTreeView used for expandable Month/Year Summary."""
+        tree = self._ensure_reports_tree_view()
+        self.tableView_reports.hide()
+        tree.show()
+        return tree

@@ -18,6 +18,7 @@ lang: en
 - [🔧 Function `habit_heatmap_month_separated_positions`](#-function-habit_heatmap_month_separated_positions)
 - [🔧 Function `habit_heatmap_week_start`](#-function-habit_heatmap_week_start)
 - [🔧 Function `habit_heatmap_weekday_index`](#-function-habit_heatmap_weekday_index)
+- [🔧 Function `heatmap_day_before_activity`](#-function-heatmap_day_before_activity)
 - [🔧 Function `heatmap_year_after_step`](#-function-heatmap_year_after_step)
 - [🔧 Function `heatmap_year_bands`](#-function-heatmap_year_bands)
 - [🔧 Function `numeric_habit_heatmap_cell_labels`](#-function-numeric_habit_heatmap_cell_labels)
@@ -229,6 +230,28 @@ Return 0-based heatmap row for `[`day`](../habits/dashboard_widgets.g.md#%EF%B8%
 ```python
 def habit_heatmap_weekday_index(day: date, *, week_starts_on: int = HEATMAP_WEEK_STARTS_ON) -> int:
     return (day.weekday() - week_starts_on) % 7
+```
+
+</details>
+
+## 🔧 Function `heatmap_day_before_activity`
+
+```python
+def heatmap_day_before_activity(day: date, activity_start: date | None) -> bool
+```
+
+Return whether [`day`](../habits/dashboard_widgets.g.md#%EF%B8%8F-method-day) is before tracking began in the first activity year.
+
+Only the calendar year of `activity_start` is affected, so later years keep
+ordinary zero/missed cells. Matches how future days stay empty in the
+current year.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def heatmap_day_before_activity(day: date, activity_start: date | None) -> bool:
+    return activity_start is not None and day.year == activity_start.year and day < activity_start
 ```
 
 </details>

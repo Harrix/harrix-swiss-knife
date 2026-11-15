@@ -286,12 +286,14 @@ def cumulative_habit_month_points(
 ## 🔧 Function `habit_calendar_model`
 
 ```python
-def habit_calendar_model(recorded: dict[date, int], start: date, end: date, *, is_bool: bool) -> tuple[dict[date, str | None], dict[date, str], list[tuple[str, str]], int]
+def habit_calendar_model(recorded: dict[date, int], start: date, end: date, *, is_bool: bool, activity_start: date | None = None, today: date | None = None) -> tuple[dict[date, str | None], dict[date, str], list[tuple[str, str]], int]
 ```
 
 Return cell tokens, numeric marks, legend tokens, and the positive bin count.
 
 `None` means no database row. A stored `0` is not the same token.
+Days before `activity_start` in that first year, and days after `today`,
+stay `None` (empty outlines) like future days on the current year.
 
 <details>
 <summary>Code:</summary>
@@ -303,6 +305,8 @@ def habit_calendar_model(
     end: date,
     *,
     is_bool: bool,
+    activity_start: date | None = None,
+    today: date | None = None,
 ) -> tuple[dict[date, str | None], dict[date, str], list[tuple[str, str]], int]:
     tokens: dict[date, str | None] = {}
     marks: dict[date, str] = {}
@@ -311,7 +315,13 @@ def habit_calendar_model(
     saw_done = False
     saw_negative = False
     positives: list[int] = []
+    today_local = today or datetime.now().astimezone().date()
+    first_day = activity_start if activity_start is not None else (min(recorded) if recorded else None)
     for day in calendar_days(start, end):
+        if day > today_local or heatmap_day_before_activity(day, first_day):
+            tokens[day] = None
+            saw_absent = True
+            continue
         if day not in recorded:
             tokens[day] = None
             saw_absent = True

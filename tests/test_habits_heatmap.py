@@ -12,6 +12,7 @@ from harrix_swiss_knife.apps.common.calendar_heatmap import (
     habit_heatmap_month_ranges,
     habit_heatmap_month_separated_positions,
     habit_heatmap_weekday_index,
+    heatmap_day_before_activity,
     heatmap_year_after_step,
     heatmap_year_bands,
     numeric_habit_heatmap_cell_labels,
@@ -78,6 +79,15 @@ def test_heatmap_year_bands_newest_first_full_calendar_years() -> None:
     assert [year for year, _start, _end in bands] == [2026, 2025, 2024]
     assert bands[0] == (2026, date(2026, 1, 1), date(2026, 12, 31))
     assert bands[1] == (2025, date(2025, 1, 1), date(2025, 12, 31))
+
+
+def test_heatmap_day_before_activity_only_in_first_year() -> None:
+    """Pre-start blanking applies only inside the year tracking began."""
+    start = date(2020, 6, 15)
+    assert heatmap_day_before_activity(date(2020, 6, 1), start)
+    assert not heatmap_day_before_activity(date(2020, 6, 15), start)
+    assert not heatmap_day_before_activity(date(2021, 1, 1), start)
+    assert not heatmap_day_before_activity(date(2020, 1, 1), None)
 
 
 def test_numeric_habit_heatmap_cell_labels_skips_zero() -> None:

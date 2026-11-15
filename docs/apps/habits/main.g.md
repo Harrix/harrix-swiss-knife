@@ -888,7 +888,15 @@ class MainWindow(
             date_to=end_date.strftime("%Y-%m-%d"),
         )
         recorded = recorded_daily(rows)
-        self._present_habit_heatmap(habit_name, recorded, start_date, end_date)
+        all_recorded = recorded_daily(self.db_manager.get_habit_calendar_data(habit_name))
+        activity_start = min(all_recorded) if all_recorded else None
+        self._present_habit_heatmap(
+            habit_name,
+            recorded,
+            start_date,
+            end_date,
+            activity_start=activity_start,
+        )
 
     def update_habits_filter_combobox(self) -> None:
         """Refresh habit filter list view in the filter group."""
@@ -1840,7 +1848,15 @@ class MainWindow(
             return
         start_date = bands[-1][1]
         end_date = bands[0][2]
-        tokens, marks, legend, bin_count = habit_calendar_model(recorded, start_date, end_date, is_bool=is_bool)
+        activity_start = min(recorded) if recorded else None
+        tokens, marks, legend, bin_count = habit_calendar_model(
+            recorded,
+            start_date,
+            end_date,
+            is_bool=is_bool,
+            activity_start=activity_start,
+            today=today,
+        )
         colors = {day: habit_token_color(state, bin_count=bin_count) for day, state in tokens.items()}
         tips = {day: _habit_cell_tip(day, state, recorded) for day, state in tokens.items()}
         stack.set_years(
@@ -1868,6 +1884,8 @@ class MainWindow(
         recorded: dict[date, int],
         start_date: date,
         end_date: date,
+        *,
+        activity_start: date | None = None,
     ) -> None:
         """Fill the shared heatmap, compact stats, and the chart under the calendar."""
         heatmap = getattr(self, "_habits_year_heatmap", None)
@@ -1880,7 +1898,16 @@ class MainWindow(
                 {"name": habit_name},
             ),
         )
-        tokens, marks, legend, bin_count = habit_calendar_model(recorded, start_date, end_date, is_bool=is_bool)
+        today = datetime.now(UTC).astimezone().date()
+        first_day = activity_start if activity_start is not None else (min(recorded) if recorded else None)
+        tokens, marks, legend, bin_count = habit_calendar_model(
+            recorded,
+            start_date,
+            end_date,
+            is_bool=is_bool,
+            activity_start=first_day,
+            today=today,
+        )
         colors = {day: habit_token_color(state, bin_count=bin_count) for day, state in tokens.items()}
         tips = {day: _habit_cell_tip(day, state, recorded) for day, state in tokens.items()}
         heatmap.set_calendar(
@@ -1894,7 +1921,6 @@ class MainWindow(
         title = getattr(self, "_habits_heatmap_title", None)
         if isinstance(title, QLabel):
             title.setText(habit_name)
-        today = datetime.now(UTC).astimezone().date()
         stats = habit_period_stats(recorded, start_date, end_date, is_bool=is_bool, today=today)
         metrics = getattr(self, "_habits_metrics", None)
         if isinstance(metrics, MetricStrip):
@@ -3831,7 +3857,15 @@ def update_habit_calendar_heatmap(self, habit_name: str | None = None, year: int
             date_to=end_date.strftime("%Y-%m-%d"),
         )
         recorded = recorded_daily(rows)
-        self._present_habit_heatmap(habit_name, recorded, start_date, end_date)
+        all_recorded = recorded_daily(self.db_manager.get_habit_calendar_data(habit_name))
+        activity_start = min(all_recorded) if all_recorded else None
+        self._present_habit_heatmap(
+            habit_name,
+            recorded,
+            start_date,
+            end_date,
+            activity_start=activity_start,
+        )
 ```
 
 </details>

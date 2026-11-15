@@ -11,13 +11,63 @@ lang: en
 
 ## Contents
 
+- [🏛️ Class `PeriodExpenseCategory`](#%EF%B8%8F-class-periodexpensecategory)
+- [🏛️ Class `PeriodExpenseTransaction`](#%EF%B8%8F-class-periodexpensetransaction)
 - [🔧 Function `get_account_balances_report_data`](#-function-get_account_balances_report_data)
 - [🔧 Function `get_average_salary_by_year_report_data`](#-function-get_average_salary_by_year_report_data)
 - [🔧 Function `get_category_analysis_report_data`](#-function-get_category_analysis_report_data)
 - [🔧 Function `get_currency_analysis_report_data`](#-function-get_currency_analysis_report_data)
 - [🔧 Function `get_income_vs_expenses_report_data`](#-function-get_income_vs_expenses_report_data)
+- [🔧 Function `get_month_summary_report_data`](#-function-get_month_summary_report_data)
 - [🔧 Function `get_monthly_income_year_delta_report_data`](#-function-get_monthly_income_year_delta_report_data)
 - [🔧 Function `get_monthly_summary_report_data`](#-function-get_monthly_summary_report_data)
+- [🔧 Function `get_year_summary_report_data`](#-function-get_year_summary_report_data)
+- [🔧 Function `get_yearly_summary_report_data`](#-function-get_yearly_summary_report_data)
+
+</details>
+
+## 🏛️ Class `PeriodExpenseCategory`
+
+```python
+class PeriodExpenseCategory
+```
+
+Expense category total with drill-down transactions for a period report.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class PeriodExpenseCategory:
+
+    category_id: int
+    name: str
+    icon: str
+    icon_lucide: str
+    total: float
+    transactions: tuple[PeriodExpenseTransaction, ...]
+```
+
+</details>
+
+## 🏛️ Class `PeriodExpenseTransaction`
+
+```python
+class PeriodExpenseTransaction
+```
+
+One expense line inside a Month/Year Summary category.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class PeriodExpenseTransaction:
+
+    date: str
+    description: str
+    amount: float
+```
 
 </details>
 
@@ -217,6 +267,33 @@ def get_income_vs_expenses_report_data(
 
 </details>
 
+## 🔧 Function `get_month_summary_report_data`
+
+```python
+def get_month_summary_report_data(ctx: ReportBuildContext, *, year: int, month: int) -> tuple[list[str], list[PeriodExpenseCategory], float]
+```
+
+Build Month Summary: expenses by category for one calendar month, largest first.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_month_summary_report_data(
+    ctx: ReportBuildContext,
+    *,
+    year: int,
+    month: int,
+) -> tuple[list[str], list[PeriodExpenseCategory], float]:
+    safe_month = max(1, min(12, month))
+    last_day = calendar.monthrange(year, safe_month)[1]
+    date_from = f"{year:04d}-{safe_month:02d}-01"
+    date_to = f"{year:04d}-{safe_month:02d}-{last_day:02d}"
+    return _get_period_expense_drilldown(ctx, date_from, date_to)
+```
+
+</details>
+
 ## 🔧 Function `get_monthly_income_year_delta_report_data`
 
 ```python
@@ -343,63 +420,66 @@ def get_monthly_summary_report_data(
     list[tuple[int, str, str, str]],
     set[int],
 ]:
-    db_manager = ctx.db_manager
-    currency_id = ctx.currency_id
-    all_categories: list = db_manager.get_all_categories()
-    expense_categories: list[tuple[int, str, str, str]] = []
-    category_name_to_id: dict[str, int] = {}
+    return _get_period_summary_report_data(
+        ctx,
+        period_header="Month",
+        period_keys=_iter_month_keys_from_earliest,
+        load_totals=lambda db, currency_id: db.get_monthly_expense_totals_by_category(currency_id),
+    )
+```
 
-    for category in all_categories:
-        cat_id = category[0]
-        category_name = str(category[1] or "")
-        category_type = int(category[2] or 0)
-        category_icon = str(category[3] or "")
-        icon_lucide = (
-            str(category[CATEGORY_ROW_ICON_LUCIDE_INDEX] or "")
-            if len(category) > CATEGORY_ROW_ICON_LUCIDE_INDEX and category[CATEGORY_ROW_ICON_LUCIDE_INDEX] is not None
-            else ""
-        )
-        if category_type == 0:
-            expense_categories.append((cat_id, category_name, category_icon, icon_lucide))
-            category_name_to_id[category_name] = cat_id
+</details>
 
-    if not expense_categories:
-        return ["Month"], [], [], set()
+## 🔧 Function `get_year_summary_report_data`
 
-    def _sort_key(cat: tuple[int, str, str, str]) -> tuple[int, str]:
-        tokens = _normalize_category_tokens(cat[1])
-        if "cafe" in tokens:
-            return (0, cat[1])
-        if "food" in tokens:
-            return (1, cat[1])
-        return (2, cat[1])
+```python
+def get_year_summary_report_data(ctx: ReportBuildContext, *, year: int) -> tuple[list[str], list[PeriodExpenseCategory], float]
+```
 
-    expense_categories.sort(key=_sort_key)
+Build Year Summary: expenses by category for one calendar year, largest first.
 
-    end_date: datetime = datetime.now(UTC).astimezone()
-    month_names = _iter_month_keys_from_earliest(db_manager, end_date)
-    monthly_data: dict[str, dict[int, float]] = {month: {} for month in month_names}
-    sql_monthly = db_manager.get_monthly_expense_totals_by_category(currency_id)
-    for month_name, category_amounts in sql_monthly.items():
-        if month_name not in monthly_data:
-            monthly_data[month_name] = {}
-        monthly_data[month_name].update(category_amounts)
+<details>
+<summary>Code:</summary>
 
-    combined_category_targets = {"cafe", "food"}
-    combined_category_ids: set[int] = {
-        cid for name, cid in category_name_to_id.items() if _normalize_category_tokens(name) & combined_category_targets
-    }
+```python
+def get_year_summary_report_data(
+    ctx: ReportBuildContext,
+    *,
+    year: int,
+) -> tuple[list[str], list[PeriodExpenseCategory], float]:
+    return _get_period_expense_drilldown(ctx, f"{year:04d}-01-01", f"{year:04d}-12-31")
+```
 
-    headers: list[str] = ["Month", "Total", "Cafe + Food"]
-    headers.extend([cat[1] for cat in expense_categories])
+</details>
 
-    rows: list[tuple[str, float, float, dict[int, float]]] = []
-    for month_name in reversed(month_names):
-        month_total = sum(monthly_data[month_name].get(cid, 0.0) for cid, _name, _emoji, _lucide in expense_categories)
-        combined_total = sum(monthly_data[month_name].get(cid, 0.0) for cid in combined_category_ids)
-        rows.append((month_name, month_total, combined_total, monthly_data[month_name]))
+## 🔧 Function `get_yearly_summary_report_data`
 
-    return headers, rows, expense_categories, combined_category_ids
+```python
+def get_yearly_summary_report_data(ctx: ReportBuildContext) -> tuple[list[str], list[tuple[str, float, float, dict[int, float]]], list[tuple[int, str, str, str]], set[int]]
+```
+
+Build yearly summary report data (expenses by category per year).
+
+Each expense category is `(id, name, emoji, icon_lucide)`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_yearly_summary_report_data(
+    ctx: ReportBuildContext,
+) -> tuple[
+    list[str],
+    list[tuple[str, float, float, dict[int, float]]],
+    list[tuple[int, str, str, str]],
+    set[int],
+]:
+    return _get_period_summary_report_data(
+        ctx,
+        period_header="Year",
+        period_keys=_iter_year_keys_from_earliest,
+        load_totals=lambda db, currency_id: db.get_yearly_expense_totals_by_category(currency_id),
+    )
 ```
 
 </details>

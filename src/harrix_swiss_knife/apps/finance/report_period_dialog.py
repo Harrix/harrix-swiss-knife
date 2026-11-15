@@ -96,7 +96,7 @@ class ReportPeriodDialog(QDialog):
         layout.addWidget(buttons)
 
     def selected_month(self) -> int | None:
-        """Return 1–12 when mode is month, otherwise `None`."""
+        """Return 1-12 when mode is month, otherwise `None`."""
         if self._month_combo is None:
             return None
         return self._month_combo.currentIndex() + 1

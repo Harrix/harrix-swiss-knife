@@ -564,16 +564,17 @@ class MainWindow(
         - `event` (`QKeyEvent`): The key press event.
 
         """
-        if self._handle_ctrl_c_for_tables(
-            event,
-            [
-                self.tableView_transactions,
-                self.tableView_accounts,
-                self.tableView_exchange,
-                self.tableView_exchange_rates,
-                self.tableView_reports,
-            ],
-        ):
+        report_views = [
+            self.tableView_transactions,
+            self.tableView_accounts,
+            self.tableView_exchange,
+            self.tableView_exchange_rates,
+            self.tableView_reports,
+        ]
+        reports_tree = getattr(self, "_reports_tree_view", None)
+        if reports_tree is not None:
+            report_views.append(reports_tree)
+        if self._handle_ctrl_c_for_tables(event, report_views):
             return
 
         super().keyPressEvent(event)
@@ -7333,16 +7334,17 @@ Args:
 
 ```python
 def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
-        if self._handle_ctrl_c_for_tables(
-            event,
-            [
-                self.tableView_transactions,
-                self.tableView_accounts,
-                self.tableView_exchange,
-                self.tableView_exchange_rates,
-                self.tableView_reports,
-            ],
-        ):
+        report_views = [
+            self.tableView_transactions,
+            self.tableView_accounts,
+            self.tableView_exchange,
+            self.tableView_exchange_rates,
+            self.tableView_reports,
+        ]
+        reports_tree = getattr(self, "_reports_tree_view", None)
+        if reports_tree is not None:
+            report_views.append(reports_tree)
+        if self._handle_ctrl_c_for_tables(event, report_views):
             return
 
         super().keyPressEvent(event)

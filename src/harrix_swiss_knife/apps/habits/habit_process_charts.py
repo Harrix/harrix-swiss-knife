@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
+from harrix_swiss_knife.apps.common.calendar_heatmap import heatmap_day_before_activity
 from harrix_swiss_knife.apps.common.chart_compare import compare_last_month_windows, compare_same_month_windows
 from harrix_swiss_knife.apps.common.chart_format import fmt_date, fmt_number
 from harrix_swiss_knife.apps.common.chart_theme import (
@@ -202,10 +203,14 @@ def habit_calendar_model(
     end: date,
     *,
     is_bool: bool,
+    activity_start: date | None = None,
+    today: date | None = None,
 ) -> tuple[dict[date, str | None], dict[date, str], list[tuple[str, str]], int]:
     """Return cell tokens, numeric marks, legend tokens, and the positive bin count.
 
     `None` means no database row. A stored `0` is not the same token.
+    Days before `activity_start` in that first year, and days after `today`,
+    stay `None` (empty outlines) like future days on the current year.
 
     """
     tokens: dict[date, str | None] = {}
@@ -215,7 +220,13 @@ def habit_calendar_model(
     saw_done = False
     saw_negative = False
     positives: list[int] = []
+    today_local = today or datetime.now().astimezone().date()
+    first_day = activity_start if activity_start is not None else (min(recorded) if recorded else None)
     for day in calendar_days(start, end):
+        if day > today_local or heatmap_day_before_activity(day, first_day):
+            tokens[day] = None
+            saw_absent = True
+            continue
         if day not in recorded:
             tokens[day] = None
             saw_absent = True

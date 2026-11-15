@@ -184,12 +184,12 @@ class AppWindowMixin:
         self._setup_reveal_database_action()
         self._setup_settings_action()
 
-    def _copy_table_selection_to_clipboard(self, table_view: QTableView) -> None:
+    def _copy_table_selection_to_clipboard(self, table_view: QAbstractItemView) -> None:
         """Copy selected cells from `table_view` to clipboard as tab-separated text.
 
         Args:
 
-        - `table_view` (`QTableView`): The table view to copy data from.
+        - `table_view` (`QAbstractItemView`): The table or tree view to copy data from.
 
         """
         selection_model = table_view.selectionModel()
@@ -247,13 +247,13 @@ class AppWindowMixin:
             logger.exception("⚠️ Warning: Could not read version from pyproject.toml")
             return "Unknown"
 
-    def _handle_ctrl_c_for_tables(self, event: QKeyEvent, table_views: list[QTableView]) -> bool:
+    def _handle_ctrl_c_for_tables(self, event: QKeyEvent, table_views: list[QAbstractItemView]) -> bool:
         """Copy table selection to clipboard on Ctrl+C if a table is focused.
 
         Args:
 
         - `event` (`QKeyEvent`): Key press event.
-        - `table_views` (`list[QTableView]`): Candidate table views.
+        - `table_views` (`list[QAbstractItemView]`): Candidate table or tree views.
 
         Returns:
 

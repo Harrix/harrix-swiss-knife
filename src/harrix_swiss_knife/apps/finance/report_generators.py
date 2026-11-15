@@ -24,15 +24,6 @@ PeriodTotalsFn = Callable[["DatabaseManager", int], dict[str, dict[int, float]]]
 
 
 @dataclass(frozen=True, slots=True)
-class PeriodExpenseTransaction:
-    """One expense line inside a Month/Year Summary category."""
-
-    date: str
-    description: str
-    amount: float
-
-
-@dataclass(frozen=True, slots=True)
 class PeriodExpenseCategory:
     """Expense category total with drill-down transactions for a period report."""
 
@@ -43,21 +34,14 @@ class PeriodExpenseCategory:
     total: float
     transactions: tuple[PeriodExpenseTransaction, ...]
 
-_MONTHS_IN_YEAR = 12
-_MONTH_NAMES = (
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-)
+
+@dataclass(frozen=True, slots=True)
+class PeriodExpenseTransaction:
+    """One expense line inside a Month/Year Summary category."""
+
+    date: str
+    description: str
+    amount: float
 
 
 def get_account_balances_report_data(
@@ -193,6 +177,20 @@ def get_income_vs_expenses_report_data(
     return ["Period", "Income", "Expenses", "Balance"], report_data
 
 
+def get_month_summary_report_data(
+    ctx: ReportBuildContext,
+    *,
+    year: int,
+    month: int,
+) -> tuple[list[str], list[PeriodExpenseCategory], float]:
+    """Build Month Summary: expenses by category for one calendar month, largest first."""
+    safe_month = max(1, min(12, month))
+    last_day = calendar.monthrange(year, safe_month)[1]
+    date_from = f"{year:04d}-{safe_month:02d}-01"
+    date_to = f"{year:04d}-{safe_month:02d}-{last_day:02d}"
+    return _get_period_expense_drilldown(ctx, date_from, date_to)
+
+
 def get_monthly_income_year_delta_report_data(
     ctx: ReportBuildContext,
 ) -> tuple[list[str], list[list[str]]]:
@@ -307,6 +305,15 @@ def get_monthly_summary_report_data(
     )
 
 
+def get_year_summary_report_data(
+    ctx: ReportBuildContext,
+    *,
+    year: int,
+) -> tuple[list[str], list[PeriodExpenseCategory], float]:
+    """Build Year Summary: expenses by category for one calendar year, largest first."""
+    return _get_period_expense_drilldown(ctx, f"{year:04d}-01-01", f"{year:04d}-12-31")
+
+
 def get_yearly_summary_report_data(
     ctx: ReportBuildContext,
 ) -> tuple[
@@ -331,7 +338,7 @@ def get_yearly_summary_report_data(
 def _expense_categories_for_summary(
     db_manager: DatabaseManager,
 ) -> tuple[list[tuple[int, str, str, str]], dict[str, int]]:
-    """Return sorted expense categories and name→id map for period summaries."""
+    """Return sorted expense categories and name→ID map for period summaries."""
     all_categories: list = db_manager.get_all_categories()
     expense_categories: list[tuple[int, str, str, str]] = []
     category_name_to_id: dict[str, int] = {}
@@ -360,76 +367,6 @@ def _expense_categories_for_summary(
 
     expense_categories.sort(key=_sort_key)
     return expense_categories, category_name_to_id
-
-
-def _get_period_summary_report_data(
-    ctx: ReportBuildContext,
-    *,
-    period_header: str,
-    period_keys: PeriodKeysFn,
-    load_totals: PeriodTotalsFn,
-) -> tuple[
-    list[str],
-    list[tuple[str, float, float, dict[int, float]]],
-    list[tuple[int, str, str, str]],
-    set[int],
-]:
-    """Build expense-by-category summary rows for months or years."""
-    db_manager = ctx.db_manager
-    currency_id = ctx.currency_id
-    expense_categories, category_name_to_id = _expense_categories_for_summary(db_manager)
-
-    if not expense_categories:
-        return [period_header], [], [], set()
-
-    end_date: datetime = datetime.now(UTC).astimezone()
-    keys = period_keys(db_manager, end_date)
-    period_data: dict[str, dict[int, float]] = {key: {} for key in keys}
-    for period_name, category_amounts in load_totals(db_manager, currency_id).items():
-        if period_name not in period_data:
-            period_data[period_name] = {}
-        period_data[period_name].update(category_amounts)
-
-    combined_category_targets = {"cafe", "food"}
-    combined_category_ids: set[int] = {
-        cid for name, cid in category_name_to_id.items() if _normalize_category_tokens(name) & combined_category_targets
-    }
-
-    headers: list[str] = [period_header, "Total", "Cafe + Food"]
-    headers.extend([cat[1] for cat in expense_categories])
-
-    rows: list[tuple[str, float, float, dict[int, float]]] = []
-    for period_name in reversed(keys):
-        period_total = sum(
-            period_data[period_name].get(cid, 0.0) for cid, _name, _emoji, _lucide in expense_categories
-        )
-        combined_total = sum(period_data[period_name].get(cid, 0.0) for cid in combined_category_ids)
-        rows.append((period_name, period_total, combined_total, period_data[period_name]))
-
-    return headers, rows, expense_categories, combined_category_ids
-
-
-def get_month_summary_report_data(
-    ctx: ReportBuildContext,
-    *,
-    year: int,
-    month: int,
-) -> tuple[list[str], list[PeriodExpenseCategory], float]:
-    """Build Month Summary: expenses by category for one calendar month, largest first."""
-    safe_month = max(1, min(12, month))
-    last_day = calendar.monthrange(year, safe_month)[1]
-    date_from = f"{year:04d}-{safe_month:02d}-01"
-    date_to = f"{year:04d}-{safe_month:02d}-{last_day:02d}"
-    return _get_period_expense_drilldown(ctx, date_from, date_to)
-
-
-def get_year_summary_report_data(
-    ctx: ReportBuildContext,
-    *,
-    year: int,
-) -> tuple[list[str], list[PeriodExpenseCategory], float]:
-    """Build Year Summary: expenses by category for one calendar year, largest first."""
-    return _get_period_expense_drilldown(ctx, f"{year:04d}-01-01", f"{year:04d}-12-31")
 
 
 def _get_period_expense_drilldown(
@@ -472,6 +409,51 @@ def _get_period_expense_drilldown(
     grand_total = sum(cat.total for cat in categories)
     headers = ["Category / Item", "Amount", "Date"]
     return headers, categories, grand_total
+
+
+def _get_period_summary_report_data(
+    ctx: ReportBuildContext,
+    *,
+    period_header: str,
+    period_keys: PeriodKeysFn,
+    load_totals: PeriodTotalsFn,
+) -> tuple[
+    list[str],
+    list[tuple[str, float, float, dict[int, float]]],
+    list[tuple[int, str, str, str]],
+    set[int],
+]:
+    """Build expense-by-category summary rows for months or years."""
+    db_manager = ctx.db_manager
+    currency_id = ctx.currency_id
+    expense_categories, category_name_to_id = _expense_categories_for_summary(db_manager)
+
+    if not expense_categories:
+        return [period_header], [], [], set()
+
+    end_date: datetime = datetime.now(UTC).astimezone()
+    keys = period_keys(db_manager, end_date)
+    period_data: dict[str, dict[int, float]] = {key: {} for key in keys}
+    for period_name, category_amounts in load_totals(db_manager, currency_id).items():
+        if period_name not in period_data:
+            period_data[period_name] = {}
+        period_data[period_name].update(category_amounts)
+
+    combined_category_targets = {"cafe", "food"}
+    combined_category_ids: set[int] = {
+        cid for name, cid in category_name_to_id.items() if _normalize_category_tokens(name) & combined_category_targets
+    }
+
+    headers: list[str] = [period_header, "Total", "Cafe + Food"]
+    headers.extend([cat[1] for cat in expense_categories])
+
+    rows: list[tuple[str, float, float, dict[int, float]]] = []
+    for period_name in reversed(keys):
+        period_total = sum(period_data[period_name].get(cid, 0.0) for cid, _name, _emoji, _lucide in expense_categories)
+        combined_total = sum(period_data[period_name].get(cid, 0.0) for cid in combined_category_ids)
+        rows.append((period_name, period_total, combined_total, period_data[period_name]))
+
+    return headers, rows, expense_categories, combined_category_ids
 
 
 def _iter_month_keys_from_earliest(db_manager: DatabaseManager, end_date: datetime) -> list[str]:
@@ -530,3 +512,20 @@ def _normalize_category_tokens(name: str) -> set[str]:
 def _report_today() -> datetime:
     """Return the local date the year-delta report treats as today."""
     return datetime.now(UTC).astimezone()
+
+
+_MONTHS_IN_YEAR = 12
+_MONTH_NAMES = (
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+)

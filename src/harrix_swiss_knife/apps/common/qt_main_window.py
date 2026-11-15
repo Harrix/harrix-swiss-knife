@@ -30,6 +30,7 @@ import harrix_pylib as h
 from PySide6.QtCore import QEvent, QEventLoop, QObject, QRect, Qt, QTimer
 from PySide6.QtGui import QAction, QCursor, QGuiApplication, QKeySequence, QScreen, QWindowStateChangeEvent
 from PySide6.QtWidgets import (
+    QAbstractItemView,
     QApplication,
     QFrame,
     QHBoxLayout,
@@ -37,7 +38,6 @@ from PySide6.QtWidgets import (
     QMenuBar,
     QSizePolicy,
     QStyle,
-    QAbstractItemView,
     QTableView,
     QTabWidget,
     QWidget,

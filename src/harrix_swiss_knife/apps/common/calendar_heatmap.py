@@ -140,6 +140,17 @@ def habit_heatmap_weekday_index(day: date, *, week_starts_on: int = HEATMAP_WEEK
     return (day.weekday() - week_starts_on) % 7
 
 
+def heatmap_day_before_activity(day: date, activity_start: date | None) -> bool:
+    """Return whether `day` is before tracking began in the first activity year.
+
+    Only the calendar year of `activity_start` is affected, so later years keep
+    ordinary zero/missed cells. Matches how future days stay empty in the
+    current year.
+
+    """
+    return activity_start is not None and day.year == activity_start.year and day < activity_start
+
+
 def heatmap_year_after_step(
     selected: str,
     years: list[int],

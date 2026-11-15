@@ -37,6 +37,8 @@ class ReportBuildResult:
     table_rows: list[list[str]] | None = None
     monthly_rows: list[tuple[str, float, float, dict[int, float]]] | None = None
     expense_categories: list[tuple[int, str, str, str]] | None = None
+    period_categories: list[PeriodExpenseCategory] | None = None
+    period_grand_total: float | None = None
 ```
 
 </details>
@@ -65,6 +67,8 @@ class ReportBuildWorker(QThread):
         *,
         year_start_month: int = 1,
         year_start_day: int = 1,
+        period_year: int | None = None,
+        period_month: int | None = None,
     ) -> None:
         """Initialize the worker.
 
@@ -74,6 +78,8 @@ class ReportBuildWorker(QThread):
         - `report_type` (`str`): Value from the report type list.
         - `year_start_month` (`int`): Fiscal year start month (1-12).
         - `year_start_day` (`int`): Fiscal year start day.
+        - `period_year` (`int | None`): Calendar year for Month/Year Summary.
+        - `period_month` (`int | None`): Calendar month (1-12) for Month Summary.
 
         """
         super().__init__()
@@ -81,6 +87,8 @@ class ReportBuildWorker(QThread):
         self.report_type = report_type
         self.year_start_month = year_start_month
         self.year_start_day = year_start_day
+        self.period_year = period_year
+        self.period_month = period_month
 
     def run(self) -> None:
         """Compute report data for the selected report type."""
@@ -95,6 +103,43 @@ class ReportBuildWorker(QThread):
                     headers=headers,
                     monthly_rows=rows,
                     expense_categories=expense_categories,
+                )
+            elif report_type == "Yearly Summary":
+                headers, rows, expense_categories, _ = get_yearly_summary_report_data(ctx)
+                result = ReportBuildResult(
+                    report_type=report_type,
+                    headers=headers,
+                    monthly_rows=rows,
+                    expense_categories=expense_categories,
+                )
+            elif report_type == "Month Summary":
+                if self.period_year is None or self.period_month is None:
+                    self.report_failed.emit("Month Summary requires year and month.")
+                    return
+                headers, categories, grand_total = get_month_summary_report_data(
+                    ctx,
+                    year=self.period_year,
+                    month=self.period_month,
+                )
+                result = ReportBuildResult(
+                    report_type=report_type,
+                    headers=headers,
+                    period_categories=categories,
+                    period_grand_total=grand_total,
+                )
+            elif report_type == "Year Summary":
+                if self.period_year is None:
+                    self.report_failed.emit("Year Summary requires a year.")
+                    return
+                headers, categories, grand_total = get_year_summary_report_data(
+                    ctx,
+                    year=self.period_year,
+                )
+                result = ReportBuildResult(
+                    report_type=report_type,
+                    headers=headers,
+                    period_categories=categories,
+                    period_grand_total=grand_total,
                 )
             elif report_type == "Category Analysis":
                 headers, report_data = get_category_analysis_report_data(ctx)
@@ -132,7 +177,7 @@ class ReportBuildWorker(QThread):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, db_filename: str, report_type: str, *, year_start_month: int = 1, year_start_day: int = 1) -> None
+def __init__(self, db_filename: str, report_type: str, *, year_start_month: int = 1, year_start_day: int = 1, period_year: int | None = None, period_month: int | None = None) -> None
 ```
 
 Initialize the worker.
@@ -143,6 +188,8 @@ Args:
 - `report_type` (`str`): Value from the report type list.
 - `year_start_month` (`int`): Fiscal year start month (1-12).
 - `year_start_day` (`int`): Fiscal year start day.
+- `period_year` (`int | None`): Calendar year for Month/Year Summary.
+- `period_month` (`int | None`): Calendar month (1-12) for Month Summary.
 
 <details>
 <summary>Code:</summary>
@@ -155,12 +202,16 @@ def __init__(
         *,
         year_start_month: int = 1,
         year_start_day: int = 1,
+        period_year: int | None = None,
+        period_month: int | None = None,
     ) -> None:
         super().__init__()
         self.db_filename = db_filename
         self.report_type = report_type
         self.year_start_month = year_start_month
         self.year_start_day = year_start_day
+        self.period_year = period_year
+        self.period_month = period_month
 ```
 
 </details>
@@ -189,6 +240,43 @@ def run(self) -> None:
                     headers=headers,
                     monthly_rows=rows,
                     expense_categories=expense_categories,
+                )
+            elif report_type == "Yearly Summary":
+                headers, rows, expense_categories, _ = get_yearly_summary_report_data(ctx)
+                result = ReportBuildResult(
+                    report_type=report_type,
+                    headers=headers,
+                    monthly_rows=rows,
+                    expense_categories=expense_categories,
+                )
+            elif report_type == "Month Summary":
+                if self.period_year is None or self.period_month is None:
+                    self.report_failed.emit("Month Summary requires year and month.")
+                    return
+                headers, categories, grand_total = get_month_summary_report_data(
+                    ctx,
+                    year=self.period_year,
+                    month=self.period_month,
+                )
+                result = ReportBuildResult(
+                    report_type=report_type,
+                    headers=headers,
+                    period_categories=categories,
+                    period_grand_total=grand_total,
+                )
+            elif report_type == "Year Summary":
+                if self.period_year is None:
+                    self.report_failed.emit("Year Summary requires a year.")
+                    return
+                headers, categories, grand_total = get_year_summary_report_data(
+                    ctx,
+                    year=self.period_year,
+                )
+                result = ReportBuildResult(
+                    report_type=report_type,
+                    headers=headers,
+                    period_categories=categories,
+                    period_grand_total=grand_total,
                 )
             elif report_type == "Category Analysis":
                 headers, report_data = get_category_analysis_report_data(ctx)
