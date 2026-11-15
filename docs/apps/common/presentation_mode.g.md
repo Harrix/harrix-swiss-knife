@@ -94,6 +94,14 @@ def create_presentation_database(app: PresentationApp) -> Path:
         "habits": _seed_habits,
     }
     seeders[app](db_path)
+    if app == "food":
+        from harrix_swiss_knife.apps.food.schema import (  # noqa: PLC0415
+            ensure_food_indexes,
+            ensure_food_schema,
+        )
+
+        ensure_food_schema(db_path)
+        ensure_food_indexes(db_path)
     return db_path
 ```
 

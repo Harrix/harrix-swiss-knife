@@ -182,6 +182,25 @@ def food_log_day_row_spans(dates: list[str]) -> list[tuple[int, int]]:
     return [(start, count) for start, count in food_log_day_groups(dates) if count > 1]
 
 
+def format_food_log_selection_status(count: int, total_kcal: float) -> str:
+    """Format the status-bar text for selected food-log rows.
+
+    Args:
+
+    - `count` (`int`): Number of selected rows.
+    - `total_kcal` (`float`): Sum of calculated calories for the selection.
+
+    Returns:
+
+    - `str`: Status text, or empty when nothing is selected.
+
+    """
+    if count <= 0:
+        return ""
+    rows_word = "row" if count == 1 else "rows"
+    return f"{count} {rows_word} selected · {total_kcal:.0f} kcal"
+
+
 def parse_food_log_number(value: object) -> float | None:
     """Parse a table cell or database value as `float`.
 

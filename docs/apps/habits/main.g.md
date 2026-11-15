@@ -101,6 +101,8 @@ class MainWindow(
         self._habits_heatmap_positions: dict[date, tuple[float, float]] = {}
         self._habits_chart_toolbar: ChartToolbar | None = None
         self._habits_chart_info_strip: QLabel | None = None
+        self._habits_context_status_label: QLabel | None = None
+        self._habits_matrix_row_count: int = 0
         self.db_manager: database_manager.DatabaseManager | None = None
         self.habits_filter_list_model: QStandardItemModel | None = None
         self.habits_year_list_model: QStandardItemModel | None = None
@@ -498,6 +500,8 @@ class MainWindow(
         if isinstance(process_habits_header, WordWrapHeaderView):
             process_habits_header.refresh_wrapped_height()
         style_fluent_table(self.tableView_process_habits)
+        self._habits_matrix_row_count = len(sorted_dates)
+        self._update_habits_status_bar()
 
     def nativeEvent(self, event_type, message) -> tuple[bool, int]:  # noqa: ANN001, N802
         """Drag, resize, and size the client area for the custom caption bar."""
@@ -1933,6 +1937,7 @@ class MainWindow(
         """Redraw the chart for the selected habit and current chart mode."""
         if self.db_manager is None:
             return
+        self._update_habits_status_bar()
         self._sync_habits_chart_toolbar_mode()
         mode = self._current_habits_chart_mode()
         if mode == CHART_MODE_HEATMAP:
@@ -2134,10 +2139,21 @@ class MainWindow(
         self._configure_habits_table_columns()
         self._connect_table_auto_save_signal("habits")
 
+    def _setup_status_bar(self) -> None:
+        """Ensure status bar is visible with process-matrix context."""
+        status_bar = self.statusBar()
+        status_bar.setVisible(True)
+        if self._habits_context_status_label is None:
+            self._habits_context_status_label = QLabel("")
+            self._habits_context_status_label.setObjectName("habits_context_status")
+            status_bar.addPermanentWidget(self._habits_context_status_label)
+        self._update_habits_status_bar()
+
     def _setup_ui(self) -> None:
         """Set up additional UI elements after basic initialization (habits only)."""
         self._place_menu_bar_on_tab_row()
         install_win11_caption(self)
+        self._setup_status_bar()
         self._apply_exit_about_menu_emojis()
 
         self._habit_dashboard = HabitDashboardWidget(self, app_config=self._app_config)
@@ -2498,6 +2514,7 @@ class MainWindow(
         client = TickTickHabitsClient(token)
         analysis_cancelled = False
         analysis_error: Exception | None = None
+        self.statusBar().showMessage("Analyzing TickTick sync…")
         analysis_toast = ToastProgressNotification(
             "Analyzing TickTick sync…",
             total=0,
@@ -2559,11 +2576,14 @@ class MainWindow(
             analysis_toast.close()
 
         if analysis_error is not None:
+            self.statusBar().showMessage("TickTick sync failed", 8000)
             message_box.warning(self, "Sync with TickTick", str(analysis_error))
             return
         if analysis_cancelled or report is None:
+            self.statusBar().clearMessage()
             return
         if not habits_ticktick_sync_needs_apply(report):
+            self.statusBar().showMessage("TickTick: nothing to sync", 5000)
             message_box.information(self, "Sync with TickTick", summary + "\n\nNothing to sync.")
             return
 
@@ -2575,9 +2595,11 @@ class MainWindow(
             QMessageBox.StandardButton.No,
         )
         if answer != QMessageBox.StandardButton.Yes:
+            self.statusBar().clearMessage()
             return
 
         cancelled = False
+        self.statusBar().showMessage("Syncing with TickTick…")
         toast = ToastProgressNotification(
             "Syncing with TickTick…",
             total=1,
@@ -2610,6 +2632,7 @@ class MainWindow(
         except TickTickApiError as exc:
             toast.mark_completed()
             toast.close()
+            self.statusBar().showMessage("TickTick sync failed", 8000)
             message_box.warning(self, "Sync with TickTick", str(exc))
             self._refresh_after_ticktick_sync()
             return
@@ -2619,8 +2642,10 @@ class MainWindow(
 
         text = format_habits_ticktick_sync_result(result)
         if result.get("error_count"):
+            self.statusBar().showMessage("TickTick sync completed with errors", 8000)
             message_box.warning(self, "Sync with TickTick", text)
         else:
+            self.statusBar().showMessage("TickTick sync completed", 5000)
             message_box.information(self, "Sync with TickTick", text)
         self._refresh_after_ticktick_sync()
 
@@ -2644,6 +2669,35 @@ class MainWindow(
                 self._set_habits_table_from_db_rows(self.db_manager.get_all_habits())
         except Exception:
             logger.exception("Error refreshing habits table")
+
+    def _update_habits_status_bar(self) -> None:
+        """Show habit filter, period, list mode, and matrix row count."""
+        label = self._habits_context_status_label
+        if label is None:
+            return
+        try:
+            habit_filter = self._get_selected_habit_filter().strip()
+        except AttributeError:
+            habit_filter = ""
+        try:
+            period = self._get_selected_habit_year().strip()
+        except AttributeError:
+            period = ""
+        mode = self._current_habits_chart_mode().replace("_", " ")
+        list_mode = "All days" if self.show_all_records else f"Last {self.count_records_to_show}"
+        rows_part = ""
+        if self._habits_matrix_row_count > 0:
+            day_word = "day" if self._habits_matrix_row_count == 1 else "days"
+            rows_part = f"{self._habits_matrix_row_count} {day_word}"
+        label.setText(
+            join_status_parts(
+                f"Habit: {habit_filter}" if habit_filter else "",
+                period,
+                mode,
+                list_mode,
+                rows_part,
+            )
+        )
 
     def _update_layout_for_window_size(self) -> None:
         """Adjust key widgets based on current window height (habits UI has no responsive extras)."""
@@ -2679,6 +2733,8 @@ def __init__(self, *, hide_on_close: bool = False, presentation_mode: bool = Fal
         self._habits_heatmap_positions: dict[date, tuple[float, float]] = {}
         self._habits_chart_toolbar: ChartToolbar | None = None
         self._habits_chart_info_strip: QLabel | None = None
+        self._habits_context_status_label: QLabel | None = None
+        self._habits_matrix_row_count: int = 0
         self.db_manager: database_manager.DatabaseManager | None = None
         self.habits_filter_list_model: QStandardItemModel | None = None
         self.habits_year_list_model: QStandardItemModel | None = None
@@ -3122,6 +3178,8 @@ def load_process_habits_table(self, *, ignore_filter: bool = False) -> None:
         if isinstance(process_habits_header, WordWrapHeaderView):
             process_habits_header.refresh_wrapped_height()
         style_fluent_table(self.tableView_process_habits)
+        self._habits_matrix_row_count = len(sorted_dates)
+        self._update_habits_status_bar()
 ```
 
 </details>

@@ -123,6 +123,11 @@ from harrix_swiss_knife.apps.common.presentation_mode import (
 )
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
 from harrix_swiss_knife.apps.common.scroll_pagination import ScrollPagination, on_scroll_load_more
+from harrix_swiss_knife.apps.common.status_bar_text import (
+    format_list_view_status,
+    format_translate_progress_status,
+    is_owned_status_message,
+)
 from harrix_swiss_knife.apps.common.table_context_menu import (
     ICON_SET_DATE_SELECTED,
     LABEL_FILTER_BY_CATEGORY,
@@ -377,6 +382,7 @@ class MainWindow(
         self._auto_save_handlers: dict[str, Any] = {}
         self._auto_save_source_models: dict[str, QObject | None] = {}
         self._transaction_selection_selection_model: QItemSelectionModel | None = None
+        self._transactions_list_status_label: QLabel | None = None
         self._transactions_selection_status_label: QLabel | None = None
         self.pushButton_filter: QPushButton
         self.filter_advanced_panel: QWidget
@@ -2011,7 +2017,7 @@ class MainWindow(
         status_bar = self.statusBar()
         if status_bar is None:
             return
-        if status_bar.currentMessage() == _BACKGROUND_TX_TRANSLATE_STATUS:
+        if is_owned_status_message(status_bar.currentMessage(), _BACKGROUND_TX_TRANSLATE_STATUS):
             status_bar.clearMessage()
 
     def _clear_category_selection(self) -> None:
@@ -3673,6 +3679,7 @@ class MainWindow(
             fetch_rows=self._fetch_transaction_rows,
             append_rows=append_rows,
         )
+        self._update_transactions_list_status()
 
     def _load_transactions_page(self, *, reset: bool = True) -> None:
         """Load the first page of transactions (with optional active filters)."""
@@ -3706,6 +3713,7 @@ class MainWindow(
             limit,
             pagination_enabled=not self.show_all_transactions,
         )
+        self._update_transactions_list_status()
         self._connect_table_auto_save_signals()
 
     def _load_transactions_table(self) -> None:
@@ -5299,7 +5307,13 @@ class MainWindow(
 
         if not isValid(self) or self._is_closing:
             return
-        self.statusBar().showMessage(_BACKGROUND_TX_TRANSLATE_STATUS)
+        remaining = self.db_manager.count_transactions_missing_description_en()
+        translate_status = format_translate_progress_status(
+            _BACKGROUND_TX_TRANSLATE_STATUS,
+            remaining,
+            item_label="descriptions left",
+        )
+        self.statusBar().showMessage(translate_status)
 
         def on_success(response_text: str) -> None:
             if not isValid(self):
@@ -5321,7 +5335,7 @@ class MainWindow(
             self._app_config,
             prompt_text,
             on_success,
-            toast_message=_BACKGROUND_TX_TRANSLATE_STATUS,
+            toast_message=translate_status,
             is_busy=lambda: isValid(self) and self._bg_tx_translate_state.worker is not None,
             state=self._bg_tx_translate_state,
             on_error=on_error,
@@ -5682,10 +5696,15 @@ class MainWindow(
         """Ensure status bar is visible and readable on Windows 11 Mica backdrop."""
         status_bar = self.statusBar()
         status_bar.setVisible(True)
+        if self._transactions_list_status_label is None:
+            self._transactions_list_status_label = QLabel("")
+            self._transactions_list_status_label.setObjectName("transactions_list_status")
+            status_bar.addPermanentWidget(self._transactions_list_status_label)
         if self._transactions_selection_status_label is None:
             self._transactions_selection_status_label = QLabel("")
             self._transactions_selection_status_label.setObjectName("transactions_selection_status")
             status_bar.addPermanentWidget(self._transactions_selection_status_label)
+        self._update_transactions_list_status()
 
     def _setup_tab_order(self) -> None:
         """Set up tab order for widgets in groupBox_transaction."""
@@ -6903,6 +6922,20 @@ class MainWindow(
                 self._draw_category_chart(category_series, period, currency_symbol)
         finally:
             self._close_chart_build_toast()
+
+    def _update_transactions_list_status(self) -> None:
+        """Show filter and pagination context for the transactions table."""
+        label = self._transactions_list_status_label
+        if label is None:
+            return
+        pagination = self._transactions_pagination
+        label.setText(
+            format_list_view_status(
+                filtered=self._transactions_filter_is_active(),
+                loaded_count=pagination.loaded_count if pagination.loaded_count > 0 else None,
+                has_more=pagination.has_more,
+            )
+        )
 
     def _update_transactions_selection_status(self, *_args: object) -> None:
         """Show selected row count and signed sum in the default currency."""

@@ -184,6 +184,33 @@ def _date_iso(days_ago: int = 0) -> str:
     return (_today() - timedelta(days=days_ago)).isoformat()
 
 
+def _insert_finance_transaction(
+    conn: sqlite3.Connection,
+    *,
+    amount: int,
+    description: str,
+    category_id: int,
+    currency_id: int,
+    days_ago: int,
+    tag: str,
+) -> None:
+    conn.execute(
+        """
+        INSERT INTO transactions
+            (amount, description, description_en, _id_categories, _id_currencies, date, tag)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
+        (amount, description, description, category_id, currency_id, _date_iso(days_ago), tag),
+    )
+    tx_id = int(conn.execute("SELECT last_insert_rowid()").fetchone()[0])
+    conn.execute("INSERT OR IGNORE INTO tags (name) VALUES (?)", (tag,))
+    tag_id = int(conn.execute("SELECT _id FROM tags WHERE name = ?", (tag,)).fetchone()[0])
+    conn.execute(
+        "INSERT OR IGNORE INTO transaction_tags (_id_transactions, _id_tags) VALUES (?, ?)",
+        (tx_id, tag_id),
+    )
+
+
 def _recover_sql_path(app: PresentationApp) -> Path:
     return _APPS_PACKAGE / app / "recover.sql"
 
@@ -292,33 +319,6 @@ def _seed_finance(db_path: Path) -> None:
         conn.execute("UPDATE accounts SET balance = 25000000 WHERE name = 'Bank Account'")
         conn.execute("UPDATE accounts SET balance = 150000 WHERE name = 'Cash'")
         conn.commit()
-
-
-def _insert_finance_transaction(
-    conn: sqlite3.Connection,
-    *,
-    amount: int,
-    description: str,
-    category_id: int,
-    currency_id: int,
-    days_ago: int,
-    tag: str,
-) -> None:
-    conn.execute(
-        """
-        INSERT INTO transactions
-            (amount, description, description_en, _id_categories, _id_currencies, date, tag)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-        """,
-        (amount, description, description, category_id, currency_id, _date_iso(days_ago), tag),
-    )
-    tx_id = int(conn.execute("SELECT last_insert_rowid()").fetchone()[0])
-    conn.execute("INSERT OR IGNORE INTO tags (name) VALUES (?)", (tag,))
-    tag_id = int(conn.execute("SELECT _id FROM tags WHERE name = ?", (tag,)).fetchone()[0])
-    conn.execute(
-        "INSERT OR IGNORE INTO transaction_tags (_id_transactions, _id_tags) VALUES (?, ?)",
-        (tx_id, tag_id),
-    )
 
 
 def _seed_fitness(db_path: Path) -> None:

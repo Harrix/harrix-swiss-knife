@@ -19,6 +19,7 @@ lang: en
 - [🔧 Function `effective_calories_per_100g`](#-function-effective_calories_per_100g)
 - [🔧 Function `food_log_day_groups`](#-function-food_log_day_groups)
 - [🔧 Function `food_log_day_row_spans`](#-function-food_log_day_row_spans)
+- [🔧 Function `format_food_log_selection_status`](#-function-format_food_log_selection_status)
 - [🔧 Function `parse_food_log_number`](#-function-parse_food_log_number)
 - [🔧 Function `refresh_food_log_calorie_columns`](#-function-refresh_food_log_calorie_columns)
 
@@ -276,6 +277,36 @@ Return `(start_row, row_count)` for days that occupy more than one row.
 ```python
 def food_log_day_row_spans(dates: list[str]) -> list[tuple[int, int]]:
     return [(start, count) for start, count in food_log_day_groups(dates) if count > 1]
+```
+
+</details>
+
+## 🔧 Function `format_food_log_selection_status`
+
+```python
+def format_food_log_selection_status(count: int, total_kcal: float) -> str
+```
+
+Format the status-bar text for selected food-log rows.
+
+Args:
+
+- `count` (`int`): Number of selected rows.
+- `total_kcal` (`float`): Sum of calculated calories for the selection.
+
+Returns:
+
+- `str`: Status text, or empty when nothing is selected.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def format_food_log_selection_status(count: int, total_kcal: float) -> str:
+    if count <= 0:
+        return ""
+    rows_word = "row" if count == 1 else "rows"
+    return f"{count} {rows_word} selected · {total_kcal:.0f} kcal"
 ```
 
 </details>

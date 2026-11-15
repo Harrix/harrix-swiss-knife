@@ -216,6 +216,8 @@ class MainWindow(
         # Process table pagination state
         self._process_pagination = ScrollPagination()
         self._process_date_color_map: dict[str, QColor] = {}
+        self._fitness_context_status_label: QLabel | None = None
+        self._sets_today_count: int = 0
 
         # Store default UI metrics for responsive adjustments
         self._default_label_exercise_avif_min_height = self.label_exercise_avif.minimumHeight()
@@ -1458,6 +1460,7 @@ class MainWindow(
             self.label_unit.setText("")
             self.label_last_date_count_today.setText("")
             self._apply_count_input_mode("")
+            self._update_fitness_status_bar()
             return
 
         # Check if database manager is available and connection is open
@@ -1469,6 +1472,7 @@ class MainWindow(
             self.label_unit.setText("")
             self.label_last_date_count_today.setText("")
             self._apply_count_input_mode("")
+            self._update_fitness_status_bar()
             return
 
         # Update exercise name label
@@ -1499,6 +1503,7 @@ class MainWindow(
                 self.label_unit.setText("")
                 self.label_last_date_count_today.setText("")
                 self._apply_count_input_mode("")
+                self._update_fitness_status_bar()
                 return
 
             # Get exercise unit and display it in separate label
@@ -1536,6 +1541,7 @@ class MainWindow(
 
             # Join parts with comma and space
             self.label_last_date_count_today.setText(", ".join(date_parts))
+            self._update_fitness_status_bar()
 
             # Get all types for this exercise
             types = self.db_manager.get_exercise_types(ex_id)
@@ -1604,6 +1610,7 @@ class MainWindow(
             self.label_unit.setText("Error loading data")
             self.label_last_date_count_today.setText("Error loading data")
             self._apply_count_input_mode("")
+            self._update_fitness_status_bar()
 
         if exercise:
             # Sync selection across widgets
@@ -3312,15 +3319,20 @@ class MainWindow(
             return
 
         if not self._validate_database_connection():
+            self._sets_today_count = 0
             self.label_count_sets_today.setText("0")
+            self._update_fitness_status_bar()
             return
 
         try:
             count = self.db_manager.get_sets_count_today()
+            self._sets_today_count = int(count)
             self.label_count_sets_today.setText(str(count))
         except Exception:
             logger.exception("Error getting sets count for today")
+            self._sets_today_count = 0
             self.label_count_sets_today.setText("0")
+        self._update_fitness_status_bar()
 
     @requires_database(is_show_warning=False)
     def update_statistics_exercise_combobox(self, _index: int = -1) -> None:
@@ -6131,15 +6143,18 @@ class MainWindow(
         )
 
     def _init_avif_manager(self) -> None:
-        """Initialize AVIF manager after database is ready."""
+        """Initialize AVIF manager after database is ready.
+
+        Exercise images always come from the real configured fitness DB folder
+        (`fitness_img`), including presentation mode (temp DB has no media).
+
+        """
         if not self.db_manager:
             return
 
-        # Get the actual database path from the database manager
-        db_filename = getattr(self.db_manager, "_db_filename", None)
-        db_path = Path(db_filename) if db_filename else Path(self._app_config["sqlite_fitness"])
-
-        avif_dir = db_path.parent / "fitness_img"
+        configured = Path(self._app_config["sqlite_fitness"])
+        real_db = QtSqliteDatabaseManagerBase.resolve_db_path_with_fallback(configured, "fitness")
+        avif_dir = real_db.parent / "fitness_img"
         self.avif_manager = avif_manager.AvifManager(avif_dir)
 
     def _init_database(self) -> None:
@@ -6596,6 +6611,7 @@ class MainWindow(
             fetch_rows=self._fetch_process_rows,
             append_rows=append_rows,
         )
+        self._update_fitness_status_bar()
 
     def _load_process_page(self, *, reset: bool = True) -> None:
         """Load the first page of process records (with optional active filters)."""
@@ -6629,6 +6645,7 @@ class MainWindow(
             limit,
             pagination_enabled=not self.show_all_records,
         )
+        self._update_fitness_status_bar()
 
     def _mark_exercises_changed(self) -> None:
         """Mark that exercises data has changed and needs refresh."""
@@ -8257,6 +8274,16 @@ class MainWindow(
         self.horizontalLayout_14.insertWidget(insert_at, self.spinBox_count_minutes)
         self.horizontalLayout_14.insertWidget(insert_at + 1, self.spinBox_count_seconds)
 
+    def _setup_status_bar(self) -> None:
+        """Ensure status bar is visible with today / exercise / process context."""
+        status_bar = self.statusBar()
+        status_bar.setVisible(True)
+        if self._fitness_context_status_label is None:
+            self._fitness_context_status_label = QLabel("")
+            self._fitness_context_status_label.setObjectName("fitness_context_status")
+            status_bar.addPermanentWidget(self._fitness_context_status_label)
+        self._update_fitness_status_bar()
+
     def _setup_sync_dumbbell_weight_types_action(self) -> None:
         """Add Commands → Sync and Edit dumbbell weights after the types-table actions."""
         menu = getattr(self, "menuCommanda", None)
@@ -8278,6 +8305,7 @@ class MainWindow(
         """Set up additional UI elements after basic initialization."""
         self._place_menu_bar_on_tab_row()
         install_win11_caption(self)
+        self._setup_status_bar()
         self._install_word_wrap_table_headers()
         self._apply_exit_about_menu_emojis()
         self._setup_seconds_count_inputs()
@@ -9191,6 +9219,22 @@ class MainWindow(
             f"Exercise Types: ({self._catalog_table_row_count('types')})",
         )
 
+    def _update_fitness_status_bar(self) -> None:
+        """Show sets today, selected exercise, and process list context."""
+        label = self._fitness_context_status_label
+        if label is None:
+            return
+        sets_part = f"{self._sets_today_count} sets today"
+        exercise = self._get_current_selected_exercise()
+        exercise_part = exercise.strip() if exercise else ""
+        pagination = self._process_pagination
+        list_part = format_list_view_status(
+            filtered=self._process_filter_is_active(),
+            loaded_count=pagination.loaded_count if pagination.loaded_count > 0 else None,
+            has_more=pagination.has_more,
+        )
+        label.setText(join_status_parts(sets_part, exercise_part, list_part))
+
     def _update_form_from_process_selection(self, _exercise_name: str, type_name: str, value_str: str) -> None:
         """Update form fields after process selection change.
 
@@ -9469,6 +9513,8 @@ def __init__(self, *, hide_on_close: bool = False, presentation_mode: bool = Fal
         # Process table pagination state
         self._process_pagination = ScrollPagination()
         self._process_date_color_map: dict[str, QColor] = {}
+        self._fitness_context_status_label: QLabel | None = None
+        self._sets_today_count: int = 0
 
         # Store default UI metrics for responsive adjustments
         self._default_label_exercise_avif_min_height = self.label_exercise_avif.minimumHeight()
@@ -11029,6 +11075,7 @@ def on_exercise_selection_changed_list(self) -> None:
             self.label_unit.setText("")
             self.label_last_date_count_today.setText("")
             self._apply_count_input_mode("")
+            self._update_fitness_status_bar()
             return
 
         # Check if database manager is available and connection is open
@@ -11040,6 +11087,7 @@ def on_exercise_selection_changed_list(self) -> None:
             self.label_unit.setText("")
             self.label_last_date_count_today.setText("")
             self._apply_count_input_mode("")
+            self._update_fitness_status_bar()
             return
 
         # Update exercise name label
@@ -11070,6 +11118,7 @@ def on_exercise_selection_changed_list(self) -> None:
                 self.label_unit.setText("")
                 self.label_last_date_count_today.setText("")
                 self._apply_count_input_mode("")
+                self._update_fitness_status_bar()
                 return
 
             # Get exercise unit and display it in separate label
@@ -11107,6 +11156,7 @@ def on_exercise_selection_changed_list(self) -> None:
 
             # Join parts with comma and space
             self.label_last_date_count_today.setText(", ".join(date_parts))
+            self._update_fitness_status_bar()
 
             # Get all types for this exercise
             types = self.db_manager.get_exercise_types(ex_id)
@@ -11175,6 +11225,7 @@ def on_exercise_selection_changed_list(self) -> None:
             self.label_unit.setText("Error loading data")
             self.label_last_date_count_today.setText("Error loading data")
             self._apply_count_input_mode("")
+            self._update_fitness_status_bar()
 
         if exercise:
             # Sync selection across widgets
@@ -13393,15 +13444,20 @@ def update_sets_count_today(self) -> None:
             return
 
         if not self._validate_database_connection():
+            self._sets_today_count = 0
             self.label_count_sets_today.setText("0")
+            self._update_fitness_status_bar()
             return
 
         try:
             count = self.db_manager.get_sets_count_today()
+            self._sets_today_count = int(count)
             self.label_count_sets_today.setText(str(count))
         except Exception:
             logger.exception("Error getting sets count for today")
+            self._sets_today_count = 0
             self.label_count_sets_today.setText("0")
+        self._update_fitness_status_bar()
 ```
 
 </details>

@@ -125,6 +125,11 @@ from harrix_swiss_knife.apps.common.presentation_mode import (
 from harrix_swiss_knife.apps.common.qt_database_manager_base import QtSqliteDatabaseManagerBase
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
 from harrix_swiss_knife.apps.common.scroll_pagination import ScrollPagination, on_scroll_load_more
+from harrix_swiss_knife.apps.common.status_bar_text import (
+    format_list_view_status,
+    format_translate_progress_status,
+    is_owned_status_message,
+)
 from harrix_swiss_knife.apps.common.table_context_menu import (
     ICON_SET_DATE_SELECTED,
     LABEL_FILTER_BY_DATE,
@@ -229,6 +234,7 @@ from harrix_swiss_knife.apps.food.food_log_calories import (
     calculate_food_log_calories,
     calories_per_100g_for_storage,
     effective_calories_per_100g,
+    format_food_log_selection_status,
     parse_food_log_number,
     refresh_food_log_calorie_columns,
 )
@@ -455,6 +461,9 @@ class MainWindow(
         self._food_log_date_color_map: dict[str, QColor] = {}
         self._food_day_header_macros_bound = False
         self._food_items_list_delegate_installed = False
+        self._food_log_list_status_label: QLabel | None = None
+        self._food_log_selection_status_label: QLabel | None = None
+        self._food_log_selection_selection_model = None
 
         # Dialog state to prevent multiple dialogs
         self._food_item_dialog_open: bool = False
@@ -1801,7 +1810,7 @@ class MainWindow(
     def _clear_background_food_translate_status(self) -> None:
         """Clear the silent-translate status bar message when it is ours."""
         status_bar = self.statusBar()
-        if status_bar.currentMessage() == _BACKGROUND_FOOD_TRANSLATE_STATUS:
+        if is_owned_status_message(status_bar.currentMessage(), _BACKGROUND_FOOD_TRANSLATE_STATUS):
             status_bar.clearMessage()
 
     def _clear_day_macros_dialog(self, dialog: DayMacrosDialog) -> None:
@@ -1884,6 +1893,19 @@ class MainWindow(
             self._report_food_translate_completion(prefix="\n\n".join(result_parts) if result_parts else "")
 
         return updated_names
+
+    def _connect_food_log_selection_signal(self) -> None:
+        """Connect food-log table selection to the status-bar summary (after model reload)."""
+        selection_model = self.tableView_food_log.selectionModel()
+        if selection_model is None:
+            return
+        old_selection_model = self._food_log_selection_selection_model
+        if old_selection_model is not None:
+            with contextlib.suppress(TypeError, RuntimeError):
+                old_selection_model.selectionChanged.disconnect(self._update_food_log_selection_status)
+        selection_model.selectionChanged.connect(self._update_food_log_selection_status)
+        self._food_log_selection_selection_model = selection_model
+        self._update_food_log_selection_status()
 
     def _connect_signals(self) -> None:
         """Wire Qt widgets to their Python slots.
@@ -1987,6 +2009,7 @@ class MainWindow(
 
         # Load more food log rows when scrolling near the bottom
         self.tableView_food_log.verticalScrollBar().valueChanged.connect(self._on_food_log_scroll)
+        self._connect_food_log_selection_signal()
 
     @requires_database()
     def _correct_food_input_line(self, line: str) -> str | None:
@@ -3234,6 +3257,8 @@ class MainWindow(
             food_log_header.setSectionResizeMode(i, food_log_header.ResizeMode.Interactive)
         self._adjust_food_log_table_columns()
         self._layout_food_log_day_totals()
+        self._connect_food_log_selection_signal()
+        self._update_food_log_list_status()
 
     def _load_more_food_log(self) -> None:
         """Append the next page of food log records when scrolling to the bottom."""
@@ -3257,6 +3282,7 @@ class MainWindow(
             fetch_rows=self._fetch_food_log_rows,
             append_rows=append_rows,
         )
+        self._update_food_log_list_status()
 
     @requires_database()
     def _merge_selected_into_recipe(self) -> None:
@@ -4302,7 +4328,13 @@ class MainWindow(
             self._on_background_food_translate_failed()
             return
 
-        self.statusBar().showMessage(_BACKGROUND_FOOD_TRANSLATE_STATUS)
+        remaining = self.db_manager.count_food_log_rows_missing_name_en()
+        translate_status = format_translate_progress_status(
+            _BACKGROUND_FOOD_TRANSLATE_STATUS,
+            remaining,
+            item_label="names left",
+        )
+        self.statusBar().showMessage(translate_status)
 
         def on_success(response_text: str) -> None:
             self._apply_background_food_translate_response(response_text, names_for_ai)
@@ -4312,7 +4344,7 @@ class MainWindow(
             self._app_config,
             prompt_text,
             on_success,
-            toast_message=_BACKGROUND_FOOD_TRANSLATE_STATUS,
+            toast_message=translate_status,
             is_busy=lambda: self._bg_food_translate_state.worker is not None,
             state=self._bg_food_translate_state,
             on_error=lambda _message: self._on_background_food_translate_failed(),
@@ -4845,6 +4877,15 @@ class MainWindow(
         """Ensure status bar is visible and readable on Windows 11 Mica backdrop."""
         status_bar = self.statusBar()
         status_bar.setVisible(True)
+        if self._food_log_list_status_label is None:
+            self._food_log_list_status_label = QLabel("")
+            self._food_log_list_status_label.setObjectName("food_log_list_status")
+            status_bar.addPermanentWidget(self._food_log_list_status_label)
+        if self._food_log_selection_status_label is None:
+            self._food_log_selection_status_label = QLabel("")
+            self._food_log_selection_status_label.setObjectName("food_log_selection_status")
+            status_bar.addPermanentWidget(self._food_log_selection_status_label)
+        self._update_food_log_list_status()
 
     def _setup_ui(self) -> None:
         """Set up additional UI elements after basic initialization."""
@@ -5704,6 +5745,65 @@ class MainWindow(
 
         except Exception:
             logger.exception("Error updating food items list")
+
+    def _update_food_log_list_status(self) -> None:
+        """Show filter and pagination context for the food log table."""
+        label = self._food_log_list_status_label
+        if label is None:
+            return
+        pagination = self._food_log_pagination
+        label.setText(
+            format_list_view_status(
+                filtered=self._food_log_filter_is_active(),
+                loaded_count=pagination.loaded_count if pagination.loaded_count > 0 else None,
+                has_more=pagination.has_more,
+            )
+        )
+
+    def _update_food_log_selection_status(self, *_args: object) -> None:
+        """Show selected food-log row count and calorie sum."""
+        label = self._food_log_selection_status_label
+        if label is None:
+            return
+
+        proxy_model = self.models.get("food_log")
+        if proxy_model is None:
+            label.setText("")
+            return
+
+        source_model = ultimate_food_log_source(proxy_model)
+        if not isinstance(source_model, QStandardItemModel):
+            label.setText("")
+            return
+
+        selection_model = self.tableView_food_log.selectionModel()
+        if selection_model is None:
+            label.setText("")
+            return
+
+        source_rows: list[int] = []
+        seen_source_rows: set[int] = set()
+        for proxy_index in selection_model.selectedIndexes():
+            if is_food_day_or_month_header(proxy_index):
+                continue
+            source_index, mapped_model = map_food_log_index_to_source(proxy_index)
+            if mapped_model is not source_model or not source_index.isValid():
+                continue
+            row = source_index.row()
+            if row in seen_source_rows:
+                continue
+            seen_source_rows.add(row)
+            source_rows.append(row)
+
+        total_kcal = 0.0
+        for row in source_rows:
+            weight_item = source_model.item(row, FOOD_LOG_COL_WEIGHT)
+            kcal_item = source_model.item(row, FOOD_LOG_COL_CALORIES)
+            total_kcal += calculate_food_log_calories(
+                parse_food_log_number(weight_item.text() if weight_item else ""),
+                parse_food_log_number(kcal_item.text() if kcal_item else ""),
+            )
+        label.setText(format_food_log_selection_status(len(source_rows), total_kcal))
 
     def _update_food_log_table(self) -> None:
         """Update the food log table based on current display state."""
