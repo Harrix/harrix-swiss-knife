@@ -298,6 +298,7 @@ from harrix_swiss_knife.qt_lucide_icon import (
     apply_leading_chrome_buttons,
     apply_leading_chrome_icons,
     apply_lucide_dialog_buttons,
+    apply_menu_icon_size,
     create_lucide_icon,
     install_line_edit_search_chrome,
     make_lucide_push_button,
@@ -5920,8 +5921,14 @@ class MainWindow(
 
         """
         context_menu = QMenu(self)
-        for _index, category_name, _local in iter_category_picker_rows(self):
-            action = context_menu.addAction(category_name)
+        apply_menu_icon_size(context_menu)
+        for index, category_name, _local in iter_category_picker_rows(self):
+            emoji = index.data(ICON_ROLE)
+            lucide = index.data(ICON_LUCIDE_ROLE)
+            emoji_text = "" if emoji is None else str(emoji)
+            lucide_text = "" if lucide is None else str(lucide)
+            painted = category_lucide_icon(emoji_text, lucide_name=lucide_text)
+            action = context_menu.addAction(painted, category_name)
             action.setData(category_name)
 
         if context_menu.isEmpty():
