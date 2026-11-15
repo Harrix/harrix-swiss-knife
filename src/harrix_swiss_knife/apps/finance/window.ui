@@ -2098,7 +2098,7 @@
             </item>
            </layout>
           </widget>
-          <widget class="QTableView" name="tableView_reports" />
+          <widget class="QTreeView" name="tableView_reports" />
          </widget>
         </item>
         <property name="leftMargin">

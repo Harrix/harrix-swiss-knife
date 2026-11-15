@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import calendar
+from collections import defaultdict
 from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
@@ -18,6 +21,27 @@ if TYPE_CHECKING:
 
 PeriodKeysFn = Callable[["DatabaseManager", datetime], list[str]]
 PeriodTotalsFn = Callable[["DatabaseManager", int], dict[str, dict[int, float]]]
+
+
+@dataclass(frozen=True, slots=True)
+class PeriodExpenseTransaction:
+    """One expense line inside a Month/Year Summary category."""
+
+    date: str
+    description: str
+    amount: float
+
+
+@dataclass(frozen=True, slots=True)
+class PeriodExpenseCategory:
+    """Expense category total with drill-down transactions for a period report."""
+
+    category_id: int
+    name: str
+    icon: str
+    icon_lucide: str
+    total: float
+    transactions: tuple[PeriodExpenseTransaction, ...]
 
 _MONTHS_IN_YEAR = 12
 _MONTH_NAMES = (
@@ -383,6 +407,71 @@ def _get_period_summary_report_data(
         rows.append((period_name, period_total, combined_total, period_data[period_name]))
 
     return headers, rows, expense_categories, combined_category_ids
+
+
+def get_month_summary_report_data(
+    ctx: ReportBuildContext,
+    *,
+    year: int,
+    month: int,
+) -> tuple[list[str], list[PeriodExpenseCategory], float]:
+    """Build Month Summary: expenses by category for one calendar month, largest first."""
+    safe_month = max(1, min(12, month))
+    last_day = calendar.monthrange(year, safe_month)[1]
+    date_from = f"{year:04d}-{safe_month:02d}-01"
+    date_to = f"{year:04d}-{safe_month:02d}-{last_day:02d}"
+    return _get_period_expense_drilldown(ctx, date_from, date_to)
+
+
+def get_year_summary_report_data(
+    ctx: ReportBuildContext,
+    *,
+    year: int,
+) -> tuple[list[str], list[PeriodExpenseCategory], float]:
+    """Build Year Summary: expenses by category for one calendar year, largest first."""
+    return _get_period_expense_drilldown(ctx, f"{year:04d}-01-01", f"{year:04d}-12-31")
+
+
+def _get_period_expense_drilldown(
+    ctx: ReportBuildContext,
+    date_from: str,
+    date_to: str,
+) -> tuple[list[str], list[PeriodExpenseCategory], float]:
+    """Group converted expense transactions by category for a date range."""
+    rows = ctx.db_manager.get_expense_transactions_in_currency(ctx.currency_id, date_from, date_to)
+    grouped: dict[int, list[tuple[str, str, str, str, str, float]]] = defaultdict(list)
+    for category_id, name, icon, lucide, date, description, amount in rows:
+        grouped[category_id].append((name, icon, lucide, date, description, amount))
+
+    categories: list[PeriodExpenseCategory] = []
+    for category_id, items in grouped.items():
+        name, icon, lucide = items[0][0], items[0][1], items[0][2]
+        transactions = tuple(
+            sorted(
+                (
+                    PeriodExpenseTransaction(date=date, description=description, amount=amount)
+                    for _name, _icon, _lucide, date, description, amount in items
+                ),
+                key=lambda tx: tx.amount,
+                reverse=True,
+            )
+        )
+        total = sum(tx.amount for tx in transactions)
+        categories.append(
+            PeriodExpenseCategory(
+                category_id=category_id,
+                name=name,
+                icon=icon,
+                icon_lucide=lucide,
+                total=total,
+                transactions=transactions,
+            )
+        )
+
+    categories.sort(key=lambda cat: cat.total, reverse=True)
+    grand_total = sum(cat.total for cat in categories)
+    headers = ["Category / Item", "Amount", "Date"]
+    return headers, categories, grand_total
 
 
 def _iter_month_keys_from_earliest(db_manager: DatabaseManager, end_date: datetime) -> list[str]:

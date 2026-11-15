@@ -1373,6 +1373,61 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             monthly.setdefault(month, {})[cid] = amount_major
         return monthly
 
+    def get_expense_transactions_in_currency(
+        self,
+        currency_id: int,
+        date_from: str,
+        date_to: str,
+    ) -> list[tuple[int, str, str, str, str, str, float]]:
+        """Return expense transactions in a date range converted to `currency_id`.
+
+        Each row is
+        `(category_id, category_name, icon, icon_lucide, date, description, amount_major)`.
+
+        """
+        join_clause, conversion_case, extra_params = self._get_currency_conversion_sql(
+            currency_id,
+            use_transaction_date=True,
+        )
+        params: dict[str, Any] = {
+            "currency_id": currency_id,
+            "date_from": date_from,
+            "date_to": date_to,
+        }
+        params.update(extra_params)
+        query = f"""
+            SELECT cat._id,
+                   cat.name,
+                   cat.icon,
+                   cat.icon_lucide,
+                   t.date,
+                   t.description,
+                   {conversion_case} as amount_minor
+            FROM transactions t
+            JOIN categories cat ON t._id_categories = cat._id
+            {join_clause}
+            WHERE cat.type = 0
+              AND t.date BETWEEN :date_from AND :date_to
+            ORDER BY t.date DESC, t._id DESC
+        """
+        rows = self.get_rows(query, params)
+        result: list[tuple[int, str, str, str, str, str, float]] = []
+        for row in rows:
+            if row[0] is None or row[1] is None or row[4] is None:
+                continue
+            result.append(
+                (
+                    int(row[0]),
+                    str(row[1]),
+                    str(row[2] or ""),
+                    str(row[3] or ""),
+                    str(row[4]),
+                    str(row[5] or ""),
+                    float(row[6] or 0) / 100,
+                )
+            )
+        return result
+
     def get_yearly_expense_totals_by_category(self, currency_id: int) -> dict[str, dict[int, float]]:
         """Return expense totals grouped by YYYY year and category ID (major units)."""
         join_clause, conversion_case, extra_params = self._get_currency_conversion_sql(

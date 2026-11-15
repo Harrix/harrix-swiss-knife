@@ -20,8 +20,10 @@ from harrix_swiss_knife.apps.finance.report_generators import (
     get_category_analysis_report_data,
     get_currency_analysis_report_data,
     get_income_vs_expenses_report_data,
+    get_month_summary_report_data,
     get_monthly_income_year_delta_report_data,
     get_monthly_summary_report_data,
+    get_year_summary_report_data,
     get_yearly_summary_report_data,
 )
 from harrix_swiss_knife.apps.finance.report_operations import REPORT_TYPES
@@ -121,6 +123,38 @@ def test_yearly_summary_totals_per_year(report_ctx: ReportBuildContext) -> None:
     # Same expense totals as monthly summary for 2024 (1000 + 325 + converted FX).
     expected_total = 1000.0 + 325.0 + (50.0 / 90.0 + 10.0 * 1.1 / 90.0)
     assert year_2024[1] == pytest.approx(expected_total)
+
+
+def test_month_summary_sorts_categories_and_transactions(report_ctx: ReportBuildContext) -> None:
+    headers, categories, grand_total = get_month_summary_report_data(report_ctx, year=2024, month=2)
+
+    assert headers == ["Category / Item", "Amount", "Date"]
+    assert grand_total == pytest.approx(325.0)
+    # Fixture category ids 2/3 are Beauty Services / Books in recover.sql.
+    assert [cat.name for cat in categories] == ["Beauty Services", "Books"]
+    assert categories[0].total == pytest.approx(250.0)
+    assert categories[1].total == pytest.approx(75.0)
+    assert len(categories[0].transactions) == 1
+    assert categories[0].transactions[0].description == "Food"
+    assert categories[0].transactions[0].amount == pytest.approx(250.0)
+
+
+def test_year_summary_aggregates_and_sorts(report_ctx: ReportBuildContext) -> None:
+    headers, categories, grand_total = get_year_summary_report_data(report_ctx, year=2024)
+
+    assert headers == ["Category / Item", "Amount", "Date"]
+    expected_total = 1000.0 + 325.0 + (50.0 / 90.0 + 10.0 * 1.1 / 90.0)
+    assert grand_total == pytest.approx(expected_total)
+    # Category 1 (Appliances) holds January 1000 RUB and March 50 USD.
+    assert categories[0].name == "Appliances"
+    assert categories[0].total == pytest.approx(1000.0 + 50.0 / 90.0)
+    assert categories == sorted(categories, key=lambda cat: cat.total, reverse=True)
+    for category in categories:
+        assert list(category.transactions) == sorted(
+            category.transactions,
+            key=lambda tx: tx.amount,
+            reverse=True,
+        )
 
 
 def test_category_analysis_groups_recent_expenses(finance_db: DatabaseManager) -> None:

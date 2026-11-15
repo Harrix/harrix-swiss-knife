@@ -7,8 +7,8 @@ from datetime import UTC, datetime
 from typing import cast
 
 from PySide6.QtCore import QSize, Qt
-from PySide6.QtGui import QColor, QStandardItem, QStandardItemModel
-from PySide6.QtWidgets import QAbstractItemView, QWidget
+from PySide6.QtGui import QColor, QFont, QStandardItem, QStandardItemModel
+from PySide6.QtWidgets import QAbstractItemView, QDialog, QWidget
 
 from harrix_swiss_knife import toast_countdown_notification
 from harrix_swiss_knife.apps.common import message_box
@@ -21,6 +21,8 @@ from harrix_swiss_knife.apps.finance.exchange_rates_operations import (
 )
 from harrix_swiss_knife.apps.finance.mixins import requires_database
 from harrix_swiss_knife.apps.finance.report_build_worker import ReportBuildResult, ReportBuildWorker
+from harrix_swiss_knife.apps.finance.report_generators import PeriodExpenseCategory
+from harrix_swiss_knife.apps.finance.report_period_dialog import ReportPeriodDialog
 from harrix_swiss_knife.fluent.tokens import ICON_SIZE
 from harrix_swiss_knife.qt_lucide_icon import (
     LUCIDE_COLOR_BLUE,
@@ -38,6 +40,8 @@ logger = logging.getLogger(__name__)
 REPORT_TYPES: tuple[tuple[str, str, str], ...] = (
     ("calendar", LUCIDE_COLOR_BLUE, "Monthly Summary"),
     ("calendar-range", LUCIDE_COLOR_BLUE, "Yearly Summary"),
+    ("list-tree", LUCIDE_COLOR_YELLOW, "Month Summary"),
+    ("folder-tree", LUCIDE_COLOR_ORANGE, "Year Summary"),
     ("folders", LUCIDE_COLOR_YELLOW, "Category Analysis"),
     ("arrow-left-right", LUCIDE_COLOR_TURQUOISE, "Currency Analysis"),
     ("landmark", LUCIDE_COLOR_BLUE, "Account Balances"),
@@ -73,11 +77,23 @@ class ReportOperations:
 
         year_start_month = 1
         year_start_day = 1
+        period_year: int | None = None
+        period_month: int | None = None
         if report_type == "Average Salary by Year":
             if not self._prompt_compare_last_years_start():
                 return
             year_start_month = self._compare_last_years_start_month
             year_start_day = self._compare_last_years_start_day
+        elif report_type == "Month Summary":
+            picked = self._prompt_report_period(mode="month")
+            if picked is None:
+                return
+            period_year, period_month = picked
+        elif report_type == "Year Summary":
+            picked = self._prompt_report_period(mode="year")
+            if picked is None:
+                return
+            period_year, period_month = picked
 
         try:
             db_filename = _require_db_filename_for_worker(self.db_manager)
@@ -96,6 +112,8 @@ class ReportOperations:
             report_type,
             year_start_month=year_start_month,
             year_start_day=year_start_day,
+            period_year=period_year,
+            period_month=period_month,
         )
         self._report_build_worker.report_completed.connect(self._on_report_build_completed)
         self._report_build_worker.report_failed.connect(self._on_report_build_failed)
@@ -176,6 +194,8 @@ class ReportOperations:
         """Bind monthly income year-delta report data to the reports table."""
         model: QStandardItemModel = QStandardItemModel()
         model.setHorizontalHeaderLabels(headers)
+        self.tableView_reports.setRootIsDecorated(False)
+        self.tableView_reports.setItemsExpandable(False)
         for row_data in report_data:
             items = [QStandardItem(str(value)) for value in row_data]
             if row_data and row_data[0] == "TOTAL":
@@ -264,6 +284,8 @@ class ReportOperations:
 
             model.appendRow(row_items)
 
+        self.tableView_reports.setRootIsDecorated(False)
+        self.tableView_reports.setItemsExpandable(False)
         self.tableView_reports.setModel(model)
         self.tableView_reports.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.tableView_reports.setSortingEnabled(True)
@@ -287,6 +309,63 @@ class ReportOperations:
             if reports_header.count() > 1:
                 self.tableView_reports.setColumnWidth(1, self.tableView_reports.columnWidth(1) + 30)
 
+    def _apply_period_expense_summary_report(
+        self,
+        headers: list[str],
+        categories: list[PeriodExpenseCategory],
+        grand_total: float,
+    ) -> None:
+        """Bind Month/Year Summary as an expandable category tree."""
+        model = QStandardItemModel()
+        model.setHorizontalHeaderLabels(headers)
+
+        total_label = QStandardItem("TOTAL")
+        total_amount = QStandardItem(f"{grand_total:.2f}")
+        total_amount.setData(grand_total, Qt.ItemDataRole.UserRole)
+        total_date = QStandardItem("")
+        for item in (total_label, total_amount, total_date):
+            set_readable_cell_fill(item, _REPORT_TOTAL_FILL)
+            font = item.font()
+            font.setBold(True)
+            item.setFont(font)
+        model.appendRow([total_label, total_amount, total_date])
+
+        for category in categories:
+            name_item = QStandardItem(category.name)
+            name_item.setIcon(category_lucide_icon(category.icon, lucide_name=category.icon_lucide))
+            amount_item = QStandardItem(f"{category.total:.2f}")
+            amount_item.setData(category.total, Qt.ItemDataRole.UserRole)
+            set_readable_cell_fill(amount_item, _REPORT_AMOUNT_FILL)
+            bold = QFont(name_item.font())
+            bold.setBold(True)
+            name_item.setFont(bold)
+            amount_item.setFont(bold)
+            date_item = QStandardItem("")
+            for transaction in category.transactions:
+                child_name = QStandardItem(transaction.description or "(no description)")
+                child_amount = QStandardItem(f"{transaction.amount:.2f}")
+                child_amount.setData(transaction.amount, Qt.ItemDataRole.UserRole)
+                child_date = QStandardItem(transaction.date)
+                name_item.appendRow([child_name, child_amount, child_date])
+            model.appendRow([name_item, amount_item, date_item])
+
+        self.tableView_reports.setSortingEnabled(False)
+        self.tableView_reports.setRootIsDecorated(True)
+        self.tableView_reports.setItemsExpandable(True)
+        self.tableView_reports.setModel(model)
+        self.tableView_reports.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        for column in range(model.columnCount()):
+            self.tableView_reports.setItemDelegateForColumn(column, None)
+        amount_delegate = ReportAmountDelegate(self.tableView_reports, is_bold=True)
+        self.tableView_reports.setItemDelegateForColumn(1, amount_delegate)
+        reports_header = self.tableView_reports.horizontalHeader()
+        for i in range(reports_header.count()):
+            reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Interactive)
+        self.tableView_reports.resizeColumnsToContents()
+        if reports_header.count() > 1:
+            self.tableView_reports.setColumnWidth(0, max(220, self.tableView_reports.columnWidth(0) + 40))
+            self.tableView_reports.setColumnWidth(1, self.tableView_reports.columnWidth(1) + 24)
+
     def _apply_report_build_result(self, result: ReportBuildResult) -> None:
         """Dispatch report build result to the appropriate table binder."""
         report_type = result.report_type
@@ -294,6 +373,14 @@ class ReportOperations:
             if result.monthly_rows is None or result.expense_categories is None:
                 return
             self._apply_monthly_summary_report(result.headers, result.monthly_rows, result.expense_categories)
+        elif report_type in {"Month Summary", "Year Summary"}:
+            if result.period_categories is None or result.period_grand_total is None:
+                return
+            self._apply_period_expense_summary_report(
+                result.headers,
+                result.period_categories,
+                result.period_grand_total,
+            )
         elif report_type == "Category Analysis":
             self._apply_category_analysis_report(result.headers, result.table_rows or [])
         elif report_type == "Currency Analysis":
@@ -335,6 +422,38 @@ class ReportOperations:
         self._close_report_build_toast()
         message_box.warning(cast("QWidget", self), "Report Error", f"Failed to generate report: {error_message}")
 
+    def _prompt_report_period(self, *, mode: str) -> tuple[int, int | None] | None:
+        """Ask for month+year or year; return `(year, month)` or `None` if cancelled."""
+        years = self._report_period_years()
+        now = datetime.now(UTC).astimezone()
+        default_year = getattr(self, "_report_period_year", now.year)
+        default_month = getattr(self, "_report_period_month", now.month)
+        dialog = ReportPeriodDialog(
+            cast("QWidget", self),
+            mode=mode,
+            years=years,
+            default_year=default_year,
+            default_month=default_month,
+        )
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return None
+        year = dialog.selected_year()
+        month = dialog.selected_month()
+        self._report_period_year = year
+        if month is not None:
+            self._report_period_month = month
+        return year, month
+
+    def _report_period_years(self) -> list[int]:
+        """Return calendar years from earliest transaction through today."""
+        now = datetime.now(UTC).astimezone()
+        start_year = now.year
+        if self.db_manager is not None:
+            earliest = self.db_manager.get_earliest_transaction_date()
+            if earliest:
+                start_year = datetime.fromisoformat(earliest).year
+        return list(range(start_year, now.year + 1))
+
     def _selected_report_type(self) -> str:
         """Return the report type currently selected in `listView_report_type`."""
         index = self.listView_report_type.currentIndex()
@@ -362,6 +481,9 @@ class ReportOperations:
 
     def _set_reports_model_and_stretch(self, model: QStandardItemModel) -> None:
         """Set model on reports table and stretch columns."""
+        self.tableView_reports.setSortingEnabled(False)
+        self.tableView_reports.setRootIsDecorated(False)
+        self.tableView_reports.setItemsExpandable(False)
         self.tableView_reports.setModel(model)
         reports_header = self.tableView_reports.horizontalHeader()
         if reports_header.count() > 0:

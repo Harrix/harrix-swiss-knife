@@ -6,7 +6,7 @@ from typing import Any
 
 from PySide6.QtCore import QSize, Qt, QTimer
 from PySide6.QtGui import QFont
-from PySide6.QtWidgets import QAbstractItemView, QLabel, QListView, QSizePolicy, QTableView
+from PySide6.QtWidgets import QAbstractItemView, QLabel, QListView, QSizePolicy, QTableView, QTreeView
 
 from harrix_swiss_knife.apps.common.chart_widgets import CHARTS_FILTER_MIN_WIDTH
 from harrix_swiss_knife.apps.common.table_models import (
@@ -134,10 +134,14 @@ def _compact_list(view: QListView) -> None:
     style_fluent_item_view(view)
 
 
-def _compact_table(table: QTableView) -> None:
-    vertical = table.verticalHeader()
-    vertical.setDefaultSectionSize(TABLE_ROW_HEIGHT)
-    vertical.setMinimumSectionSize(24)
+def _compact_table(table: QTableView | QTreeView) -> None:
+    if isinstance(table, QTableView):
+        vertical = table.verticalHeader()
+        vertical.setDefaultSectionSize(TABLE_ROW_HEIGHT)
+        vertical.setMinimumSectionSize(24)
+    else:
+        table.setUniformRowHeights(True)
+        table.setIndentation(18)
     table.setWordWrap(False)
     table.setTextElideMode(Qt.TextElideMode.ElideRight)
 
