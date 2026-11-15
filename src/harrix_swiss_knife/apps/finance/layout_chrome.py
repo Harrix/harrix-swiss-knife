@@ -191,11 +191,14 @@ def _configure_all_splitters(host: Any) -> None:
         flag="finance_charts_splitter",
         left_max_share=3,
     )
+    reports_right = getattr(host, "_reports_view_stack", None)
+    if reports_right is None:
+        reports_right = host.tableView_reports
     _configure_two_pane_splitter(
         host,
         splitter_attr="splitter_5",
         left=host.frame_5,
-        right=host.tableView_reports,
+        right=reports_right,
         left_min=_FORM_MIN_WIDTH,
         right_min=_CONTENT_MIN_WIDTH,
         load_sizes=load_reports_splitter_sizes,

@@ -116,7 +116,7 @@ class ReportOperations:
             items: list[QStandardItem] = [QStandardItem(str(value)) for value in row_data]
             if row_data[0] == "TOTAL":
                 for item in items:
-                    set_readable_cell_fill(item, _REPORT_TOTAL_FILL)
+                    set_readable_cell_fill(item, _report_total_fill())
             model.appendRow(items)
         self._set_reports_model_and_stretch(model)
 
@@ -140,7 +140,7 @@ class ReportOperations:
             items = [QStandardItem(str(value)) for value in row_data]
             if row_data[0] in ["EXPENSES", "INCOME"]:
                 for item in items:
-                    set_readable_cell_fill(item, _REPORT_SECTION_FILL)
+                    set_readable_cell_fill(item, _report_section_fill())
             model.appendRow(items)
         self._set_reports_model_and_stretch(model)
 
@@ -166,9 +166,9 @@ class ReportOperations:
             try:
                 balance_value: float = float(balance_str.split(maxsplit=1)[0])
                 if balance_value > 0:
-                    set_readable_cell_fill(items[3], _REPORT_POSITIVE_FILL)
+                    set_readable_cell_fill(items[3], _report_positive_fill())
                 elif balance_value < 0:
-                    set_readable_cell_fill(items[3], _REPORT_NEGATIVE_FILL)
+                    set_readable_cell_fill(items[3], _report_negative_fill())
             except (ValueError, IndexError):
                 pass
             model.appendRow(items)
@@ -182,7 +182,7 @@ class ReportOperations:
             items = [QStandardItem(str(value)) for value in row_data]
             if row_data and row_data[0] == "TOTAL":
                 for item in items:
-                    set_readable_cell_fill(item, _REPORT_TOTAL_FILL)
+                    set_readable_cell_fill(item, _report_total_fill())
             else:
                 for column, item in enumerate(items[1:], start=1):
                     text = str(row_data[column]) if column < len(row_data) else ""
@@ -191,7 +191,7 @@ class ReportOperations:
                         continue
                     header = headers[column] if column < len(headers) else ""
                     if header.isdigit():
-                        fill = _REPORT_AMOUNT_FILL if column == 1 else _REPORT_YEAR_FILL
+                        fill = _report_amount_fill() if column == 1 else _report_year_fill()
                         set_readable_cell_fill(item, fill, band_index=column % 2)
                         continue
                     try:
@@ -199,9 +199,9 @@ class ReportOperations:
                     except (ValueError, IndexError):
                         continue
                     if amount > 0:
-                        set_readable_cell_fill(item, _REPORT_POSITIVE_FILL)
+                        set_readable_cell_fill(item, _report_positive_fill())
                     elif amount < 0:
-                        set_readable_cell_fill(item, _REPORT_NEGATIVE_FILL)
+                        set_readable_cell_fill(item, _report_negative_fill())
             model.appendRow(items)
         self._set_reports_model_and_stretch(model)
         delegate = YearDeltaCellDelegate(self.tableView_reports)
@@ -232,10 +232,9 @@ class ReportOperations:
         self._set_monthly_summary_header_icons(model, expense_categories)
 
         num_categories = len(expense_categories)
-        category_colors: list[QColor] = []
-        for i in range(num_categories):
-            hue = (i * 360) / num_categories if num_categories > 0 else 0
-            category_colors.append(QColor.fromHsv(int(hue), 80, 240))
+        category_colors: list[QColor] = [
+            chart_tint(chart_surface(), QColor(chart_series_color(i)), 0.28) for i in range(num_categories)
+        ]
 
         current_year: str = datetime.now(UTC).astimezone().strftime("%Y")
 
@@ -249,12 +248,12 @@ class ReportOperations:
             row_items.append(period_item)
 
             total_item = QStandardItem(f"{period_total:.2f}")
-            set_readable_cell_fill(total_item, _REPORT_AMOUNT_FILL)
+            set_readable_cell_fill(total_item, _report_amount_fill())
             total_item.setData(period_total, Qt.ItemDataRole.UserRole)
             row_items.append(total_item)
 
             combined_item = QStandardItem(f"{combined_total:.2f}")
-            set_readable_cell_fill(combined_item, _REPORT_COMBINED_FILL, band_index=1)
+            set_readable_cell_fill(combined_item, _report_combined_fill(), band_index=1)
             combined_item.setData(combined_total, Qt.ItemDataRole.UserRole)
             row_items.append(combined_item)
 
@@ -306,7 +305,7 @@ class ReportOperations:
         total_amount.setData(grand_total, Qt.ItemDataRole.UserRole)
         total_date = QStandardItem("")
         for item in (total_label, total_amount, total_date):
-            set_readable_cell_fill(item, _REPORT_TOTAL_FILL)
+            set_readable_cell_fill(item, _report_total_fill())
             font = item.font()
             font.setBold(True)
             item.setFont(font)
@@ -317,7 +316,7 @@ class ReportOperations:
             name_item.setIcon(category_lucide_icon(category.icon, lucide_name=category.icon_lucide))
             amount_item = QStandardItem(f"{category.total:.2f}")
             amount_item.setData(category.total, Qt.ItemDataRole.UserRole)
-            set_readable_cell_fill(amount_item, _REPORT_AMOUNT_FILL)
+            set_readable_cell_fill(amount_item, _report_amount_fill())
             bold = QFont(name_item.font())
             bold.setBold(True)
             name_item.setFont(bold)
@@ -392,18 +391,46 @@ class ReportOperations:
             self._report_build_toast = None
 
     def _ensure_reports_tree_view(self) -> QTreeView:
-        """Create the expandable Month/Year Summary tree beside the flat reports table."""
+        """Create the Month/Year Summary tree inside a stack with the flat table.
+
+        Parenting the tree directly to `splitter_5` would add a third pane and
+        blow out the Generate report column width.
+
+        """
         tree = getattr(self, "_reports_tree_view", None)
         if isinstance(tree, QTreeView):
             return tree
-        tree = QTreeView(self.splitter_5)
+
+        splitter = self.splitter_5
+        sizes = splitter.sizes()
+        stack = getattr(self, "_reports_view_stack", None)
+        if not isinstance(stack, QStackedWidget):
+            stack = QStackedWidget()
+            stack.setObjectName("stackedWidget_reports")
+            stack.setMinimumWidth(max(self.tableView_reports.minimumWidth(), 200))
+            table_index = splitter.indexOf(self.tableView_reports)
+            if table_index < 0:
+                table_index = splitter.count()
+            stack.addWidget(self.tableView_reports)
+            splitter.insertWidget(table_index, stack)
+            splitter.setStretchFactor(0, 0)
+            splitter.setStretchFactor(1, 1)
+            self._reports_view_stack = stack
+            if len(sizes) >= _REPORTS_SPLITTER_PANES and all(size > 0 for size in sizes[:_REPORTS_SPLITTER_PANES]):
+                splitter.setSizes(sizes[:_REPORTS_SPLITTER_PANES])
+            apply_sizes = getattr(self, "_apply_finance_reports_splitter_sizes", None)
+            if callable(apply_sizes):
+                apply_sizes()
+
+        tree = QTreeView()
         tree.setObjectName("treeView_reports")
         tree.setUniformRowHeights(True)
         tree.setIndentation(18)
         tree.setWordWrap(False)
         tree.setTextElideMode(Qt.TextElideMode.ElideRight)
         tree.setStyleSheet(f"QTreeView::item {{ min-height: {TABLE_ROW_HEIGHT}px; }}")
-        tree.hide()
+        style_fluent_item_view(tree)
+        stack.addWidget(tree)
         self._reports_tree_view = tree
         return tree
 
@@ -564,8 +591,10 @@ class ReportOperations:
         """Show the QTableView used for matrix / flat reports."""
         tree = getattr(self, "_reports_tree_view", None)
         if isinstance(tree, QTreeView):
-            tree.hide()
             tree.setModel(None)
+        stack = getattr(self, "_reports_view_stack", None)
+        if isinstance(stack, QStackedWidget):
+            stack.setCurrentWidget(self.tableView_reports)
         self.tableView_reports.show()
 
     def _show_reports_table_context_menu(self, position: QPoint) -> None:
@@ -590,7 +619,9 @@ class ReportOperations:
     def _show_reports_tree_view(self) -> QTreeView:
         """Show the QTreeView used for expandable Month/Year Summary."""
         tree = self._ensure_reports_tree_view()
-        self.tableView_reports.hide()
+        stack = getattr(self, "_reports_view_stack", None)
+        if isinstance(stack, QStackedWidget):
+            stack.setCurrentWidget(tree)
         tree.show()
         return tree
 ```
