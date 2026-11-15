@@ -26,7 +26,7 @@ from harrix_swiss_knife.apps.finance.report_generators import (
     get_year_summary_report_data,
     get_yearly_summary_report_data,
 )
-from harrix_swiss_knife.apps.finance.report_operations import REPORT_TYPES
+from harrix_swiss_knife.apps.finance.report_operations import REPORT_TYPES, ReportOperations
 
 RECOVER_SQL = Path(__file__).resolve().parents[1] / "src" / "harrix_swiss_knife" / "apps" / "finance" / "recover.sql"
 
@@ -306,3 +306,9 @@ def test_report_types_include_monthly_income_year_delta() -> None:
     names = [report_type for _lucide, _color, report_type in REPORT_TYPES]
     assert "Monthly Income vs Previous Years" in names
     assert all(lucide and color and title for lucide, color, title in REPORT_TYPES)
+
+
+def test_parse_month_key_for_monthly_summary_context_menu() -> None:
+    assert ReportOperations._parse_month_key("2024-02") == (2024, 2)
+    assert ReportOperations._parse_month_key("2024-13") is None
+    assert ReportOperations._parse_month_key("TOTAL") is None
