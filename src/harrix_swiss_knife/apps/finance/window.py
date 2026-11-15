@@ -22,7 +22,7 @@ from PySide6.QtWidgets import (QAbstractItemView, QApplication, QCheckBox, QComb
     QListView, QMainWindow, QMenu, QMenuBar,
     QPushButton, QRadioButton, QScrollArea, QSizePolicy,
     QSpacerItem, QSplitter, QStatusBar, QTabWidget,
-    QTableView, QTreeView, QVBoxLayout, QWidget)
+    QTableView, QVBoxLayout, QWidget)
 
 from harrix_swiss_knife.qt_compact_spin_box import (CompactDoubleSpinBox, CompactSpinBox)
 
@@ -1243,7 +1243,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_7.addItem(self.verticalSpacer_4)
 
         self.splitter_5.addWidget(self.frame_5)
-        self.tableView_reports = QTreeView(self.splitter_5)
+        self.tableView_reports = QTableView(self.splitter_5)
         self.tableView_reports.setObjectName(u"tableView_reports")
         self.splitter_5.addWidget(self.tableView_reports)
 

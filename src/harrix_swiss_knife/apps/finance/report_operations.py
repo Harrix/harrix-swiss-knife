@@ -9,7 +9,7 @@ from typing import cast
 
 from PySide6.QtCore import QPoint, QSize, Qt
 from PySide6.QtGui import QColor, QFont, QStandardItem, QStandardItemModel
-from PySide6.QtWidgets import QAbstractItemView, QDialog, QHeaderView, QMenu, QWidget
+from PySide6.QtWidgets import QAbstractItemView, QDialog, QMenu, QTreeView, QWidget
 
 from harrix_swiss_knife import toast_countdown_notification
 from harrix_swiss_knife.apps.common import message_box
@@ -20,6 +20,7 @@ from harrix_swiss_knife.apps.finance.exchange_rates_operations import (
     DbFilenameUnavailableForWorkerThreadError,
     _require_db_filename_for_worker,
 )
+from harrix_swiss_knife.apps.finance.layout_chrome import TABLE_ROW_HEIGHT
 from harrix_swiss_knife.apps.finance.mixins import requires_database
 from harrix_swiss_knife.apps.finance.report_build_worker import ReportBuildResult, ReportBuildWorker
 from harrix_swiss_knife.apps.finance.report_generators import PeriodExpenseCategory
@@ -214,8 +215,6 @@ class ReportOperations:
         """Bind monthly income year-delta report data to the reports table."""
         model: QStandardItemModel = QStandardItemModel()
         model.setHorizontalHeaderLabels(headers)
-        self.tableView_reports.setRootIsDecorated(False)
-        self.tableView_reports.setItemsExpandable(False)
         for row_data in report_data:
             items = [QStandardItem(str(value)) for value in row_data]
             if row_data and row_data[0] == "TOTAL":
@@ -245,11 +244,11 @@ class ReportOperations:
         delegate = YearDeltaCellDelegate(self.tableView_reports)
         for column in range(1, model.columnCount()):
             self.tableView_reports.setItemDelegateForColumn(column, delegate)
-        reports_header = self._reports_header()
+        reports_header = self.tableView_reports.horizontalHeader()
         for column in range(reports_header.count()):
             reports_header.setSectionResizeMode(column, reports_header.ResizeMode.Interactive)
-        self._resize_reports_columns_to_contents()
-        self.tableView_reports.setUniformRowHeights(False)
+        self.tableView_reports.resizeColumnsToContents()
+        self.tableView_reports.resizeRowsToContents()
 
     def _apply_monthly_summary_report(
         self,
@@ -258,6 +257,7 @@ class ReportOperations:
         expense_categories: list[tuple[int, str, str, str]],
     ) -> None:
         """Bind monthly or yearly expense-by-category summary to the reports table."""
+        self._show_reports_flat_view()
         if not expense_categories:
             model: QStandardItemModel = QStandardItemModel()
             model.setHorizontalHeaderLabels(headers)
@@ -304,8 +304,6 @@ class ReportOperations:
 
             model.appendRow(row_items)
 
-        self.tableView_reports.setRootIsDecorated(False)
-        self.tableView_reports.setItemsExpandable(False)
         self.tableView_reports.setModel(model)
         self.tableView_reports.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.tableView_reports.setSortingEnabled(True)
@@ -321,11 +319,11 @@ class ReportOperations:
                 col_idx, ReportAmountDelegate(self.tableView_reports, is_bold=False)
             )
 
-        reports_header = self._reports_header()
+        reports_header = self.tableView_reports.horizontalHeader()
         if reports_header.count() > 0:
             for i in range(reports_header.count()):
                 reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Interactive)
-            self._resize_reports_columns_to_contents()
+            self.tableView_reports.resizeColumnsToContents()
             if reports_header.count() > 1:
                 self.tableView_reports.setColumnWidth(1, self.tableView_reports.columnWidth(1) + 30)
 
@@ -336,6 +334,7 @@ class ReportOperations:
         grand_total: float,
     ) -> None:
         """Bind Month/Year Summary as an expandable category tree."""
+        tree = self._show_reports_tree_view()
         model = QStandardItemModel()
         model.setHorizontalHeaderLabels(headers)
 
@@ -369,22 +368,23 @@ class ReportOperations:
                 name_item.appendRow([child_name, child_amount, child_date])
             model.appendRow([name_item, amount_item, date_item])
 
-        self.tableView_reports.setSortingEnabled(False)
-        self.tableView_reports.setRootIsDecorated(True)
-        self.tableView_reports.setItemsExpandable(True)
-        self.tableView_reports.setModel(model)
-        self.tableView_reports.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        tree.setSortingEnabled(False)
+        tree.setRootIsDecorated(True)
+        tree.setItemsExpandable(True)
+        tree.setModel(model)
+        tree.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         for column in range(model.columnCount()):
-            self.tableView_reports.setItemDelegateForColumn(column, None)
-        amount_delegate = ReportAmountDelegate(self.tableView_reports, is_bold=True)
-        self.tableView_reports.setItemDelegateForColumn(1, amount_delegate)
-        reports_header = self._reports_header()
+            tree.setItemDelegateForColumn(column, None)
+        amount_delegate = ReportAmountDelegate(tree, is_bold=True)
+        tree.setItemDelegateForColumn(1, amount_delegate)
+        reports_header = tree.header()
         for i in range(reports_header.count()):
             reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Interactive)
-        self._resize_reports_columns_to_contents()
+        for column in range(model.columnCount()):
+            tree.resizeColumnToContents(column)
         if reports_header.count() > 1:
-            self.tableView_reports.setColumnWidth(0, max(220, self.tableView_reports.columnWidth(0) + 40))
-            self.tableView_reports.setColumnWidth(1, self.tableView_reports.columnWidth(1) + 24)
+            tree.setColumnWidth(0, max(220, tree.columnWidth(0) + 40))
+            tree.setColumnWidth(1, tree.columnWidth(1) + 24)
 
     def _apply_report_build_result(self, result: ReportBuildResult) -> None:
         """Dispatch report build result to the appropriate table binder."""
@@ -567,27 +567,43 @@ class ReportOperations:
                 continue
             header_item.setIcon(category_lucide_icon(emoji, lucide_name=lucide))
 
-    def _reports_header(self) -> QHeaderView:
-        """Return the reports view header (`QTreeView.header()`, not `horizontalHeader`)."""
-        return self.tableView_reports.header()
+    def _ensure_reports_tree_view(self) -> QTreeView:
+        """Create the expandable Month/Year Summary tree beside the flat reports table."""
+        tree = getattr(self, "_reports_tree_view", None)
+        if isinstance(tree, QTreeView):
+            return tree
+        tree = QTreeView(self.splitter_5)
+        tree.setObjectName("treeView_reports")
+        tree.setUniformRowHeights(True)
+        tree.setIndentation(18)
+        tree.setWordWrap(False)
+        tree.setTextElideMode(Qt.TextElideMode.ElideRight)
+        tree.setStyleSheet(f"QTreeView::item {{ min-height: {TABLE_ROW_HEIGHT}px; }}")
+        tree.hide()
+        self._reports_tree_view = tree
+        return tree
 
-    def _resize_reports_columns_to_contents(self) -> None:
-        """Resize each reports column to contents (`QTreeView` has no bulk helper)."""
-        view = self.tableView_reports
-        model = view.model()
-        if model is None:
-            return
-        for column in range(model.columnCount()):
-            view.resizeColumnToContents(column)
+    def _show_reports_flat_view(self) -> None:
+        """Show the QTableView used for matrix / flat reports."""
+        tree = getattr(self, "_reports_tree_view", None)
+        if isinstance(tree, QTreeView):
+            tree.hide()
+            tree.setModel(None)
+        self.tableView_reports.show()
+
+    def _show_reports_tree_view(self) -> QTreeView:
+        """Show the QTreeView used for expandable Month/Year Summary."""
+        tree = self._ensure_reports_tree_view()
+        self.tableView_reports.hide()
+        tree.show()
+        return tree
 
     def _set_reports_model_and_stretch(self, model: QStandardItemModel) -> None:
         """Set model on reports table and stretch columns."""
+        self._show_reports_flat_view()
         self.tableView_reports.setSortingEnabled(False)
-        self.tableView_reports.setRootIsDecorated(False)
-        self.tableView_reports.setItemsExpandable(False)
-        self.tableView_reports.setUniformRowHeights(True)
         self.tableView_reports.setModel(model)
-        reports_header = self._reports_header()
+        reports_header = self.tableView_reports.horizontalHeader()
         if reports_header.count() > 0:
             for i in range(reports_header.count()):
                 reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Stretch)
