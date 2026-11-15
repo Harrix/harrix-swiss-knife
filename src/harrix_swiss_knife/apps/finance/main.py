@@ -53,7 +53,6 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QCompleter,
-    QDateEdit,
     QDialog,
     QDialogButtonBox,
     QHBoxLayout,
@@ -303,6 +302,7 @@ from harrix_swiss_knife.integrations.bothub import (
     show_bothub_prompt_build_error,
 )
 from harrix_swiss_knife.paths import get_config_path_str
+from harrix_swiss_knife.qt_date_calendar import SoftCalendarWidget
 from harrix_swiss_knife.qt_lucide_icon import (
     CLOSE_BUTTON_ICON,
     COPY_BUTTON_ICON,
@@ -5580,16 +5580,16 @@ class MainWindow(
                 dialog,
             ),
         )
-        date_edit = QDateEdit(dialog)
-        date_edit.setDisplayFormat("yyyy-MM-dd")
         default_date = self.dateEdit.date()
         if initial_date:
             parsed = QDate.fromString(str(initial_date).strip()[:10], "yyyy-MM-dd")
             if parsed.isValid():
                 default_date = parsed
-        date_edit.setDate(default_date)
-        attach_date_edit_quick_controls(date_edit)
-        dialog_layout.addWidget(date_edit)
+        calendar = SoftCalendarWidget(dialog)
+        calendar.setSelectedDate(default_date)
+        calendar.setCurrentPage(default_date.year(), default_date.month())
+        calendar.activated.connect(dialog.accept)
+        dialog_layout.addWidget(calendar, alignment=Qt.AlignmentFlag.AlignHCenter)
 
         buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,
@@ -5603,7 +5603,7 @@ class MainWindow(
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return
 
-        new_date: str = date_edit.date().toString("yyyy-MM-dd")
+        new_date: str = calendar.selectedDate().toString("yyyy-MM-dd")
         if self.db_manager.update_transactions_date(transaction_ids, new_date):
             self._ui_refresh_scheduler.stop()
             self._mark_summary_dirty()
