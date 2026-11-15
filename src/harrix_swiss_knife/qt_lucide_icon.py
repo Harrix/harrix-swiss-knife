@@ -628,6 +628,13 @@ def is_delete_like_button_label(label: str) -> bool:
     return is_clear_like_button_label(label)
 
 
+def clear_lucide_icon_caches() -> None:
+    """Drop painted-icon and name-list caches after refreshing SVG assets."""
+    global _LUCIDE_NAME_LIST  # noqa: PLW0603
+    _CACHE.clear()
+    _LUCIDE_NAME_LIST = None
+
+
 def list_lucide_icon_names() -> tuple[str, ...]:
     """Return sorted Lucide IDs available under `assets/lucide` (cached)."""
     global _LUCIDE_NAME_LIST  # noqa: PLW0603

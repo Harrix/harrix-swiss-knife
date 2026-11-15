@@ -36,6 +36,7 @@ from harrix_swiss_knife.actions.development.sync_quick_access_to_total_commander
 from harrix_swiss_knife.actions.development.transfer_private_data import OnTransferPrivateData
 from harrix_swiss_knife.actions.development.uninstall import OnUninstall
 from harrix_swiss_knife.actions.development.update_harrix_swiss_knife import OnUpdateHarrixSwissKnife
+from harrix_swiss_knife.actions.development.update_lucide_icons import OnUpdateLucideIcons
 from harrix_swiss_knife.actions.development.update_node import OnUpdateNode
 from harrix_swiss_knife.actions.development.update_uv import OnUpdateUv
 from harrix_swiss_knife.actions.development.upgrade_uv_packages import OnUpgradeUvPackages
@@ -150,6 +151,7 @@ def get_menu_structure() -> list[Any]:
                 OnCreateDesktopShortcut,
                 OnUninstall,
                 OnDownloadOptimizeDependencies,
+                OnUpdateLucideIcons,
                 OnBuildInstallZips,
                 OnUpdateNode,
                 OnNpmManagePackages,
