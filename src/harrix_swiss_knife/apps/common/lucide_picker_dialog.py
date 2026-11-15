@@ -53,14 +53,23 @@ class LucideChoiceRow(QWidget):
         current_name: str = "",
         presets: Sequence[str] | None = None,
         allow_empty: bool = True,
+        compact: bool = False,
         app_config: dict[str, Any] | None = None,
         bothub_state: BothubRequestState | None = None,
         suggest_query_provider: Callable[[], str] | None = None,
     ) -> None:
-        """Create a compact Lucide chooser row."""
+        """Create a Lucide chooser row.
+
+        Args:
+
+        - `compact` (`bool`): Narrow layout for side panels — hide the status
+          label, shorter Choose caption, status text only in the tooltip.
+
+        """
         super().__init__(parent)
         self._presets = tuple(presets) if presets is not None else ()
         self._allow_empty = allow_empty
+        self._compact = compact
         self._name = current_name.strip()
         self._app_config = app_config or {}
         self._bothub_state = bothub_state or BothubRequestState()
@@ -70,8 +79,9 @@ class LucideChoiceRow(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
 
+        preview_side = 32 if compact else 44
         self._preview = QPushButton(self)
-        self._preview.setFixedSize(44, 44)
+        self._preview.setFixedSize(preview_side, preview_side)
         self._preview.setCursor(Qt.CursorShape.PointingHandCursor)
         self._preview.setIconSize(QSize(ICON_SIZE, ICON_SIZE))
         self._preview.setToolTip("Choose Lucide icon")
@@ -79,13 +89,19 @@ class LucideChoiceRow(QWidget):
 
         self._label = QLabel(self)
         self._label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self._label.setVisible(not compact)
+        if compact:
+            self._label.setMinimumWidth(0)
 
-        choose_button = QPushButton("Choose Lucide…")
+        choose_button = QPushButton("Choose…" if compact else "Choose Lucide…")
+        choose_button.setMinimumHeight(32 if compact else 0)
         choose_button.clicked.connect(self._choose)
 
         layout.addWidget(self._preview)
         layout.addWidget(self._label, 1)
         layout.addWidget(choose_button)
+        if compact:
+            layout.addStretch(1)
         self._refresh_preview()
 
     def lucide_name(self) -> str:
@@ -118,9 +134,15 @@ class LucideChoiceRow(QWidget):
         if self._name and lucide_svg_path(self._name) is not None:
             self._preview.setIcon(create_lucide_icon(self._name, ICON_SIZE, color=LUCIDE_COLOR_DARK))
             self._label.setText(self._name)
-            return
-        self._preview.setIcon(QIcon())
-        self._label.setText("Auto (from emoji)" if self._allow_empty else "")
+            tip = self._name
+        else:
+            self._preview.setIcon(QIcon())
+            status = "Auto (from emoji)" if self._allow_empty else ""
+            self._label.setText(status)
+            tip = status or "Choose Lucide icon"
+        self._preview.setToolTip(tip)
+        if self._compact:
+            self._label.setToolTip(tip)
 
 
 class LucidePickerDialog(QDialog):

@@ -47,6 +47,7 @@ def _ensure_habit_lucide_row(host: Any) -> None:
         getattr(host, "groupBox_habits_2", None),
         presets=HABIT_LUCIDE_PRESETS,
         allow_empty=True,
+        compact=True,
         app_config=app_config,
         bothub_state=bothub,
         suggest_query_provider=_suggest_query,
@@ -60,6 +61,7 @@ def _ensure_habit_lucide_row(host: Any) -> None:
 
     row_layout = QHBoxLayout()
     row_layout.setObjectName("horizontalLayout_habit_lucide")
+    row_layout.setSpacing(SPACE_S)
     row_layout.addWidget(label)
     row_layout.addWidget(row, stretch=1)
     # Insert after the emoji row when present; otherwise append before stretch/spacer.
