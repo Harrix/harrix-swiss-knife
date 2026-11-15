@@ -31,6 +31,7 @@ from PySide6.QtCore import (
     QTimer,
 )
 from PySide6.QtGui import (
+    QAction,
     QBrush,
     QCloseEvent,
     QColor,
@@ -78,6 +79,13 @@ from harrix_swiss_knife.apps.common.chart_timeline import bar_at_x, build_timeli
 from harrix_swiss_knife.apps.common.chart_widgets import CHARTS_FILTER_MIN_WIDTH, mark_chart_list_separator
 from harrix_swiss_knife.apps.common.day_bands import day_band_color, set_day_band
 from harrix_swiss_knife.apps.common.db_init import init_tracker_database
+from harrix_swiss_knife.apps.common.presentation_mode import (
+    apply_presentation_window_title,
+    create_presentation_database,
+    install_presentation_mode_action,
+    presentation_ticktick_db_path,
+    sync_presentation_mode_action,
+)
 from harrix_swiss_knife.apps.common.qt_database_manager_base import QtSqliteDatabaseManagerBase
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
 from harrix_swiss_knife.apps.common.table_context_menu import (
@@ -222,8 +230,9 @@ class MainWindow(
     about_description = "Track habits and daily progress."
     settings_app_id = "habits"
 
-    def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107  (inherited from Qt widgets)
+    def __init__(self, *, hide_on_close: bool = False, presentation_mode: bool = False) -> None:  # noqa: D107  (inherited from Qt widgets)
         super().__init__()
+        self.presentation_mode = presentation_mode
         self._apply_fluent_window_chrome()
         self.setupUi(self)
         self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
@@ -295,6 +304,8 @@ class MainWindow(
         self._init_habits_year_list()
         self._init_heatmap_year_nav()
         self.update_all()
+        self._install_presentation_mode_ui()
+        self._apply_presentation_ticktick_isolation()
 
         # Set window size and position based on screen resolution
         self._setup_window_size_and_position()
@@ -883,6 +894,21 @@ class MainWindow(
 
         self._update_layout_for_window_size()
 
+    def set_presentation_mode(self, *, enabled: bool) -> None:
+        """Switch between the real habits database and a temporary fake one."""
+        if enabled == self.presentation_mode:
+            return
+        if self.db_manager is not None:
+            self.db_manager.close()
+            self.db_manager = None
+        self.presentation_mode = enabled
+        self._init_database()
+        self._habit_dashboard.set_database(self.db_manager)
+        apply_presentation_window_title(self, enabled=enabled)
+        sync_presentation_mode_action(self)
+        self._apply_presentation_ticktick_isolation()
+        self.update_all()
+
     def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
         """Sync the sport habit from Fitness when the window is shown again."""
         super().showEvent(event)
@@ -1196,6 +1222,26 @@ class MainWindow(
         if table_name == "habits":
             self._schedule_habits_refresh(0)
 
+    def _apply_presentation_ticktick_isolation(self) -> None:
+        """Point TickTick UI at the demo DB (or clear it) and gate Sync/Backup."""
+        widget = getattr(self, "_ticktick_stats_widget", None)
+        demo_path: Path | None = None
+        if self.presentation_mode and self.db_manager is not None:
+            demo_path = presentation_ticktick_db_path(Path(self.db_manager._db_filename))  # noqa: SLF001
+            if not demo_path.is_file():
+                demo_path = None
+        if widget is not None:
+            widget._db_path = demo_path  # noqa: SLF001
+            widget._loaded = False  # noqa: SLF001
+            if self.presentation_mode:
+                widget.reload()
+        ticktick_action = getattr(self, "_ticktick_sync_action", None)
+        if isinstance(ticktick_action, QAction):
+            ticktick_action.setEnabled(not self.presentation_mode)
+            ticktick_action.setToolTip(
+                "Disabled in presentation mode" if self.presentation_mode else "",
+            )
+
     def _arm_background_sport_habit_sync(self) -> None:
         """Start or restart the deferred sport-habit sync."""
         if self._is_closing:
@@ -1208,7 +1254,12 @@ class MainWindow(
             message_box.warning(self, "Backup habits", "Database is not initialized")
             return
 
-        hsk_db_path = Path(str(self._app_config.get("sqlite_habits", "")))
+        if self.presentation_mode:
+            hsk_db_path = Path(self.db_manager._db_filename)  # noqa: SLF001
+            ticktick_path = presentation_ticktick_db_path(hsk_db_path)
+        else:
+            hsk_db_path = Path(str(self._app_config.get("sqlite_habits", "")))
+            ticktick_path = None
         start_dir = str(hsk_db_path.parent) if hsk_db_path.parent.is_dir() else ""
         dest = QFileDialog.getExistingDirectory(self, "Backup habits", start_dir)
         if not dest:
@@ -1219,6 +1270,7 @@ class MainWindow(
                 Path(dest),
                 hsk_db_path=hsk_db_path,
                 db_manager=self.db_manager,
+                ticktick_db_path=ticktick_path,
             )
         except OSError as exc:
             message_box.warning(self, "Backup habits", str(exc))
@@ -1607,12 +1659,18 @@ class MainWindow(
     def _init_database(self) -> None:
         """Open the SQLite file from app config (create from `recover.sql` if missing)."""
         app_dir = Path(__file__).parent
-        configured = Path(self._app_config["sqlite_habits"])
 
         def _on_db_opened(db_manager: database_manager.DatabaseManager) -> None:
             with contextlib.suppress(Exception):
                 db_manager.ensure_habits_schema()
 
+        if self.presentation_mode:
+            path = create_presentation_database("habits")
+            self.db_manager = database_manager.DatabaseManager(str(path))
+            _on_db_opened(self.db_manager)
+            return
+
+        configured = Path(self._app_config["sqlite_habits"])
         with contextlib.suppress(Exception):
             ensure_habits_indexes(QtSqliteDatabaseManagerBase.resolve_db_path_with_fallback(configured, "habits"))
 
@@ -1797,6 +1855,16 @@ class MainWindow(
             self._habits_chart_theme_bound = True
         self._sync_habits_chart_toolbar_mode()
         self._sync_heatmap_year_nav_buttons()
+
+    def _install_presentation_mode_ui(self) -> None:
+        """Add Commands → Presentation mode and sync the window title."""
+        apply_presentation_window_title(self, enabled=self.presentation_mode)
+        install_presentation_mode_action(
+            self,
+            getattr(self, "menuCommands", None),
+            get_enabled=lambda: self.presentation_mode,
+            set_enabled=self.set_presentation_mode,
+        )
 
     # Add to MainWindow class (near other small helpers)
 
@@ -2231,6 +2299,7 @@ class MainWindow(
         backup_action.triggered.connect(self._backup_habits)
         ticktick_action = self.menuCommands.addAction("🔄 Sync with TickTick")
         ticktick_action.triggered.connect(self._sync_with_ticktick)
+        self._ticktick_sync_action = ticktick_action
         self._apply_menu_bar_emoji_icons()
         self.tabWidget.currentChanged.connect(self._on_tab_changed)
 
@@ -2540,6 +2609,13 @@ class MainWindow(
 
     def _sync_with_ticktick(self) -> None:
         """Synchronize habits with TickTick (local SQLite read, Open API writes)."""
+        if self.presentation_mode:
+            message_box.information(
+                self,
+                "Sync with TickTick",
+                "TickTick sync is disabled in presentation mode.",
+            )
+            return
         if self.db_manager is None:
             message_box.warning(self, "Sync with TickTick", "Database is not initialized")
             return

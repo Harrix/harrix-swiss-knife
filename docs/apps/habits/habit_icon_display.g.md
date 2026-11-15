@@ -11,11 +11,36 @@ lang: en
 
 ## Contents
 
+- [🔧 Function `habit_display_icon`](#-function-habit_display_icon)
 - [🔧 Function `habit_lucide_color`](#-function-habit_lucide_color)
 - [🔧 Function `habit_lucide_icon`](#-function-habit_lucide_icon)
 - [🔧 Function `lucide_name_for_habit_emoji`](#-function-lucide_name_for_habit_emoji)
 - [🔧 Function `normalize_habit_lucide_name`](#-function-normalize_habit_lucide_name)
 - [🔧 Function `resolve_habit_display_lucide`](#-function-resolve_habit_display_lucide)
+
+</details>
+
+## 🔧 Function `habit_display_icon`
+
+```python
+def habit_display_icon(*, emoji: str = '', lucide_name: str = '', size: int = _HABIT_ICON_SIZE) -> QIcon
+```
+
+Return Lucide icon when set, otherwise an emoji glyph icon.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def habit_display_icon(*, emoji: str = "", lucide_name: str = "", size: int = _HABIT_ICON_SIZE) -> QIcon:
+    lucide = resolve_habit_display_lucide(lucide_name=lucide_name)
+    if lucide:
+        return habit_lucide_icon(lucide, size)
+    cleaned = emoji.strip()
+    if cleaned:
+        return create_emoji_icon(cleaned, size)
+    return QIcon()
+```
 
 </details>
 

@@ -197,6 +197,17 @@ _HABIT_COLOR_PALETTE: tuple[str, ...] = (
 _HABIT_ICON_SIZE = ICON_SIZE
 
 
+def habit_display_icon(*, emoji: str = "", lucide_name: str = "", size: int = _HABIT_ICON_SIZE) -> QIcon:
+    """Return Lucide icon when set, otherwise an emoji glyph icon."""
+    lucide = resolve_habit_display_lucide(lucide_name=lucide_name)
+    if lucide:
+        return habit_lucide_icon(lucide, size)
+    cleaned = emoji.strip()
+    if cleaned:
+        return create_emoji_icon(cleaned, size)
+    return QIcon()
+
+
 def habit_lucide_color(lucide_name: str) -> str:
     """Return a stable chromatic stroke for habit Lucide ID `lucide_name`."""
     name = lucide_name.strip()
@@ -215,17 +226,6 @@ def habit_lucide_icon(lucide_name: str = "", size: int = _HABIT_ICON_SIZE) -> QI
     if not name or lucide_svg_path(name) is None:
         return QIcon()
     return create_lucide_icon(name, size, color=habit_lucide_color(name))
-
-
-def habit_display_icon(*, emoji: str = "", lucide_name: str = "", size: int = _HABIT_ICON_SIZE) -> QIcon:
-    """Return Lucide icon when set, otherwise an emoji glyph icon."""
-    lucide = resolve_habit_display_lucide(lucide_name=lucide_name)
-    if lucide:
-        return habit_lucide_icon(lucide, size)
-    cleaned = emoji.strip()
-    if cleaned:
-        return create_emoji_icon(cleaned, size)
-    return QIcon()
 
 
 def lucide_name_for_habit_emoji(emoji: str) -> str | None:

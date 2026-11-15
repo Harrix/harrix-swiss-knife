@@ -48,9 +48,9 @@ class HabitIconEditDialog(QDialog):
 
         - `parent` (`QWidget | None`): Parent widget.
         - `emoji` (`str`): Current emoji.
-        - `icon_lucide` (`str`): Current Lucide id.
+        - `icon_lucide` (`str`): Current Lucide ID.
         - `habit_name` (`str`): Habit name used as AI suggest query.
-        - `habit_id` (`int | None`): Habit id for emoji fallback.
+        - `habit_id` (`int | None`): Habit ID for emoji fallback.
         - `app_config` (`dict[str, Any] | None`): App config for Lucide AI.
 
         """
@@ -104,7 +104,7 @@ class HabitIconEditDialog(QDialog):
         return normalize_habit_emoji(self._emoji, habit_id=self._habit_id)
 
     def selected_icon_lucide(self) -> str:
-        """Return the selected Lucide id (empty when cleared)."""
+        """Return the selected Lucide ID (empty when cleared)."""
         return normalize_habit_lucide_name(self._lucide_row.lucide_name())
 
     def _choose_emoji(self) -> None:

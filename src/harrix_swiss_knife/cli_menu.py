@@ -59,10 +59,11 @@ class CliContextMenu(FluentMenu):
                 event.accept()
                 return
             if event.button() == Qt.MouseButton.RightButton and is_tracker_launcher_action(action):
-                show_open_all_trackers_menu(
+                show_tracker_launcher_context_menu(
                     parent=self,
                     global_pos=event.globalPosition().toPoint(),
                     host_menu=self,
+                    tracker_action=action,
                 )
                 event.accept()
                 return
@@ -251,7 +252,33 @@ def show_open_all_trackers_menu(
     host_menu: QMenu,
 ) -> None:
     """Show a one-item menu that opens Finance, Fitness, Food, and Habits."""
+    show_tracker_launcher_context_menu(
+        parent=parent,
+        global_pos=global_pos,
+        host_menu=host_menu,
+        tracker_action=None,
+    )
+
+
+def show_tracker_launcher_context_menu(
+    *,
+    parent: QWidget | None,
+    global_pos: QPoint,
+    host_menu: QMenu,
+    tracker_action: QAction | None,
+) -> None:
+    """Show presentation-mode and open-all actions for tray tracker items."""
+    from harrix_swiss_knife.apps.common.presentation_mode import (  # noqa: PLC0415
+        OPEN_IN_PRESENTATION_MENU_LABEL,
+    )
+
     menu = FluentMenu("", parent)
+    if tracker_action is not None:
+        open_presentation = menu.addAction(OPEN_IN_PRESENTATION_MENU_LABEL)
+        open_presentation.triggered.connect(
+            lambda *_args, source=tracker_action: trigger_tracker_presentation_mode(source),
+        )
+        menu.addSeparator()
     open_all = menu.addAction(OPEN_ALL_TRACKERS_MENU_LABEL)
     open_all.triggered.connect(lambda *_args, source=host_menu: trigger_all_tracker_launchers(source))
     apply_leading_chrome_icons(menu)
@@ -263,6 +290,22 @@ def trigger_all_tracker_launchers(menu: QMenu) -> None:
     """Trigger every tracker launcher QAction found on `menu`."""
     for action in iter_tracker_launcher_actions(menu):
         action.trigger()
+
+
+def trigger_tracker_presentation_mode(action: QAction) -> None:
+    """Launch the tracker behind `action` in presentation mode."""
+    instance = getattr(action, "_hsk_action_instance", None)
+    if instance is None:
+        action_cls = getattr(action, "_hsk_action_class", None)
+        parent = action.parent()
+        output_bus = getattr(parent, "output_bus", None) if parent is not None else None
+        if callable(action_cls):
+            instance = action_cls(parent=parent, output_bus=output_bus)
+            setattr(action, "_hsk_action_instance", instance)  # noqa: B010
+    if instance is not None and hasattr(instance, "execute"):
+        instance.execute(presentation_mode=True)
+        return
+    action.trigger()
 
 
 def truncate_action_name_preview(name: str, max_len: int = COPY_ACTION_NAME_PREVIEW_MAX_LEN) -> str:

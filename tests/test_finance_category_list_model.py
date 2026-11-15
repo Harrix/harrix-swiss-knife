@@ -7,8 +7,9 @@ from types import SimpleNamespace
 import pytest
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QStandardItemModel
-from PySide6.QtWidgets import QApplication, QListView
+from PySide6.QtWidgets import QApplication, QListView, QMenu
 
+from harrix_swiss_knife.apps.finance.category_icon_display import category_lucide_icon
 from harrix_swiss_knife.apps.finance.category_list_model import (
     fill_category_picker_model,
     find_category_in_picker,
@@ -92,10 +93,6 @@ def test_find_and_selected_category_skips_sections(qapp: QApplication) -> None: 
 
 def test_category_label_menu_actions_have_lucide_icons(qapp: QApplication) -> None:
     """Category picker rows expose icon roles used by the label dropdown menu."""
-    from PySide6.QtWidgets import QMenu
-
-    from harrix_swiss_knife.apps.finance.category_icon_display import category_lucide_icon
-
     assert qapp is not None
     view = QListView()
     model = QStandardItemModel()

@@ -61,6 +61,7 @@ lang: en
   - [⚙️ Method `set_chart_last_month`](#%EF%B8%8F-method-set_chart_last_month)
   - [⚙️ Method `set_chart_last_week`](#%EF%B8%8F-method-set_chart_last_week)
   - [⚙️ Method `set_chart_last_year`](#%EF%B8%8F-method-set_chart_last_year)
+  - [⚙️ Method `set_presentation_mode`](#%EF%B8%8F-method-set_presentation_mode)
   - [⚙️ Method `set_today_date`](#%EF%B8%8F-method-set_today_date)
   - [⚙️ Method `set_weight_all_time`](#%EF%B8%8F-method-set_weight_all_time)
   - [⚙️ Method `set_weight_last_month`](#%EF%B8%8F-method-set_weight_last_month)
@@ -135,10 +136,11 @@ class MainWindow(
     settings_app_id = "fitness"
     defer_initial_show = True
 
-    def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
+    def __init__(self, *, hide_on_close: bool = False, presentation_mode: bool = False) -> None:  # noqa: D107
         super().__init__()
         self._workouts_widget: WorkoutsWidget | None = None
         self._exercise_list_hover: ExerciseListHoverPreview | None = None
+        self.presentation_mode = presentation_mode
         self._apply_fluent_window_chrome()
         self.setupUi(self)
         # Install event filter for chart info label to handle double-click
@@ -290,6 +292,7 @@ class MainWindow(
         self._init_exercises_list()
         self._init_sets_count_display()
         self.update_all()
+        self._install_presentation_mode_ui()
 
         # Load initial AVIF animations after UI is ready
         QTimer.singleShot(100, self._load_initial_avifs)
@@ -2647,6 +2650,21 @@ class MainWindow(
         """Set chart date range to last year."""
         self._set_date_range(self.dateEdit_chart_from, self.dateEdit_chart_to, years=1)
         self._schedule_chart_update(50)
+
+    def set_presentation_mode(self, *, enabled: bool) -> None:
+        """Switch between the real fitness database and a temporary fake one."""
+        if enabled == self.presentation_mode:
+            return
+        if self.db_manager is not None:
+            self.db_manager.close()
+            self.db_manager = None
+        self.presentation_mode = enabled
+        self._init_database()
+        if self._workouts_widget is not None:
+            self._workouts_widget.set_database_manager(self.db_manager)
+        apply_presentation_window_title(self, enabled=enabled)
+        sync_presentation_mode_action(self)
+        self.update_all()
 
     def set_today_date(self) -> None:
         """Set today's date in the date edit fields and last weight value.
@@ -6127,26 +6145,33 @@ class MainWindow(
     def _init_database(self) -> None:
         """Open the SQLite file from app config (create from `recover.sql` if missing)."""
         app_dir = Path(__file__).parent
-        db_path = Path(self._app_config["sqlite_fitness"])
-        if db_path.exists():
-            ensure_fitness_schema(db_path)
-            ensure_fitness_indexes(db_path)
-            migrate_minute_exercise_units_to_seconds(db_path)
 
         def _on_db_opened(db_manager: database_manager.DatabaseManager) -> None:
             self.progress_calculator = ExerciseProgressCalculator(db_manager)
 
-        self.db_manager = init_tracker_database(
-            self,
-            Path(self._app_config["sqlite_fitness"]),
-            "fitness",
-            app_dir / "recover.sql",
-            database_manager.DatabaseManager,
-            has_required_tables=lambda dm: dm.table_exists("process"),
-            missing_table_label="process table",
-            on_opened=_on_db_opened,
-        )
-        opened_path = Path(getattr(self.db_manager, "_db_filename", "") or db_path)
+        if self.presentation_mode:
+            path = create_presentation_database("fitness")
+            self.db_manager = database_manager.DatabaseManager(str(path))
+            _on_db_opened(self.db_manager)
+            opened_path = path
+        else:
+            db_path = Path(self._app_config["sqlite_fitness"])
+            if db_path.exists():
+                ensure_fitness_schema(db_path)
+                ensure_fitness_indexes(db_path)
+                migrate_minute_exercise_units_to_seconds(db_path)
+
+            self.db_manager = init_tracker_database(
+                self,
+                Path(self._app_config["sqlite_fitness"]),
+                "fitness",
+                app_dir / "recover.sql",
+                database_manager.DatabaseManager,
+                has_required_tables=lambda dm: dm.table_exists("process"),
+                missing_table_label="process table",
+                on_opened=_on_db_opened,
+            )
+            opened_path = Path(getattr(self.db_manager, "_db_filename", "") or db_path)
         if opened_path.exists():
             ensure_fitness_schema(opened_path)
             ensure_fitness_indexes(opened_path)
@@ -6381,6 +6406,16 @@ class MainWindow(
         )
         self._chart_toolbar = toolbar
         self._sync_fitness_chart_toolbar_mode()
+
+    def _install_presentation_mode_ui(self) -> None:
+        """Add Commands → Presentation mode and sync the window title."""
+        apply_presentation_window_title(self, enabled=self.presentation_mode)
+        install_presentation_mode_action(
+            self,
+            getattr(self, "menuCommanda", None),
+            get_enabled=lambda: self.presentation_mode,
+            set_enabled=self.set_presentation_mode,
+        )
 
     def _install_weight_chart_shell(self) -> None:
         """Add Chart radios and a shared toolbar on the Weight tab."""
@@ -9345,7 +9380,7 @@ class MainWindow(
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, *, hide_on_close: bool = False) -> None
+def __init__(self, *, hide_on_close: bool = False, presentation_mode: bool = False) -> None
 ```
 
 _No docstring provided._
@@ -9354,10 +9389,11 @@ _No docstring provided._
 <summary>Code:</summary>
 
 ```python
-def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
+def __init__(self, *, hide_on_close: bool = False, presentation_mode: bool = False) -> None:  # noqa: D107
         super().__init__()
         self._workouts_widget: WorkoutsWidget | None = None
         self._exercise_list_hover: ExerciseListHoverPreview | None = None
+        self.presentation_mode = presentation_mode
         self._apply_fluent_window_chrome()
         self.setupUi(self)
         # Install event filter for chart info label to handle double-click
@@ -9509,6 +9545,7 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
         self._init_exercises_list()
         self._init_sets_count_display()
         self.update_all()
+        self._install_presentation_mode_ui()
 
         # Load initial AVIF animations after UI is ready
         QTimer.singleShot(100, self._load_initial_avifs)
@@ -12485,6 +12522,35 @@ Set chart date range to last year.
 def set_chart_last_year(self) -> None:
         self._set_date_range(self.dateEdit_chart_from, self.dateEdit_chart_to, years=1)
         self._schedule_chart_update(50)
+```
+
+</details>
+
+### ⚙️ Method `set_presentation_mode`
+
+```python
+def set_presentation_mode(self, *, enabled: bool) -> None
+```
+
+Switch between the real fitness database and a temporary fake one.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_presentation_mode(self, *, enabled: bool) -> None:
+        if enabled == self.presentation_mode:
+            return
+        if self.db_manager is not None:
+            self.db_manager.close()
+            self.db_manager = None
+        self.presentation_mode = enabled
+        self._init_database()
+        if self._workouts_widget is not None:
+            self._workouts_widget.set_database_manager(self.db_manager)
+        apply_presentation_window_title(self, enabled=enabled)
+        sync_presentation_mode_action(self)
+        self.update_all()
 ```
 
 </details>

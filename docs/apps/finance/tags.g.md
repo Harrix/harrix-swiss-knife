@@ -51,7 +51,10 @@ def format_tag_text(names: list[str]) -> str:
 def matching_known_tags(known_tags: Sequence[str], query: str, *, exclude: Sequence[str] = ()) -> list[str]
 ```
 
-Return known tags that contain `query` (case-insensitive), keeping DB order.
+Return known tags that match `query`, including EN/RU layout mistakes.
+
+Matching is case-insensitive and tolerates typing on the wrong keyboard
+layout (same as description autocomplete). Order follows `known_tags`.
 
 Args:
 
@@ -73,7 +76,7 @@ def matching_known_tags(
     *,
     exclude: Sequence[str] = (),
 ) -> list[str]:
-    needle = " ".join(query.split()).casefold()
+    needle = " ".join(query.split())
     if not needle:
         return []
     excluded = {name.casefold() for name in exclude if name.strip()}
@@ -83,7 +86,7 @@ def matching_known_tags(
         key = name.casefold()
         if key in excluded or key in seen:
             continue
-        if needle not in key:
+        if not text_matches_autocomplete(name, needle):
             continue
         seen.add(key)
         matches.append(name)

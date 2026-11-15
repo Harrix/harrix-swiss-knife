@@ -50,6 +50,7 @@ lang: en
   - [⚙️ Method `set_chart_last_month`](#%EF%B8%8F-method-set_chart_last_month)
   - [⚙️ Method `set_chart_last_week`](#%EF%B8%8F-method-set_chart_last_week)
   - [⚙️ Method `set_chart_last_year`](#%EF%B8%8F-method-set_chart_last_year)
+  - [⚙️ Method `set_presentation_mode`](#%EF%B8%8F-method-set_presentation_mode)
   - [⚙️ Method `set_today_date`](#%EF%B8%8F-method-set_today_date)
   - [⚙️ Method `show_tables`](#%EF%B8%8F-method-show_tables)
   - [⚙️ Method `update_all`](#%EF%B8%8F-method-update_all)
@@ -112,12 +113,13 @@ class MainWindow(
     _TRANSACTION_AMOUNT_COLUMN: int = 2
     _TRANSLATION_FAILURE_PREVIEW_LIMIT: int = 8
 
-    def __init__(self, *, hide_on_close: bool = False) -> None:
+    def __init__(self, *, hide_on_close: bool = False, presentation_mode: bool = False) -> None:
         """Initialize main window for finance tracking application."""
         super().__init__()
         self._apply_fluent_window_chrome()
         self.setupUi(self)
         self._is_closing = False
+        self.presentation_mode = presentation_mode
         self.db_manager: database_manager.DatabaseManager | None = None
         self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
         self._auto_save_handlers: dict[str, Any] = {}
@@ -282,6 +284,7 @@ class MainWindow(
         self._init_chart_controls()
         self._setup_autocomplete()
         self._initial_load()
+        self._install_presentation_mode_ui()
 
         # Set window size and position
         self._setup_window_size_and_position()
@@ -1156,6 +1159,19 @@ class MainWindow(
     def set_chart_last_year(self) -> None:
         """Set chart start date to one year ago and end date to today."""
         self._set_date_range(self.dateEdit_chart_from, self.dateEdit_chart_to, years=1)
+
+    def set_presentation_mode(self, *, enabled: bool) -> None:
+        """Switch between the real finance database and a temporary fake one."""
+        if enabled == self.presentation_mode:
+            return
+        if self.db_manager is not None:
+            self.db_manager.close()
+            self.db_manager = None
+        self.presentation_mode = enabled
+        self._init_database()
+        apply_presentation_window_title(self, enabled=enabled)
+        sync_presentation_mode_action(self)
+        self.update_all()
 
     def set_today_date(self) -> None:
         """Set today's date in all date fields."""
@@ -3063,6 +3079,10 @@ class MainWindow(
 
     def _init_database(self) -> None:
         """Open the SQLite file from app config (create from `recover.sql` if missing)."""
+        if self.presentation_mode:
+            path = create_presentation_database("finance")
+            self.db_manager = database_manager.DatabaseManager(str(path))
+            return
         self.db_manager = init_tracker_database(
             self,
             Path(self._app_config["sqlite_finance"]),
@@ -3128,6 +3148,16 @@ class MainWindow(
         )
         self._chart_toolbar = toolbar
         self._sync_finance_chart_toolbar_mode()
+
+    def _install_presentation_mode_ui(self) -> None:
+        """Add Commands → Presentation mode and sync the window title."""
+        apply_presentation_window_title(self, enabled=self.presentation_mode)
+        install_presentation_mode_action(
+            self,
+            getattr(self, "menuCommands", None),
+            get_enabled=lambda: self.presentation_mode,
+            set_enabled=self.set_presentation_mode,
+        )
 
     def _install_tag_entry_picker(self) -> None:
         """Add a trailing tags action and live suggestions on the entry Tags field."""
@@ -5674,8 +5704,14 @@ class MainWindow(
 
         """
         context_menu = QMenu(self)
-        for _index, category_name, _local in iter_category_picker_rows(self):
-            action = context_menu.addAction(category_name)
+        apply_menu_icon_size(context_menu)
+        for index, category_name, _local in iter_category_picker_rows(self):
+            emoji = index.data(ICON_ROLE)
+            lucide = index.data(ICON_LUCIDE_ROLE)
+            emoji_text = "" if emoji is None else str(emoji)
+            lucide_text = "" if lucide is None else str(lucide)
+            painted = category_lucide_icon(emoji_text, lucide_name=lucide_text)
+            action = context_menu.addAction(painted, category_name)
             action.setData(category_name)
 
         if context_menu.isEmpty():
@@ -6658,7 +6694,7 @@ class MainWindow(
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, *, hide_on_close: bool = False) -> None
+def __init__(self, *, hide_on_close: bool = False, presentation_mode: bool = False) -> None
 ```
 
 Initialize main window for finance tracking application.
@@ -6667,11 +6703,12 @@ Initialize main window for finance tracking application.
 <summary>Code:</summary>
 
 ```python
-def __init__(self, *, hide_on_close: bool = False) -> None:
+def __init__(self, *, hide_on_close: bool = False, presentation_mode: bool = False) -> None:
         super().__init__()
         self._apply_fluent_window_chrome()
         self.setupUi(self)
         self._is_closing = False
+        self.presentation_mode = presentation_mode
         self.db_manager: database_manager.DatabaseManager | None = None
         self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
         self._auto_save_handlers: dict[str, Any] = {}
@@ -6836,6 +6873,7 @@ def __init__(self, *, hide_on_close: bool = False) -> None:
         self._init_chart_controls()
         self._setup_autocomplete()
         self._initial_load()
+        self._install_presentation_mode_ui()
 
         # Set window size and position
         self._setup_window_size_and_position()
@@ -8204,6 +8242,33 @@ Set chart start date to one year ago and end date to today.
 ```python
 def set_chart_last_year(self) -> None:
         self._set_date_range(self.dateEdit_chart_from, self.dateEdit_chart_to, years=1)
+```
+
+</details>
+
+### ⚙️ Method `set_presentation_mode`
+
+```python
+def set_presentation_mode(self, *, enabled: bool) -> None
+```
+
+Switch between the real finance database and a temporary fake one.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_presentation_mode(self, *, enabled: bool) -> None:
+        if enabled == self.presentation_mode:
+            return
+        if self.db_manager is not None:
+            self.db_manager.close()
+            self.db_manager = None
+        self.presentation_mode = enabled
+        self._init_database()
+        apply_presentation_window_title(self, enabled=enabled)
+        sync_presentation_mode_action(self)
+        self.update_all()
 ```
 
 </details>

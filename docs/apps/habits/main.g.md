@@ -33,6 +33,7 @@ lang: en
   - [⚙️ Method `refresh_habits_and_process_habits`](#%EF%B8%8F-method-refresh_habits_and_process_habits)
   - [⚙️ Method `refresh_process_habits_table`](#%EF%B8%8F-method-refresh_process_habits_table)
   - [⚙️ Method `resizeEvent`](#%EF%B8%8F-method-resizeevent)
+  - [⚙️ Method `set_presentation_mode`](#%EF%B8%8F-method-set_presentation_mode)
   - [⚙️ Method `showEvent`](#%EF%B8%8F-method-showevent)
   - [⚙️ Method `show_tables`](#%EF%B8%8F-method-show_tables)
   - [⚙️ Method `update_all`](#%EF%B8%8F-method-update_all)
@@ -87,8 +88,9 @@ class MainWindow(
     about_description = "Track habits and daily progress."
     settings_app_id = "habits"
 
-    def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107  (inherited from Qt widgets)
+    def __init__(self, *, hide_on_close: bool = False, presentation_mode: bool = False) -> None:  # noqa: D107  (inherited from Qt widgets)
         super().__init__()
+        self.presentation_mode = presentation_mode
         self._apply_fluent_window_chrome()
         self.setupUi(self)
         self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
@@ -160,6 +162,8 @@ class MainWindow(
         self._init_habits_year_list()
         self._init_heatmap_year_nav()
         self.update_all()
+        self._install_presentation_mode_ui()
+        self._apply_presentation_ticktick_isolation()
 
         # Set window size and position based on screen resolution
         self._setup_window_size_and_position()
@@ -275,16 +279,23 @@ class MainWindow(
 
         # Get habits (columns), optionally including archived ones
         habits_data = self.db_manager.get_habits(include_archived=self.show_archived_habits)
-        habits = []  # List of (habit_id, habit_name, is_bool) tuples
+        habits = []  # List of (habit_id, habit_name, is_bool, emoji, icon_lucide)
         habit_id_to_index = {}  # Map habit_id to column index
         is_bool_column_index = 2
+        emoji_column_index = 4
+        lucide_column_index = 5
 
         for idx, row in enumerate(habits_data):
             if len(row) >= min_habit_row_columns:
                 habit_id = row[0]
                 habit_name = row[1] or ""
                 is_bool = len(row) > is_bool_column_index and row[is_bool_column_index] == 1
-                habits.append((habit_id, habit_name, is_bool))
+                emoji = normalize_habit_emoji(
+                    str(row[emoji_column_index]) if len(row) > emoji_column_index else "",
+                    habit_id=int(habit_id) if habit_id is not None else None,
+                )
+                lucide = str(row[lucide_column_index]) if len(row) > lucide_column_index else ""
+                habits.append((habit_id, habit_name, is_bool, emoji, lucide))
                 habit_id_to_index[habit_id] = idx
 
         # Apply filters if set (unless ignore_filter is True)
@@ -324,7 +335,7 @@ class MainWindow(
 
         # When archived habits are hidden, also drop rows related to archived habits
         if not self.show_archived_habits:
-            allowed_names = {name for _id, name, _is_bool in habits}
+            allowed_names = {name for _id, name, _is_bool, _emoji, _lucide in habits}
             process_habits_rows = [
                 r for r in process_habits_rows if len(r) >= min_process_habits_name_columns and r[1] in allowed_names
             ]
@@ -344,7 +355,7 @@ class MainWindow(
 
             # Find habit_id by name
             habit_id = None
-            for h_id, h_name, _is_bool in habits:
+            for h_id, h_name, _is_bool, _emoji, _lucide in habits:
                 if h_name == habit_name:
                     habit_id = h_id
                     break
@@ -402,11 +413,18 @@ class MainWindow(
             date_to_color[date_str] = day_band_color(idx)
 
         # Create headers: Date + all habit names
-        headers = ["Date"] + [h_name for _, h_name, _is_bool in habits]
+        headers = ["Date"] + [h_name for _, h_name, _is_bool, _emoji, _lucide in habits]
 
         # Create model
         model = QStandardItemModel()
         model.setHorizontalHeaderLabels(headers)
+        for col_idx, (_habit_id, _habit_name, _is_bool, emoji, lucide) in enumerate(habits, start=1):
+            header_item = model.horizontalHeaderItem(col_idx)
+            if header_item is None:
+                continue
+            icon = habit_display_icon(emoji=emoji, lucide_name=str(lucide or ""))
+            if not icon.isNull():
+                header_item.setIcon(icon)
 
         # Fill model with data
         for row_idx, date_str in enumerate(sorted_dates):
@@ -420,7 +438,7 @@ class MainWindow(
             model.setItem(row_idx, 0, date_item)
 
             # Habit columns
-            for col_idx, (habit_id, _habit_name, is_bool_habit) in enumerate(habits, start=1):
+            for col_idx, (habit_id, _habit_name, is_bool_habit, _emoji, _lucide) in enumerate(habits, start=1):
                 record_id, value = date_data.get(date_str, {}).get(habit_id, (None, None))
 
                 # Create item with value or empty
@@ -453,7 +471,7 @@ class MainWindow(
         self._process_habit_int_delegate = ProcessHabitIntDelegate(self.tableView_process_habits)
         self._process_habits_bool_columns = set()
         self._process_habits_int_columns = set()
-        for col_idx, (_habit_id, _habit_name, is_bool_habit) in enumerate(habits, start=1):
+        for col_idx, (_habit_id, _habit_name, is_bool_habit, _emoji, _lucide) in enumerate(habits, start=1):
             if is_bool_habit:
                 self._process_habits_bool_columns.add(col_idx)
                 self.tableView_process_habits.setItemDelegateForColumn(col_idx, self._process_habit_bool_delegate)
@@ -734,6 +752,21 @@ class MainWindow(
 
         self._update_layout_for_window_size()
 
+    def set_presentation_mode(self, *, enabled: bool) -> None:
+        """Switch between the real habits database and a temporary fake one."""
+        if enabled == self.presentation_mode:
+            return
+        if self.db_manager is not None:
+            self.db_manager.close()
+            self.db_manager = None
+        self.presentation_mode = enabled
+        self._init_database()
+        self._habit_dashboard.set_database(self.db_manager)
+        apply_presentation_window_title(self, enabled=enabled)
+        sync_presentation_mode_action(self)
+        self._apply_presentation_ticktick_isolation()
+        self.update_all()
+
     def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
         """Sync the sport habit from Fitness when the window is shown again."""
         super().showEvent(event)
@@ -898,6 +931,8 @@ class MainWindow(
             self.habits_filter_list_model.clear()
 
             habits_data = self.db_manager.get_habits(include_archived=self.show_archived_habits)
+            emoji_idx = 4
+            lucide_idx = 5
             for row in habits_data:
                 min_habit_filter_columns = 2
                 archived_idx = 3
@@ -921,6 +956,14 @@ class MainWindow(
                     mark_chart_list_separator(item)
                 else:
                     item.setToolTip(str(habit_name))
+                    emoji = normalize_habit_emoji(
+                        str(row[emoji_idx]) if len(row) > emoji_idx else "",
+                        habit_id=int(habit_id) if habit_id is not None else None,
+                    )
+                    lucide = str(row[lucide_idx]) if len(row) > lucide_idx else ""
+                    icon = habit_display_icon(emoji=emoji, lucide_name=lucide)
+                    if not icon.isNull():
+                        item.setIcon(icon)
                 self.habits_filter_list_model.appendRow(item)
 
             # Restore previous selection if it exists, otherwise select first habit
@@ -1037,6 +1080,26 @@ class MainWindow(
         if table_name == "habits":
             self._schedule_habits_refresh(0)
 
+    def _apply_presentation_ticktick_isolation(self) -> None:
+        """Point TickTick UI at the demo DB (or clear it) and gate Sync/Backup."""
+        widget = getattr(self, "_ticktick_stats_widget", None)
+        demo_path: Path | None = None
+        if self.presentation_mode and self.db_manager is not None:
+            demo_path = presentation_ticktick_db_path(Path(self.db_manager._db_filename))  # noqa: SLF001
+            if not demo_path.is_file():
+                demo_path = None
+        if widget is not None:
+            widget._db_path = demo_path  # noqa: SLF001
+            widget._loaded = False  # noqa: SLF001
+            if self.presentation_mode:
+                widget.reload()
+        ticktick_action = getattr(self, "_ticktick_sync_action", None)
+        if isinstance(ticktick_action, QAction):
+            ticktick_action.setEnabled(not self.presentation_mode)
+            ticktick_action.setToolTip(
+                "Disabled in presentation mode" if self.presentation_mode else "",
+            )
+
     def _arm_background_sport_habit_sync(self) -> None:
         """Start or restart the deferred sport-habit sync."""
         if self._is_closing:
@@ -1049,7 +1112,12 @@ class MainWindow(
             message_box.warning(self, "Backup habits", "Database is not initialized")
             return
 
-        hsk_db_path = Path(str(self._app_config.get("sqlite_habits", "")))
+        if self.presentation_mode:
+            hsk_db_path = Path(self.db_manager._db_filename)  # noqa: SLF001
+            ticktick_path = presentation_ticktick_db_path(hsk_db_path)
+        else:
+            hsk_db_path = Path(str(self._app_config.get("sqlite_habits", "")))
+            ticktick_path = None
         start_dir = str(hsk_db_path.parent) if hsk_db_path.parent.is_dir() else ""
         dest = QFileDialog.getExistingDirectory(self, "Backup habits", start_dir)
         if not dest:
@@ -1060,6 +1128,7 @@ class MainWindow(
                 Path(dest),
                 hsk_db_path=hsk_db_path,
                 db_manager=self.db_manager,
+                ticktick_db_path=ticktick_path,
             )
         except OSError as exc:
             message_box.warning(self, "Backup habits", str(exc))
@@ -1175,16 +1244,17 @@ class MainWindow(
         return CHART_MODE_HEATMAP
 
     def _decorate_habits_emoji_column(self, lucide_names: list[str]) -> None:
-        """Paint Lucide decorations on the emoji column when `icon_lucide` is set."""
+        """Store Lucide ids and paint decorations on the emoji column."""
         model = self.tableView_habits.model()
         if model is None:
             return
         for row_index, lucide_name in enumerate(lucide_names):
-            icon = habit_lucide_icon(lucide_name)
-            if icon.isNull():
-                continue
             index = model.index(row_index, 1)
-            if index.isValid():
+            if not index.isValid():
+                continue
+            model.setData(index, lucide_name, HABIT_ICON_LUCIDE_ROLE)
+            icon = habit_lucide_icon(lucide_name)
+            if not icon.isNull():
                 model.setData(index, icon, Qt.ItemDataRole.DecorationRole)
 
     def _display_habit_line_chart(self, figure: Figure) -> None:
@@ -1447,12 +1517,18 @@ class MainWindow(
     def _init_database(self) -> None:
         """Open the SQLite file from app config (create from `recover.sql` if missing)."""
         app_dir = Path(__file__).parent
-        configured = Path(self._app_config["sqlite_habits"])
 
         def _on_db_opened(db_manager: database_manager.DatabaseManager) -> None:
             with contextlib.suppress(Exception):
                 db_manager.ensure_habits_schema()
 
+        if self.presentation_mode:
+            path = create_presentation_database("habits")
+            self.db_manager = database_manager.DatabaseManager(str(path))
+            _on_db_opened(self.db_manager)
+            return
+
+        configured = Path(self._app_config["sqlite_habits"])
         with contextlib.suppress(Exception):
             ensure_habits_indexes(QtSqliteDatabaseManagerBase.resolve_db_path_with_fallback(configured, "habits"))
 
@@ -1495,8 +1571,8 @@ class MainWindow(
 
     def _init_habits_table_delegates(self) -> None:
         """Install delegates for habits table columns."""
-        # Column indexes: 0=Habit, 1=Emoji, 2=Is Boolean, 3=Is Archived
-        emoji_delegate = HabitEmojiDelegate(self.tableView_habits)
+        # Column indexes: 0=Habit, 1=Emoji/Lucide, 2=Is Boolean, 3=Is Archived
+        emoji_delegate = HabitEmojiDelegate(self.tableView_habits, app_config=self._app_config)
         yes_no_delegate = YesNoComboDelegate(self.tableView_habits)
         self.tableView_habits.setItemDelegateForColumn(1, emoji_delegate)
         self.tableView_habits.setItemDelegateForColumn(2, yes_no_delegate)
@@ -1637,6 +1713,16 @@ class MainWindow(
             self._habits_chart_theme_bound = True
         self._sync_habits_chart_toolbar_mode()
         self._sync_heatmap_year_nav_buttons()
+
+    def _install_presentation_mode_ui(self) -> None:
+        """Add Commands → Presentation mode and sync the window title."""
+        apply_presentation_window_title(self, enabled=self.presentation_mode)
+        install_presentation_mode_action(
+            self,
+            getattr(self, "menuCommands", None),
+            get_enabled=lambda: self.presentation_mode,
+            set_enabled=self.set_presentation_mode,
+        )
 
     # Add to MainWindow class (near other small helpers)
 
@@ -2071,6 +2157,7 @@ class MainWindow(
         backup_action.triggered.connect(self._backup_habits)
         ticktick_action = self.menuCommands.addAction("🔄 Sync with TickTick")
         ticktick_action.triggered.connect(self._sync_with_ticktick)
+        self._ticktick_sync_action = ticktick_action
         self._apply_menu_bar_emoji_icons()
         self.tabWidget.currentChanged.connect(self._on_tab_changed)
 
@@ -2380,6 +2467,13 @@ class MainWindow(
 
     def _sync_with_ticktick(self) -> None:
         """Synchronize habits with TickTick (local SQLite read, Open API writes)."""
+        if self.presentation_mode:
+            message_box.information(
+                self,
+                "Sync with TickTick",
+                "TickTick sync is disabled in presentation mode.",
+            )
+            return
         if self.db_manager is None:
             message_box.warning(self, "Sync with TickTick", "Database is not initialized")
             return
@@ -2563,7 +2657,7 @@ class MainWindow(
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, *, hide_on_close: bool = False) -> None
+def __init__(self, *, hide_on_close: bool = False, presentation_mode: bool = False) -> None
 ```
 
 _No docstring provided._
@@ -2572,8 +2666,9 @@ _No docstring provided._
 <summary>Code:</summary>
 
 ```python
-def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107  (inherited from Qt widgets)
+def __init__(self, *, hide_on_close: bool = False, presentation_mode: bool = False) -> None:  # noqa: D107  (inherited from Qt widgets)
         super().__init__()
+        self.presentation_mode = presentation_mode
         self._apply_fluent_window_chrome()
         self.setupUi(self)
         self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
@@ -2645,6 +2740,8 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107  (inhe
         self._init_habits_year_list()
         self._init_heatmap_year_nav()
         self.update_all()
+        self._install_presentation_mode_ui()
+        self._apply_presentation_ticktick_isolation()
 
         # Set window size and position based on screen resolution
         self._setup_window_size_and_position()
@@ -2806,16 +2903,23 @@ def load_process_habits_table(self, *, ignore_filter: bool = False) -> None:
 
         # Get habits (columns), optionally including archived ones
         habits_data = self.db_manager.get_habits(include_archived=self.show_archived_habits)
-        habits = []  # List of (habit_id, habit_name, is_bool) tuples
+        habits = []  # List of (habit_id, habit_name, is_bool, emoji, icon_lucide)
         habit_id_to_index = {}  # Map habit_id to column index
         is_bool_column_index = 2
+        emoji_column_index = 4
+        lucide_column_index = 5
 
         for idx, row in enumerate(habits_data):
             if len(row) >= min_habit_row_columns:
                 habit_id = row[0]
                 habit_name = row[1] or ""
                 is_bool = len(row) > is_bool_column_index and row[is_bool_column_index] == 1
-                habits.append((habit_id, habit_name, is_bool))
+                emoji = normalize_habit_emoji(
+                    str(row[emoji_column_index]) if len(row) > emoji_column_index else "",
+                    habit_id=int(habit_id) if habit_id is not None else None,
+                )
+                lucide = str(row[lucide_column_index]) if len(row) > lucide_column_index else ""
+                habits.append((habit_id, habit_name, is_bool, emoji, lucide))
                 habit_id_to_index[habit_id] = idx
 
         # Apply filters if set (unless ignore_filter is True)
@@ -2855,7 +2959,7 @@ def load_process_habits_table(self, *, ignore_filter: bool = False) -> None:
 
         # When archived habits are hidden, also drop rows related to archived habits
         if not self.show_archived_habits:
-            allowed_names = {name for _id, name, _is_bool in habits}
+            allowed_names = {name for _id, name, _is_bool, _emoji, _lucide in habits}
             process_habits_rows = [
                 r for r in process_habits_rows if len(r) >= min_process_habits_name_columns and r[1] in allowed_names
             ]
@@ -2875,7 +2979,7 @@ def load_process_habits_table(self, *, ignore_filter: bool = False) -> None:
 
             # Find habit_id by name
             habit_id = None
-            for h_id, h_name, _is_bool in habits:
+            for h_id, h_name, _is_bool, _emoji, _lucide in habits:
                 if h_name == habit_name:
                     habit_id = h_id
                     break
@@ -2933,11 +3037,18 @@ def load_process_habits_table(self, *, ignore_filter: bool = False) -> None:
             date_to_color[date_str] = day_band_color(idx)
 
         # Create headers: Date + all habit names
-        headers = ["Date"] + [h_name for _, h_name, _is_bool in habits]
+        headers = ["Date"] + [h_name for _, h_name, _is_bool, _emoji, _lucide in habits]
 
         # Create model
         model = QStandardItemModel()
         model.setHorizontalHeaderLabels(headers)
+        for col_idx, (_habit_id, _habit_name, _is_bool, emoji, lucide) in enumerate(habits, start=1):
+            header_item = model.horizontalHeaderItem(col_idx)
+            if header_item is None:
+                continue
+            icon = habit_display_icon(emoji=emoji, lucide_name=str(lucide or ""))
+            if not icon.isNull():
+                header_item.setIcon(icon)
 
         # Fill model with data
         for row_idx, date_str in enumerate(sorted_dates):
@@ -2951,7 +3062,7 @@ def load_process_habits_table(self, *, ignore_filter: bool = False) -> None:
             model.setItem(row_idx, 0, date_item)
 
             # Habit columns
-            for col_idx, (habit_id, _habit_name, is_bool_habit) in enumerate(habits, start=1):
+            for col_idx, (habit_id, _habit_name, is_bool_habit, _emoji, _lucide) in enumerate(habits, start=1):
                 record_id, value = date_data.get(date_str, {}).get(habit_id, (None, None))
 
                 # Create item with value or empty
@@ -2984,7 +3095,7 @@ def load_process_habits_table(self, *, ignore_filter: bool = False) -> None:
         self._process_habit_int_delegate = ProcessHabitIntDelegate(self.tableView_process_habits)
         self._process_habits_bool_columns = set()
         self._process_habits_int_columns = set()
-        for col_idx, (_habit_id, _habit_name, is_bool_habit) in enumerate(habits, start=1):
+        for col_idx, (_habit_id, _habit_name, is_bool_habit, _emoji, _lucide) in enumerate(habits, start=1):
             if is_bool_habit:
                 self._process_habits_bool_columns.add(col_idx)
                 self.tableView_process_habits.setItemDelegateForColumn(col_idx, self._process_habit_bool_delegate)
@@ -3471,6 +3582,35 @@ def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
 
 </details>
 
+### ⚙️ Method `set_presentation_mode`
+
+```python
+def set_presentation_mode(self, *, enabled: bool) -> None
+```
+
+Switch between the real habits database and a temporary fake one.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_presentation_mode(self, *, enabled: bool) -> None:
+        if enabled == self.presentation_mode:
+            return
+        if self.db_manager is not None:
+            self.db_manager.close()
+            self.db_manager = None
+        self.presentation_mode = enabled
+        self._init_database()
+        self._habit_dashboard.set_database(self.db_manager)
+        apply_presentation_window_title(self, enabled=enabled)
+        sync_presentation_mode_action(self)
+        self._apply_presentation_ticktick_isolation()
+        self.update_all()
+```
+
+</details>
+
 ### ⚙️ Method `showEvent`
 
 ```python
@@ -3692,6 +3832,8 @@ def update_habits_filter_combobox(self) -> None:
             self.habits_filter_list_model.clear()
 
             habits_data = self.db_manager.get_habits(include_archived=self.show_archived_habits)
+            emoji_idx = 4
+            lucide_idx = 5
             for row in habits_data:
                 min_habit_filter_columns = 2
                 archived_idx = 3
@@ -3715,6 +3857,14 @@ def update_habits_filter_combobox(self) -> None:
                     mark_chart_list_separator(item)
                 else:
                     item.setToolTip(str(habit_name))
+                    emoji = normalize_habit_emoji(
+                        str(row[emoji_idx]) if len(row) > emoji_idx else "",
+                        habit_id=int(habit_id) if habit_id is not None else None,
+                    )
+                    lucide = str(row[lucide_idx]) if len(row) > lucide_idx else ""
+                    icon = habit_display_icon(emoji=emoji, lucide_name=lucide)
+                    if not icon.isNull():
+                        item.setIcon(icon)
                 self.habits_filter_list_model.appendRow(item)
 
             # Restore previous selection if it exists, otherwise select first habit

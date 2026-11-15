@@ -160,6 +160,13 @@ class TickTickTaskStatsWidget(QWidget):
         self._db_button.setFlat(True)
         self._db_button.setCursor(Qt.CursorShape.PointingHandCursor)
         left_layout.addWidget(self._db_button)
+        self._backup_button = QPushButton("Backup TickTick")
+        self._backup_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._backup_button.setStyleSheet(button_idle_qss())
+        apply_lucide_button_icon(self._backup_button, "download")
+        self._backup_button.setToolTip("Save a copy of the TickTick database and habits JSON")
+        self._backup_button.clicked.connect(self._backup_ticktick_data)
+        left_layout.addWidget(self._backup_button)
 
         workspace = QWidget()
         workspace_layout = QVBoxLayout(workspace)
@@ -242,6 +249,21 @@ class TickTickTaskStatsWidget(QWidget):
     def _apply_day_width_limits(self) -> None:
         self._day_panel.setMinimumWidth(_DAY_MIN)
         self._day_panel.setMaximumWidth(_DAY_MAX)
+
+    def _backup_ticktick_data(self) -> None:
+        """Ask for a folder and write a TickTick-only backup there."""
+        source = Path(self._db_path) if self._db_path is not None else default_ticktick_db_path()
+        source = source.expanduser()
+        start_dir = str(source.parent) if source.parent.is_dir() else ""
+        dest = QFileDialog.getExistingDirectory(self, "Backup TickTick", start_dir)
+        if not dest:
+            return
+        try:
+            folder = write_ticktick_backup(Path(dest), ticktick_db_path=source)
+        except (FileNotFoundError, OSError, ValueError, sqlite3.Error) as exc:
+            message_box.warning(self, "Backup TickTick", str(exc))
+            return
+        message_box.information(self, "Backup TickTick", f"Saved to:\n{folder}")
 
     def _chart_mode(self) -> ChartMode:
         for key, radio in self._chart_radios.items():
@@ -901,6 +923,13 @@ def __init__(
         self._db_button.setFlat(True)
         self._db_button.setCursor(Qt.CursorShape.PointingHandCursor)
         left_layout.addWidget(self._db_button)
+        self._backup_button = QPushButton("Backup TickTick")
+        self._backup_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._backup_button.setStyleSheet(button_idle_qss())
+        apply_lucide_button_icon(self._backup_button, "download")
+        self._backup_button.setToolTip("Save a copy of the TickTick database and habits JSON")
+        self._backup_button.clicked.connect(self._backup_ticktick_data)
+        left_layout.addWidget(self._backup_button)
 
         workspace = QWidget()
         workspace_layout = QVBoxLayout(workspace)

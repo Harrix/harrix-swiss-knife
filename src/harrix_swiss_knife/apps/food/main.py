@@ -116,6 +116,12 @@ from harrix_swiss_knife.apps.common.delegates.name_local_list_delegate import (
     NameLocalListDelegate,
 )
 from harrix_swiss_knife.apps.common.dialogs.simple_recording_dialog import SimpleRecordingDialog
+from harrix_swiss_knife.apps.common.presentation_mode import (
+    apply_presentation_window_title,
+    create_presentation_database,
+    install_presentation_mode_action,
+    sync_presentation_mode_action,
+)
 from harrix_swiss_knife.apps.common.qt_database_manager_base import QtSqliteDatabaseManagerBase
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
 from harrix_swiss_knife.apps.common.scroll_pagination import ScrollPagination, on_scroll_load_more
@@ -392,8 +398,9 @@ class MainWindow(
     settings_app_id = "food"
     defer_initial_show = True
 
-    def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
+    def __init__(self, *, hide_on_close: bool = False, presentation_mode: bool = False) -> None:  # noqa: D107
         super().__init__()
+        self.presentation_mode = presentation_mode
         self._apply_fluent_window_chrome()
         self.setupUi(self)
         self._macros_analysis_queue: list[str] = []
@@ -500,6 +507,7 @@ class MainWindow(
 
         # Initialize food stats date range with earliest date from database
         self._init_food_stats_dates()
+        self._install_presentation_mode_ui()
 
         # Show once after this constructor returns, with columns already sized.
         QTimer.singleShot(0, self._finish_window_initialization)
@@ -1334,6 +1342,20 @@ class MainWindow(
 
         # Adjust food log table column widths based on window size
         self._adjust_food_log_table_columns()
+
+    def set_presentation_mode(self, *, enabled: bool) -> None:
+        """Switch between the real food database and a temporary fake one."""
+        if enabled == self.presentation_mode:
+            return
+        if self.db_manager is not None:
+            self.db_manager.close()
+            self.db_manager = None
+        self.presentation_mode = enabled
+        self._init_database()
+        apply_presentation_window_title(self, enabled=enabled)
+        sync_presentation_mode_action(self)
+        self.update_food_data()
+        self._init_food_stats_dates()
 
     def set_today_date(self) -> None:
         """Set today's date in the food date edit field."""
@@ -2889,6 +2911,11 @@ class MainWindow(
     def _init_database(self) -> None:
         """Open the SQLite file from app config (create from `recover.sql` if missing)."""
         app_dir = Path(__file__).parent
+        if self.presentation_mode:
+            path = create_presentation_database("food")
+            self.db_manager = database_manager.DatabaseManager(str(path))
+            return
+
         configured = Path(self._app_config["sqlite_food"])
         db_path = QtSqliteDatabaseManagerBase.resolve_db_path_with_fallback(configured, "food")
         if db_path.exists():
@@ -3100,6 +3127,16 @@ class MainWindow(
         self._food_chart_toolbar = toolbar
         self.frame_food_stats_controls = frame
         self._sync_food_chart_toolbar_mode()
+
+    def _install_presentation_mode_ui(self) -> None:
+        """Add Commands → Presentation mode and sync the window title."""
+        apply_presentation_window_title(self, enabled=self.presentation_mode)
+        install_presentation_mode_action(
+            self,
+            getattr(self, "menuCommands", None),
+            get_enabled=lambda: self.presentation_mode,
+            set_enabled=self.set_presentation_mode,
+        )
 
     def _kcal_per_day_displayed_days(self) -> list[str]:
         """Return every date currently shown in the daily calories & macros table."""

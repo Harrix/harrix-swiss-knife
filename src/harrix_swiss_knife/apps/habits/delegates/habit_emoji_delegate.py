@@ -89,7 +89,7 @@ class HabitEmojiDelegate(QStyledItemDelegate):
 
 
 def _habit_id_from_index(model: QAbstractItemModel, index: QModelIndex | QPersistentModelIndex) -> int | None:
-    """Return the habits table vertical-header id for `index`, if present."""
+    """Return the habits table vertical-header ID for `index`, if present."""
     source: QAbstractItemModel | None = model
     source_index: QModelIndex | QPersistentModelIndex = index
     while isinstance(source, QAbstractProxyModel):

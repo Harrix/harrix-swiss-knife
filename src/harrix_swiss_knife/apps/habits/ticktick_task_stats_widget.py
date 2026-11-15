@@ -59,8 +59,6 @@ from harrix_swiss_knife.apps.habits.ticktick_local_db import (
     TickTickProject,
     load_ticktick_snapshot,
 )
-from harrix_swiss_knife.qt_lucide_icon import apply_lucide_button_icon
-
 from harrix_swiss_knife.apps.habits.ticktick_task_stats import (
     ALL_YEARS_LABEL,
     CHART_MODE_BY_MONTH,
@@ -86,6 +84,7 @@ from harrix_swiss_knife.apps.habits.ticktick_task_stats import (
     task_timeline_bars,
 )
 from harrix_swiss_knife.fluent.theme import FluentTheme, bind_theme, css, mix
+from harrix_swiss_knife.qt_lucide_icon import apply_lucide_button_icon
 
 if TYPE_CHECKING:
     from matplotlib.backend_bases import MouseEvent
@@ -286,21 +285,6 @@ class TickTickTaskStatsWidget(QWidget):
         if not self._loaded:
             self.reload()
 
-    def _backup_ticktick_data(self) -> None:
-        """Ask for a folder and write a TickTick-only backup there."""
-        source = Path(self._db_path) if self._db_path is not None else default_ticktick_db_path()
-        source = source.expanduser()
-        start_dir = str(source.parent) if source.parent.is_dir() else ""
-        dest = QFileDialog.getExistingDirectory(self, "Backup TickTick", start_dir)
-        if not dest:
-            return
-        try:
-            folder = write_ticktick_backup(Path(dest), ticktick_db_path=source)
-        except (FileNotFoundError, OSError, ValueError, sqlite3.Error) as exc:
-            message_box.warning(self, "Backup TickTick", str(exc))
-            return
-        message_box.information(self, "Backup TickTick", f"Saved to:\n{folder}")
-
     def reload(self) -> None:
         """Read the TickTick database again and redraw the current chart."""
         self._loaded = True
@@ -335,6 +319,21 @@ class TickTickTaskStatsWidget(QWidget):
     def _apply_day_width_limits(self) -> None:
         self._day_panel.setMinimumWidth(_DAY_MIN)
         self._day_panel.setMaximumWidth(_DAY_MAX)
+
+    def _backup_ticktick_data(self) -> None:
+        """Ask for a folder and write a TickTick-only backup there."""
+        source = Path(self._db_path) if self._db_path is not None else default_ticktick_db_path()
+        source = source.expanduser()
+        start_dir = str(source.parent) if source.parent.is_dir() else ""
+        dest = QFileDialog.getExistingDirectory(self, "Backup TickTick", start_dir)
+        if not dest:
+            return
+        try:
+            folder = write_ticktick_backup(Path(dest), ticktick_db_path=source)
+        except (FileNotFoundError, OSError, ValueError, sqlite3.Error) as exc:
+            message_box.warning(self, "Backup TickTick", str(exc))
+            return
+        message_box.information(self, "Backup TickTick", f"Saved to:\n{folder}")
 
     def _chart_mode(self) -> ChartMode:
         for key, radio in self._chart_radios.items():

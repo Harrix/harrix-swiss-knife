@@ -115,6 +115,12 @@ from harrix_swiss_knife.apps.common.day_bands import (
 )
 from harrix_swiss_knife.apps.common.db_init import init_tracker_database
 from harrix_swiss_knife.apps.common.delegates import LucideCheckableItemDelegate
+from harrix_swiss_knife.apps.common.presentation_mode import (
+    apply_presentation_window_title,
+    create_presentation_database,
+    install_presentation_mode_action,
+    sync_presentation_mode_action,
+)
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
 from harrix_swiss_knife.apps.common.scroll_pagination import ScrollPagination, on_scroll_load_more
 from harrix_swiss_knife.apps.common.table_context_menu import (
@@ -359,12 +365,13 @@ class MainWindow(
     _TRANSACTION_AMOUNT_COLUMN: int = 2
     _TRANSLATION_FAILURE_PREVIEW_LIMIT: int = 8
 
-    def __init__(self, *, hide_on_close: bool = False) -> None:
+    def __init__(self, *, hide_on_close: bool = False, presentation_mode: bool = False) -> None:
         """Initialize main window for finance tracking application."""
         super().__init__()
         self._apply_fluent_window_chrome()
         self.setupUi(self)
         self._is_closing = False
+        self.presentation_mode = presentation_mode
         self.db_manager: database_manager.DatabaseManager | None = None
         self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
         self._auto_save_handlers: dict[str, Any] = {}
@@ -529,6 +536,7 @@ class MainWindow(
         self._init_chart_controls()
         self._setup_autocomplete()
         self._initial_load()
+        self._install_presentation_mode_ui()
 
         # Set window size and position
         self._setup_window_size_and_position()
@@ -1403,6 +1411,19 @@ class MainWindow(
     def set_chart_last_year(self) -> None:
         """Set chart start date to one year ago and end date to today."""
         self._set_date_range(self.dateEdit_chart_from, self.dateEdit_chart_to, years=1)
+
+    def set_presentation_mode(self, *, enabled: bool) -> None:
+        """Switch between the real finance database and a temporary fake one."""
+        if enabled == self.presentation_mode:
+            return
+        if self.db_manager is not None:
+            self.db_manager.close()
+            self.db_manager = None
+        self.presentation_mode = enabled
+        self._init_database()
+        apply_presentation_window_title(self, enabled=enabled)
+        sync_presentation_mode_action(self)
+        self.update_all()
 
     def set_today_date(self) -> None:
         """Set today's date in all date fields."""
@@ -3310,6 +3331,10 @@ class MainWindow(
 
     def _init_database(self) -> None:
         """Open the SQLite file from app config (create from `recover.sql` if missing)."""
+        if self.presentation_mode:
+            path = create_presentation_database("finance")
+            self.db_manager = database_manager.DatabaseManager(str(path))
+            return
         self.db_manager = init_tracker_database(
             self,
             Path(self._app_config["sqlite_finance"]),
@@ -3375,6 +3400,16 @@ class MainWindow(
         )
         self._chart_toolbar = toolbar
         self._sync_finance_chart_toolbar_mode()
+
+    def _install_presentation_mode_ui(self) -> None:
+        """Add Commands → Presentation mode and sync the window title."""
+        apply_presentation_window_title(self, enabled=self.presentation_mode)
+        install_presentation_mode_action(
+            self,
+            getattr(self, "menuCommands", None),
+            get_enabled=lambda: self.presentation_mode,
+            set_enabled=self.set_presentation_mode,
+        )
 
     def _install_tag_entry_picker(self) -> None:
         """Add a trailing tags action and live suggestions on the entry Tags field."""
