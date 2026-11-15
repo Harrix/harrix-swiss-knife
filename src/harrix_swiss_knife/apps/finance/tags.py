@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from harrix_swiss_knife.keyboard_layout_search import text_matches_autocomplete
+
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
@@ -33,7 +35,10 @@ def matching_known_tags(
     *,
     exclude: Sequence[str] = (),
 ) -> list[str]:
-    """Return known tags that contain `query` (case-insensitive), keeping DB order.
+    """Return known tags that match `query`, including EN/RU layout mistakes.
+
+    Matching is case-insensitive and tolerates typing on the wrong keyboard
+    layout (same as description autocomplete). Order follows `known_tags`.
 
     Args:
 
@@ -46,7 +51,7 @@ def matching_known_tags(
     - `list[str]`: Matching names. Empty when `query` is blank.
 
     """
-    needle = " ".join(query.split()).casefold()
+    needle = " ".join(query.split())
     if not needle:
         return []
     excluded = {name.casefold() for name in exclude if name.strip()}
@@ -56,7 +61,7 @@ def matching_known_tags(
         key = name.casefold()
         if key in excluded or key in seen:
             continue
-        if needle not in key:
+        if not text_matches_autocomplete(name, needle):
             continue
         seen.add(key)
         matches.append(name)

@@ -64,6 +64,15 @@ def test_tag_fragment_and_matching_known_tags() -> None:
     assert TAG_SUGGEST_MIN_CHARS == 2
 
 
+def test_matching_known_tags_tolerates_wrong_keyboard_layout() -> None:
+    """EN keys can match Russian tags and RU keys can match English tags."""
+    known = ["путешествие", "транспорт", "trip", "gift"]
+    assert matching_known_tags(known, "gent") == ["путешествие"]
+    assert matching_known_tags(known, "nhf") == ["транспорт"]
+    assert matching_known_tags(known, "екш") == ["trip"]
+    assert matching_known_tags(known, "nhf", exclude=["транспорт"]) == []
+
+
 def test_tag_suggest_popup_lists_matches(qapp: QApplication) -> None:
     """Typing enough characters opens the Fluent checklist of matching tags."""
     assert qapp is not None
