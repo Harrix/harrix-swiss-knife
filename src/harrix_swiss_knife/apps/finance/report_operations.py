@@ -557,6 +557,13 @@ class ReportOperations:
         expense_categories: list[tuple[int, str, str, str]],
     ) -> None:
         """Attach Lucide category icons to Monthly/Yearly Summary column headers."""
+        left = Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+        for col in range(model.columnCount()):
+            header_item = model.horizontalHeaderItem(col)
+            if header_item is not None:
+                # Keep titles left even when the label is amount-like ("Total").
+                header_item.setTextAlignment(left)
+
         combined = model.horizontalHeaderItem(2)
         if combined is not None:
             combined.setIcon(category_lucide_icon("🍔", lucide_name="utensils"))
