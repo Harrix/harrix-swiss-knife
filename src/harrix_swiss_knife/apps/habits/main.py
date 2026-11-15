@@ -109,7 +109,8 @@ from harrix_swiss_knife.apps.habits.delegates import (
     YesNoComboDelegate,
 )
 from harrix_swiss_knife.apps.habits.habit_emoji_picker_dialog import HabitEmojiPickerDialog
-from harrix_swiss_knife.apps.habits.habit_icon_display import habit_lucide_icon
+from harrix_swiss_knife.apps.habits.habit_emojis import normalize_habit_emoji
+from harrix_swiss_knife.apps.habits.habit_icon_display import habit_display_icon, habit_lucide_icon
 from harrix_swiss_knife.apps.habits.habit_process_charts import (
     CHART_MODE_BY_MONTH,
     CHART_MODE_COMPARE_LAST,
@@ -409,16 +410,23 @@ class MainWindow(
 
         # Get habits (columns), optionally including archived ones
         habits_data = self.db_manager.get_habits(include_archived=self.show_archived_habits)
-        habits = []  # List of (habit_id, habit_name, is_bool) tuples
+        habits = []  # List of (habit_id, habit_name, is_bool, emoji, icon_lucide)
         habit_id_to_index = {}  # Map habit_id to column index
         is_bool_column_index = 2
+        emoji_column_index = 4
+        lucide_column_index = 5
 
         for idx, row in enumerate(habits_data):
             if len(row) >= min_habit_row_columns:
                 habit_id = row[0]
                 habit_name = row[1] or ""
                 is_bool = len(row) > is_bool_column_index and row[is_bool_column_index] == 1
-                habits.append((habit_id, habit_name, is_bool))
+                emoji = normalize_habit_emoji(
+                    str(row[emoji_column_index]) if len(row) > emoji_column_index else "",
+                    habit_id=int(habit_id) if habit_id is not None else None,
+                )
+                lucide = str(row[lucide_column_index]) if len(row) > lucide_column_index else ""
+                habits.append((habit_id, habit_name, is_bool, emoji, lucide))
                 habit_id_to_index[habit_id] = idx
 
         # Apply filters if set (unless ignore_filter is True)
@@ -458,7 +466,7 @@ class MainWindow(
 
         # When archived habits are hidden, also drop rows related to archived habits
         if not self.show_archived_habits:
-            allowed_names = {name for _id, name, _is_bool in habits}
+            allowed_names = {name for _id, name, _is_bool, _emoji, _lucide in habits}
             process_habits_rows = [
                 r for r in process_habits_rows if len(r) >= min_process_habits_name_columns and r[1] in allowed_names
             ]
@@ -478,7 +486,7 @@ class MainWindow(
 
             # Find habit_id by name
             habit_id = None
-            for h_id, h_name, _is_bool in habits:
+            for h_id, h_name, _is_bool, _emoji, _lucide in habits:
                 if h_name == habit_name:
                     habit_id = h_id
                     break
@@ -536,11 +544,18 @@ class MainWindow(
             date_to_color[date_str] = day_band_color(idx)
 
         # Create headers: Date + all habit names
-        headers = ["Date"] + [h_name for _, h_name, _is_bool in habits]
+        headers = ["Date"] + [h_name for _, h_name, _is_bool, _emoji, _lucide in habits]
 
         # Create model
         model = QStandardItemModel()
         model.setHorizontalHeaderLabels(headers)
+        for col_idx, (_habit_id, _habit_name, _is_bool, emoji, lucide) in enumerate(habits, start=1):
+            header_item = model.horizontalHeaderItem(col_idx)
+            if header_item is None:
+                continue
+            icon = habit_display_icon(emoji=emoji, lucide_name=str(lucide or ""))
+            if not icon.isNull():
+                header_item.setIcon(icon)
 
         # Fill model with data
         for row_idx, date_str in enumerate(sorted_dates):
@@ -554,7 +569,7 @@ class MainWindow(
             model.setItem(row_idx, 0, date_item)
 
             # Habit columns
-            for col_idx, (habit_id, _habit_name, is_bool_habit) in enumerate(habits, start=1):
+            for col_idx, (habit_id, _habit_name, is_bool_habit, _emoji, _lucide) in enumerate(habits, start=1):
                 record_id, value = date_data.get(date_str, {}).get(habit_id, (None, None))
 
                 # Create item with value or empty
@@ -587,7 +602,7 @@ class MainWindow(
         self._process_habit_int_delegate = ProcessHabitIntDelegate(self.tableView_process_habits)
         self._process_habits_bool_columns = set()
         self._process_habits_int_columns = set()
-        for col_idx, (_habit_id, _habit_name, is_bool_habit) in enumerate(habits, start=1):
+        for col_idx, (_habit_id, _habit_name, is_bool_habit, _emoji, _lucide) in enumerate(habits, start=1):
             if is_bool_habit:
                 self._process_habits_bool_columns.add(col_idx)
                 self.tableView_process_habits.setItemDelegateForColumn(col_idx, self._process_habit_bool_delegate)

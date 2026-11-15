@@ -8,6 +8,7 @@ from PySide6.QtWidgets import QApplication
 from harrix_swiss_knife.apps.habits.habit_icon_display import (
     HABIT_EMOJI_TO_LUCIDE,
     HABIT_LUCIDE_COLORS,
+    habit_display_icon,
     habit_lucide_color,
     habit_lucide_icon,
     lucide_name_for_habit_emoji,
@@ -69,3 +70,11 @@ def test_habit_lucide_icon_paints_known_id(qapp: QApplication) -> None:  # noqa:
     icon = habit_lucide_icon("footprints")
     assert not icon.isNull()
     assert habit_lucide_icon("").isNull()
+
+
+def test_habit_display_icon_prefers_lucide_then_emoji(qapp: QApplication) -> None:  # noqa: ARG001
+    lucide = habit_display_icon(emoji="🚶", lucide_name="footprints")
+    assert not lucide.isNull()
+    emoji_only = habit_display_icon(emoji="🚶", lucide_name="")
+    assert not emoji_only.isNull()
+    assert habit_display_icon(emoji="", lucide_name="").isNull()

@@ -14,6 +14,7 @@ import hashlib
 from PySide6.QtGui import QIcon
 
 from harrix_swiss_knife.fluent.tokens import ICON_SIZE
+from harrix_swiss_knife.qt_emoji_icon import create_emoji_icon
 from harrix_swiss_knife.qt_lucide_icon import (
     LUCIDE_COLOR_BLUE,
     LUCIDE_COLOR_GREEN,
@@ -214,6 +215,17 @@ def habit_lucide_icon(lucide_name: str = "", size: int = _HABIT_ICON_SIZE) -> QI
     if not name or lucide_svg_path(name) is None:
         return QIcon()
     return create_lucide_icon(name, size, color=habit_lucide_color(name))
+
+
+def habit_display_icon(*, emoji: str = "", lucide_name: str = "", size: int = _HABIT_ICON_SIZE) -> QIcon:
+    """Return Lucide icon when set, otherwise an emoji glyph icon."""
+    lucide = resolve_habit_display_lucide(lucide_name=lucide_name)
+    if lucide:
+        return habit_lucide_icon(lucide, size)
+    cleaned = emoji.strip()
+    if cleaned:
+        return create_emoji_icon(cleaned, size)
+    return QIcon()
 
 
 def lucide_name_for_habit_emoji(emoji: str) -> str | None:
