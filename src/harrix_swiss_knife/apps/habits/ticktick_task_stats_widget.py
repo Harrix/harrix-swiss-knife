@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import calendar
+import sqlite3
 from datetime import date, datetime
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QItemSelectionModel, Qt, QTimer
@@ -11,6 +13,7 @@ from PySide6.QtGui import QFont, QResizeEvent, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QDialog,
+    QFileDialog,
     QFrame,
     QGroupBox,
     QHBoxLayout,
@@ -25,6 +28,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.calendar_heatmap import heatmap_year_bands
 from harrix_swiss_knife.apps.common.chart_format import fmt_date, fmt_number
 from harrix_swiss_knife.apps.common.chart_hover import create_chart_canvas, install_chart_hover
@@ -45,14 +49,18 @@ from harrix_swiss_knife.apps.common.chart_theme import (
 )
 from harrix_swiss_knife.apps.common.chart_timeline import TimelineBar, bar_at_x, build_timeline_figure, calendar_days
 from harrix_swiss_knife.apps.common.chart_widgets import CHARTS_FILTER_MIN_WIDTH, apply_chart_list_chrome
-from harrix_swiss_knife.apps.common.ui_chrome import muted_caption_qss
+from harrix_swiss_knife.apps.common.ui_chrome import button_idle_qss, muted_caption_qss
 from harrix_swiss_knife.apps.common.year_heatmap import YearHeatmap, YearHeatmapStack
+from harrix_swiss_knife.apps.habits.habits_backup import write_ticktick_backup
+from harrix_swiss_knife.apps.habits.ticktick_habits import default_ticktick_db_path
 from harrix_swiss_knife.apps.habits.ticktick_local_db import (
     TickTickCompletion,
     TickTickDbError,
     TickTickProject,
     load_ticktick_snapshot,
 )
+from harrix_swiss_knife.qt_lucide_icon import apply_lucide_button_icon
+
 from harrix_swiss_knife.apps.habits.ticktick_task_stats import (
     ALL_YEARS_LABEL,
     CHART_MODE_BY_MONTH,
@@ -80,8 +88,6 @@ from harrix_swiss_knife.apps.habits.ticktick_task_stats import (
 from harrix_swiss_knife.fluent.theme import FluentTheme, bind_theme, css, mix
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from matplotlib.backend_bases import MouseEvent
     from matplotlib.figure import Figure
 
@@ -225,6 +231,13 @@ class TickTickTaskStatsWidget(QWidget):
         self._db_button.setFlat(True)
         self._db_button.setCursor(Qt.CursorShape.PointingHandCursor)
         left_layout.addWidget(self._db_button)
+        self._backup_button = QPushButton("Backup TickTick")
+        self._backup_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._backup_button.setStyleSheet(button_idle_qss())
+        apply_lucide_button_icon(self._backup_button, "download")
+        self._backup_button.setToolTip("Save a copy of the TickTick database and habits JSON")
+        self._backup_button.clicked.connect(self._backup_ticktick_data)
+        left_layout.addWidget(self._backup_button)
 
         workspace = QWidget()
         workspace_layout = QVBoxLayout(workspace)
@@ -272,6 +285,21 @@ class TickTickTaskStatsWidget(QWidget):
         """Load TickTick data once when the tab is first shown."""
         if not self._loaded:
             self.reload()
+
+    def _backup_ticktick_data(self) -> None:
+        """Ask for a folder and write a TickTick-only backup there."""
+        source = Path(self._db_path) if self._db_path is not None else default_ticktick_db_path()
+        source = source.expanduser()
+        start_dir = str(source.parent) if source.parent.is_dir() else ""
+        dest = QFileDialog.getExistingDirectory(self, "Backup TickTick", start_dir)
+        if not dest:
+            return
+        try:
+            folder = write_ticktick_backup(Path(dest), ticktick_db_path=source)
+        except (FileNotFoundError, OSError, ValueError, sqlite3.Error) as exc:
+            message_box.warning(self, "Backup TickTick", str(exc))
+            return
+        message_box.information(self, "Backup TickTick", f"Saved to:\n{folder}")
 
     def reload(self) -> None:
         """Read the TickTick database again and redraw the current chart."""

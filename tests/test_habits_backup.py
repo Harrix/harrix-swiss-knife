@@ -12,7 +12,11 @@ import pytest
 from PySide6.QtWidgets import QApplication
 
 from harrix_swiss_knife.apps.habits.database_manager import DatabaseManager
-from harrix_swiss_knife.apps.habits.habits_backup import export_hsk_habits_json, write_habits_backup
+from harrix_swiss_knife.apps.habits.habits_backup import (
+    export_hsk_habits_json,
+    write_habits_backup,
+    write_ticktick_backup,
+)
 
 RECOVER_SQL = Path(__file__).resolve().parents[1] / "src/harrix_swiss_knife/apps/habits/recover.sql"
 
@@ -158,3 +162,23 @@ def test_write_habits_backup_records_ticktick_error(habits_db: DatabaseManager, 
     manifest = json.loads((folder / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["ticktick_habit_count"] is None
     assert manifest["ticktick_error"] == error
+
+
+def test_write_ticktick_backup_writes_db_and_json(tmp_path: Path) -> None:
+    """TickTick-only backup copies the SQLite file and habits JSON."""
+    ticktick_db = tmp_path / "TickTick.db"
+    _create_ticktick_db(ticktick_db)
+    created = datetime(2026, 8, 21, 23, 56, tzinfo=UTC)
+    folder = write_ticktick_backup(tmp_path, ticktick_db_path=ticktick_db, created_at=created)
+    assert folder.name == "ticktick-backup-2026-08-21_235600"
+    assert (folder / "TickTick.db").is_file()
+    payload = json.loads((folder / "ticktick-habits.json").read_text(encoding="utf-8"))
+    manifest = json.loads((folder / "manifest.json").read_text(encoding="utf-8"))
+    assert payload["habit_count"] == 2
+    assert manifest["ticktick_habit_count"] == 2
+    assert manifest["ticktick_database"] == str(ticktick_db.resolve())
+
+
+def test_write_ticktick_backup_missing_db(tmp_path: Path) -> None:
+    with pytest.raises(FileNotFoundError, match="TickTick database not found"):
+        write_ticktick_backup(tmp_path, ticktick_db_path=tmp_path / "missing.db")

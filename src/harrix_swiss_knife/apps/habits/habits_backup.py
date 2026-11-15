@@ -9,7 +9,10 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from harrix_swiss_knife.apps.habits.ticktick_habits import export_ticktick_habits_json
+from harrix_swiss_knife.apps.habits.ticktick_habits import (
+    default_ticktick_db_path,
+    export_ticktick_habits_json,
+)
 
 if TYPE_CHECKING:
     from harrix_swiss_knife.apps.habits.database_manager import DatabaseManager
@@ -120,6 +123,56 @@ def write_habits_backup(
         },
     )
     return folder, ticktick_error
+
+
+def write_ticktick_backup(
+    dest_parent: Path,
+    *,
+    ticktick_db_path: Path | None = None,
+    created_at: datetime | None = None,
+) -> Path:
+    """Write a dated folder with TickTick SQLite snapshot and habits JSON.
+
+    Args:
+
+    - `dest_parent` (`Path`): Folder that will contain the new backup directory.
+    - `ticktick_db_path` (`Path | None`): TickTick SQLite file. Defaults to the desktop path.
+    - `created_at` (`datetime | None`): Backup timestamp. Defaults to now.
+
+    Returns:
+
+    - `Path`: Created backup folder.
+
+    Raises:
+
+    - `FileNotFoundError`: When the TickTick database file is missing.
+    - `OSError`: When the destination folder cannot be created or written.
+    - `ValueError`: When habit tables are missing or unreadable.
+    - `sqlite3.Error`: When the TickTick database cannot be read.
+
+    """
+    created = created_at or datetime.now(UTC).astimezone()
+    folder = dest_parent / f"ticktick-backup-{created.strftime('%Y-%m-%d_%H%M%S')}"
+    folder.mkdir(parents=True, exist_ok=False)
+
+    source = Path(ticktick_db_path) if ticktick_db_path is not None else default_ticktick_db_path()
+    source = source.expanduser().resolve()
+    if not source.is_file():
+        msg = f"TickTick database not found: {source}"
+        raise FileNotFoundError(msg)
+
+    _copy_sqlite_snapshot(source, folder / "TickTick.db")
+    payload = export_ticktick_habits_json(source)
+    _write_json(folder / "ticktick-habits.json", payload)
+    _write_json(
+        folder / "manifest.json",
+        {
+            "created": created.isoformat(timespec="seconds"),
+            "ticktick_database": str(source),
+            "ticktick_habit_count": payload.get("habit_count"),
+        },
+    )
+    return folder
 
 
 def _copy_sqlite_snapshot(source: Path, dest: Path) -> None:
