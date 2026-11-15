@@ -1047,6 +1047,8 @@ class MainWindow(
             self.habits_filter_list_model.clear()
 
             habits_data = self.db_manager.get_habits(include_archived=self.show_archived_habits)
+            emoji_idx = 4
+            lucide_idx = 5
             for row in habits_data:
                 min_habit_filter_columns = 2
                 archived_idx = 3
@@ -1070,6 +1072,14 @@ class MainWindow(
                     mark_chart_list_separator(item)
                 else:
                     item.setToolTip(str(habit_name))
+                    emoji = normalize_habit_emoji(
+                        str(row[emoji_idx]) if len(row) > emoji_idx else "",
+                        habit_id=int(habit_id) if habit_id is not None else None,
+                    )
+                    lucide = str(row[lucide_idx]) if len(row) > lucide_idx else ""
+                    icon = habit_display_icon(emoji=emoji, lucide_name=lucide)
+                    if not icon.isNull():
+                        item.setIcon(icon)
                 self.habits_filter_list_model.appendRow(item)
 
             # Restore previous selection if it exists, otherwise select first habit
