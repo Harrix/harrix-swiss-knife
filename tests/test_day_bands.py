@@ -188,6 +188,32 @@ def test_set_readable_cell_fill_sets_light_ink_in_dark(qapp: QApplication) -> No
     theme.set_mode(previous, persist=False)
 
 
+def test_readable_cell_fill_refreshes_on_theme_change(qapp: QApplication) -> None:
+    """Stored light pastels re-adapt when Fluent theme flips light ↔ dark."""
+    assert qapp is not None
+    theme = FluentTheme.instance()
+    previous = theme.mode()
+    pastel = QColor.fromHsv(200, 90, 235)
+    table = QTableView()
+    model = QStandardItemModel(1, 1)
+    item = QStandardItem("12.00")
+    model.setItem(0, 0, item)
+    table.setModel(model)
+    theme.set_mode(ThemeMode.LIGHT, persist=False)
+    set_readable_cell_fill(item, pastel)
+    light_fill = item.background().color()
+    assert light_fill.rgb() == pastel.rgb()
+    theme.set_mode(ThemeMode.DARK, persist=False)
+    refresh_day_bands(table)
+    dark_fill = item.background().color()
+    assert dark_fill.value() <= 100
+    assert dark_fill.hue() == pastel.hue()
+    theme.set_mode(ThemeMode.LIGHT, persist=False)
+    refresh_day_bands(table)
+    assert item.background().color().rgb() == pastel.rgb()
+    theme.set_mode(previous, persist=False)
+
+
 def test_disconnect_without_slots_is_quiet(qapp: QApplication) -> None:
     """Detaching a worker does not warn about signals that have no slots."""
     assert qapp is not None

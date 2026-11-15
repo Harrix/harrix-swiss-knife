@@ -37,6 +37,7 @@ from PySide6.QtWidgets import (
     QTableView,
     QTabWidget,
     QTextEdit,
+    QTreeView,
     QWidget,
 )
 
@@ -603,6 +604,8 @@ def _restyle_tables(root: QWidget, palette: FluentPalette) -> None:
     for table in root.findChildren(QTableView):
         _style_table(table, palette)
         refresh_day_bands(table)
+    for tree in root.findChildren(QTreeView):
+        refresh_day_bands(tree)
 
 
 def _restyle_tabs(root: QWidget, palette: FluentPalette) -> None:

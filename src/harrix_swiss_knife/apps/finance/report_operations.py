@@ -20,7 +20,7 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife import toast_countdown_notification
 from harrix_swiss_knife.apps.common import message_box
-from harrix_swiss_knife.apps.common.chart_theme import chart_series_color, chart_surface, chart_tint
+from harrix_swiss_knife.apps.common.chart_theme import chart_series_color, chart_tint
 from harrix_swiss_knife.apps.common.day_bands import set_readable_cell_fill
 from harrix_swiss_knife.apps.finance.category_icon_display import category_lucide_icon
 from harrix_swiss_knife.apps.finance.delegates import ReportAmountDelegate, YearDeltaCellDelegate
@@ -33,8 +33,8 @@ from harrix_swiss_knife.apps.finance.mixins import requires_database
 from harrix_swiss_knife.apps.finance.report_build_worker import ReportBuildResult, ReportBuildWorker
 from harrix_swiss_knife.apps.finance.report_period_dialog import ReportPeriodDialog
 from harrix_swiss_knife.fluent.app_chrome import style_fluent_item_view
-from harrix_swiss_knife.fluent.theme import FluentTheme
-from harrix_swiss_knife.fluent.tokens import ICON_SIZE
+from harrix_swiss_knife.fluent.theme import mix
+from harrix_swiss_knife.fluent.tokens import ICON_SIZE, LIGHT_PALETTE
 from harrix_swiss_knife.qt_lucide_icon import (
     LUCIDE_COLOR_BLUE,
     LUCIDE_COLOR_CYAN,
@@ -275,9 +275,7 @@ class ReportOperations:
         self._set_monthly_summary_header_icons(model, expense_categories)
 
         num_categories = len(expense_categories)
-        category_colors: list[QColor] = [
-            chart_tint(chart_surface(), QColor(chart_series_color(i)), 0.28) for i in range(num_categories)
-        ]
+        category_colors: list[QColor] = [_report_series_fill(i) for i in range(num_categories)]
 
         current_year: str = datetime.now(UTC).astimezone().strftime("%Y")
 
@@ -670,35 +668,50 @@ class ReportOperations:
 
 
 def _report_amount_fill() -> QColor:
-    """Soft amber wash for amount columns (chart series palette)."""
-    return chart_tint(chart_surface(), QColor(chart_series_color(4)), 0.22)
+    """Soft amber wash for amount columns (light pastel; dark via readable fill)."""
+    return _report_light_tint(QColor(chart_series_color(4)), 0.22)
 
 
 def _report_combined_fill() -> QColor:
     """Neutral wash for Cafe + Food combined column."""
-    return chart_tint(chart_surface(), FluentTheme.instance().palette().neutral, 0.18)
+    return _report_light_tint(LIGHT_PALETTE.neutral, 0.18)
+
+
+def _report_light_surface() -> QColor:
+    """Opaque light card surface used as the base for report pastel washes."""
+    return mix(LIGHT_PALETTE.window_bg, LIGHT_PALETTE.card_bg)
+
+
+def _report_light_tint(overlay: QColor, amount: float) -> QColor:
+    """Return a light-theme wash; `set_readable_cell_fill` adapts it for dark mode."""
+    return chart_tint(_report_light_surface(), overlay, amount)
 
 
 def _report_negative_fill() -> QColor:
-    """Theme critical background for negative balances."""
-    return QColor(FluentTheme.instance().palette().critical_bg)
+    """Light critical pastel for negative balances (dark via readable fill)."""
+    return QColor(LIGHT_PALETTE.critical_bg)
 
 
 def _report_positive_fill() -> QColor:
-    """Theme success background for positive balances."""
-    return QColor(FluentTheme.instance().palette().success_bg)
+    """Light success pastel for positive balances (dark via readable fill)."""
+    return QColor(LIGHT_PALETTE.success_bg)
 
 
 def _report_section_fill() -> QColor:
     """Soft accent wash for EXPENSES / INCOME section headers."""
-    return chart_tint(chart_surface(), FluentTheme.instance().palette().accent, 0.16)
+    return _report_light_tint(LIGHT_PALETTE.accent, 0.16)
+
+
+def _report_series_fill(index: int) -> QColor:
+    """Soft category column wash from the shared chart series palette."""
+    return _report_light_tint(QColor(chart_series_color(index)), 0.28)
 
 
 def _report_total_fill() -> QColor:
     """Soft amber wash for TOTAL rows from the chart series palette."""
-    return chart_tint(chart_surface(), QColor(chart_series_color(4)), 0.42)
+    return _report_light_tint(QColor(chart_series_color(4)), 0.42)
 
 
 def _report_year_fill() -> QColor:
     """Soft accent wash for prior-year baseline columns."""
-    return chart_tint(chart_surface(), FluentTheme.instance().palette().accent, 0.12)
+    return _report_light_tint(LIGHT_PALETTE.accent, 0.12)

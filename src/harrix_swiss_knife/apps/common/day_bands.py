@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QAbstractProxyModel, Qt
 from PySide6.QtGui import QBrush, QColor, QPainter, QPalette, QStandardItem, QStandardItemModel
-from PySide6.QtWidgets import QHeaderView, QTableView
+from PySide6.QtWidgets import QAbstractItemView, QHeaderView, QTableView
 
 from harrix_swiss_knife.fluent.theme import FluentTheme, mix
 
@@ -22,6 +22,9 @@ if TYPE_CHECKING:
     from harrix_swiss_knife.fluent.tokens import FluentPalette
 
 DAY_BAND_ROLE = Qt.ItemDataRole.UserRole + 410
+# Light pastel + band index for chromatic report fills (re-adapted on theme change).
+READABLE_FILL_ROLE = Qt.ItemDataRole.UserRole + 411
+READABLE_BAND_ROLE = Qt.ItemDataRole.UserRole + 412
 _MIN_CHROMATIC_SATURATION = 25
 
 
@@ -82,6 +85,12 @@ class DayBandVerticalHeader(QHeaderView):
 def clear_day_band(item: QStandardItem) -> None:
     """Drop a day-band mark so a later semantic color is left in place."""
     item.setData(None, DAY_BAND_ROLE)
+
+
+def clear_readable_fill(item: QStandardItem) -> None:
+    """Drop a stored light pastel so a later day band is left in place."""
+    item.setData(None, READABLE_FILL_ROLE)
+    item.setData(None, READABLE_BAND_ROLE)
 
 
 def day_band_color(index: int) -> DayBand:
@@ -171,14 +180,15 @@ def readable_row_tint(light: QColor, *, band_index: int = 0) -> DayBand:
     return DayBand(light.red(), light.green(), light.blue(), index)
 
 
-def refresh_day_bands(table: QTableView) -> None:
-    """Repaint stored day bands with the colors of the current theme."""
-    model = table.model()
+def refresh_day_bands(view: QAbstractItemView) -> None:
+    """Repaint stored day bands and chromatic fills for the current theme."""
+    model = view.model()
     while isinstance(model, QAbstractProxyModel):
         model = model.sourceModel()
     if not isinstance(model, QStandardItemModel):
         return
     _refresh_model(model)
+    view.viewport().update()
 
 
 def set_day_band(item: QStandardItem, color: QColor) -> None:
@@ -191,20 +201,18 @@ def set_day_band(item: QStandardItem, color: QColor) -> None:
     if not isinstance(color, DayBand):
         set_readable_cell_fill(item, color)
         return
+    clear_readable_fill(item)
     item.setBackground(QBrush(color))
     item.setData(color.band_index, DAY_BAND_ROLE)
     item.setForeground(QBrush(_band_ink()))
 
 
 def set_readable_cell_fill(item: QStandardItem, light: QColor, *, band_index: int = 0) -> None:
-    """Paint `item` with `readable_cell_fill`, tagging day bands when used."""
-    fill = readable_cell_fill(light, band_index=band_index)
-    if isinstance(fill, DayBand):
-        set_day_band(item, fill)
-        return
-    clear_day_band(item)
-    item.setBackground(QBrush(fill))
-    item.setForeground(QBrush(_band_ink()))
+    """Paint `item` with `readable_cell_fill`, storing the light pastel for theme refresh."""
+    source = QColor(light)
+    item.setData(source, READABLE_FILL_ROLE)
+    item.setData(int(band_index), READABLE_BAND_ROLE)
+    _paint_readable_fill(item, source, band_index=band_index)
 
 
 def table_surface_color(palette: FluentPalette) -> QColor:
@@ -231,13 +239,43 @@ def _band_pair(palette: FluentPalette) -> tuple[tuple[int, int, int], tuple[int,
     return (0xFC, 0xFC, 0xFC), (0xE4, 0xE8, 0xED)
 
 
+def _paint_readable_fill(item: QStandardItem, light: QColor, *, band_index: int = 0) -> None:
+    """Apply the theme-adapted fill for a stored light pastel."""
+    fill = readable_cell_fill(light, band_index=band_index)
+    if isinstance(fill, DayBand):
+        item.setBackground(QBrush(fill))
+        item.setData(fill.band_index, DAY_BAND_ROLE)
+    else:
+        item.setData(None, DAY_BAND_ROLE)
+        item.setBackground(QBrush(fill))
+    item.setForeground(QBrush(_band_ink()))
+
+
+def _refresh_item(item: QStandardItem) -> None:
+    """Repaint one item and its children from stored fill roles."""
+    stored_fill = item.data(READABLE_FILL_ROLE)
+    if isinstance(stored_fill, QColor) and stored_fill.isValid():
+        band = item.data(READABLE_BAND_ROLE)
+        band_index = band if isinstance(band, int) else 0
+        _paint_readable_fill(item, stored_fill, band_index=band_index)
+    else:
+        stored_band = item.data(DAY_BAND_ROLE)
+        if isinstance(stored_band, int):
+            item.setBackground(QBrush(day_band_color(stored_band)))
+            item.setForeground(QBrush(_band_ink()))
+    for row in range(item.rowCount()):
+        for column in range(item.columnCount()):
+            child = item.child(row, column)
+            if child is not None:
+                _refresh_item(child)
+
+
 def _refresh_model(model: QStandardItemModel) -> None:
-    """Repaint day-band fills without emitting per-cell `dataChanged` storms."""
+    """Repaint day-band and chromatic fills without per-cell `dataChanged` storms."""
     rows = model.rowCount()
     columns = model.columnCount()
     if rows <= 0 or columns <= 0:
         return
-    ink = QBrush(_band_ink())
     model.blockSignals(True)  # noqa: FBT003
     try:
         for row in range(rows):
@@ -246,12 +284,10 @@ def _refresh_model(model: QStandardItemModel) -> None:
                 item = model.item(row, column)
                 if item is None:
                     continue
+                _refresh_item(item)
                 stored = item.data(DAY_BAND_ROLE)
-                if not isinstance(stored, int):
-                    continue
-                band = stored
-                item.setBackground(QBrush(day_band_color(stored)))
-                item.setForeground(ink)
+                if isinstance(stored, int):
+                    band = stored
             header = model.verticalHeaderItem(row)
             if header is not None and band is not None:
                 set_day_band(header, day_band_color(band))

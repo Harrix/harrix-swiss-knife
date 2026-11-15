@@ -17,6 +17,7 @@ lang: en
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
   - [⚙️ Method `paintSection`](#%EF%B8%8F-method-paintsection)
 - [🔧 Function `clear_day_band`](#-function-clear_day_band)
+- [🔧 Function `clear_readable_fill`](#-function-clear_readable_fill)
 - [🔧 Function `day_band_color`](#-function-day_band_color)
 - [🔧 Function `day_band_colors`](#-function-day_band_colors)
 - [🔧 Function `day_band_id_item`](#-function-day_band_id_item)
@@ -195,6 +196,25 @@ def clear_day_band(item: QStandardItem) -> None:
 
 </details>
 
+## 🔧 Function `clear_readable_fill`
+
+```python
+def clear_readable_fill(item: QStandardItem) -> None
+```
+
+Drop a stored light pastel so a later day band is left in place.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def clear_readable_fill(item: QStandardItem) -> None:
+    item.setData(None, READABLE_FILL_ROLE)
+    item.setData(None, READABLE_BAND_ROLE)
+```
+
+</details>
+
 ## 🔧 Function `day_band_color`
 
 ```python
@@ -357,22 +377,23 @@ def readable_row_tint(light: QColor, *, band_index: int = 0) -> DayBand:
 ## 🔧 Function `refresh_day_bands`
 
 ```python
-def refresh_day_bands(table: QTableView) -> None
+def refresh_day_bands(view: QAbstractItemView) -> None
 ```
 
-Repaint stored day bands with the colors of the current theme.
+Repaint stored day bands and chromatic fills for the current theme.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def refresh_day_bands(table: QTableView) -> None:
-    model = table.model()
+def refresh_day_bands(view: QAbstractItemView) -> None:
+    model = view.model()
     while isinstance(model, QAbstractProxyModel):
         model = model.sourceModel()
     if not isinstance(model, QStandardItemModel):
         return
     _refresh_model(model)
+    view.viewport().update()
 ```
 
 </details>
@@ -396,6 +417,7 @@ def set_day_band(item: QStandardItem, color: QColor) -> None:
     if not isinstance(color, DayBand):
         set_readable_cell_fill(item, color)
         return
+    clear_readable_fill(item)
     item.setBackground(QBrush(color))
     item.setData(color.band_index, DAY_BAND_ROLE)
     item.setForeground(QBrush(_band_ink()))
@@ -409,20 +431,17 @@ def set_day_band(item: QStandardItem, color: QColor) -> None:
 def set_readable_cell_fill(item: QStandardItem, light: QColor, *, band_index: int = 0) -> None
 ```
 
-Paint [`item`](../../fluent/widgets/navigation.g.md#%EF%B8%8F-method-item) with [`readable_cell_fill`](#-function-readable_cell_fill), tagging day bands when used.
+Paint [`item`](../../fluent/widgets/navigation.g.md#%EF%B8%8F-method-item) with [`readable_cell_fill`](#-function-readable_cell_fill), storing the light pastel for theme refresh.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def set_readable_cell_fill(item: QStandardItem, light: QColor, *, band_index: int = 0) -> None:
-    fill = readable_cell_fill(light, band_index=band_index)
-    if isinstance(fill, DayBand):
-        set_day_band(item, fill)
-        return
-    clear_day_band(item)
-    item.setBackground(QBrush(fill))
-    item.setForeground(QBrush(_band_ink()))
+    source = QColor(light)
+    item.setData(source, READABLE_FILL_ROLE)
+    item.setData(int(band_index), READABLE_BAND_ROLE)
+    _paint_readable_fill(item, source, band_index=band_index)
 ```
 
 </details>

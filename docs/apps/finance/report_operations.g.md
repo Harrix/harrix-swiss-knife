@@ -232,9 +232,7 @@ class ReportOperations:
         self._set_monthly_summary_header_icons(model, expense_categories)
 
         num_categories = len(expense_categories)
-        category_colors: list[QColor] = [
-            chart_tint(chart_surface(), QColor(chart_series_color(i)), 0.28) for i in range(num_categories)
-        ]
+        category_colors: list[QColor] = [_report_series_fill(i) for i in range(num_categories)]
 
         current_year: str = datetime.now(UTC).astimezone().strftime("%Y")
 
