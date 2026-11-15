@@ -4,22 +4,73 @@ from __future__ import annotations
 
 from typing import Any
 
-from PySide6.QtWidgets import QCheckBox
+from PySide6.QtWidgets import QCheckBox, QHBoxLayout, QLabel, QLineEdit
 
+from harrix_swiss_knife.apps.common.lucide_picker_dialog import LucideChoiceRow
 from harrix_swiss_knife.apps.common.tracker_layout_chrome import polish_left_field_labels, quiet_group_box
 from harrix_swiss_knife.apps.common.ui_chrome import button_cta_cyan_qss, button_idle_qss
+from harrix_swiss_knife.apps.habits.habit_icon_display import HABIT_LUCIDE_PRESETS
 from harrix_swiss_knife.fluent.theme import bind_theme, css, mix, palette_for
 from harrix_swiss_knife.fluent.tokens import CONTROL_HEIGHT, SPACE_S, SPACE_XS
+from harrix_swiss_knife.integrations.bothub import BothubRequestState
 from harrix_swiss_knife.qt_lucide_checkbox import apply_lucide_checkbox_style
 from harrix_swiss_knife.qt_lucide_icon import apply_lucide_button_icon
 
 
 def install_habits_entry_chrome(host: Any) -> None:
     """Polish Habit form buttons, captions, and quiet GroupBoxes."""
+    _ensure_habit_lucide_row(host)
     _polish_form(host)
     if not getattr(host, "_habits_entry_theme_bound", False):
         bind_theme(host, lambda: _polish_form(host))
         host._habits_entry_theme_bound = True  # noqa: SLF001
+
+
+def _ensure_habit_lucide_row(host: Any) -> None:
+    """Insert a Lucide picker under the emoji row on the New habit form."""
+    if getattr(host, "habit_lucide_row", None) is not None:
+        return
+    layout = getattr(host, "verticalLayout_habits_10", None)
+    if layout is None:
+        return
+    app_config = getattr(host, "_app_config", {}) or {}
+    bothub = getattr(host, "_habit_lucide_bothub_state", None)
+    if bothub is None:
+        bothub = BothubRequestState()
+        host._habit_lucide_bothub_state = bothub  # noqa: SLF001
+
+    def _suggest_query() -> str:
+        name_edit = getattr(host, "lineEdit_habit_name", None)
+        return name_edit.text().strip() if isinstance(name_edit, QLineEdit) else ""
+
+    row = LucideChoiceRow(
+        getattr(host, "groupBox_habits_2", None),
+        presets=HABIT_LUCIDE_PRESETS,
+        allow_empty=True,
+        app_config=app_config,
+        bothub_state=bothub,
+        suggest_query_provider=_suggest_query,
+    )
+    host.habit_lucide_row = row
+
+    label = QLabel("Lucide:", getattr(host, "groupBox_habits_2", None))
+    label.setObjectName("label_habit_lucide")
+    label.setMinimumSize(90, 0)
+    host.label_habit_lucide = label
+
+    row_layout = QHBoxLayout()
+    row_layout.setObjectName("horizontalLayout_habit_lucide")
+    row_layout.addWidget(label)
+    row_layout.addWidget(row, stretch=1)
+    # Insert after the emoji row when present; otherwise append before stretch/spacer.
+    insert_at = layout.count()
+    for index in range(layout.count()):
+        item = layout.itemAt(index)
+        child = item.layout() if item is not None else None
+        if child is not None and child.objectName() == "horizontalLayout_habit_emoji":
+            insert_at = index + 1
+            break
+    layout.insertLayout(insert_at, row_layout)
 
 
 def _polish_form(host: Any) -> None:
@@ -39,6 +90,7 @@ def _polish_form(host: Any) -> None:
         (
             ("label_habits_5", "Name:"),
             ("label_habit_emoji", "Emoji:"),
+            ("label_habit_lucide", "Lucide:"),
         ),
     )
 

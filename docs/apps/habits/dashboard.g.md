@@ -65,7 +65,12 @@ class HabitDashboardWidget(QWidget):
         dialog = HabitEditDialog(self, title="Add Habit")
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return
-        if self._db.add_habit(dialog.habit_name(), is_bool=dialog.habit_is_bool(), emoji=dialog.habit_emoji()):
+        if self._db.add_habit(
+            dialog.habit_name(),
+            is_bool=dialog.habit_is_bool(),
+            emoji=dialog.habit_emoji(),
+            icon_lucide=dialog.habit_icon_lucide(),
+        ):
             self.refresh()
             self.data_changed.emit()
         else:
@@ -324,13 +329,16 @@ class HabitDashboardWidget(QWidget):
         emoji = normalize_habit_emoji(
             str(habit[_EMOJI_COLUMN]) if len(habit) > _EMOJI_COLUMN else "", habit_id=habit_id
         )
+        icon_lucide = _habit_icon_lucide(habit)
         dialog = HabitEditDialog(
             self,
             title="Edit Habit",
             name=name,
             is_bool=is_bool,
             emoji=emoji,
+            icon_lucide=icon_lucide,
             habit_id=habit_id,
+            app_config=self._app_config,
         )
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return
@@ -339,6 +347,7 @@ class HabitDashboardWidget(QWidget):
             dialog.habit_name(),
             is_bool=dialog.habit_is_bool(),
             emoji=dialog.habit_emoji(),
+            icon_lucide=dialog.habit_icon_lucide(),
         ):
             self.refresh()
             self.data_changed.emit()
@@ -526,6 +535,7 @@ class HabitDashboardWidget(QWidget):
                 self._week_values_for(hid),
                 selected=hid == habit_id,
                 emoji=emoji,
+                icon_lucide=_habit_icon_lucide(habit) if habit else "",
                 allows_number=_habit_allows_number(habit),
                 week_comments=self._week_comments_for(hid),
                 week_dates=self._week_dates,
@@ -605,6 +615,7 @@ class HabitDashboardWidget(QWidget):
                 self._week_values_for(habit_id),
                 selected=habit_id == self._selected_habit_id,
                 emoji=emoji,
+                icon_lucide=_habit_icon_lucide(row),
                 allows_number=_habit_allows_number(row),
                 week_comments=self._week_comments_for(habit_id),
                 week_dates=self._week_dates,
@@ -635,7 +646,7 @@ class HabitDashboardWidget(QWidget):
             str(habit[_EMOJI_COLUMN]) if len(habit) > _EMOJI_COLUMN else "",
             habit_id=habit_id,
         )
-        self._detail_icon.set_habit(habit_id, emoji)
+        self._detail_icon.set_habit(habit_id, emoji, icon_lucide=_habit_icon_lucide(habit))
         self._detail_name.setText(name)
 
         year, month = self._calendar_year, self._calendar_month
@@ -870,6 +881,7 @@ QPushButton#habitDashAddHabitButton {{
             self._week_values_for(habit_id),
             selected=habit_id == self._selected_habit_id,
             emoji=emoji,
+            icon_lucide=_habit_icon_lucide(habit),
             allows_number=_habit_allows_number(habit),
             week_comments=self._week_comments_for(habit_id),
             week_dates=self._week_dates,
@@ -984,7 +996,12 @@ def add_habit(self) -> None:
         dialog = HabitEditDialog(self, title="Add Habit")
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return
-        if self._db.add_habit(dialog.habit_name(), is_bool=dialog.habit_is_bool(), emoji=dialog.habit_emoji()):
+        if self._db.add_habit(
+            dialog.habit_name(),
+            is_bool=dialog.habit_is_bool(),
+            emoji=dialog.habit_emoji(),
+            icon_lucide=dialog.habit_icon_lucide(),
+        ):
             self.refresh()
             self.data_changed.emit()
         else:

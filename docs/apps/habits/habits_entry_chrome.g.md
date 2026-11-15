@@ -19,6 +19,7 @@ Polish Habit form buttons, captions, and quiet GroupBoxes.
 
 ```python
 def install_habits_entry_chrome(host: Any) -> None:
+    _ensure_habit_lucide_row(host)
     _polish_form(host)
     if not getattr(host, "_habits_entry_theme_bound", False):
         bind_theme(host, lambda: _polish_form(host))

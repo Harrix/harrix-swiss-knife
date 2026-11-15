@@ -107,6 +107,7 @@ def test_export_hsk_habits_json_includes_values(habits_db: DatabaseManager) -> N
     walk, pages = payload["habits"]
     assert walk["name"] == "Walk"
     assert walk["emoji"] == "🚶"
+    assert walk["icon_lucide"] == ""
     assert walk["is_bool"] is True
     assert walk["dates"] == ["2026-08-01"]
     assert walk["values"] == {"2026-08-01": 1}

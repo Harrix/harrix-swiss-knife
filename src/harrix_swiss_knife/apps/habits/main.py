@@ -108,6 +108,7 @@ from harrix_swiss_knife.apps.habits.delegates import (
     YesNoComboDelegate,
 )
 from harrix_swiss_knife.apps.habits.habit_emoji_picker_dialog import HabitEmojiPickerDialog
+from harrix_swiss_knife.apps.habits.habit_icon_display import habit_lucide_icon
 from harrix_swiss_knife.apps.habits.habit_process_charts import (
     CHART_MODE_BY_MONTH,
     CHART_MODE_COMPARE_LAST,
@@ -626,6 +627,8 @@ class MainWindow(
         habit_name = self.lineEdit_habit_name.text().strip()
         emoji = self.lineEdit_habit_emoji.text().strip()
         is_bool = self.checkBox_habit_is_bool.isChecked() or None
+        lucide_row = getattr(self, "habit_lucide_row", None)
+        icon_lucide = lucide_row.lucide_name() if lucide_row is not None else ""
 
         if not habit_name:
             message_box.warning(self, "Error", "Enter habit name")
@@ -636,10 +639,17 @@ class MainWindow(
             return
 
         try:
-            if self.db_manager.add_habit(habit_name, is_bool=is_bool, emoji=emoji):
+            if self.db_manager.add_habit(
+                habit_name,
+                is_bool=is_bool,
+                emoji=emoji,
+                icon_lucide=icon_lucide,
+            ):
                 self.update_all()
                 self.lineEdit_habit_name.clear()
                 self.lineEdit_habit_emoji.clear()
+                if lucide_row is not None:
+                    lucide_row.set_lucide_name("")
                 self.checkBox_habit_is_bool.setChecked(False)
             else:
                 message_box.warning(self, "Error", "Failed to add habit")
@@ -825,33 +835,7 @@ class MainWindow(
                 logger.warning("⚠️ Table 'habits' does not exist in database")
                 self._set_habits_table_model(self._create_colored_table_model([], self.table_config["habits"][2]))
             else:
-                habits_data = self.db_manager.get_all_habits()
-                habits_transformed_data = []
-
-                # Minimum habit row length: habit_id (index 0) + habit_name (index 1)
-                min_habit_row_length = 2
-                for row in habits_data:
-                    try:
-                        if len(row) < min_habit_row_length:
-                            continue
-                        is_bool_value = row[2] if len(row) > min_habit_row_length else None
-                        is_bool_str = "Yes" if is_bool_value == 1 else ("No" if is_bool_value == 0 else "")
-                        archived_idx = 3
-                        emoji_idx = 4
-                        is_archived_value = row[archived_idx] if len(row) > archived_idx else 0
-                        is_archived_str = "Yes" if is_archived_value == 1 else "No"
-                        habit_name = row[1] or ""
-                        habit_id = row[0] if row[0] is not None else 0
-                        emoji = str(row[emoji_idx]) if len(row) > emoji_idx and row[emoji_idx] else ""
-                        band = day_band_color(len(habits_transformed_data) % 2)
-                        transformed_row = [habit_name, emoji, is_bool_str, is_archived_str, habit_id, band]
-                        habits_transformed_data.append(transformed_row)
-                    except Exception:
-                        logger.exception("Error processing habit row")
-                        continue
-                self._set_habits_table_model(
-                    self._create_colored_table_model(habits_transformed_data, self.table_config["habits"][2])
-                )
+                self._set_habits_table_from_db_rows(self.db_manager.get_all_habits())
         except Exception:
             logger.exception("Error refreshing habits table")
 
@@ -907,38 +891,7 @@ class MainWindow(
                 logger.warning("⚠️ Table 'habits' does not exist in database")
                 self._set_habits_table_model(self._create_colored_table_model([], self.table_config["habits"][2]))
             else:
-                habits_data = self.db_manager.get_all_habits()
-                habits_transformed_data = []
-                min_habit_row_length = 2
-                for row in habits_data:
-                    try:
-                        if len(row) < min_habit_row_length:
-                            continue
-                        is_bool_value = row[2] if len(row) > min_habit_row_length else None
-                        is_bool_str = "Yes" if is_bool_value == 1 else ("No" if is_bool_value == 0 else "")
-                        archived_idx = 3
-                        emoji_idx = 4
-                        is_archived_value = row[archived_idx] if len(row) > archived_idx else 0
-                        is_archived_str = "Yes" if is_archived_value == 1 else "No"
-                        habit_name = row[1] or ""
-                        habit_id = row[0] if row[0] is not None else 0
-                        emoji = str(row[emoji_idx]) if len(row) > emoji_idx and row[emoji_idx] else ""
-                        band = day_band_color(len(habits_transformed_data) % 2)
-                        transformed_row = [
-                            habit_name,
-                            emoji,
-                            is_bool_str,
-                            is_archived_str,
-                            habit_id,
-                            band,
-                        ]
-                        habits_transformed_data.append(transformed_row)
-                    except Exception:
-                        logger.exception("Error processing habit row")
-                        continue
-                self._set_habits_table_model(
-                    self._create_colored_table_model(habits_transformed_data, self.table_config["habits"][2])
-                )
+                self._set_habits_table_from_db_rows(self.db_manager.get_all_habits())
 
             # Load process habits table data
             if self.db_manager.table_exists("process_habits"):
@@ -1354,6 +1307,19 @@ class MainWindow(
                 return key
         return CHART_MODE_HEATMAP
 
+    def _decorate_habits_emoji_column(self, lucide_names: list[str]) -> None:
+        """Paint Lucide decorations on the emoji column when `icon_lucide` is set."""
+        model = self.tableView_habits.model()
+        if model is None:
+            return
+        for row_index, lucide_name in enumerate(lucide_names):
+            icon = habit_lucide_icon(lucide_name)
+            if icon.isNull():
+                continue
+            index = model.index(row_index, 1)
+            if index.isValid():
+                model.setData(index, icon, Qt.ItemDataRole.DecorationRole)
+
     def _display_habit_line_chart(self, figure: Figure) -> None:
         """Show a line/bar chart inside the charts scroll area."""
         self._clear_habit_heatmap_layout()
@@ -1535,6 +1501,34 @@ class MainWindow(
             return int(row_id_item.text())
         except (TypeError, ValueError):
             return None
+
+    def _habits_table_rows_from_db(self, habits_data: list[list[Any]]) -> tuple[list[list[Any]], list[str]]:
+        """Transform DB habit rows for the table and collect Lucide ids in the same order."""
+        habits_transformed_data: list[list[Any]] = []
+        lucide_names: list[str] = []
+        min_habit_row_length = 2
+        for row in habits_data:
+            try:
+                if len(row) < min_habit_row_length:
+                    continue
+                is_bool_value = row[2] if len(row) > min_habit_row_length else None
+                is_bool_str = "Yes" if is_bool_value == 1 else ("No" if is_bool_value == 0 else "")
+                archived_idx = 3
+                emoji_idx = 4
+                lucide_idx = 5
+                is_archived_value = row[archived_idx] if len(row) > archived_idx else 0
+                is_archived_str = "Yes" if is_archived_value == 1 else "No"
+                habit_name = row[1] or ""
+                habit_id = row[0] if row[0] is not None else 0
+                emoji = str(row[emoji_idx]) if len(row) > emoji_idx and row[emoji_idx] else ""
+                lucide = str(row[lucide_idx]) if len(row) > lucide_idx and row[lucide_idx] else ""
+                band = day_band_color(len(habits_transformed_data) % 2)
+                habits_transformed_data.append([habit_name, emoji, is_bool_str, is_archived_str, habit_id, band])
+                lucide_names.append(lucide)
+            except Exception:
+                logger.exception("Error processing habit row")
+                continue
+        return habits_transformed_data, lucide_names
 
     def _handle_special_table_data_changed(
         self,
@@ -2173,6 +2167,12 @@ class MainWindow(
                 # If splitter doesn't have width yet, try again after a short delay
                 QTimer.singleShot(50, self._set_habits_splitter_size)
 
+    def _set_habits_table_from_db_rows(self, habits_data: list[list[Any]]) -> None:
+        """Build, assign, and decorate the habits table model from DB rows."""
+        transformed, lucide_names = self._habits_table_rows_from_db(habits_data)
+        self._set_habits_table_model(self._create_colored_table_model(transformed, self.table_config["habits"][2]))
+        self._decorate_habits_emoji_column(lucide_names)
+
     def _set_habits_table_model(self, model: QSortFilterProxyModel) -> None:
         """Assign habits table model after closing any open inline editor."""
         close_table_editor_if_open(self.tableView_habits)
@@ -2680,33 +2680,7 @@ class MainWindow(
                 logger.warning("⚠️ Table 'habits' does not exist in database")
                 self._set_habits_table_model(self._create_colored_table_model([], self.table_config["habits"][2]))
             else:
-                habits_data = self.db_manager.get_all_habits()
-                habits_transformed_data = []
-
-                # Minimum habit row length: habit_id (index 0) + habit_name (index 1)
-                min_habit_row_length = 2
-                for row in habits_data:
-                    try:
-                        if len(row) < min_habit_row_length:
-                            continue
-                        is_bool_value = row[2] if len(row) > min_habit_row_length else None
-                        is_bool_str = "Yes" if is_bool_value == 1 else ("No" if is_bool_value == 0 else "")
-                        archived_idx = 3
-                        emoji_idx = 4
-                        is_archived_value = row[archived_idx] if len(row) > archived_idx else 0
-                        is_archived_str = "Yes" if is_archived_value == 1 else "No"
-                        habit_name = row[1] or ""
-                        habit_id = row[0] if row[0] is not None else 0
-                        emoji = str(row[emoji_idx]) if len(row) > emoji_idx and row[emoji_idx] else ""
-                        band = day_band_color(len(habits_transformed_data) % 2)
-                        transformed_row = [habit_name, emoji, is_bool_str, is_archived_str, habit_id, band]
-                        habits_transformed_data.append(transformed_row)
-                    except Exception:
-                        logger.exception("Error processing habit row")
-                        continue
-                self._set_habits_table_model(
-                    self._create_colored_table_model(habits_transformed_data, self.table_config["habits"][2])
-                )
+                self._set_habits_table_from_db_rows(self.db_manager.get_all_habits())
         except Exception:
             logger.exception("Error refreshing habits table")
 

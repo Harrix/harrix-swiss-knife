@@ -80,7 +80,14 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """
         super().__init__(prefix="habits_db", db_filename=db_filename)
 
-    def add_habit(self, name: str, *, is_bool: bool | None = None, emoji: str = "") -> bool:
+    def add_habit(
+        self,
+        name: str,
+        *,
+        is_bool: bool | None = None,
+        emoji: str = "",
+        icon_lucide: str = "",
+    ) -> bool:
         """Add a new habit to the database.
 
         Args:
@@ -88,6 +95,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `name` (`str`): Habit name.
         - `is_bool` (`bool | None`): Whether habit accepts only 0 or 1 values. Defaults to `None`.
         - `emoji` (`str`): Habit emoji. Defaults to `""` (assigned after insert when empty).
+        - `icon_lucide` (`str`): Optional Lucide icon ID. Defaults to `""`.
 
         Returns:
 
@@ -96,11 +104,16 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """
         name = capitalize_habit_name(name)
         cleaned_emoji = (emoji or "").strip()
-        query = "INSERT INTO habits (name, is_bool, emoji, sort_order) VALUES (:name, :is_bool, :emoji, :sort_order)"
+        cleaned_lucide = normalize_habit_lucide_name(icon_lucide)
+        query = (
+            "INSERT INTO habits (name, is_bool, emoji, icon_lucide, sort_order) "
+            "VALUES (:name, :is_bool, :emoji, :icon_lucide, :sort_order)"
+        )
         params = {
             "name": name,
             "is_bool": 1 if is_bool is True else (0 if is_bool is False else None),
             "emoji": cleaned_emoji,
+            "icon_lucide": cleaned_lucide,
             "sort_order": self._next_habit_sort_order(),
         }
         if not self.execute_simple_query(query, params):
@@ -213,22 +226,32 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
                 "ALTER TABLE habits ADD COLUMN emoji TEXT NOT NULL DEFAULT ''"
             ):
                 return False
+            added_icon_lucide = False
+            if "icon_lucide" not in existing:
+                if not self.execute_simple_query("ALTER TABLE habits ADD COLUMN icon_lucide TEXT NOT NULL DEFAULT ''"):
+                    return False
+                added_icon_lucide = True
             if "sort_order" not in existing:
                 if not self.execute_simple_query("ALTER TABLE habits ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0"):
                     return False
                 if not self._backfill_habit_sort_orders():
                     return False
-            return self._backfill_habit_emojis()
+            if not self._backfill_habit_emojis():
+                return False
+            # Only when the column is first added — empty later means "show emoji".
+            lucide_ok = True if not added_icon_lucide else self._backfill_habit_lucide_icons()
         except Exception:
             logger.exception("Failed to ensure habits schema")
             return False
+        else:
+            return lucide_ok
 
     def get_all_habits(self) -> list[list[Any]]:
         r"""Get all habits with their properties.
 
         Returns:
 
-        - `list[list[Any]]`: List of habit records [\_id, name, is_bool, is_archived, emoji].
+        - `list[list[Any]]`: Rows `[\_id, name, is_bool, is_archived, emoji, icon_lucide]`.
 
         """
         return self.get_rows(f"SELECT {_HABIT_COLUMNS} FROM habits ORDER BY {_HABIT_ORDER_BY}")
@@ -312,7 +335,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         return self.get_rows(query_text, params)
 
     def get_habit_by_id(self, habit_id: int) -> list[Any] | None:
-        """Return one habit row ``[_id, name, is_bool, is_archived, emoji]`` or ``None``."""
+        """Return one habit row ``[_id, name, is_bool, is_archived, emoji, icon_lucide]`` or ``None``."""
         rows = self.get_rows(
             f"SELECT {_HABIT_COLUMNS} FROM habits WHERE _id = :id",
             {"id": habit_id},
@@ -701,6 +724,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         is_bool: bool | None = None,
         is_archived: bool | None = None,
         emoji: str | None = None,
+        icon_lucide: str | None = None,
     ) -> bool:
         """Update an existing habit.
 
@@ -711,6 +735,8 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `is_bool` (`bool | None`): Whether habit accepts only 0 or 1 values. Defaults to `None`.
         - `is_archived` (`bool | None`): Whether habit is archived. Defaults to `None` (do not change).
         - `emoji` (`str | None`): Habit emoji. Defaults to `None` (do not change).
+        - `icon_lucide` (`str | None`): Lucide icon ID. Defaults to `None` (do not change).
+          Pass `""` to clear.
 
         Returns:
 
@@ -730,6 +756,9 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         if emoji is not None:
             fields.append("emoji = :emoji")
             params["emoji"] = normalize_habit_emoji(emoji, habit_id=habit_id)
+        if icon_lucide is not None:
+            fields.append("icon_lucide = :icon_lucide")
+            params["icon_lucide"] = normalize_habit_lucide_name(icon_lucide)
         query = f"UPDATE habits SET {', '.join(fields)} WHERE _id = :id"
         return self.execute_simple_query(query, params)
 
@@ -872,6 +901,24 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
                 return False
         return True
 
+    def _backfill_habit_lucide_icons(self) -> bool:
+        """Assign Lucide ids from emoji for habits that still have an empty `icon_lucide`."""
+        rows = self.get_rows("SELECT _id, emoji FROM habits WHERE icon_lucide IS NULL OR TRIM(icon_lucide) = ''")
+        for row in rows:
+            if not row or row[0] is None:
+                continue
+            habit_id = int(row[0])
+            emoji = str(row[1] or "").strip() or default_habit_emoji(habit_id)
+            lucide = lucide_name_for_habit_emoji(emoji)
+            if not lucide:
+                continue
+            if not self.execute_simple_query(
+                "UPDATE habits SET icon_lucide = :icon_lucide WHERE _id = :id",
+                {"icon_lucide": lucide, "id": habit_id},
+            ):
+                return False
+        return True
+
     def _backfill_habit_sort_orders(self) -> bool:
         """Copy `_id` into `sort_order` so existing habits keep insertion order."""
         return self.execute_simple_query("UPDATE habits SET sort_order = _id")
@@ -915,7 +962,7 @@ def __init__(self, db_filename: str) -> None:
 ### ⚙️ Method `add_habit`
 
 ```python
-def add_habit(self, name: str, *, is_bool: bool | None = None, emoji: str = '') -> bool
+def add_habit(self, name: str, *, is_bool: bool | None = None, emoji: str = '', icon_lucide: str = '') -> bool
 ```
 
 Add a new habit to the database.
@@ -925,6 +972,7 @@ Args:
 - `name` (`str`): Habit name.
 - `is_bool` (`bool | None`): Whether habit accepts only 0 or 1 values. Defaults to `None`.
 - [`emoji`](../common/emoji_picker_dialog.g.md#%EF%B8%8F-method-emoji) (`str`): Habit emoji. Defaults to `""` (assigned after insert when empty).
+- `icon_lucide` (`str`): Optional Lucide icon ID. Defaults to `""`.
 
 Returns:
 
@@ -934,14 +982,26 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def add_habit(self, name: str, *, is_bool: bool | None = None, emoji: str = "") -> bool:
+def add_habit(
+        self,
+        name: str,
+        *,
+        is_bool: bool | None = None,
+        emoji: str = "",
+        icon_lucide: str = "",
+    ) -> bool:
         name = capitalize_habit_name(name)
         cleaned_emoji = (emoji or "").strip()
-        query = "INSERT INTO habits (name, is_bool, emoji, sort_order) VALUES (:name, :is_bool, :emoji, :sort_order)"
+        cleaned_lucide = normalize_habit_lucide_name(icon_lucide)
+        query = (
+            "INSERT INTO habits (name, is_bool, emoji, icon_lucide, sort_order) "
+            "VALUES (:name, :is_bool, :emoji, :icon_lucide, :sort_order)"
+        )
         params = {
             "name": name,
             "is_bool": 1 if is_bool is True else (0 if is_bool is False else None),
             "emoji": cleaned_emoji,
+            "icon_lucide": cleaned_lucide,
             "sort_order": self._next_habit_sort_order(),
         }
         if not self.execute_simple_query(query, params):
@@ -1116,15 +1176,25 @@ def ensure_habits_schema(self) -> bool:
                 "ALTER TABLE habits ADD COLUMN emoji TEXT NOT NULL DEFAULT ''"
             ):
                 return False
+            added_icon_lucide = False
+            if "icon_lucide" not in existing:
+                if not self.execute_simple_query("ALTER TABLE habits ADD COLUMN icon_lucide TEXT NOT NULL DEFAULT ''"):
+                    return False
+                added_icon_lucide = True
             if "sort_order" not in existing:
                 if not self.execute_simple_query("ALTER TABLE habits ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0"):
                     return False
                 if not self._backfill_habit_sort_orders():
                     return False
-            return self._backfill_habit_emojis()
+            if not self._backfill_habit_emojis():
+                return False
+            # Only when the column is first added — empty later means "show emoji".
+            lucide_ok = True if not added_icon_lucide else self._backfill_habit_lucide_icons()
         except Exception:
             logger.exception("Failed to ensure habits schema")
             return False
+        else:
+            return lucide_ok
 ```
 
 </details>
@@ -1139,7 +1209,7 @@ Get all habits with their properties.
 
 Returns:
 
-- `list[list[Any]]`: List of habit records [\_id, name, is_bool, is_archived, emoji].
+- `list[list[Any]]`: Rows `[\_id, name, is_bool, is_archived, emoji, icon_lucide]`.
 
 <details>
 <summary>Code:</summary>
@@ -1271,7 +1341,7 @@ def get_filtered_process_habits_records(
 def get_habit_by_id(self, habit_id: int) -> list[Any] | None
 ```
 
-Return one habit row ``[_id, name, is_bool, is_archived, emoji]`` or ``None``.
+Return one habit row ``[_id, name, is_bool, is_archived, emoji, icon_lucide]`` or ``None``.
 
 <details>
 <summary>Code:</summary>
@@ -1866,7 +1936,7 @@ def toggle_habit_checkin(self, habit_id: int, date_str: str) -> bool:
 ### ⚙️ Method `update_habit`
 
 ```python
-def update_habit(self, habit_id: int, name: str, *, is_bool: bool | None = None, is_archived: bool | None = None, emoji: str | None = None) -> bool
+def update_habit(self, habit_id: int, name: str, *, is_bool: bool | None = None, is_archived: bool | None = None, emoji: str | None = None, icon_lucide: str | None = None) -> bool
 ```
 
 Update an existing habit.
@@ -1878,6 +1948,8 @@ Args:
 - `is_bool` (`bool | None`): Whether habit accepts only 0 or 1 values. Defaults to `None`.
 - `is_archived` (`bool | None`): Whether habit is archived. Defaults to `None` (do not change).
 - [`emoji`](../common/emoji_picker_dialog.g.md#%EF%B8%8F-method-emoji) (`str | None`): Habit emoji. Defaults to `None` (do not change).
+- `icon_lucide` (`str | None`): Lucide icon ID. Defaults to `None` (do not change).
+  Pass `""` to clear.
 
 Returns:
 
@@ -1895,6 +1967,7 @@ def update_habit(
         is_bool: bool | None = None,
         is_archived: bool | None = None,
         emoji: str | None = None,
+        icon_lucide: str | None = None,
     ) -> bool:
         name = capitalize_habit_name(name)
         fields = ["name = :n", "is_bool = :is_bool"]
@@ -1909,6 +1982,9 @@ def update_habit(
         if emoji is not None:
             fields.append("emoji = :emoji")
             params["emoji"] = normalize_habit_emoji(emoji, habit_id=habit_id)
+        if icon_lucide is not None:
+            fields.append("icon_lucide = :icon_lucide")
+            params["icon_lucide"] = normalize_habit_lucide_name(icon_lucide)
         query = f"UPDATE habits SET {', '.join(fields)} WHERE _id = :id"
         return self.execute_simple_query(query, params)
 ```

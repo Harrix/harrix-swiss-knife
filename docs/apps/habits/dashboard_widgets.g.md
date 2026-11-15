@@ -776,7 +776,7 @@ def value(self) -> int | None:
 class HabitIconBadge(QWidget)
 ```
 
-Circular colored badge with a glyph for a habit.
+Circular badge with a Lucide icon (preferred) or emoji glyph.
 
 <details>
 <summary>Code:</summary>
@@ -788,11 +788,12 @@ class HabitIconBadge(QWidget):
         super().__init__(parent)
         self._bg = HABIT_ICON_COLORS[0]
         self._glyph = "★"
+        self._lucide_name = ""
         self._size = size
         self.setFixedSize(size, size)
 
     def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
-        """Draw colored circle and centered glyph."""
+        """Draw colored circle and centered Lucide or emoji glyph."""
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.setRenderHint(QPainter.RenderHint.TextAntialiasing)
@@ -803,12 +804,24 @@ class HabitIconBadge(QWidget):
         side = max(18, round(self._size * 0.78))
         x = (self.width() - side) // 2
         y = (self.height() - side) // 2
+        lucide = resolve_habit_display_lucide(lucide_name=self._lucide_name)
+        if lucide:
+            habit_lucide_icon(lucide, side).paint(painter, x, y, side, side)
+            return
         painter.setPen(_text_primary(palette_for(self)))
         create_emoji_icon(self._glyph, side).paint(painter, x, y, side, side)
 
-    def set_habit(self, habit_id: int, glyph: str | None = None) -> None:
-        """Style badge from habit ID and optional stored emoji/glyph."""
-        self._bg = habit_accent_color(habit_id)
+    def set_habit(self, habit_id: int, glyph: str | None = None, *, icon_lucide: str = "") -> None:
+        """Style badge from habit ID, optional emoji, and optional Lucide ID."""
+        lucide = resolve_habit_display_lucide(lucide_name=icon_lucide) or ""
+        self._lucide_name = lucide
+        if lucide:
+            stroke = QColor(habit_lucide_color(lucide))
+            fill = QColor(stroke)
+            fill.setAlpha(38)
+            self._bg = fill
+        else:
+            self._bg = habit_accent_color(habit_id)
         self._glyph = glyph or habit_glyph(habit_id)
         self.update()
 ```
@@ -831,6 +844,7 @@ def __init__(self, parent: QWidget | None = None, *, size: int = 40) -> None:  #
         super().__init__(parent)
         self._bg = HABIT_ICON_COLORS[0]
         self._glyph = "★"
+        self._lucide_name = ""
         self._size = size
         self.setFixedSize(size, size)
 ```
@@ -843,7 +857,7 @@ def __init__(self, parent: QWidget | None = None, *, size: int = 40) -> None:  #
 def paintEvent(self, _event: QPaintEvent) -> None
 ```
 
-Draw colored circle and centered glyph.
+Draw colored circle and centered Lucide or emoji glyph.
 
 <details>
 <summary>Code:</summary>
@@ -860,6 +874,10 @@ def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
         side = max(18, round(self._size * 0.78))
         x = (self.width() - side) // 2
         y = (self.height() - side) // 2
+        lucide = resolve_habit_display_lucide(lucide_name=self._lucide_name)
+        if lucide:
+            habit_lucide_icon(lucide, side).paint(painter, x, y, side, side)
+            return
         painter.setPen(_text_primary(palette_for(self)))
         create_emoji_icon(self._glyph, side).paint(painter, x, y, side, side)
 ```
@@ -869,17 +887,25 @@ def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
 ### ⚙️ Method `set_habit`
 
 ```python
-def set_habit(self, habit_id: int, glyph: str | None = None) -> None
+def set_habit(self, habit_id: int, glyph: str | None = None, *, icon_lucide: str = '') -> None
 ```
 
-Style badge from habit ID and optional stored emoji/glyph.
+Style badge from habit ID, optional emoji, and optional Lucide ID.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def set_habit(self, habit_id: int, glyph: str | None = None) -> None:
-        self._bg = habit_accent_color(habit_id)
+def set_habit(self, habit_id: int, glyph: str | None = None, *, icon_lucide: str = "") -> None:
+        lucide = resolve_habit_display_lucide(lucide_name=icon_lucide) or ""
+        self._lucide_name = lucide
+        if lucide:
+            stroke = QColor(habit_lucide_color(lucide))
+            fill = QColor(stroke)
+            fill.setAlpha(38)
+            self._bg = fill
+        else:
+            self._bg = habit_accent_color(habit_id)
         self._glyph = glyph or habit_glyph(habit_id)
         self.update()
 ```
@@ -1066,6 +1092,7 @@ class HabitRow(QFrame):
         *,
         selected: bool,
         emoji: str = "",
+        icon_lucide: str = "",
         allows_number: bool = False,
         week_comments: Sequence[bool] | None = None,
         week_dates: Sequence[date] | None = None,
@@ -1073,7 +1100,7 @@ class HabitRow(QFrame):
         """Populate row content."""
         self._habit_id = habit_id
         self._selected = selected
-        self._icon.set_habit(habit_id, emoji or None)
+        self._icon.set_habit(habit_id, emoji or None, icon_lucide=icon_lucide)
         self._name_label.setText(name)
         self._name_label.setToolTip(name)
         self._meta_label.setText(f"⚡ {total_days} Days   🔥 {streak_days} Days")
@@ -1465,7 +1492,7 @@ def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802
 ### ⚙️ Method `set_habit_data`
 
 ```python
-def set_habit_data(self, habit_id: int, name: str, total_days: int, streak_days: int, week_values: Sequence[int | None], *, selected: bool, emoji: str = '', allows_number: bool = False, week_comments: Sequence[bool] | None = None, week_dates: Sequence[date] | None = None) -> None
+def set_habit_data(self, habit_id: int, name: str, total_days: int, streak_days: int, week_values: Sequence[int | None], *, selected: bool, emoji: str = '', icon_lucide: str = '', allows_number: bool = False, week_comments: Sequence[bool] | None = None, week_dates: Sequence[date] | None = None) -> None
 ```
 
 Populate row content.
@@ -1484,13 +1511,14 @@ def set_habit_data(
         *,
         selected: bool,
         emoji: str = "",
+        icon_lucide: str = "",
         allows_number: bool = False,
         week_comments: Sequence[bool] | None = None,
         week_dates: Sequence[date] | None = None,
     ) -> None:
         self._habit_id = habit_id
         self._selected = selected
-        self._icon.set_habit(habit_id, emoji or None)
+        self._icon.set_habit(habit_id, emoji or None, icon_lucide=icon_lucide)
         self._name_label.setText(name)
         self._name_label.setToolTip(name)
         self._meta_label.setText(f"⚡ {total_days} Days   🔥 {streak_days} Days")

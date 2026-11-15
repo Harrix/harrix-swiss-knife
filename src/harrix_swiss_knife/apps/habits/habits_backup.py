@@ -46,7 +46,7 @@ def export_hsk_habits_json(db_manager: DatabaseManager, *, database_path: str = 
         fields = _habit_export_fields(row)
         if fields is None:
             continue
-        habit_id, name, is_bool, archived, emoji = fields
+        habit_id, name, is_bool, archived, emoji, icon_lucide = fields
         values = values_by_id.get(habit_id, {})
         dates = sorted(values)
         habits.append(
@@ -54,6 +54,7 @@ def export_hsk_habits_json(db_manager: DatabaseManager, *, database_path: str = 
                 "id": habit_id,
                 "name": name,
                 "emoji": emoji,
+                "icon_lucide": icon_lucide,
                 "is_bool": is_bool,
                 "archived": archived,
                 "values": values,
@@ -132,12 +133,12 @@ def _copy_sqlite_snapshot(source: Path, dest: Path) -> None:
             shutil.copy2(sidecar, dest.with_name(dest.name + suffix))
 
 
-def _habit_export_fields(row: list[Any]) -> tuple[int, str, bool | None, bool, str] | None:
-    """Return `(id, name, is_bool, archived, emoji)` from a habits table row."""
+def _habit_export_fields(row: list[Any]) -> tuple[int, str, bool | None, bool, str, str] | None:
+    """Return `(id, name, is_bool, archived, emoji, icon_lucide)` from a habits table row."""
     habit_id_raw = row[0] if row else None
     if habit_id_raw is None:
         return None
-    padded = [*row, None, None, None, None, None]
+    padded = [*row, None, None, None, None, None, None]
     raw_bool = padded[2]
     is_bool = True if raw_bool == _BOOL_TRUE else (False if raw_bool == 0 else None)
     return (
@@ -146,6 +147,7 @@ def _habit_export_fields(row: list[Any]) -> tuple[int, str, bool | None, bool, s
         is_bool,
         padded[3] == _BOOL_TRUE,
         str(padded[4] or "").strip(),
+        str(padded[5] or "").strip(),
     )
 
 

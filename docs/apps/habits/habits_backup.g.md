@@ -54,7 +54,7 @@ def export_hsk_habits_json(db_manager: DatabaseManager, *, database_path: str = 
         fields = _habit_export_fields(row)
         if fields is None:
             continue
-        habit_id, name, is_bool, archived, emoji = fields
+        habit_id, name, is_bool, archived, emoji, icon_lucide = fields
         values = values_by_id.get(habit_id, {})
         dates = sorted(values)
         habits.append(
@@ -62,6 +62,7 @@ def export_hsk_habits_json(db_manager: DatabaseManager, *, database_path: str = 
                 "id": habit_id,
                 "name": name,
                 "emoji": emoji,
+                "icon_lucide": icon_lucide,
                 "is_bool": is_bool,
                 "archived": archived,
                 "values": values,

@@ -20,12 +20,17 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.common import message_box
+from harrix_swiss_knife.apps.common.lucide_picker_dialog import LucideChoiceRow
 from harrix_swiss_knife.apps.habits.habit_emoji_ai import request_habit_emoji_suggestion
 from harrix_swiss_knife.apps.habits.habit_emoji_picker_dialog import HabitEmojiPickerDialog
 from harrix_swiss_knife.apps.habits.habit_emojis import (
     HABIT_EMOJI_PRESETS,
     capitalize_habit_name,
     normalize_habit_emoji,
+)
+from harrix_swiss_knife.apps.habits.habit_icon_display import (
+    HABIT_LUCIDE_PRESETS,
+    normalize_habit_lucide_name,
 )
 from harrix_swiss_knife.integrations.bothub import BothubRequestState
 from harrix_swiss_knife.paths import get_config_path_str
@@ -36,7 +41,7 @@ from harrix_swiss_knife.qt_lucide_icon import (
 
 
 class HabitEditDialog(QDialog):
-    """Create or edit habit name, boolean flag, and emoji."""
+    """Create or edit habit name, boolean flag, emoji, and Lucide icon."""
 
     def __init__(
         self,
@@ -46,6 +51,7 @@ class HabitEditDialog(QDialog):
         name: str = "",
         is_bool: bool = True,
         emoji: str = "",
+        icon_lucide: str = "",
         habit_id: int | None = None,
         app_config: dict[str, Any] | None = None,
     ) -> None:
@@ -58,14 +64,16 @@ class HabitEditDialog(QDialog):
         - `name` (`str`): Initial habit name. Defaults to `""`.
         - `is_bool` (`bool`): Initial boolean habit flag. Defaults to `True`.
         - `emoji` (`str`): Initial emoji. Defaults to `""`.
+        - `icon_lucide` (`str`): Initial Lucide icon ID. Defaults to `""`.
         - `habit_id` (`int | None`): Habit ID used for emoji fallback. Defaults to `None`.
-        - `app_config` (`dict[str, Any] | None`): App config for AI emoji suggestions.
+        - `app_config` (`dict[str, Any] | None`): App config for AI suggestions.
           Defaults to `None` (load `config.json`).
 
         """
         super().__init__(parent)
         qt_modality.set_owner_window_modal(self)
         self.setWindowTitle(title)
+        self.setMinimumWidth(440)
         self._habit_id = habit_id
         self._emoji = normalize_habit_emoji(emoji, habit_id=habit_id)
         self._app_config = app_config if app_config is not None else h.dev.config_load(get_config_path_str())
@@ -103,6 +111,17 @@ class HabitEditDialog(QDialog):
         emoji_row.addStretch(1)
         form.addRow("Emoji:", emoji_row)
 
+        self._lucide_row = LucideChoiceRow(
+            self,
+            current_name=normalize_habit_lucide_name(icon_lucide),
+            presets=HABIT_LUCIDE_PRESETS,
+            allow_empty=True,
+            app_config=self._app_config,
+            bothub_state=self._bothub_state,
+            suggest_query_provider=self.habit_name,
+        )
+        form.addRow("Lucide:", self._lucide_row)
+
         root.addLayout(form)
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
@@ -122,6 +141,10 @@ class HabitEditDialog(QDialog):
     def habit_emoji(self) -> str:
         """Return the selected emoji."""
         return normalize_habit_emoji(self._emoji, habit_id=self._habit_id)
+
+    def habit_icon_lucide(self) -> str:
+        """Return the selected Lucide icon ID (empty when Auto / cleared)."""
+        return normalize_habit_lucide_name(self._lucide_row.lucide_name())
 
     def habit_is_bool(self) -> bool:
         """Return whether the habit is boolean."""

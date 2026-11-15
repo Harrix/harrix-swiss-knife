@@ -16,6 +16,7 @@ from harrix_swiss_knife.apps.habits.habit_emojis import (
     default_habit_emoji,
     normalize_habit_emoji,
 )
+from harrix_swiss_knife.apps.habits.habit_icon_display import lucide_name_for_habit_emoji
 
 RECOVER_SQL = Path(__file__).resolve().parents[1] / "src/harrix_swiss_knife/apps/habits/recover.sql"
 
@@ -127,12 +128,36 @@ def test_add_habit_with_emoji(habits_db: DatabaseManager) -> None:
     """Insert stores the provided emoji and returns it in getters."""
     assert habits_db.add_habit("Walk", is_bool=True, emoji="🚶")
     row = habits_db.get_habits()[0]
-    assert len(row) == 5
+    assert len(row) == 6
     assert row[1] == "Walk"
     assert row[4] == "🚶"
+    assert row[5] == ""
     by_id = habits_db.get_habit_by_id(int(row[0]))
     assert by_id is not None
     assert by_id[4] == "🚶"
+    assert by_id[5] == ""
+
+
+def test_add_habit_with_lucide(habits_db: DatabaseManager) -> None:
+    """Insert stores optional Lucide id alongside emoji."""
+    assert habits_db.add_habit("Walk", is_bool=True, emoji="🚶", icon_lucide="footprints")
+    row = habits_db.get_habits()[0]
+    assert row[4] == "🚶"
+    assert row[5] == "footprints"
+
+
+def test_update_habit_lucide(habits_db: DatabaseManager) -> None:
+    """Update can set and clear the Lucide icon."""
+    assert habits_db.add_habit("Walk", is_bool=True, emoji="🚶", icon_lucide="footprints")
+    habit_id = int(habits_db.get_habits()[0][0])
+    assert habits_db.update_habit(habit_id, "Walk", is_bool=True, icon_lucide="bike")
+    updated = habits_db.get_habit_by_id(habit_id)
+    assert updated is not None
+    assert updated[5] == "bike"
+    assert habits_db.update_habit(habit_id, "Walk", is_bool=True, icon_lucide="")
+    cleared = habits_db.get_habit_by_id(habit_id)
+    assert cleared is not None
+    assert cleared[5] == ""
 
 
 def test_add_habit_assigns_default_emoji_when_empty(habits_db: DatabaseManager) -> None:
@@ -168,8 +193,65 @@ def test_ensure_habits_schema_adds_and_backfills_emoji(tmp_path: Path, qapp: QAp
         assert db.ensure_habits_schema()
         cols = {str(row[1]) for row in db.get_rows("PRAGMA table_info(habits)") if len(row) > 1}
         assert "emoji" in cols
+        assert "icon_lucide" in cols
         row = db.get_habits()[0]
         habit_id = int(row[0])
         assert row[4] == default_habit_emoji(habit_id)
+        expected_lucide = lucide_name_for_habit_emoji(str(row[4]))
+        assert row[5] == (expected_lucide or "")
     finally:
         db.close()
+
+
+def test_ensure_habits_schema_backfills_lucide_from_emoji(tmp_path: Path, qapp: QApplication) -> None:  # noqa: ARG001
+    """First migration of icon_lucide maps known emoji to Lucide ids."""
+    sql_path = tmp_path / "old_habits.sql"
+    sql_path.write_text(
+        """
+        CREATE TABLE "habits" (
+            "_id" INTEGER NOT NULL,
+            "name" TEXT NOT NULL,
+            "is_bool" INTEGER,
+            "is_archived" INTEGER NOT NULL DEFAULT 0,
+            "emoji" TEXT NOT NULL DEFAULT '',
+            "sort_order" INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY("_id" AUTOINCREMENT)
+        );
+        CREATE TABLE "process_habits" (
+            "_id" INTEGER NOT NULL,
+            "_id_habit" INTEGER NOT NULL,
+            "value" INTEGER NOT NULL,
+            "date" TEXT NOT NULL,
+            PRIMARY KEY("_id" AUTOINCREMENT)
+        );
+        """,
+        encoding="utf-8",
+    )
+    db_path = tmp_path / "old_habits.sqlite"
+    assert DatabaseManager.create_database_from_sql(str(db_path), str(sql_path))
+    db = DatabaseManager(str(db_path))
+    try:
+        assert db.execute_simple_query(
+            "INSERT INTO habits (name, is_bool, is_archived, emoji, sort_order) "
+            "VALUES (:name, :is_bool, :is_archived, :emoji, :sort_order)",
+            {"name": "Walk", "is_bool": 1, "is_archived": 0, "emoji": "🚶", "sort_order": 0},
+        )
+        assert db.ensure_habits_schema()
+        row = db.get_habits()[0]
+        assert row[4] == "🚶"
+        assert row[5] == "footprints"
+        assert db.update_habit(int(row[0]), "Walk", is_bool=True, icon_lucide="")
+        assert db.ensure_habits_schema()
+        cleared = db.get_habit_by_id(int(row[0]))
+        assert cleared is not None
+        assert cleared[5] == ""
+    finally:
+        db.close()
+
+
+def test_habit_edit_dialog_exposes_lucide(qapp: QApplication) -> None:  # noqa: ARG001
+    """Edit dialog returns the chosen Lucide id."""
+    dialog = HabitEditDialog(title="Edit Habit", name="Walk", emoji="🚶", icon_lucide="footprints")
+    assert dialog.habit_icon_lucide() == "footprints"
+    dialog._lucide_row.set_lucide_name("")
+    assert dialog.habit_icon_lucide() == ""

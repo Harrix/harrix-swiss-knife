@@ -15,6 +15,7 @@ lang: en
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `accept`](#%EF%B8%8F-method-accept)
   - [⚙️ Method `habit_emoji`](#%EF%B8%8F-method-habit_emoji)
+  - [⚙️ Method `habit_icon_lucide`](#%EF%B8%8F-method-habit_icon_lucide)
   - [⚙️ Method `habit_is_bool`](#%EF%B8%8F-method-habit_is_bool)
   - [⚙️ Method `habit_name`](#%EF%B8%8F-method-habit_name)
 
@@ -26,7 +27,7 @@ lang: en
 class HabitEditDialog(QDialog)
 ```
 
-Create or edit habit name, boolean flag, and emoji.
+Create or edit habit name, boolean flag, emoji, and Lucide icon.
 
 <details>
 <summary>Code:</summary>
@@ -42,6 +43,7 @@ class HabitEditDialog(QDialog):
         name: str = "",
         is_bool: bool = True,
         emoji: str = "",
+        icon_lucide: str = "",
         habit_id: int | None = None,
         app_config: dict[str, Any] | None = None,
     ) -> None:
@@ -54,14 +56,16 @@ class HabitEditDialog(QDialog):
         - `name` (`str`): Initial habit name. Defaults to `""`.
         - `is_bool` (`bool`): Initial boolean habit flag. Defaults to `True`.
         - `emoji` (`str`): Initial emoji. Defaults to `""`.
+        - `icon_lucide` (`str`): Initial Lucide icon ID. Defaults to `""`.
         - `habit_id` (`int | None`): Habit ID used for emoji fallback. Defaults to `None`.
-        - `app_config` (`dict[str, Any] | None`): App config for AI emoji suggestions.
+        - `app_config` (`dict[str, Any] | None`): App config for AI suggestions.
           Defaults to `None` (load `config.json`).
 
         """
         super().__init__(parent)
         qt_modality.set_owner_window_modal(self)
         self.setWindowTitle(title)
+        self.setMinimumWidth(440)
         self._habit_id = habit_id
         self._emoji = normalize_habit_emoji(emoji, habit_id=habit_id)
         self._app_config = app_config if app_config is not None else h.dev.config_load(get_config_path_str())
@@ -99,6 +103,17 @@ class HabitEditDialog(QDialog):
         emoji_row.addStretch(1)
         form.addRow("Emoji:", emoji_row)
 
+        self._lucide_row = LucideChoiceRow(
+            self,
+            current_name=normalize_habit_lucide_name(icon_lucide),
+            presets=HABIT_LUCIDE_PRESETS,
+            allow_empty=True,
+            app_config=self._app_config,
+            bothub_state=self._bothub_state,
+            suggest_query_provider=self.habit_name,
+        )
+        form.addRow("Lucide:", self._lucide_row)
+
         root.addLayout(form)
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
@@ -118,6 +133,10 @@ class HabitEditDialog(QDialog):
     def habit_emoji(self) -> str:
         """Return the selected emoji."""
         return normalize_habit_emoji(self._emoji, habit_id=self._habit_id)
+
+    def habit_icon_lucide(self) -> str:
+        """Return the selected Lucide icon ID (empty when Auto / cleared)."""
+        return normalize_habit_lucide_name(self._lucide_row.lucide_name())
 
     def habit_is_bool(self) -> bool:
         """Return whether the habit is boolean."""
@@ -166,7 +185,7 @@ class HabitEditDialog(QDialog):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QWidget | None = None, *, title: str = 'Add Habit', name: str = '', is_bool: bool = True, emoji: str = '', habit_id: int | None = None, app_config: dict[str, Any] | None = None) -> None
+def __init__(self, parent: QWidget | None = None, *, title: str = 'Add Habit', name: str = '', is_bool: bool = True, emoji: str = '', icon_lucide: str = '', habit_id: int | None = None, app_config: dict[str, Any] | None = None) -> None
 ```
 
 Initialize the habit edit dialog.
@@ -178,8 +197,9 @@ Args:
 - `name` (`str`): Initial habit name. Defaults to `""`.
 - `is_bool` (`bool`): Initial boolean habit flag. Defaults to `True`.
 - [`emoji`](../common/emoji_picker_dialog.g.md#%EF%B8%8F-method-emoji) (`str`): Initial emoji. Defaults to `""`.
+- `icon_lucide` (`str`): Initial Lucide icon ID. Defaults to `""`.
 - [`habit_id`](dashboard_widgets.g.md#%EF%B8%8F-method-habit_id) (`int | None`): Habit ID used for emoji fallback. Defaults to `None`.
-- `app_config` (`dict[str, Any] | None`): App config for AI emoji suggestions.
+- `app_config` (`dict[str, Any] | None`): App config for AI suggestions.
   Defaults to `None` (load `config.json`).
 
 <details>
@@ -194,12 +214,14 @@ def __init__(
         name: str = "",
         is_bool: bool = True,
         emoji: str = "",
+        icon_lucide: str = "",
         habit_id: int | None = None,
         app_config: dict[str, Any] | None = None,
     ) -> None:
         super().__init__(parent)
         qt_modality.set_owner_window_modal(self)
         self.setWindowTitle(title)
+        self.setMinimumWidth(440)
         self._habit_id = habit_id
         self._emoji = normalize_habit_emoji(emoji, habit_id=habit_id)
         self._app_config = app_config if app_config is not None else h.dev.config_load(get_config_path_str())
@@ -236,6 +258,17 @@ def __init__(
         emoji_row.addWidget(self._ai_emoji_button)
         emoji_row.addStretch(1)
         form.addRow("Emoji:", emoji_row)
+
+        self._lucide_row = LucideChoiceRow(
+            self,
+            current_name=normalize_habit_lucide_name(icon_lucide),
+            presets=HABIT_LUCIDE_PRESETS,
+            allow_empty=True,
+            app_config=self._app_config,
+            bothub_state=self._bothub_state,
+            suggest_query_provider=self.habit_name,
+        )
+        form.addRow("Lucide:", self._lucide_row)
 
         root.addLayout(form)
 
@@ -284,6 +317,24 @@ Return the selected emoji.
 ```python
 def habit_emoji(self) -> str:
         return normalize_habit_emoji(self._emoji, habit_id=self._habit_id)
+```
+
+</details>
+
+### ⚙️ Method `habit_icon_lucide`
+
+```python
+def habit_icon_lucide(self) -> str
+```
+
+Return the selected Lucide icon ID (empty when Auto / cleared).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def habit_icon_lucide(self) -> str:
+        return normalize_habit_lucide_name(self._lucide_row.lucide_name())
 ```
 
 </details>
