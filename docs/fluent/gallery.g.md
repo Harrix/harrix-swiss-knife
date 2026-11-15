@@ -38,6 +38,7 @@ def build_gallery() -> fw.FluentNavigationWindow:
     theme_button.clicked.connect(lambda: _toggle_gallery_theme(theme_button))
     window.resize(*_GALLERY_SIZE)
     pages = (
+        ("apps", "Apps chrome", "app-window", _apps_chrome_page()),
         ("basic", "Basic input", "mouse-pointer-click", _basic_page()),
         ("text", "Text and selection", "text-cursor-input", _text_page()),
         ("display", "Status and info", "info", _display_page()),

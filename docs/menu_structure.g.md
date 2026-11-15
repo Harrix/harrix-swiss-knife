@@ -29,6 +29,7 @@ def get_menu_structure() -> list[Any]:
                 OnCreateDesktopShortcut,
                 OnUninstall,
                 OnDownloadOptimizeDependencies,
+                OnUpdateLucideIcons,
                 OnBuildInstallZips,
                 OnUpdateNode,
                 OnNpmManagePackages,

@@ -477,6 +477,13 @@ def apply_menu_icon_size(menu: QMenu, icon_size: int = DEFAULT_LUCIDE_MENU_ICON_
     menu.setProperty("_harrix_menu_icon_size", icon_size)
 
 
+def clear_lucide_icon_caches() -> None:
+    """Drop painted-icon and name-list caches after refreshing SVG assets."""
+    global _LUCIDE_NAME_LIST  # noqa: PLW0603
+    _CACHE.clear()
+    _LUCIDE_NAME_LIST = None
+
+
 def create_ai_lucide_icon(size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE) -> QIcon:
     """Create the shared AI chrome icon (`sparkles` in `#3a78bc`)."""
     return create_lucide_icon(AI_BUTTON_ICON, size, color=AI_BUTTON_ICON_COLOR)
@@ -626,13 +633,6 @@ def is_delete_like_button_label(label: str) -> bool:
     if folded.startswith(("delete ", "remove ", "discard ")):
         return True
     return is_clear_like_button_label(label)
-
-
-def clear_lucide_icon_caches() -> None:
-    """Drop painted-icon and name-list caches after refreshing SVG assets."""
-    global _LUCIDE_NAME_LIST  # noqa: PLW0603
-    _CACHE.clear()
-    _LUCIDE_NAME_LIST = None
 
 
 def list_lucide_icon_names() -> tuple[str, ...]:

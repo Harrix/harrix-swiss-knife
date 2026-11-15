@@ -21,6 +21,7 @@ lang: en
 - [🔧 Function `apply_lucide_button_icon`](#-function-apply_lucide_button_icon)
 - [🔧 Function `apply_lucide_dialog_buttons`](#-function-apply_lucide_dialog_buttons)
 - [🔧 Function `apply_menu_icon_size`](#-function-apply_menu_icon_size)
+- [🔧 Function `clear_lucide_icon_caches`](#-function-clear_lucide_icon_caches)
 - [🔧 Function `create_ai_lucide_icon`](#-function-create_ai_lucide_icon)
 - [🔧 Function `create_lucide_icon`](#-function-create_lucide_icon)
 - [🔧 Function `install_line_edit_clear_button`](#-function-install_line_edit_clear_button)
@@ -349,6 +350,26 @@ def apply_menu_icon_size(menu: QMenu, icon_size: int = DEFAULT_LUCIDE_MENU_ICON_
     style.setParent(menu)
     menu.setStyle(style)
     menu.setProperty("_harrix_menu_icon_size", icon_size)
+```
+
+</details>
+
+## 🔧 Function `clear_lucide_icon_caches`
+
+```python
+def clear_lucide_icon_caches() -> None
+```
+
+Drop painted-icon and name-list caches after refreshing SVG assets.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def clear_lucide_icon_caches() -> None:
+    global _LUCIDE_NAME_LIST  # noqa: PLW0603
+    _CACHE.clear()
+    _LUCIDE_NAME_LIST = None
 ```
 
 </details>

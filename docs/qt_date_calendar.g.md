@@ -547,24 +547,26 @@ class SoftCalendarWidget(QCalendarWidget):
         chip_hover_text_s = css(chip_hover_text)
         footer_link_s = css(self._c_footer_link)
         weekday_s = css(self._c_weekday)
+        # Use the concrete class name so FluentCalendar (and other subclasses) match.
+        host = type(self).__name__
 
         self.setStyleSheet(
             f"""
-            SoftCalendarWidget {{
+            {host} {{
                 background: {surface_s};
                 border: 1px solid {border_s};
                 border-radius: 8px;
             }}
-            SoftCalendarWidget QWidget#hskCalendarHeader,
-            SoftCalendarWidget QWidget#hskCalendarFooter,
-            SoftCalendarWidget QWidget#hskCalendarWeekdays,
-            SoftCalendarWidget QWidget#hskCalendarYearPanel,
-            SoftCalendarWidget QWidget#hskCalendarMonthPanel,
-            SoftCalendarWidget QWidget#hskCalendarTitle {{
+            {host} QWidget#hskCalendarHeader,
+            {host} QWidget#hskCalendarFooter,
+            {host} QWidget#hskCalendarWeekdays,
+            {host} QWidget#hskCalendarYearPanel,
+            {host} QWidget#hskCalendarMonthPanel,
+            {host} QWidget#hskCalendarTitle {{
                 background: {surface_s};
                 border: none;
             }}
-            SoftCalendarWidget QAbstractItemView {{
+            {host} QAbstractItemView {{
                 background: {surface_s};
                 outline: none;
                 border: none;

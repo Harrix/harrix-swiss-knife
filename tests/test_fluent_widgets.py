@@ -78,7 +78,19 @@ def test_gallery_builds_and_toggles_theme(qapp: QApplication, light_theme: Fluen
     assert is_fluent_themed(window)
     assert palette_for(window) is LIGHT_PALETTE
 
-    for key in ("basic", "text", "display", "cards", "navigation", "views", "dialogs", "pickers", "editors"):
+    for key in (
+        "apps",
+        "basic",
+        "text",
+        "display",
+        "cards",
+        "navigation",
+        "views",
+        "dialogs",
+        "pickers",
+        "editors",
+        "system",
+    ):
         window.show_page(key)
         qapp.processEvents()
         assert window.navigation.current() == key

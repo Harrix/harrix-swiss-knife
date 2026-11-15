@@ -87,6 +87,7 @@ _Figure 1: Screenshot_
   - 📦 Transfer private data ꟲᴸᴵ
   - 🗑️ Uninstall Harrix Swiss Knife…
   - ⬆️ ★ Update Harrix Swiss Knife from GitHub…
+  - ⬇️ Update Lucide icons
   - 📥 Update Node.js
   - 📥 Update uv
   - 📦 Update/Install global NPM packages

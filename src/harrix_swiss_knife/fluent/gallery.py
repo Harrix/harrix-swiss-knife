@@ -1,6 +1,10 @@
-"""Gallery of every Fluent widget, grouped by category.
+"""Gallery of Fluent widgets plus Apps chrome samples used in trackers.
 
 Run with `python -m harrix_swiss_knife.fluent.gallery`.
+
+The **Apps chrome** page mirrors soft-blue tokens, SoftCalendar, and button
+helpers from `apps/common/ui_chrome` so the gallery matches tracker apps.
+Other pages keep the Fluent widget catalog.
 
 Showcase controls use the app-wide middle-click identity menu to copy object
 or class name (same gesture as elsewhere in the app).
@@ -14,14 +18,47 @@ from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QDate, QPointF, QRectF, QStringListModel, Qt, QTime, QTimer
 from PySide6.QtGui import QPixmap
-from PySide6.QtWidgets import QApplication, QLabel, QTableWidgetItem, QTreeWidgetItem, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QApplication,
+    QCheckBox,
+    QDateEdit,
+    QLabel,
+    QLineEdit,
+    QListWidget,
+    QPushButton,
+    QRadioButton,
+    QTableWidgetItem,
+    QTreeWidgetItem,
+    QVBoxLayout,
+    QWidget,
+)
 
+from harrix_swiss_knife.apps.common.date_edit_quick import (
+    attach_date_edit_quick_controls,
+    match_date_edit_form_height,
+)
+from harrix_swiss_knife.apps.common.ui_chrome import (
+    SELECTION_BORDER,
+    apply_soft_item_selection,
+    button_cta_cyan_qss,
+    button_danger_qss,
+    button_idle_qss,
+    button_primary_qss,
+    button_secondary_qss,
+    button_success_qss,
+    drop_zone_qss,
+    list_view_panel_qss,
+    muted_caption_qss,
+    soft_field_qss,
+)
 from harrix_swiss_knife.fluent import widgets as fw
 from harrix_swiss_knife.fluent.system import ScreenCaptureManager, exponential_blur
 from harrix_swiss_knife.fluent.theme import FluentTheme, ThemeMode
 from harrix_swiss_knife.fluent.tokens import SPACE_L, SPACE_M, SPACE_XL
 from harrix_swiss_knife.qt_app_font import install_app_fonts
+from harrix_swiss_knife.qt_date_calendar import SoftCalendarWidget
 from harrix_swiss_knife.qt_flow_layout import FlowLayout
+from harrix_swiss_knife.qt_lucide_icon import apply_lucide_button_icon
 from harrix_swiss_knife.qt_widget_identity_menu import install_widget_identity_context_menus
 
 if TYPE_CHECKING:
@@ -45,6 +82,7 @@ def build_gallery() -> fw.FluentNavigationWindow:
     theme_button.clicked.connect(lambda: _toggle_gallery_theme(theme_button))
     window.resize(*_GALLERY_SIZE)
     pages = (
+        ("apps", "Apps chrome", "app-window", _apps_chrome_page()),
         ("basic", "Basic input", "mouse-pointer-click", _basic_page()),
         ("text", "Text and selection", "text-cursor-input", _text_page()),
         ("display", "Status and info", "info", _display_page()),
@@ -63,6 +101,79 @@ def build_gallery() -> fw.FluentNavigationWindow:
     fab = fw.FluentFloatButton("plus", window, tooltip="Floating action")
     _register_showcase(fab, "fluentFloatButton")
     return window
+
+
+def _app_button(text: str, stylesheet: str, *, icon: str | None = None) -> QPushButton:
+    """Build a tracker-style `QPushButton` with optional Lucide icon."""
+    button = QPushButton(text)
+    button.setStyleSheet(stylesheet)
+    if icon is not None:
+        apply_lucide_button_icon(button, icon)
+    return button
+
+
+def _apps_chrome_page() -> QWidget:
+    """Soft-blue tracker chrome: buttons, SoftCalendar, date field, lists, drop zone."""
+    note = fw.BodyLabel(
+        "Patterns from apps/common/ui_chrome and SoftCalendar — what finance / food / "
+        "habits / fitness actually use (not Fluent-only catalog widgets)."
+    )
+
+    date_edit = QDateEdit()
+    date_edit.setDisplayFormat("yyyy-MM-dd")
+    date_edit.setDate(QDate.currentDate())
+    attach_date_edit_quick_controls(date_edit)
+
+    name_edit = QLineEdit()
+    name_edit.setPlaceholderText("Name / amount peer")
+    name_edit.setStyleSheet(soft_field_qss("QLineEdit"))
+    match_date_edit_form_height(date_edit, name_edit)
+
+    calendar = SoftCalendarWidget()
+
+    soft_list = QListWidget()
+    soft_list.addItems(["Income", "Expense", "Transfer", "Exchange"])
+    soft_list.setCurrentRow(1)
+    soft_list.setFixedHeight(140)
+    soft_list.setStyleSheet(list_view_panel_qss(border_color=SELECTION_BORDER))
+    apply_soft_item_selection(soft_list)
+
+    drop = QLabel("Drop files here")
+    drop.setAlignment(Qt.AlignmentFlag.AlignCenter)
+    drop.setMinimumHeight(88)
+    drop.setStyleSheet(drop_zone_qss())
+
+    caption = QLabel("Muted caption · list context")
+    caption.setStyleSheet(muted_caption_qss())
+
+    check = QCheckBox("Include archived")
+    radio = QRadioButton("This month")
+    radio.setChecked(True)
+
+    return _page(
+        "Apps chrome",
+        [
+            _section("Note", note, flow=False),
+            _section(
+                "Tracker buttons (ui_chrome)",
+                _app_button("Add", button_cta_cyan_qss(), icon="plus"),
+                _app_button("Primary", button_primary_qss()),
+                _app_button("Secondary", button_secondary_qss()),
+                _app_button("Idle / Cancel", button_idle_qss()),
+                _app_button("Success", button_success_qss(), icon="check"),
+                _app_button("Danger", button_danger_qss(), icon="trash-2"),
+            ),
+            _section(
+                "Date field (SoftCalendar popup)",
+                name_edit,
+                date_edit,
+            ),
+            _section("SoftCalendar (inline)", calendar, flow=False),
+            _section("Soft list selection", soft_list, flow=False),
+            _section("Form chrome", check, radio, caption),
+            _section("Drop zone", drop, flow=False),
+        ],
+    )
 
 
 def _basic_page() -> QWidget:
@@ -347,19 +458,30 @@ def _page(title: str, sections: list[QWidget]) -> QWidget:
 
 
 def _pickers_page() -> QWidget:
+    """Lead with SoftCalendar / QDateEdit (apps), then Fluent-only rollers."""
+    date_edit = QDateEdit()
+    date_edit.setDisplayFormat("yyyy-MM-dd")
+    date_edit.setDate(QDate.currentDate())
+    attach_date_edit_quick_controls(date_edit)
+
     return _page(
         "Date and time",
         [
             _section(
-                "Pickers",
+                "Apps date field (SoftCalendar popup)",
+                date_edit,
+            ),
+            _section("Apps SoftCalendar (inline)", SoftCalendarWidget(), flow=False),
+            _section(
+                "Fluent calendar picker (also SoftCalendar)",
                 fw.FluentCalendarPicker(date=QDate.currentDate()),
+                fw.FluentCalendar(),
+            ),
+            _section(
+                "Fluent rollers (catalog only)",
                 fw.FluentDatePicker(),
                 fw.FluentTimePicker(time=QTime(9, 30)),
-            ),
-            _section("Calendar", fw.FluentCalendar(), flow=False),
-            _section("Roller", fw.FluentRoller(items=[str(value) for value in range(1, 31)], looping=True)),
-            _section(
-                "Roller picker",
+                fw.FluentRoller(items=[str(value) for value in range(1, 31)], looping=True),
                 fw.FluentRollerPicker(columns=(["A", "B", "C"], ["1", "2", "3"]), placeholder="Pick pair"),
             ),
         ],
