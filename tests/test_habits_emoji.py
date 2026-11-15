@@ -242,9 +242,63 @@ def test_ensure_habits_schema_backfills_lucide_from_emoji(tmp_path: Path, qapp: 
         assert row[5] == "footprints"
         assert db.update_habit(int(row[0]), "Walk", is_bool=True, icon_lucide="")
         assert db.ensure_habits_schema()
-        cleared = db.get_habit_by_id(int(row[0]))
-        assert cleared is not None
-        assert cleared[5] == ""
+        refilled = db.get_habit_by_id(int(row[0]))
+        assert refilled is not None
+        # Empty Lucide is refilled from the emoji map on ensure.
+        assert refilled[5] == "footprints"
+    finally:
+        db.close()
+
+
+def test_ensure_habits_schema_backfills_extra_custom_emojis(tmp_path: Path, qapp: QApplication) -> None:  # noqa: ARG001
+    """Custom habit emoji outside the original presets still get Lucide ids."""
+    sql_path = tmp_path / "old_habits.sql"
+    sql_path.write_text(
+        """
+        CREATE TABLE "habits" (
+            "_id" INTEGER NOT NULL,
+            "name" TEXT NOT NULL,
+            "is_bool" INTEGER,
+            "is_archived" INTEGER NOT NULL DEFAULT 0,
+            "emoji" TEXT NOT NULL DEFAULT '',
+            "icon_lucide" TEXT NOT NULL DEFAULT '',
+            "sort_order" INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY("_id" AUTOINCREMENT)
+        );
+        CREATE TABLE "process_habits" (
+            "_id" INTEGER NOT NULL,
+            "_id_habit" INTEGER NOT NULL,
+            "value" INTEGER NOT NULL,
+            "date" TEXT NOT NULL,
+            PRIMARY KEY("_id" AUTOINCREMENT)
+        );
+        """,
+        encoding="utf-8",
+    )
+    db_path = tmp_path / "old_habits.sqlite"
+    assert DatabaseManager.create_database_from_sql(str(db_path), str(sql_path))
+    db = DatabaseManager(str(db_path))
+    try:
+        for name, emoji, expected in (
+            ("Birthdays", "🎂", "cake"),
+            ("English", "🗽", "landmark"),
+            ("DbD", "🎮", "gamepad-2"),
+            ("Nose", "👃", "wind"),
+            ("Eyes", "👁️", "eye"),
+        ):
+            assert db.execute_simple_query(
+                "INSERT INTO habits (name, is_bool, is_archived, emoji, icon_lucide, sort_order) "
+                "VALUES (:name, 1, 0, :emoji, '', 0)",
+                {"name": name, "emoji": emoji},
+            )
+            assert expected == lucide_name_for_habit_emoji(emoji)
+        assert db.ensure_habits_schema()
+        by_name = {str(row[1]): str(row[5]) for row in db.get_habits()}
+        assert by_name["Birthdays"] == "cake"
+        assert by_name["English"] == "landmark"
+        assert by_name["DbD"] == "gamepad-2"
+        assert by_name["Nose"] == "wind"
+        assert by_name["Eyes"] == "eye"
     finally:
         db.close()
 

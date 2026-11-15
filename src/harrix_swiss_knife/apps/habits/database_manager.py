@@ -198,11 +198,10 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
                 "ALTER TABLE habits ADD COLUMN emoji TEXT NOT NULL DEFAULT ''"
             ):
                 return False
-            added_icon_lucide = False
-            if "icon_lucide" not in existing:
-                if not self.execute_simple_query("ALTER TABLE habits ADD COLUMN icon_lucide TEXT NOT NULL DEFAULT ''"):
-                    return False
-                added_icon_lucide = True
+            if "icon_lucide" not in existing and not self.execute_simple_query(
+                "ALTER TABLE habits ADD COLUMN icon_lucide TEXT NOT NULL DEFAULT ''"
+            ):
+                return False
             if "sort_order" not in existing:
                 if not self.execute_simple_query("ALTER TABLE habits ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0"):
                     return False
@@ -210,8 +209,8 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
                     return False
             if not self._backfill_habit_emojis():
                 return False
-            # Only when the column is first added — empty later means "show emoji".
-            lucide_ok = True if not added_icon_lucide else self._backfill_habit_lucide_icons()
+            # Fill empty Lucide from the emoji map (including newly added mappings).
+            lucide_ok = self._backfill_habit_lucide_icons()
         except Exception:
             logger.exception("Failed to ensure habits schema")
             return False

@@ -33,6 +33,10 @@ def test_popular_habit_emojis_map_to_lucide() -> None:
     assert lucide_name_for_habit_emoji("🚶") == "footprints"
     assert lucide_name_for_habit_emoji("📚") == "library"
     assert lucide_name_for_habit_emoji("☕") == "coffee"
+    assert lucide_name_for_habit_emoji("🎂") == "cake"
+    assert lucide_name_for_habit_emoji("👃") == "wind"
+    assert lucide_name_for_habit_emoji("🗽") == "landmark"
+    assert lucide_name_for_habit_emoji("💉") == "syringe"
     assert lucide_name_for_habit_emoji("") is None
 
 

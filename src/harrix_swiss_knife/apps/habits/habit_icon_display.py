@@ -2,8 +2,8 @@
 
 The database keeps emoji in `habits.emoji`. Optional `icon_lucide` stores an
 explicit Lucide ID from the habit editor. When `icon_lucide` is empty, UI shows
-the emoji glyph (no auto-map at paint time). Existing rows are backfilled from
-`HABIT_EMOJI_TO_LUCIDE` once at schema ensure.
+the emoji glyph (no auto-map at paint time). Schema ensure backfills empty
+`icon_lucide` from `HABIT_EMOJI_TO_LUCIDE` when a mapping exists.
 
 """
 
@@ -29,7 +29,7 @@ from harrix_swiss_knife.qt_lucide_icon import (
 _HABIT_GOLD = "#c49a2a"
 _HABIT_CYAN = "#3d8fad"
 
-# Popular habit emoji presets → Lucide id (used for backfill / picker presets).
+# Habit emoji → Lucide id (presets + common custom habit glyphs for backfill).
 HABIT_EMOJI_TO_LUCIDE: dict[str, str] = {
     "✅": "circle-check",
     "🏃": "person-standing",
@@ -37,6 +37,7 @@ HABIT_EMOJI_TO_LUCIDE: dict[str, str] = {
     "🚴": "bike",
     "🏋️": "dumbbell",
     "🧘": "leaf",
+    "🤸": "activity",
     "💧": "droplet",
     "🥗": "salad",
     "🍎": "apple",
@@ -50,7 +51,12 @@ HABIT_EMOJI_TO_LUCIDE: dict[str, str] = {
     "🧹": "broom",
     "🧺": "shopping-basket",
     "💊": "pill",
+    "💉": "syringe",
     "🦷": "smile",
+    "👃": "wind",
+    "👄": "mouth",
+    "👁️": "eye",
+    "👁": "eye",
     "🧴": "bath",
     "🎧": "headphones",
     "🎸": "music",
@@ -73,12 +79,33 @@ HABIT_EMOJI_TO_LUCIDE: dict[str, str] = {
     "🗓️": "calendar",
     "⏰": "clock",
     "📝": "notebook-pen",
+    "📓": "notebook",
     "📖": "book-open",
+    "📕": "book",
     "🧩": "puzzle",
     "🎮": "gamepad-2",
     "⚽": "volleyball",
     "🎾": "circle",
     "🏊": "waves",
+    "🎂": "cake",
+    "🧁": "cupcake",
+    "🎉": "party-popper",
+    "🗽": "landmark",
+    "🌐": "globe",
+    "🔤": "languages",
+    "🇬🇧": "languages",
+    "🇺🇸": "languages",
+    "🔨": "hammer",
+    "🔧": "wrench",
+    "🛠️": "wrench",
+    "🧰": "hammer",
+    "🖨️": "printer",
+    "💼": "briefcase",
+    "🏢": "building-2",
+    "💪": "dumbbell",
+    "🤒": "thermometer",
+    "🏥": "hospital",
+    "😷": "shield-plus",
 }
 
 HABIT_LUCIDE_PRESETS: tuple[str, ...] = tuple(dict.fromkeys([*sorted(HABIT_EMOJI_TO_LUCIDE.values()), "circle-check"]))
@@ -105,7 +132,11 @@ HABIT_LUCIDE_COLORS: dict[str, str] = {
     "broom": _HABIT_CYAN,
     "shopping-basket": LUCIDE_COLOR_ORANGE,
     "pill": LUCIDE_COLOR_RED,
+    "syringe": LUCIDE_COLOR_RED,
     "smile": _HABIT_GOLD,
+    "mouth": LUCIDE_COLOR_ORANGE,
+    "eye": LUCIDE_COLOR_BLUE,
+    "wind": LUCIDE_COLOR_TURQUOISE,
     "bath": LUCIDE_COLOR_TURQUOISE,
     "headphones": LUCIDE_COLOR_BLUE,
     "music": LUCIDE_COLOR_BLUE,
@@ -132,6 +163,23 @@ HABIT_LUCIDE_COLORS: dict[str, str] = {
     "volleyball": LUCIDE_COLOR_GREEN,
     "circle": LUCIDE_COLOR_GREEN_2,
     "waves": LUCIDE_COLOR_BLUE,
+    "activity": LUCIDE_COLOR_ORANGE,
+    "cake": _HABIT_GOLD,
+    "cupcake": _HABIT_GOLD,
+    "party-popper": _HABIT_GOLD,
+    "landmark": LUCIDE_COLOR_BLUE,
+    "globe": LUCIDE_COLOR_BLUE,
+    "languages": LUCIDE_COLOR_BLUE,
+    "hammer": _HABIT_CYAN,
+    "wrench": _HABIT_CYAN,
+    "printer": _HABIT_CYAN,
+    "briefcase": LUCIDE_COLOR_GREEN_2,
+    "building-2": LUCIDE_COLOR_GREEN_2,
+    "notebook": LUCIDE_COLOR_ORANGE,
+    "book": LUCIDE_COLOR_BLUE,
+    "thermometer": LUCIDE_COLOR_RED,
+    "hospital": LUCIDE_COLOR_RED,
+    "shield-plus": LUCIDE_COLOR_GREEN,
 }
 
 _HABIT_COLOR_PALETTE: tuple[str, ...] = (
