@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from PySide6.QtCore import QRect
+
 from harrix_swiss_knife.apps.finance.category_icon_display import (
     CATEGORY_LUCIDE_COLORS,
     category_display_label,
@@ -10,6 +12,10 @@ from harrix_swiss_knife.apps.finance.category_icon_display import (
     lucide_name_for_category_icon,
     resolve_category_lucide_name,
     strip_category_display_value,
+)
+from harrix_swiss_knife.apps.finance.delegates.category_suggest_delegate import (
+    CATEGORY_ROW_HEIGHT,
+    _centered_icon_rect,
 )
 from harrix_swiss_knife.qt_lucide_icon import LUCIDE_COLOR_BLUE, LUCIDE_COLOR_ORANGE, LUCIDE_COLOR_YELLOW
 
@@ -58,3 +64,13 @@ def test_category_lucide_color_is_semantic_or_stable() -> None:
 def test_category_lucide_icon_paints_known_emoji() -> None:
     icon = category_lucide_icon("🍔")
     assert not icon.isNull()
+
+
+def test_category_icon_is_vertically_centered_in_row() -> None:
+    """Icon paint rect must use logical size so HiDPI pixmap pixels do not shift it up."""
+    slot = QRect(8, 0, 24, CATEGORY_ROW_HEIGHT)
+    target = _centered_icon_rect(slot, 16)
+    assert target.width() == 16
+    assert target.height() == 16
+    assert target.top() == (CATEGORY_ROW_HEIGHT - 16) // 2
+    assert target.left() == 8 + (24 - 16) // 2

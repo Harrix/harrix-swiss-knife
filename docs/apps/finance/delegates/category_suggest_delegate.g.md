@@ -155,12 +155,13 @@ class CategorySuggestDelegate(QStyledItemDelegate):
             option.rect.height(),
         )
         if emoji or self._category_lucide(index):
-            lucide = category_lucide_icon(emoji, size=16, lucide_name=self._category_lucide(index))
+            lucide = category_lucide_icon(emoji, size=_ICON_SIZE, lucide_name=self._category_lucide(index))
             if not lucide.isNull():
-                pixmap = lucide.pixmap(16, 16)
-                x = icon_rect.left() + (icon_rect.width() - pixmap.width()) // 2
-                y = icon_rect.top() + (icon_rect.height() - pixmap.height()) // 2
-                painter.drawPixmap(x, y, pixmap)
+                # Center with the logical icon size. pixmap.width()/height() are
+                # device pixels on HiDPI and would push the glyph upward.
+                pixmap = lucide.pixmap(_ICON_SIZE, _ICON_SIZE)
+                target = _centered_icon_rect(icon_rect, _ICON_SIZE)
+                painter.drawPixmap(target, pixmap)
         text_rect = option.rect.adjusted(content_left + _ICON_COLUMN_WIDTH + 4, 0, -(reserved_right + 4), 0)
         secondary = mix(fluent.window_bg, fluent.text_secondary)
         self._paint_category_label(painter, opt, index, text_rect, text_color, secondary)
@@ -543,12 +544,13 @@ def paint(
             option.rect.height(),
         )
         if emoji or self._category_lucide(index):
-            lucide = category_lucide_icon(emoji, size=16, lucide_name=self._category_lucide(index))
+            lucide = category_lucide_icon(emoji, size=_ICON_SIZE, lucide_name=self._category_lucide(index))
             if not lucide.isNull():
-                pixmap = lucide.pixmap(16, 16)
-                x = icon_rect.left() + (icon_rect.width() - pixmap.width()) // 2
-                y = icon_rect.top() + (icon_rect.height() - pixmap.height()) // 2
-                painter.drawPixmap(x, y, pixmap)
+                # Center with the logical icon size. pixmap.width()/height() are
+                # device pixels on HiDPI and would push the glyph upward.
+                pixmap = lucide.pixmap(_ICON_SIZE, _ICON_SIZE)
+                target = _centered_icon_rect(icon_rect, _ICON_SIZE)
+                painter.drawPixmap(target, pixmap)
         text_rect = option.rect.adjusted(content_left + _ICON_COLUMN_WIDTH + 4, 0, -(reserved_right + 4), 0)
         secondary = mix(fluent.window_bg, fluent.text_secondary)
         self._paint_category_label(painter, opt, index, text_rect, text_color, secondary)
