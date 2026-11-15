@@ -1444,5 +1444,7 @@ def _text_secondary(palette: FluentPalette) -> QColor:
 
 
 def _track_color(palette: FluentPalette) -> QColor:
-    """Return a muted ring/track stroke for day circles and progress rings."""
-    return mix(palette.window_bg, palette.control_strong_stroke)
+    """Return a light track stroke so accent progress stays readable on the week rings."""
+    # `control_strong_stroke` is too close in luminance to brand blue and washes out
+    # small completion arcs; use the softer control outline instead.
+    return mix(palette.window_bg, palette.control_stroke_bottom)
