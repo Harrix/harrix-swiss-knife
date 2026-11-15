@@ -1328,25 +1328,26 @@ def _absent_fill(palette: FluentPalette, *, muted: bool = False, emphasize: bool
     """Return a quiet fill for days with no check-in record.
 
     Empty days use a single soft wash (no hard outline) so Done / Not done
-    stay the dominant accents in habit rows and the month calendar. Dark mode
-    needs a stronger white wash: alpha 14 lands near the card surface and the
-    disks vanish into the row background.
+    stay the dominant accents in habit rows and the month calendar. The wash
+    must stay clear of both day-band fills: on light odd rows (`#e4e8ed`) a
+    weak black wash collapses into the band and empty cells merge; on dark
+    odd rows a weak white wash does the same.
 
     """
     stroke = palette.control_strong_stroke
     if palette.dark:
         if emphasize:
-            alpha = 54
+            alpha = 64
         elif muted:
-            alpha = 30
+            alpha = 48
         else:
-            alpha = 42
+            alpha = 52
     elif emphasize:
-        alpha = 22
+        alpha = 36
     elif muted:
-        alpha = 10
+        alpha = 24
     else:
-        alpha = 14
+        alpha = 28
     wash = QColor(stroke.red(), stroke.green(), stroke.blue(), alpha)
     return mix(palette.window_bg, wash)
 

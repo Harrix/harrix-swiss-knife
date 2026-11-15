@@ -31,6 +31,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife.apps.common.day_bands import day_band_color
 from harrix_swiss_knife.apps.common.ui_chrome import selection_chrome_colors
 from harrix_swiss_knife.apps.habits.dashboard import HabitDashboardWidget
 from harrix_swiss_knife.apps.habits.dashboard_widgets import (
@@ -310,20 +311,29 @@ def test_dark_selection_chrome_colors_are_qcolor_safe(qapp: QApplication) -> Non
         theme.set_mode(previous, persist=False)
 
 
-def test_dark_absent_day_circles_contrast_against_card_surface(qapp: QApplication) -> None:
-    """No-record disks must stay lighter than the dark card so they do not vanish."""
+@pytest.mark.parametrize("mode", [ThemeMode.LIGHT, ThemeMode.DARK])
+def test_absent_day_circles_contrast_against_day_bands(qapp: QApplication, mode: ThemeMode) -> None:
+    """No-record disks must stay clear of both day-band fills so empty cells do not merge."""
     assert qapp is not None
     theme = FluentTheme.instance()
     previous = theme.mode()
-    theme.set_mode(ThemeMode.DARK, persist=False)
+    theme.set_mode(mode, persist=False)
     try:
         palette = theme.palette()
-        surface = mix(palette.window_bg, palette.card_bg)
+        even = day_band_color(0)
+        odd = day_band_color(1)
         absent = _absent_fill(palette)
         muted = _absent_fill(palette, muted=True)
-        assert absent.lightness() >= surface.lightness() + 12
-        assert muted.lightness() >= surface.lightness() + 8
-        assert absent.lightness() > muted.lightness()
+        for band in (even, odd):
+            assert abs(absent.lightness() - band.lightness()) >= 12
+            assert abs(muted.lightness() - band.lightness()) >= 8
+        if palette.dark:
+            surface = mix(palette.window_bg, palette.card_bg)
+            assert absent.lightness() >= surface.lightness() + 12
+            assert muted.lightness() >= surface.lightness() + 8
+            assert absent.lightness() > muted.lightness()
+        else:
+            assert absent.lightness() < muted.lightness()
     finally:
         theme.set_mode(previous, persist=False)
 
