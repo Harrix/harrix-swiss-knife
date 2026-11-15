@@ -102,13 +102,13 @@ def test_attach_date_edit_quick_controls_applies_calendar(qapp: QApplication) ->
     layout = QHBoxLayout(host)
     date_edit = QDateEdit()
     date_edit.setObjectName("dateEdit_food")
-    date_edit.setCalendarPopup(True)
     date_edit.setDate(QDate.currentDate())
     layout.addWidget(date_edit)
 
     attach_date_edit_quick_controls(date_edit)
     QApplication.processEvents()
 
+    assert date_edit.calendarPopup()
     calendar = date_edit.calendarWidget()
     assert isinstance(calendar, SoftCalendarWidget)
     labels = {button.text() for button in calendar.findChildren(QPushButton)}

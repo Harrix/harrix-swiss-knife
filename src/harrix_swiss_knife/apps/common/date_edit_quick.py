@@ -34,6 +34,7 @@ def attach_date_edit_quick_controls(date_edit: QDateEdit) -> None:
     - `date_edit` (`QDateEdit`): Existing date field from the UI.
 
     """
+    date_edit.setCalendarPopup(True)
     apply_date_calendar_popup(date_edit)
     _apply_date_edit_field_chrome(date_edit)
 
