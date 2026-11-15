@@ -248,7 +248,7 @@ class ReportOperations:
         reports_header = self._reports_header()
         for column in range(reports_header.count()):
             reports_header.setSectionResizeMode(column, reports_header.ResizeMode.Interactive)
-        self.tableView_reports.resizeColumnsToContents()
+        self._resize_reports_columns_to_contents()
         self.tableView_reports.setUniformRowHeights(False)
 
     def _apply_monthly_summary_report(
@@ -325,7 +325,7 @@ class ReportOperations:
         if reports_header.count() > 0:
             for i in range(reports_header.count()):
                 reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Interactive)
-            self.tableView_reports.resizeColumnsToContents()
+            self._resize_reports_columns_to_contents()
             if reports_header.count() > 1:
                 self.tableView_reports.setColumnWidth(1, self.tableView_reports.columnWidth(1) + 30)
 
@@ -381,7 +381,7 @@ class ReportOperations:
         reports_header = self._reports_header()
         for i in range(reports_header.count()):
             reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Interactive)
-        self.tableView_reports.resizeColumnsToContents()
+        self._resize_reports_columns_to_contents()
         if reports_header.count() > 1:
             self.tableView_reports.setColumnWidth(0, max(220, self.tableView_reports.columnWidth(0) + 40))
             self.tableView_reports.setColumnWidth(1, self.tableView_reports.columnWidth(1) + 24)
@@ -570,6 +570,15 @@ class ReportOperations:
     def _reports_header(self) -> QHeaderView:
         """Return the reports view header (`QTreeView.header()`, not `horizontalHeader`)."""
         return self.tableView_reports.header()
+
+    def _resize_reports_columns_to_contents(self) -> None:
+        """Resize each reports column to contents (`QTreeView` has no bulk helper)."""
+        view = self.tableView_reports
+        model = view.model()
+        if model is None:
+            return
+        for column in range(model.columnCount()):
+            view.resizeColumnToContents(column)
 
     def _set_reports_model_and_stretch(self, model: QStandardItemModel) -> None:
         """Set model on reports table and stretch columns."""
