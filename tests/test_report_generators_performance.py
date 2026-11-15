@@ -22,6 +22,7 @@ from harrix_swiss_knife.apps.finance.report_generators import (
     get_income_vs_expenses_report_data,
     get_monthly_income_year_delta_report_data,
     get_monthly_summary_report_data,
+    get_yearly_summary_report_data,
 )
 from harrix_swiss_knife.apps.finance.report_operations import REPORT_TYPES
 
@@ -104,6 +105,22 @@ def test_monthly_summary_totals_per_month(report_ctx: ReportBuildContext) -> Non
     # 2024-03 holds 50 USD and 10 EUR converted into RUB at the 2024-01 rates.
     march = _row_for_month(rows, "2024-03")
     assert march[1] == pytest.approx(50.0 / 90.0 + 10.0 * 1.1 / 90.0)
+
+
+def test_yearly_summary_totals_per_year(report_ctx: ReportBuildContext) -> None:
+    headers, rows, categories, combined_ids = get_yearly_summary_report_data(report_ctx)
+
+    assert headers[:3] == ["Year", "Total", "Cafe + Food"]
+    assert [name for _cid, name, _emoji, _lucide in categories[:2]] == ["Cafe", "Food"]
+    assert combined_ids == {cid for cid, name, _emoji, _lucide in categories if name in {"Cafe", "Food"}}
+
+    assert rows[-1][0] == "2024"
+    assert [row[0] for row in rows] == sorted((row[0] for row in rows), reverse=True)
+
+    year_2024 = _row_for_month(rows, "2024")
+    # Same expense totals as monthly summary for 2024 (1000 + 325 + converted FX).
+    expected_total = 1000.0 + 325.0 + (50.0 / 90.0 + 10.0 * 1.1 / 90.0)
+    assert year_2024[1] == pytest.approx(expected_total)
 
 
 def test_category_analysis_groups_recent_expenses(finance_db: DatabaseManager) -> None:

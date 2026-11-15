@@ -15,6 +15,7 @@ from harrix_swiss_knife.apps.finance.report_generators import (
     get_income_vs_expenses_report_data,
     get_monthly_income_year_delta_report_data,
     get_monthly_summary_report_data,
+    get_yearly_summary_report_data,
 )
 
 
@@ -67,6 +68,14 @@ class ReportBuildWorker(QThread):
 
             if report_type == "Monthly Summary":
                 headers, rows, expense_categories, _ = get_monthly_summary_report_data(ctx)
+                result = ReportBuildResult(
+                    report_type=report_type,
+                    headers=headers,
+                    monthly_rows=rows,
+                    expense_categories=expense_categories,
+                )
+            elif report_type == "Yearly Summary":
+                headers, rows, expense_categories, _ = get_yearly_summary_report_data(ctx)
                 result = ReportBuildResult(
                     report_type=report_type,
                     headers=headers,

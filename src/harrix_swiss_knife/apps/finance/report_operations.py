@@ -37,6 +37,7 @@ logger = logging.getLogger(__name__)
 # Lucide id, CodeStyle stroke, report title (UserRole / worker key).
 REPORT_TYPES: tuple[tuple[str, str, str], ...] = (
     ("calendar", LUCIDE_COLOR_BLUE, "Monthly Summary"),
+    ("calendar-range", LUCIDE_COLOR_BLUE, "Yearly Summary"),
     ("folders", LUCIDE_COLOR_YELLOW, "Category Analysis"),
     ("arrow-left-right", LUCIDE_COLOR_TURQUOISE, "Currency Analysis"),
     ("landmark", LUCIDE_COLOR_BLUE, "Account Balances"),
@@ -216,7 +217,7 @@ class ReportOperations:
         rows: list[tuple[str, float, float, dict[int, float]]],
         expense_categories: list[tuple[int, str, str, str]],
     ) -> None:
-        """Bind monthly summary report data to the reports table."""
+        """Bind monthly or yearly expense-by-category summary to the reports table."""
         if not expense_categories:
             model: QStandardItemModel = QStandardItemModel()
             model.setHorizontalHeaderLabels(headers)
@@ -233,20 +234,20 @@ class ReportOperations:
             hue = (i * 360) / num_categories if num_categories > 0 else 0
             category_colors.append(QColor.fromHsv(int(hue), 80, 240))
 
-        current_year_prefix: str = datetime.now(UTC).astimezone().strftime("%Y-")
+        current_year: str = datetime.now(UTC).astimezone().strftime("%Y")
 
-        for month_name, month_total, combined_total, by_category in rows:
+        for period_name, period_total, combined_total, by_category in rows:
             row_items = []
-            month_item = QStandardItem(month_name)
-            if month_name.startswith(current_year_prefix):
-                font = month_item.font()
+            period_item = QStandardItem(period_name)
+            if period_name == current_year or period_name.startswith(f"{current_year}-"):
+                font = period_item.font()
                 font.setBold(True)
-                month_item.setFont(font)
-            row_items.append(month_item)
+                period_item.setFont(font)
+            row_items.append(period_item)
 
-            total_item = QStandardItem(f"{month_total:.2f}")
+            total_item = QStandardItem(f"{period_total:.2f}")
             set_readable_cell_fill(total_item, _REPORT_AMOUNT_FILL)
-            total_item.setData(month_total, Qt.ItemDataRole.UserRole)
+            total_item.setData(period_total, Qt.ItemDataRole.UserRole)
             row_items.append(total_item)
 
             combined_item = QStandardItem(f"{combined_total:.2f}")
@@ -289,7 +290,7 @@ class ReportOperations:
     def _apply_report_build_result(self, result: ReportBuildResult) -> None:
         """Dispatch report build result to the appropriate table binder."""
         report_type = result.report_type
-        if report_type == "Monthly Summary":
+        if report_type in {"Monthly Summary", "Yearly Summary"}:
             if result.monthly_rows is None or result.expense_categories is None:
                 return
             self._apply_monthly_summary_report(result.headers, result.monthly_rows, result.expense_categories)
@@ -348,7 +349,7 @@ class ReportOperations:
         model: QStandardItemModel,
         expense_categories: list[tuple[int, str, str, str]],
     ) -> None:
-        """Attach Lucide category icons to Monthly Summary column headers."""
+        """Attach Lucide category icons to Monthly/Yearly Summary column headers."""
         combined = model.horizontalHeaderItem(2)
         if combined is not None:
             combined.setIcon(category_lucide_icon("🍔", lucide_name="utensils"))

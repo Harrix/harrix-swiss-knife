@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
@@ -14,6 +15,9 @@ from harrix_swiss_knife.apps.finance.transaction_helpers import (
 if TYPE_CHECKING:
     from harrix_swiss_knife.apps.finance.database_manager import DatabaseManager
     from harrix_swiss_knife.apps.finance.report_build_context import ReportBuildContext
+
+PeriodKeysFn = Callable[["DatabaseManager", datetime], list[str]]
+PeriodTotalsFn = Callable[["DatabaseManager", int], dict[str, dict[int, float]]]
 
 _MONTHS_IN_YEAR = 12
 _MONTH_NAMES = (
@@ -271,8 +275,39 @@ def get_monthly_summary_report_data(
     Each expense category is `(id, name, emoji, icon_lucide)`.
 
     """
-    db_manager = ctx.db_manager
-    currency_id = ctx.currency_id
+    return _get_period_summary_report_data(
+        ctx,
+        period_header="Month",
+        period_keys=_iter_month_keys_from_earliest,
+        load_totals=lambda db, currency_id: db.get_monthly_expense_totals_by_category(currency_id),
+    )
+
+
+def get_yearly_summary_report_data(
+    ctx: ReportBuildContext,
+) -> tuple[
+    list[str],
+    list[tuple[str, float, float, dict[int, float]]],
+    list[tuple[int, str, str, str]],
+    set[int],
+]:
+    """Build yearly summary report data (expenses by category per year).
+
+    Each expense category is `(id, name, emoji, icon_lucide)`.
+
+    """
+    return _get_period_summary_report_data(
+        ctx,
+        period_header="Year",
+        period_keys=_iter_year_keys_from_earliest,
+        load_totals=lambda db, currency_id: db.get_yearly_expense_totals_by_category(currency_id),
+    )
+
+
+def _expense_categories_for_summary(
+    db_manager: DatabaseManager,
+) -> tuple[list[tuple[int, str, str, str]], dict[str, int]]:
+    """Return sorted expense categories and name→id map for period summaries."""
     all_categories: list = db_manager.get_all_categories()
     expense_categories: list[tuple[int, str, str, str]] = []
     category_name_to_id: dict[str, int] = {}
@@ -291,9 +326,6 @@ def get_monthly_summary_report_data(
             expense_categories.append((cat_id, category_name, category_icon, icon_lucide))
             category_name_to_id[category_name] = cat_id
 
-    if not expense_categories:
-        return ["Month"], [], [], set()
-
     def _sort_key(cat: tuple[int, str, str, str]) -> tuple[int, str]:
         tokens = _normalize_category_tokens(cat[1])
         if "cafe" in tokens:
@@ -303,29 +335,52 @@ def get_monthly_summary_report_data(
         return (2, cat[1])
 
     expense_categories.sort(key=_sort_key)
+    return expense_categories, category_name_to_id
+
+
+def _get_period_summary_report_data(
+    ctx: ReportBuildContext,
+    *,
+    period_header: str,
+    period_keys: PeriodKeysFn,
+    load_totals: PeriodTotalsFn,
+) -> tuple[
+    list[str],
+    list[tuple[str, float, float, dict[int, float]]],
+    list[tuple[int, str, str, str]],
+    set[int],
+]:
+    """Build expense-by-category summary rows for months or years."""
+    db_manager = ctx.db_manager
+    currency_id = ctx.currency_id
+    expense_categories, category_name_to_id = _expense_categories_for_summary(db_manager)
+
+    if not expense_categories:
+        return [period_header], [], [], set()
 
     end_date: datetime = datetime.now(UTC).astimezone()
-    month_names = _iter_month_keys_from_earliest(db_manager, end_date)
-    monthly_data: dict[str, dict[int, float]] = {month: {} for month in month_names}
-    sql_monthly = db_manager.get_monthly_expense_totals_by_category(currency_id)
-    for month_name, category_amounts in sql_monthly.items():
-        if month_name not in monthly_data:
-            monthly_data[month_name] = {}
-        monthly_data[month_name].update(category_amounts)
+    keys = period_keys(db_manager, end_date)
+    period_data: dict[str, dict[int, float]] = {key: {} for key in keys}
+    for period_name, category_amounts in load_totals(db_manager, currency_id).items():
+        if period_name not in period_data:
+            period_data[period_name] = {}
+        period_data[period_name].update(category_amounts)
 
     combined_category_targets = {"cafe", "food"}
     combined_category_ids: set[int] = {
         cid for name, cid in category_name_to_id.items() if _normalize_category_tokens(name) & combined_category_targets
     }
 
-    headers: list[str] = ["Month", "Total", "Cafe + Food"]
+    headers: list[str] = [period_header, "Total", "Cafe + Food"]
     headers.extend([cat[1] for cat in expense_categories])
 
     rows: list[tuple[str, float, float, dict[int, float]]] = []
-    for month_name in reversed(month_names):
-        month_total = sum(monthly_data[month_name].get(cid, 0.0) for cid, _name, _emoji, _lucide in expense_categories)
-        combined_total = sum(monthly_data[month_name].get(cid, 0.0) for cid in combined_category_ids)
-        rows.append((month_name, month_total, combined_total, monthly_data[month_name]))
+    for period_name in reversed(keys):
+        period_total = sum(
+            period_data[period_name].get(cid, 0.0) for cid, _name, _emoji, _lucide in expense_categories
+        )
+        combined_total = sum(period_data[period_name].get(cid, 0.0) for cid in combined_category_ids)
+        rows.append((period_name, period_total, combined_total, period_data[period_name]))
 
     return headers, rows, expense_categories, combined_category_ids
 
@@ -365,6 +420,17 @@ def _iter_month_keys_from_earliest(db_manager: DatabaseManager, end_date: dateti
                 microsecond=0,
             )
     return month_names
+
+
+def _iter_year_keys_from_earliest(db_manager: DatabaseManager, end_date: datetime) -> list[str]:
+    """Return YYYY keys from earliest transaction year through end_date year."""
+    earliest_transaction_date_str = db_manager.get_earliest_transaction_date()
+    if earliest_transaction_date_str:
+        earliest_dt = datetime.fromisoformat(earliest_transaction_date_str).replace(tzinfo=end_date.tzinfo)
+        start_year = earliest_dt.year
+    else:
+        start_year = end_date.year
+    return [str(year) for year in range(start_year, end_date.year + 1)]
 
 
 def _normalize_category_tokens(name: str) -> set[str]:
