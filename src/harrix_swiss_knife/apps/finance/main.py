@@ -53,6 +53,7 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QCompleter,
+    QDateEdit,
     QDialog,
     QDialogButtonBox,
     QHBoxLayout,
@@ -5585,11 +5586,37 @@ class MainWindow(
             parsed = QDate.fromString(str(initial_date).strip()[:10], "yyyy-MM-dd")
             if parsed.isValid():
                 default_date = parsed
+
+        date_edit = QDateEdit(dialog)
+        date_edit.setCalendarPopup(False)
+        date_edit.setDisplayFormat("yyyy-MM-dd")
+        date_edit.setDate(default_date)
+        dialog_layout.addWidget(date_edit)
+
         calendar = SoftCalendarWidget(dialog)
         calendar.setSelectedDate(default_date)
         calendar.setCurrentPage(default_date.year(), default_date.month())
         calendar.activated.connect(dialog.accept)
         dialog_layout.addWidget(calendar, alignment=Qt.AlignmentFlag.AlignHCenter)
+
+        def sync_calendar_from_edit(qdate: QDate) -> None:
+            if not qdate.isValid():
+                return
+            calendar.blockSignals(True)  # noqa: FBT003
+            calendar.setSelectedDate(qdate)
+            calendar.setCurrentPage(qdate.year(), qdate.month())
+            calendar.blockSignals(False)  # noqa: FBT003
+
+        def sync_edit_from_calendar() -> None:
+            qdate = calendar.selectedDate()
+            if not qdate.isValid() or qdate == date_edit.date():
+                return
+            date_edit.blockSignals(True)  # noqa: FBT003
+            date_edit.setDate(qdate)
+            date_edit.blockSignals(False)  # noqa: FBT003
+
+        date_edit.dateChanged.connect(sync_calendar_from_edit)
+        calendar.selectionChanged.connect(sync_edit_from_calendar)
 
         buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,
@@ -5603,7 +5630,7 @@ class MainWindow(
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return
 
-        new_date: str = calendar.selectedDate().toString("yyyy-MM-dd")
+        new_date: str = date_edit.date().toString("yyyy-MM-dd")
         if self.db_manager.update_transactions_date(transaction_ids, new_date):
             self._ui_refresh_scheduler.stop()
             self._mark_summary_dirty()

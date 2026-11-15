@@ -153,6 +153,28 @@ class MainWindow(
         self.label_exercise_avif_5.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.label_exercise_avif_5.setCursor(Qt.CursorShape.PointingHandCursor)
         self.label_exercise_avif_5.setToolTip("Double-click to open in lightbox")
+
+        # Attributes required before `_setup_ui` (status bar / pagination).
+        self.db_manager: database_manager.DatabaseManager | None = None
+        self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
+        self.models: dict[str, QAbstractProxyModel | None] = {
+            "process": None,
+            "exercises": None,
+            "types": None,
+            "weight": None,
+            "statistics": None,
+        }
+        self._process_pagination = ScrollPagination()
+        self._process_date_color_map: dict[str, QColor] = {}
+        self._fitness_context_status_label: QLabel | None = None
+        self._sets_today_count: int = 0
+        self.exercises_list_model: QStandardItemModel | None = None
+        initial_count, load_more_count = get_apps_list_limits(self._app_config)
+        self.count_records_to_show: int = initial_count
+        self.process_load_more_count: int = load_more_count
+        self.exercises_frequency_window: int = load_more_count
+        self.show_all_records = False
+
         self._setup_ui()
         self._finish_fluent_window_chrome()
         install_fitness_layout_chrome(self)
@@ -165,8 +187,6 @@ class MainWindow(
         # Initialize core attributes
         self._is_closing = False
         self._process_table_reveal_pending = False
-        self.db_manager: database_manager.DatabaseManager | None = None
-        self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
         self.progress_calculator: ExerciseProgressCalculator | None = None
         self.current_movie: QMovie | None = None
 
@@ -184,40 +204,17 @@ class MainWindow(
         self._exercise_add_busy = False
         self._exercise_add_toast: toast_countdown_notification.ToastCountdownNotification | None = None
 
-        # Exercise list model
-        self.exercises_list_model: QStandardItemModel | None = None
-
         # Cache of exercise icons keyed by exercise name
         self._exercise_icon_cache: dict[str, tuple[float, QIcon | None]] = {}
         self._exercise_avif_preview_cache: dict[tuple[str, int, int], tuple[float, QPixmap | None]] = {}
         self._dumbbell_exercise_names_cache: set[str] | None = None
 
-        # Table models dictionary
-        self.models: dict[str, QAbstractProxyModel | None] = {
-            "process": None,
-            "exercises": None,
-            "types": None,
-            "weight": None,
-            "statistics": None,
-        }
         self._process_search_timer = QTimer(self)
         self._process_search_timer.setSingleShot(True)
         self._process_search_timer.setInterval(400)
         self._process_search_timer.timeout.connect(self.apply_filter)
-        # Process table display mode flag
-        initial_count, load_more_count = get_apps_list_limits(self._app_config)
-        self.count_records_to_show: int = initial_count
-        self.process_load_more_count: int = load_more_count
-        self.exercises_frequency_window: int = load_more_count
-        self.show_all_records = False
         self.icon_size = 64
         self.table_icon_size = 64
-
-        # Process table pagination state
-        self._process_pagination = ScrollPagination()
-        self._process_date_color_map: dict[str, QColor] = {}
-        self._fitness_context_status_label: QLabel | None = None
-        self._sets_today_count: int = 0
 
         # Store default UI metrics for responsive adjustments
         self._default_label_exercise_avif_min_height = self.label_exercise_avif.minimumHeight()
@@ -9221,13 +9218,14 @@ class MainWindow(
 
     def _update_fitness_status_bar(self) -> None:
         """Show sets today, selected exercise, and process list context."""
-        label = self._fitness_context_status_label
-        if label is None:
+        label = getattr(self, "_fitness_context_status_label", None)
+        pagination = getattr(self, "_process_pagination", None)
+        if label is None or pagination is None:
             return
-        sets_part = f"{self._sets_today_count} sets today"
+        sets_today = int(getattr(self, "_sets_today_count", 0) or 0)
+        sets_part = f"{sets_today} sets today"
         exercise = self._get_current_selected_exercise()
         exercise_part = exercise.strip() if exercise else ""
-        pagination = self._process_pagination
         list_part = format_list_view_status(
             filtered=self._process_filter_is_active(),
             loaded_count=pagination.loaded_count if pagination.loaded_count > 0 else None,
@@ -9450,6 +9448,28 @@ def __init__(self, *, hide_on_close: bool = False, presentation_mode: bool = Fal
         self.label_exercise_avif_5.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.label_exercise_avif_5.setCursor(Qt.CursorShape.PointingHandCursor)
         self.label_exercise_avif_5.setToolTip("Double-click to open in lightbox")
+
+        # Attributes required before `_setup_ui` (status bar / pagination).
+        self.db_manager: database_manager.DatabaseManager | None = None
+        self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
+        self.models: dict[str, QAbstractProxyModel | None] = {
+            "process": None,
+            "exercises": None,
+            "types": None,
+            "weight": None,
+            "statistics": None,
+        }
+        self._process_pagination = ScrollPagination()
+        self._process_date_color_map: dict[str, QColor] = {}
+        self._fitness_context_status_label: QLabel | None = None
+        self._sets_today_count: int = 0
+        self.exercises_list_model: QStandardItemModel | None = None
+        initial_count, load_more_count = get_apps_list_limits(self._app_config)
+        self.count_records_to_show: int = initial_count
+        self.process_load_more_count: int = load_more_count
+        self.exercises_frequency_window: int = load_more_count
+        self.show_all_records = False
+
         self._setup_ui()
         self._finish_fluent_window_chrome()
         install_fitness_layout_chrome(self)
@@ -9462,8 +9482,6 @@ def __init__(self, *, hide_on_close: bool = False, presentation_mode: bool = Fal
         # Initialize core attributes
         self._is_closing = False
         self._process_table_reveal_pending = False
-        self.db_manager: database_manager.DatabaseManager | None = None
-        self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
         self.progress_calculator: ExerciseProgressCalculator | None = None
         self.current_movie: QMovie | None = None
 
@@ -9481,40 +9499,17 @@ def __init__(self, *, hide_on_close: bool = False, presentation_mode: bool = Fal
         self._exercise_add_busy = False
         self._exercise_add_toast: toast_countdown_notification.ToastCountdownNotification | None = None
 
-        # Exercise list model
-        self.exercises_list_model: QStandardItemModel | None = None
-
         # Cache of exercise icons keyed by exercise name
         self._exercise_icon_cache: dict[str, tuple[float, QIcon | None]] = {}
         self._exercise_avif_preview_cache: dict[tuple[str, int, int], tuple[float, QPixmap | None]] = {}
         self._dumbbell_exercise_names_cache: set[str] | None = None
 
-        # Table models dictionary
-        self.models: dict[str, QAbstractProxyModel | None] = {
-            "process": None,
-            "exercises": None,
-            "types": None,
-            "weight": None,
-            "statistics": None,
-        }
         self._process_search_timer = QTimer(self)
         self._process_search_timer.setSingleShot(True)
         self._process_search_timer.setInterval(400)
         self._process_search_timer.timeout.connect(self.apply_filter)
-        # Process table display mode flag
-        initial_count, load_more_count = get_apps_list_limits(self._app_config)
-        self.count_records_to_show: int = initial_count
-        self.process_load_more_count: int = load_more_count
-        self.exercises_frequency_window: int = load_more_count
-        self.show_all_records = False
         self.icon_size = 64
         self.table_icon_size = 64
-
-        # Process table pagination state
-        self._process_pagination = ScrollPagination()
-        self._process_date_color_map: dict[str, QColor] = {}
-        self._fitness_context_status_label: QLabel | None = None
-        self._sets_today_count: int = 0
 
         # Store default UI metrics for responsive adjustments
         self._default_label_exercise_avif_min_height = self.label_exercise_avif.minimumHeight()

@@ -31,6 +31,7 @@ lang: en
 - [🔧 Function `show_open_all_trackers_menu`](#-function-show_open_all_trackers_menu)
 - [🔧 Function `show_tracker_launcher_context_menu`](#-function-show_tracker_launcher_context_menu)
 - [🔧 Function `trigger_all_tracker_launchers`](#-function-trigger_all_tracker_launchers)
+- [🔧 Function `trigger_all_tracker_launchers_presentation_mode`](#-function-trigger_all_tracker_launchers_presentation_mode)
 - [🔧 Function `trigger_tracker_presentation_mode`](#-function-trigger_tracker_presentation_mode)
 - [🔧 Function `truncate_action_name_preview`](#-function-truncate_action_name_preview)
 
@@ -489,7 +490,7 @@ def show_action_item_context_menu(
 def show_open_all_trackers_menu(*, parent: QWidget | None, global_pos: QPoint, host_menu: QMenu) -> None
 ```
 
-Show a one-item menu that opens Finance, Fitness, Food, and Habits.
+Show open-all actions that launch Finance, Fitness, Food, and Habits.
 
 <details>
 <summary>Code:</summary>
@@ -537,13 +538,20 @@ def show_tracker_launcher_context_menu(
     menu = FluentMenu("", parent)
     if tracker_action is not None:
         open_presentation = menu.addAction(OPEN_IN_PRESENTATION_MENU_LABEL)
+        apply_lucide_action_icon(open_presentation, _OPEN_IN_PRESENTATION_ICON)
         open_presentation.triggered.connect(
             lambda *_args, source=tracker_action: trigger_tracker_presentation_mode(source),
         )
         menu.addSeparator()
     open_all = menu.addAction(OPEN_ALL_TRACKERS_MENU_LABEL)
+    apply_lucide_action_icon(open_all, _OPEN_ALL_TRACKERS_ICON)
     open_all.triggered.connect(lambda *_args, source=host_menu: trigger_all_tracker_launchers(source))
-    apply_leading_chrome_icons(menu)
+    open_all_presentation = menu.addAction(OPEN_ALL_TRACKERS_PRESENTATION_MENU_LABEL)
+    apply_lucide_action_icon(open_all_presentation, _OPEN_ALL_TRACKERS_PRESENTATION_ICON)
+    open_all_presentation.triggered.connect(
+        lambda *_args, source=host_menu: trigger_all_tracker_launchers_presentation_mode(source),
+    )
+    apply_menu_icon_size(menu)
     menu.refresh_theme()
     menu.exec(global_pos)
 ```
@@ -565,6 +573,25 @@ Trigger every tracker launcher QAction found on [`menu`](qt_split_menu_button.g.
 def trigger_all_tracker_launchers(menu: QMenu) -> None:
     for action in iter_tracker_launcher_actions(menu):
         action.trigger()
+```
+
+</details>
+
+## 🔧 Function `trigger_all_tracker_launchers_presentation_mode`
+
+```python
+def trigger_all_tracker_launchers_presentation_mode(menu: QMenu) -> None
+```
+
+Open every tracker launcher from [`menu`](qt_split_menu_button.g.md#%EF%B8%8F-method-menu) in presentation mode.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def trigger_all_tracker_launchers_presentation_mode(menu: QMenu) -> None:
+    for action in iter_tracker_launcher_actions(menu):
+        trigger_tracker_presentation_mode(action)
 ```
 
 </details>

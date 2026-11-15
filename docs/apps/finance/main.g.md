@@ -131,6 +131,24 @@ class MainWindow(
         self.filter_advanced_panel: QWidget
         self.filter_chips_host: QWidget
         self.filter_chips_layout: QHBoxLayout
+        # Status bar update during `_setup_ui` needs pagination / models ready first.
+        self.models: dict[str, QAbstractProxyModel | None] = {
+            "transactions": None,
+            "accounts": None,
+            "currency_exchanges": None,
+            "exchange_rates": None,
+        }
+        self._transactions_pagination = ScrollPagination()
+        self._transactions_dates_with_totals: set[str] = set()
+        self._transactions_date_color_map: dict[str, int] = {}
+        self._transactions_color_index: int = 0
+        initial_count, load_more_count = get_apps_list_limits(self._app_config)
+        self.count_transactions_to_show: int = initial_count
+        self.transactions_load_more_count: int = load_more_count
+        self.count_exchange_rates_to_show: int = initial_count
+        self.exchange_rates_load_more_count: int = load_more_count
+        self.description_autocomplete_limit: int = initial_count
+        self.show_all_transactions: bool = False
         self._exchange_rates = ExchangeRatesOperations(self)
         self._bind_exchange_rates_operations()
         self._setup_ui()
@@ -142,14 +160,6 @@ class MainWindow(
         app = QApplication.instance()
         if app is not None:
             app.aboutToQuit.connect(self._stop_exchange_rate_threads_for_quit)
-
-        # Table models dictionary (transactions may wrap a day-header proxy)
-        self.models: dict[str, QAbstractProxyModel | None] = {
-            "transactions": None,
-            "accounts": None,
-            "currency_exchanges": None,
-            "exchange_rates": None,
-        }
 
         # Delegates for transactions table
         self.description_delegate: DescriptionDelegate | None = None
@@ -172,13 +182,6 @@ class MainWindow(
         # Track whether account double-click handler is connected
         self._account_double_click_connected: bool = False
 
-        # Toggle for showing all records vs last self.count_transactions_to_show
-        initial_count, load_more_count = get_apps_list_limits(self._app_config)
-        self.count_transactions_to_show: int = initial_count
-        self.transactions_load_more_count: int = load_more_count
-        self.count_exchange_rates_to_show: int = initial_count
-        self.exchange_rates_load_more_count: int = load_more_count
-        self.description_autocomplete_limit: int = initial_count
         self._description_category_pairs: list[tuple[str, str, int]] = []
         self._category_suggest_timer = QTimer(self)
         self._category_suggest_timer.setSingleShot(True)
@@ -193,13 +196,6 @@ class MainWindow(
         self._category_suggest_delegate = CategorySuggestDelegate(self.listView_categories)
         self._category_suggest_delegate.use_clicked.connect(self._select_category_by_name)
         self.listView_categories.setItemDelegate(self._category_suggest_delegate)
-        self.show_all_transactions: bool = False
-
-        # Transactions table pagination state
-        self._transactions_pagination = ScrollPagination()
-        self._transactions_dates_with_totals: set[str] = set()
-        self._transactions_date_color_map: dict[str, int] = {}
-        self._transactions_color_index: int = 0
 
         # Exchange rates table pagination state
         self._exchange_rates_pagination = ScrollPagination()
@@ -5327,16 +5323,42 @@ class MainWindow(
                 dialog,
             ),
         )
-        date_edit = QDateEdit(dialog)
-        date_edit.setDisplayFormat("yyyy-MM-dd")
         default_date = self.dateEdit.date()
         if initial_date:
             parsed = QDate.fromString(str(initial_date).strip()[:10], "yyyy-MM-dd")
             if parsed.isValid():
                 default_date = parsed
+
+        date_edit = QDateEdit(dialog)
+        date_edit.setCalendarPopup(False)
+        date_edit.setDisplayFormat("yyyy-MM-dd")
         date_edit.setDate(default_date)
-        attach_date_edit_quick_controls(date_edit)
         dialog_layout.addWidget(date_edit)
+
+        calendar = SoftCalendarWidget(dialog)
+        calendar.setSelectedDate(default_date)
+        calendar.setCurrentPage(default_date.year(), default_date.month())
+        calendar.activated.connect(dialog.accept)
+        dialog_layout.addWidget(calendar, alignment=Qt.AlignmentFlag.AlignHCenter)
+
+        def sync_calendar_from_edit(qdate: QDate) -> None:
+            if not qdate.isValid():
+                return
+            calendar.blockSignals(True)  # noqa: FBT003
+            calendar.setSelectedDate(qdate)
+            calendar.setCurrentPage(qdate.year(), qdate.month())
+            calendar.blockSignals(False)  # noqa: FBT003
+
+        def sync_edit_from_calendar() -> None:
+            qdate = calendar.selectedDate()
+            if not qdate.isValid() or qdate == date_edit.date():
+                return
+            date_edit.blockSignals(True)  # noqa: FBT003
+            date_edit.setDate(qdate)
+            date_edit.blockSignals(False)  # noqa: FBT003
+
+        date_edit.dateChanged.connect(sync_calendar_from_edit)
+        calendar.selectionChanged.connect(sync_edit_from_calendar)
 
         buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,
@@ -6668,10 +6690,10 @@ class MainWindow(
 
     def _update_transactions_list_status(self) -> None:
         """Show filter and pagination context for the transactions table."""
-        label = self._transactions_list_status_label
-        if label is None:
+        label = getattr(self, "_transactions_list_status_label", None)
+        pagination = getattr(self, "_transactions_pagination", None)
+        if label is None or pagination is None:
             return
-        pagination = self._transactions_pagination
         label.setText(
             format_list_view_status(
                 filtered=self._transactions_filter_is_active(),
@@ -6748,6 +6770,24 @@ def __init__(self, *, hide_on_close: bool = False, presentation_mode: bool = Fal
         self.filter_advanced_panel: QWidget
         self.filter_chips_host: QWidget
         self.filter_chips_layout: QHBoxLayout
+        # Status bar update during `_setup_ui` needs pagination / models ready first.
+        self.models: dict[str, QAbstractProxyModel | None] = {
+            "transactions": None,
+            "accounts": None,
+            "currency_exchanges": None,
+            "exchange_rates": None,
+        }
+        self._transactions_pagination = ScrollPagination()
+        self._transactions_dates_with_totals: set[str] = set()
+        self._transactions_date_color_map: dict[str, int] = {}
+        self._transactions_color_index: int = 0
+        initial_count, load_more_count = get_apps_list_limits(self._app_config)
+        self.count_transactions_to_show: int = initial_count
+        self.transactions_load_more_count: int = load_more_count
+        self.count_exchange_rates_to_show: int = initial_count
+        self.exchange_rates_load_more_count: int = load_more_count
+        self.description_autocomplete_limit: int = initial_count
+        self.show_all_transactions: bool = False
         self._exchange_rates = ExchangeRatesOperations(self)
         self._bind_exchange_rates_operations()
         self._setup_ui()
@@ -6759,14 +6799,6 @@ def __init__(self, *, hide_on_close: bool = False, presentation_mode: bool = Fal
         app = QApplication.instance()
         if app is not None:
             app.aboutToQuit.connect(self._stop_exchange_rate_threads_for_quit)
-
-        # Table models dictionary (transactions may wrap a day-header proxy)
-        self.models: dict[str, QAbstractProxyModel | None] = {
-            "transactions": None,
-            "accounts": None,
-            "currency_exchanges": None,
-            "exchange_rates": None,
-        }
 
         # Delegates for transactions table
         self.description_delegate: DescriptionDelegate | None = None
@@ -6789,13 +6821,6 @@ def __init__(self, *, hide_on_close: bool = False, presentation_mode: bool = Fal
         # Track whether account double-click handler is connected
         self._account_double_click_connected: bool = False
 
-        # Toggle for showing all records vs last self.count_transactions_to_show
-        initial_count, load_more_count = get_apps_list_limits(self._app_config)
-        self.count_transactions_to_show: int = initial_count
-        self.transactions_load_more_count: int = load_more_count
-        self.count_exchange_rates_to_show: int = initial_count
-        self.exchange_rates_load_more_count: int = load_more_count
-        self.description_autocomplete_limit: int = initial_count
         self._description_category_pairs: list[tuple[str, str, int]] = []
         self._category_suggest_timer = QTimer(self)
         self._category_suggest_timer.setSingleShot(True)
@@ -6810,13 +6835,6 @@ def __init__(self, *, hide_on_close: bool = False, presentation_mode: bool = Fal
         self._category_suggest_delegate = CategorySuggestDelegate(self.listView_categories)
         self._category_suggest_delegate.use_clicked.connect(self._select_category_by_name)
         self.listView_categories.setItemDelegate(self._category_suggest_delegate)
-        self.show_all_transactions: bool = False
-
-        # Transactions table pagination state
-        self._transactions_pagination = ScrollPagination()
-        self._transactions_dates_with_totals: set[str] = set()
-        self._transactions_date_color_map: dict[str, int] = {}
-        self._transactions_color_index: int = 0
 
         # Exchange rates table pagination state
         self._exchange_rates_pagination = ScrollPagination()
