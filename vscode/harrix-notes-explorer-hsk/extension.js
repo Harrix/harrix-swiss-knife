@@ -19,10 +19,32 @@ const { activatePinnedBrowse, refreshPinnedBrowseIfOpen } = require('./pinned-br
 const { activateVisualEditor } = require('./visual-editor');
 const { isMarpMarkdown, renderMarpPreviewHtml, renderMarpPresentWebview } = require('./marp-deck');
 const { isJupyterMarkdown, renderJupyterPreviewHtml } = require('./jupyter-notebook');
+/** Shared notes-tree / Icons Browse listing (no vscode dependency). */
+const notesListing = require('./notes-listing');
+const { safeReaddir, isMd, isGMd, collectNotesDirChildSpecs: collectNotesDirChildSpecsImpl } = notesListing;
 
 function normalizeFsPath(p) {
   const resolved = path.resolve(String(p));
   return process.platform === 'win32' ? resolved.toLowerCase() : resolved;
+}
+
+/**
+ * Opaque TreeItem id so a parent path is never a string prefix of a child id.
+ * @param {'f' | 'n'} kind
+ * @param {string} fsPath
+ */
+function opaqueTreeItemId(kind, fsPath) {
+  const hash = crypto.createHash('sha1').update(normalizeFsPath(fsPath)).digest('hex');
+  return `${kind}:${hash}`;
+}
+
+/**
+ * @param {string} dir
+ * @param {{ templateCountFor?: (folderPath: string) => number }} [opts]
+ */
+function collectNotesDirChildSpecs(dir, opts) {
+  // Diary/Dreams/Cases listing defaults live in notes-listing.js (public build keeps them).
+  return collectNotesDirChildSpecsImpl(dir, opts);
 }
 
 function getRememberFolderExpansion() {
@@ -416,21 +438,6 @@ async function withFolderBusy(provider, folderPath, fn) {
 
 // --- Helper functions ---
 
-function safeReaddir(dir) {
-  try {
-    return fs.readdirSync(dir, { withFileTypes: true });
-  } catch (_e) {
-    return [];
-  }
-}
-
-function isMd(name) {
-  return name.toLowerCase().endsWith('.md');
-}
-function isGMd(name) {
-  return name.toLowerCase().endsWith('.g.md');
-}
-
 const NOTE_TITLE_READ_BYTES = 16 * 1024;
 
 function getShowNoteTitleFromContent() {
@@ -670,13 +677,6 @@ function getNoteDisplayLabel(filePath) {
   return noteTitleCache.getLabelFast(filePath);
 }
 
-/** Merged-folder template only: exactly `_<parentFolderName>.g.md` (case-insensitive). Other `*.g.md` stay visible. */
-function isMergedTemplateGmd(fileName, parentFolderBasename) {
-  if (!isGMd(fileName)) return false;
-  const expected = `_${parentFolderBasename}.g.md`.toLowerCase();
-  return fileName.toLowerCase() === expected;
-}
-
 const DEFAULT_ASSET_FOLDER_NAMES = ['images', 'files', 'img', 'assets', 'attachments', 'media'];
 
 function getAssetFolderNames() {
@@ -736,20 +736,7 @@ function findFeaturedImagePath(noteDir) {
  * @param {string} filePath absolute path to the .md file
  */
 function isCollapsedFolderNote(filePath) {
-  const noteDir = path.dirname(filePath);
-  const folderName = path.basename(noteDir);
-  const sameNameMdPath = path.join(noteDir, `${folderName}.md`);
-  if (normalizeFsPath(sameNameMdPath) !== normalizeFsPath(filePath)) {
-    return false;
-  }
-  const sub = safeReaddir(noteDir);
-  const subVisibleMd = sub.filter((e) => e.isFile() && isMd(e.name) && !isMergedTemplateGmd(e.name, folderName));
-  const subFolders = sub.filter(
-    (e) =>
-      e.isDirectory() &&
-      (hasMarkdownRecursive(path.join(noteDir, e.name)) || harrixCli.isSpecialNotesFolderName(e.name)),
-  );
-  return subVisibleMd.length === 1 && subFolders.length === 0;
+  return notesListing.isCollapsedFolderNote(filePath, normalizeFsPath);
 }
 
 /**
@@ -757,10 +744,7 @@ function isCollapsedFolderNote(filePath) {
  * @param {string} filePath
  */
 function getNoteTreeParentDir(filePath) {
-  if (isCollapsedFolderNote(filePath)) {
-    return path.dirname(path.dirname(filePath));
-  }
-  return path.dirname(filePath);
+  return notesListing.getNoteTreeParentDir(filePath, normalizeFsPath);
 }
 
 /** @param {string} noteDir */
@@ -1991,18 +1975,6 @@ async function openHarrixNote(uri, mode) {
   }
 }
 
-/** Directories skipped while scanning for .md (nested repos / tool caches). */
-const SKIP_MARKDOWN_SCAN_DIR_NAMES = new Set([
-  '.git',
-  '.hg',
-  '.svn',
-  '.ruff_cache',
-  '.venv',
-  'venv',
-  'node_modules',
-  '__pycache__',
-]);
-
 /**
  * True if `dir` has a `.git` file or directory (work tree or linked worktree).
  * @param {string} dir
@@ -2032,87 +2004,6 @@ function isInsideGitWorkTreeFs(folderPath) {
     }
     cur = parent;
   }
-}
-
-// Folder is listable when it has a `.md` note or a descendant folder that does
-// (`@hsk-sync:notes-browse`, same idea as Android `directoryHasMarkdownNotes`).
-function hasMarkdownRecursive(dir, depth = 0) {
-  if (depth > 16) {
-    return false;
-  }
-  const entries = safeReaddir(dir);
-  for (const entry of entries) {
-    if (entry.isFile() && isMd(entry.name)) {
-      return true;
-    }
-  }
-  for (const entry of entries) {
-    if (entry.isDirectory() && !SKIP_MARKDOWN_SCAN_DIR_NAMES.has(entry.name.toLowerCase())) {
-      if (hasMarkdownRecursive(path.join(dir, entry.name), depth + 1)) {
-        return true;
-      }
-    }
-  }
-  return false;
-}
-
-/**
- * Shared listing rules for the notes tree and Icons Browse panel.
- * Folders + `.md` only (attachments omitted); collapses `Folder/Folder.md` when alone.
- *
- * @param {string} dir
- * @param {{ templateCountFor?: (folderPath: string) => number }} [opts]
- * @returns {Array<{ kind: 'folder' | 'note', path: string, name: string }>}
- */
-function collectNotesDirChildSpecs(dir, opts) {
-  const templateCountFor = opts?.templateCountFor || (() => 0);
-  if (!dir || !fs.existsSync(dir)) {
-    return [];
-  }
-
-  const entries = safeReaddir(dir);
-  const folders = entries
-    .filter((e) => e.isDirectory())
-    .filter(
-      (e) =>
-        hasMarkdownRecursive(path.join(dir, e.name)) ||
-        harrixCli.folderListedWithoutMarkdown(e.name, templateCountFor(path.join(dir, e.name))),
-    );
-
-  const hereName = path.basename(dir);
-  const mdFiles = entries.filter((e) => e.isFile() && isMd(e.name) && !isMergedTemplateGmd(e.name, hereName));
-
-  /** @type {Array<{ kind: 'folder' | 'note', path: string, name: string }>} */
-  const specs = [];
-
-  for (const folder of folders) {
-    const folderPath = path.join(dir, folder.name);
-    const sub = safeReaddir(folderPath);
-    const subVisibleMd = sub.filter((e) => e.isFile() && isMd(e.name) && !isMergedTemplateGmd(e.name, folder.name));
-    const subFolders = sub
-      .filter((e) => e.isDirectory())
-      .filter(
-        (e) =>
-          (!SKIP_MARKDOWN_SCAN_DIR_NAMES.has(e.name.toLowerCase()) &&
-            hasMarkdownRecursive(path.join(folderPath, e.name))) ||
-          harrixCli.isSpecialNotesFolderName(e.name),
-      );
-
-    const sameNameMdPath = path.join(folderPath, `${folder.name}.md`);
-    const hasSameNameMd = fs.existsSync(sameNameMdPath);
-
-    if (hasSameNameMd && subVisibleMd.length === 1 && subFolders.length === 0) {
-      specs.push({ kind: 'note', path: sameNameMdPath, name: folder.name });
-    } else {
-      specs.push({ kind: 'folder', path: folderPath, name: folder.name });
-    }
-  }
-
-  for (const file of mdFiles) {
-    specs.push({ kind: 'note', path: path.join(dir, file.name), name: noteStemFromPath(file.name) });
-  }
-
-  return specs;
 }
 
 // --- TreeDataProvider ---
@@ -2147,6 +2038,10 @@ class NotesProvider {
     this._templateTargets = new Map();
     /** @type {Map<string, boolean>} normalized folder path -> inside git work tree */
     this._gitWorkTreeCache = new Map();
+    /** @type {Map<string, vscode.TreeItem>} normalized folder path -> stable TreeItem */
+    this._folderItems = new Map();
+    /** @type {Map<string, vscode.TreeItem>} normalized note path -> stable TreeItem */
+    this._noteItems = new Map();
     /** @type {Set<string>} note paths waiting for background title resolve */
     this._titleResolveQueued = new Set();
     /** @type {Set<string>} parent dirs that need a delayed re-sort after title updates */
@@ -2205,6 +2100,8 @@ class NotesProvider {
 
   refresh() {
     this._gitWorkTreeCache.clear();
+    this._folderItems.clear();
+    this._noteItems.clear();
     noteTitleCache.clear();
     this._titleResolveQueued.clear();
     this._titleResolveParentsPendingSort.clear();
@@ -2230,18 +2127,14 @@ class NotesProvider {
     if (!Array.isArray(filePaths) || filePaths.length === 0) {
       return;
     }
-    let queuedAny = false;
     for (const filePath of filePaths) {
       if (noteTitleCache.needsResolve(filePath)) {
         this._titleResolveQueued.add(normalizeFsPath(filePath));
-        queuedAny = true;
       }
     }
-    // Only remember the parent when something will actually resolve — otherwise
-    // stale parents accumulate and refresh the wrong root mid-expand.
-    if (queuedAny && typeof parentDir === 'string' && parentDir) {
-      this._titleResolveParentsPendingSort.add(normalizeFsPath(parentDir));
-    }
+    // Parent re-list is queued only after a title change that can affect sort
+    // (see `_runTitleResolveBatch`). Year/date names sort by file stem.
+    void parentDir;
     this._kickTitleResolve();
   }
 
@@ -2279,7 +2172,10 @@ class NotesProvider {
     // VS Code AsyncDataTree races when another workspace root is expanding).
     for (const filePath of changedNotes) {
       this._emitter.fire(this.createFileItem(filePath));
-      this._titleResolveParentsPendingSort.add(normalizeFsPath(getNoteTreeParentDir(filePath)));
+      // Year/date stems sort by name; a title change cannot reorder them.
+      if (noteMeta.dateNameSortKey(noteStemFromPath(filePath)) == null) {
+        this._titleResolveParentsPendingSort.add(normalizeFsPath(getNoteTreeParentDir(filePath)));
+      }
     }
 
     if (this._titleResolveQueued.size > 0) {
@@ -2317,9 +2213,16 @@ class NotesProvider {
    * @param {string} parentDir
    */
   _fireFolderForTitleRefresh(parentDir) {
+    // Fire the cached element for this path only — a fresh TreeItem can race
+    // AsyncDataTree and attach another folder's children to the wrong row.
     if (this.isWorkspaceRootPath(parentDir)) {
       const entry = this.findRootForPath(parentDir);
       this._emitter.fire(this.createWorkspaceRootFolderItem(parentDir, entry?.name));
+      return;
+    }
+    const cached = this._folderItems.get(normalizeFsPath(parentDir));
+    if (cached) {
+      this._emitter.fire(cached);
       return;
     }
     this._emitter.fire(this.createFolderItem(parentDir, path.basename(parentDir), this.folderDepthForPath(parentDir)));
@@ -2737,6 +2640,7 @@ class NotesProvider {
     item.label = label;
     item.folderDepth = 0;
     item.isWorkspaceRoot = true;
+    item.tooltip = folderPath;
     const expanded = this._expansion == null ? true : this._expansion.isWorkspaceRootExpanded(folderPath);
     item.collapsibleState = expanded
       ? vscode.TreeItemCollapsibleState.Expanded
@@ -2749,11 +2653,21 @@ class NotesProvider {
       typeof folderDepth === 'number' && Number.isFinite(folderDepth) ? Math.max(1, Math.floor(folderDepth)) : 1;
     const expanded = this._expansion != null ? this._expansion.isExpanded(folderPath) : false;
     const collapsible = expanded ? vscode.TreeItemCollapsibleState.Expanded : vscode.TreeItemCollapsibleState.Collapsed;
-    const item = new vscode.TreeItem(name, collapsible);
+    const key = normalizeFsPath(folderPath);
+    let item = this._folderItems.get(key);
+    if (!item) {
+      item = new vscode.TreeItem(name, collapsible);
+      item.id = opaqueTreeItemId('f', folderPath);
+      this._folderItems.set(key, item);
+    }
     item.resourceUri = vscode.Uri.file(folderPath);
     item.dirPath = folderPath;
-    item.folderDepth = depth;
-    item.id = `folder:${normalizeFsPath(folderPath)}`;
+    if (!item.isWorkspaceRoot) {
+      item.label = name;
+      item.folderDepth = depth;
+      item.collapsibleState = collapsible;
+    }
+    item.tooltip = folderPath;
     item.templateItems = this.getTemplatesForFolder(folderPath);
     item.contextValue = harrixCli.resolveNotesFolderContextValue({
       name,
@@ -2769,12 +2683,15 @@ class NotesProvider {
     if (this.isFolderBusy(folderPath)) {
       item.iconPath = new vscode.ThemeIcon('loading~spin');
       item.description = '…';
-    } else if (getNotesIconStyle() === 'harrix') {
-      item.iconPath = harrixIconUri('folder', isCut);
     } else {
-      item.iconPath = isCut
-        ? new vscode.ThemeIcon('folder', new vscode.ThemeColor('disabledForeground'))
-        : vscode.ThemeIcon.Folder;
+      item.description = undefined;
+      if (getNotesIconStyle() === 'harrix') {
+        item.iconPath = harrixIconUri('folder', isCut);
+      } else {
+        item.iconPath = isCut
+          ? new vscode.ThemeIcon('folder', new vscode.ThemeColor('disabledForeground'))
+          : vscode.ThemeIcon.Folder;
+      }
     }
     return item;
   }
@@ -2784,16 +2701,27 @@ class NotesProvider {
     const stem = noteStemFromPath(filePath);
     const displayName = getNoteDisplayLabel(filePath);
     const assetsVisible = this.isNoteAssetsVisible(noteDir);
-    const item = new vscode.TreeItem(
-      displayName,
-      assetsVisible ? vscode.TreeItemCollapsibleState.Expanded : vscode.TreeItemCollapsibleState.None,
-    );
-    item.id = `note:${normalizeFsPath(filePath)}`;
+    const key = normalizeFsPath(filePath);
+    let item = this._noteItems.get(key);
+    if (!item) {
+      item = new vscode.TreeItem(
+        displayName,
+        assetsVisible ? vscode.TreeItemCollapsibleState.Expanded : vscode.TreeItemCollapsibleState.None,
+      );
+      item.id = opaqueTreeItemId('n', filePath);
+      this._noteItems.set(key, item);
+    }
+    item.label = displayName;
+    item.collapsibleState = assetsVisible
+      ? vscode.TreeItemCollapsibleState.Expanded
+      : vscode.TreeItemCollapsibleState.None;
     item.resourceUri = vscode.Uri.file(filePath);
     item.noteDirPath = noteDir;
     item.isNoteItem = true;
     if (displayName !== stem && getShowNoteFileNameBesideTitle()) {
       item.description = stem;
+    } else {
+      item.description = undefined;
     }
     item.command = {
       command: 'harrixNotesExplorerHsk.openNote',

@@ -128,7 +128,7 @@ class OnSyncHarrixNotesExplorer(ActionBase):
             raise FileNotFoundError(msg)
 
         build_dir = Path(tempfile.mkdtemp(prefix="harrix-notes-explorer-public-"))
-        ignore = shutil.ignore_patterns("__pycache__", "*.pyc", "node_modules", ".biome")
+        ignore = shutil.ignore_patterns("__pycache__", "*.pyc", "node_modules", ".biome", "*.test.js")
         shutil.copytree(source_dir, build_dir, ignore=ignore, dirs_exist_ok=True)
 
         manifest_path = build_dir / "package.harrix-cli.contributes.json"
