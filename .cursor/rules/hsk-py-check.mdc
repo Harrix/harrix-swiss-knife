@@ -6,52 +6,63 @@ alwaysApply: true
 
 ## Cooperative lock
 
-Before running any `hsk py ruff-sort-docs --only-changed` / `hsk py check --only-changed` cycle (including linked projects), use the lock file at `.cursor/hsk-py-check.flag`.
+Before running any `hsk py ruff-sort-docs` / `hsk py check` cycle (including linked projects), use the lock file at `.cursor/hsk-py-check.flag`.
 
 Only the **first non-empty line** matters (trim whitespace, case-insensitive). Lines below it are human hints; do not parse them. Do not commit this file.
 
 Modes:
 
-- `idle` — no check running; next agent may take the lock
+- `idle` — no check running; next agent may take the lock and run the **incremental** cycle (`--only-changed`)
+- `full` — no check running; next agent may take the lock and run the **full** cycle (no `--only-changed`)
 - `busy` — a check cycle is running; other agents wait and re-read
-- `skip` — do not run `hsk py ruff-sort-docs --only-changed` / `hsk py check --only-changed`
+- `skip` — do not run `hsk py ruff-sort-docs` / `hsk py check`
 
 Protocol:
 
 1. Read the first non-empty line of `.cursor/hsk-py-check.flag` (if the file is missing, treat as `idle`).
-2. If the mode is `skip`: do **not** run `hsk py ruff-sort-docs --only-changed` or `hsk py check --only-changed` (including for `harrix-pylib` / `harrix-pyssg`). State in the reply that checks were skipped because of `skip`. Exception: an **explicit** user request to run the checks overrides `skip` for that request — take the lock as usual.
+2. If the mode is `skip`: do **not** run `hsk py ruff-sort-docs` or `hsk py check` (including for `harrix-pylib` / `harrix-pyssg`). State in the reply that checks were skipped because of `skip`. Exception: an **explicit** user request to run the checks overrides `skip` for that request — take the lock as usual (use incremental unless the user asked for a full run).
 3. If the mode is `busy`: wait 15–30 seconds (`sleep` / `AwaitShell`), then re-read. Do not busy-loop tool calls without a pause. If `busy` for longer than **10 minutes**, treat the lock as stale (`idle`) and take it (the previous agent may have crashed).
-4. If the mode is `idle`, missing, or unknown: write the file with first line `busy` and keep the same comment block as the template, then run the check cycle.
-5. Whoever wrote `busy` must restore `idle` at the end — on success, after 3 failed iterations, and on environmental failure. Preserve the comment block. Do **not** overwrite `skip` if the user set it while you were waiting or running.
-6. When writing the file, use this shape:
+4. If the mode is `idle`, `full`, missing, or unknown: remember the available mode (`full` stays `full`; missing/unknown → `idle`), write the file with first line `busy` and keep the same comment block as the template, then run the matching check cycle.
+5. Whoever wrote `busy` must restore the remembered available mode (`idle` or `full`) at the end — on success, after 3 failed iterations, and on environmental failure. Preserve the comment block. Do **not** overwrite `skip` or `full` if the user set that mode while you were waiting or running (if you started from `idle` and the file now says `skip`/`full`, leave it).
+6. When writing the file, use this shape (first line is the current mode):
 
 ```text
 busy
 
 # hsk py check lock — only the first line is the mode
-# idle — no check running; next agent may take the lock
+# idle — available; run ruff-sort-docs --only-changed + check --only-changed
+# full — available; run ruff-sort-docs + check (full tree / full suite)
 # busy — a check cycle is running; other agents wait and re-read
-# skip — do not run hsk py ruff-sort-docs --only-changed / hsk py check --only-changed
+# skip — do not run hsk py ruff-sort-docs / hsk py check
 ```
 
-(Replace the first line with `idle` when releasing; user may set `skip` manually.)
+(Replace the first line with `idle` or `full` when releasing; user may set `skip` or `full` manually.)
 
 ## Check cycle
 
-After completing code changes, run this cycle from the project root (with venv active):
+After completing code changes, run this cycle from the project root (with venv active).
+
+### Incremental (`idle`, default)
 
 1. `hsk py ruff-sort-docs --only-changed`
 2. `hsk py check --only-changed`
 
-`--only-changed` limits format/sort/docs and checks to Git working-tree-changed files (ty/ruff/Harrix on dirty `.py`/`.md`, pytest on related tests). Use plain `hsk py ruff-sort-docs` / `hsk py check` only when a full-tree rebuild or full-suite verification is required.
+`--only-changed` limits format/sort/docs and checks to Git working-tree-changed files (ty/ruff/Harrix on dirty `.py`/`.md`, pytest on related tests).
 
-There is no `hsk py ruff` command. Use `hsk py ruff-sort --only-changed` only when docs generation is not needed; prefer `ruff-sort-docs --only-changed` before `check --only-changed`.
+### Full (`full`)
+
+1. `hsk py ruff-sort-docs`
+2. `hsk py check`
+
+Use this when the flag is `full`, or when the user explicitly asks for a full-tree rebuild / full-suite verification.
+
+There is no `hsk py ruff` command. Use `hsk py ruff-sort --only-changed` only when docs generation is not needed; prefer `ruff-sort-docs` (with or without `--only-changed`, per mode) before `check`.
 
 If `hsk` fails with `Access is denied` on `hsk.exe` (often because the app is running from the same venv), close the app or run the equivalent checks via `python -m` (`ruff`, `ty`, `pytest`) and still report that the full `hsk py check` could not complete.
 
-Fix until `hsk py check --only-changed` passes. Repeat this cycle up to **3 times maximum**. If it still fails after 3 iterations, stop and report the remaining errors.
+Fix until the chosen `hsk py check` variant passes. Repeat this cycle up to **3 times maximum**. If it still fails after 3 iterations, stop and report the remaining errors.
 
-Do not finish while `hsk py check --only-changed` still fails, unless the failure is environmental and cannot be fixed in code.
+Do not finish while the chosen check still fails, unless the failure is environmental and cannot be fixed in code.
 
 ## Cross-project check
 
@@ -60,6 +71,6 @@ Linked external projects:
 - `harrix-pylib`
 - `harrix-pyssg`
 
-Run `hsk py ruff-sort-docs --only-changed` and `hsk py check --only-changed` in an external project **only if that project itself was modified** in this session. Do not check unmodified linked projects.
+Run the same cycle as the flag mode (`--only-changed` for `idle`, full commands for `full`) in an external project **only if that project itself was modified** in this session. Do not check unmodified linked projects.
 
-If an external project was modified: fix until `hsk py check --only-changed` passes there (up to **3 times maximum**), unless the failure is environmental and cannot be fixed in code.
+If an external project was modified: fix until the chosen check passes there (up to **3 times maximum**), unless the failure is environmental and cannot be fixed in code.
