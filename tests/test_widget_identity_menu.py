@@ -6,11 +6,12 @@ from unittest.mock import patch
 
 import pytest
 from PySide6.QtCore import QEvent, QPoint, QPointF, Qt
-from PySide6.QtGui import QMouseEvent
+from PySide6.QtGui import QFont, QMouseEvent
 from PySide6.QtWidgets import QApplication, QLabel, QLineEdit, QListWidget, QPushButton, QWidget
 
 import harrix_swiss_knife.qt_widget_identity_menu as identity_menu
 from harrix_swiss_knife.fluent.widgets.card_base import FluentInteractiveCard
+from harrix_swiss_knife.fluent.widgets.menus import FluentMenu
 from harrix_swiss_knife.qt_widget_identity_menu import (
     WidgetIdentityEventFilter,
     ensure_widget_object_name,
@@ -199,3 +200,14 @@ def test_filter_ignores_non_mouse_events(qapp: QApplication) -> None:
     event_filter = WidgetIdentityEventFilter(qapp)
     widget = QWidget()
     assert event_filter.eventFilter(widget, QEvent(QEvent.Type.Hide)) is False
+
+
+def test_fluent_menu_ignores_bold_parent_font(qapp: QApplication) -> None:
+    """Identity menus parented to caption labels must not inherit bold weight."""
+    label = QLabel("Yesterday")
+    bold = QFont(label.font())
+    bold.setBold(True)
+    label.setFont(bold)
+    menu = FluentMenu("", label)
+    assert menu.font().bold() is False
+    assert menu.font().weight() == qapp.font().weight()

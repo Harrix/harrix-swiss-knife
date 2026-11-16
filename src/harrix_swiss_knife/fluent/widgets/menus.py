@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtGui import QAction, QFont
 from PySide6.QtWidgets import (
+    QApplication,
     QHBoxLayout,
     QMenu,
     QMenuBar,
@@ -132,6 +133,8 @@ class FluentMenu(QMenu):
             self.windowFlags() | Qt.WindowType.FramelessWindowHint | Qt.WindowType.NoDropShadowWindowHint
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, on=True)
+        # Parent may be a bold caption/header; menus must stay on the app body font.
+        _apply_app_menu_font(self)
         self.aboutToShow.connect(self.refresh_theme)
         bind_theme(self, self.refresh_theme)
         self.refresh_theme()
@@ -152,6 +155,7 @@ class FluentMenu(QMenu):
 
     def refresh_theme(self) -> None:
         """Re-apply chrome and recolor Lucide icons for the owner's palette."""
+        _apply_app_menu_font(self)
         source = self._palette_source()
         palette = palette_for(source)
         self.setStyleSheet(menu_qss(palette, "QMenu"))
@@ -333,6 +337,13 @@ class FluentToolBar(QToolBar):
             name = action.property("hskLucideIcon")
             if isinstance(name, str) and name:
                 action.setIcon(themed_icon(name, palette))
+
+
+def _apply_app_menu_font(menu: QMenu) -> None:
+    """Keep menus on the process body font (do not inherit bold caption parents)."""
+    app = QApplication.instance()
+    if isinstance(app, QApplication):
+        menu.setFont(QFont(app.font()))
 
 
 def _lucide_action(
