@@ -1,9 +1,10 @@
-"""Dialogs to pick a month/year or year for period expense summaries."""
+"""Period pickers for Month Summary / Year Summary reports."""
 
 from __future__ import annotations
 
 from datetime import UTC, datetime
 
+from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
@@ -17,7 +18,7 @@ from PySide6.QtWidgets import (
 from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.qt_lucide_icon import apply_lucide_dialog_buttons
 
-_MONTH_NAMES: list[str] = [
+MONTH_NAMES: list[str] = [
     "January",
     "February",
     "March",
@@ -31,6 +32,84 @@ _MONTH_NAMES: list[str] = [
     "November",
     "December",
 ]
+
+
+class ReportPeriodBar(QWidget):
+    """Inline month/year controls shown above Month Summary / Year Summary."""
+
+    period_changed = Signal()
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        """Create month and year combo boxes in a horizontal row."""
+        super().__init__(parent)
+        self.setObjectName("reportPeriodBar")
+        self._mode = "month"
+        self._syncing = False
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 4)
+        layout.setSpacing(8)
+
+        self._month_label = QLabel("Month:", self)
+        layout.addWidget(self._month_label)
+        self._month_combo = QComboBox(self)
+        self._month_combo.addItems(MONTH_NAMES)
+        self._month_combo.setMinimumWidth(120)
+        layout.addWidget(self._month_combo)
+
+        self._year_label = QLabel("Year:", self)
+        layout.addWidget(self._year_label)
+        self._year_combo = QComboBox(self)
+        self._year_combo.setMinimumWidth(80)
+        layout.addWidget(self._year_combo)
+        layout.addStretch(1)
+
+        self._month_combo.currentIndexChanged.connect(self._emit_period_changed)
+        self._year_combo.currentIndexChanged.connect(self._emit_period_changed)
+
+    def selected_month(self) -> int | None:
+        """Return 1-12 in month mode, otherwise `None`."""
+        if self._mode != "month":
+            return None
+        return self._month_combo.currentIndex() + 1
+
+    def selected_year(self) -> int | None:
+        """Return the selected year, or `None` when the combo is empty."""
+        text = self._year_combo.currentText().strip()
+        if not text:
+            return None
+        return int(text)
+
+    def set_mode(self, mode: str) -> None:
+        """Show month+year (`month`) or year only (`year`)."""
+        self._mode = mode if mode in {"month", "year"} else "month"
+        show_month = self._mode == "month"
+        self._month_label.setVisible(show_month)
+        self._month_combo.setVisible(show_month)
+
+    def set_period(self, *, year: int, month: int | None, years: list[int]) -> None:
+        """Populate year choices and select `year` / `month` without emitting."""
+        year_choices = sorted(years or [year], reverse=True)
+        if year not in year_choices:
+            year_choices = sorted({*year_choices, year}, reverse=True)
+        self._syncing = True
+        try:
+            self._year_combo.blockSignals(True)  # noqa: FBT003
+            self._month_combo.blockSignals(True)  # noqa: FBT003
+            self._year_combo.clear()
+            self._year_combo.addItems([str(y) for y in year_choices])
+            self._year_combo.setCurrentText(str(year))
+            if month is not None:
+                self._month_combo.setCurrentIndex(max(0, min(11, month - 1)))
+        finally:
+            self._year_combo.blockSignals(False)  # noqa: FBT003
+            self._month_combo.blockSignals(False)  # noqa: FBT003
+            self._syncing = False
+
+    def _emit_period_changed(self, *_args: object) -> None:
+        if self._syncing:
+            return
+        self.period_changed.emit()
 
 
 class ReportPeriodDialog(QDialog):
@@ -76,7 +155,7 @@ class ReportPeriodDialog(QDialog):
         if self._mode == "month":
             picker_row.addWidget(QLabel("Month:"))
             self._month_combo = QComboBox(self)
-            self._month_combo.addItems(_MONTH_NAMES)
+            self._month_combo.addItems(MONTH_NAMES)
             self._month_combo.setCurrentIndex(month - 1)
             picker_row.addWidget(self._month_combo)
         else:
@@ -104,3 +183,17 @@ class ReportPeriodDialog(QDialog):
     def selected_year(self) -> int:
         """Return the selected calendar year."""
         return int(self._year_combo.currentText())
+
+
+def last_calendar_month(*, now: datetime | None = None) -> tuple[int, int]:
+    """Return `(year, month)` for the previous calendar month."""
+    current = now or datetime.now(UTC).astimezone()
+    if current.month == 1:
+        return current.year - 1, 12
+    return current.year, current.month - 1
+
+
+def last_calendar_year(*, now: datetime | None = None) -> int:
+    """Return the previous calendar year."""
+    current = now or datetime.now(UTC).astimezone()
+    return current.year - 1

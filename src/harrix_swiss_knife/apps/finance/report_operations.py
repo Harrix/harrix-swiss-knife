@@ -11,10 +11,10 @@ from PySide6.QtCore import QPoint, QSize, Qt
 from PySide6.QtGui import QColor, QFont, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import (
     QAbstractItemView,
-    QDialog,
     QMenu,
     QStackedWidget,
     QTreeView,
+    QVBoxLayout,
     QWidget,
 )
 
@@ -31,7 +31,11 @@ from harrix_swiss_knife.apps.finance.exchange_rates_operations import (
 from harrix_swiss_knife.apps.finance.layout_chrome import TABLE_ROW_HEIGHT
 from harrix_swiss_knife.apps.finance.mixins import requires_database
 from harrix_swiss_knife.apps.finance.report_build_worker import ReportBuildResult, ReportBuildWorker
-from harrix_swiss_knife.apps.finance.report_period_dialog import ReportPeriodDialog
+from harrix_swiss_knife.apps.finance.report_period_dialog import (
+    ReportPeriodBar,
+    last_calendar_month,
+    last_calendar_year,
+)
 from harrix_swiss_knife.fluent.app_chrome import style_fluent_item_view
 from harrix_swiss_knife.fluent.theme import mix
 from harrix_swiss_knife.fluent.tokens import ICON_SIZE, LIGHT_PALETTE
@@ -88,10 +92,13 @@ class ReportOperations:
         Args:
 
         - `report_type` (`str | None`): Override list selection (e.g. from context menu).
-        - `period_year` / `period_month`: When set with `prompt_for_period=False`, skip the
-          Month/Year Summary dialogs and use these values.
+        - `period_year` / `period_month`: Explicit period for Month/Year Summary. When omitted,
+          uses the last stored period or the previous calendar month/year. The period bar at
+          the top of the report lets the user change these without a dialog.
+        - `prompt_for_period` (`bool`): Retained for callers; the modal period dialog is gone.
 
         """
+        _ = prompt_for_period
         if self.db_manager is None:
             logger.error("❌ Database manager is not initialized")
             return
@@ -110,17 +117,17 @@ class ReportOperations:
             year_start_month = self._compare_last_years_start_month
             year_start_day = self._compare_last_years_start_day
         elif selected_type == "Month Summary":
-            if prompt_for_period or period_year is None or period_month is None:
-                picked = self._prompt_report_period(mode="month")
-                if picked is None:
-                    return
-                period_year, period_month = picked
+            if period_year is None or period_month is None:
+                period_year, period_month = self._resolved_month_summary_period()
+            self._report_period_year = period_year
+            self._report_period_month = period_month
+            self._sync_report_period_bar(mode="month", year=period_year, month=period_month)
         elif selected_type == "Year Summary":
-            if prompt_for_period or period_year is None:
-                picked = self._prompt_report_period(mode="year")
-                if picked is None:
-                    return
-                period_year, period_month = picked
+            if period_year is None:
+                period_year = self._resolved_year_summary_period()
+            period_month = None
+            self._report_period_year = period_year
+            self._sync_report_period_bar(mode="year", year=period_year, month=None)
 
         try:
             db_filename = _require_db_filename_for_worker(self.db_manager)
@@ -403,6 +410,11 @@ class ReportOperations:
                 result.period_categories,
                 result.period_grand_total,
             )
+            mode = "month" if report_type == "Month Summary" else "year"
+            year = getattr(self, "_report_period_year", None)
+            month = getattr(self, "_report_period_month", None) if mode == "month" else None
+            if isinstance(year, int):
+                self._sync_report_period_bar(mode=mode, year=year, month=month)
         elif report_type == "Category Analysis":
             self._apply_category_analysis_report(result.headers, result.table_rows or [])
         elif report_type == "Currency Analysis":
@@ -415,6 +427,17 @@ class ReportOperations:
             self._apply_monthly_income_year_delta_report(result.headers, result.table_rows or [])
         elif report_type == "Average Salary by Year":
             self._apply_average_salary_by_year_report(result.headers, result.table_rows or [])
+
+    def _clamp_year_to_available(self, year: int) -> int:
+        """Clamp `year` into the available report year list."""
+        years = self._report_period_years()
+        if not years:
+            return year
+        if year < years[0]:
+            return years[0]
+        if year > years[-1]:
+            return years[-1]
+        return year
 
     def _cleanup_report_build_worker(self) -> None:
         """Release the report build worker after the thread finishes."""
@@ -431,38 +454,59 @@ class ReportOperations:
             toast.close()
             self._report_build_toast = None
 
-    def _ensure_reports_tree_view(self) -> QTreeView:
-        """Create the Month/Year Summary tree inside a stack with the flat table.
+    def _ensure_reports_result_pane(self) -> QStackedWidget:
+        """Ensure the right reports pane is period bar + stacked table/tree.
 
         Parenting the tree directly to `splitter_5` would add a third pane and
         blow out the Generate report column width.
 
         """
+        stack = getattr(self, "_reports_view_stack", None)
+        if isinstance(stack, QStackedWidget):
+            return stack
+
+        splitter = self.splitter_5
+        sizes = splitter.sizes()
+        pane = QWidget()
+        pane.setObjectName("reportsResultPane")
+        pane_layout = QVBoxLayout(pane)
+        pane_layout.setContentsMargins(0, 0, 0, 0)
+        pane_layout.setSpacing(4)
+
+        period_bar = ReportPeriodBar(pane)
+        period_bar.hide()
+        period_bar.period_changed.connect(self._on_report_period_bar_changed)
+        pane_layout.addWidget(period_bar)
+        self._report_period_bar = period_bar
+
+        stack = QStackedWidget(pane)
+        stack.setObjectName("stackedWidget_reports")
+        stack.setMinimumWidth(max(self.tableView_reports.minimumWidth(), 200))
+        table_index = splitter.indexOf(self.tableView_reports)
+        if table_index < 0:
+            table_index = splitter.count()
+        stack.addWidget(self.tableView_reports)
+        pane_layout.addWidget(stack, stretch=1)
+
+        splitter.insertWidget(table_index, pane)
+        splitter.setStretchFactor(0, 0)
+        splitter.setStretchFactor(1, 1)
+        self._reports_result_pane = pane
+        self._reports_view_stack = stack
+        if len(sizes) >= _REPORTS_SPLITTER_PANES and all(size > 0 for size in sizes[:_REPORTS_SPLITTER_PANES]):
+            splitter.setSizes(sizes[:_REPORTS_SPLITTER_PANES])
+        apply_sizes = getattr(self, "_apply_finance_reports_splitter_sizes", None)
+        if callable(apply_sizes):
+            apply_sizes()
+        return stack
+
+    def _ensure_reports_tree_view(self) -> QTreeView:
+        """Create the Month/Year Summary tree inside the reports result stack."""
         tree = getattr(self, "_reports_tree_view", None)
         if isinstance(tree, QTreeView):
             return tree
 
-        splitter = self.splitter_5
-        sizes = splitter.sizes()
-        stack = getattr(self, "_reports_view_stack", None)
-        if not isinstance(stack, QStackedWidget):
-            stack = QStackedWidget()
-            stack.setObjectName("stackedWidget_reports")
-            stack.setMinimumWidth(max(self.tableView_reports.minimumWidth(), 200))
-            table_index = splitter.indexOf(self.tableView_reports)
-            if table_index < 0:
-                table_index = splitter.count()
-            stack.addWidget(self.tableView_reports)
-            splitter.insertWidget(table_index, stack)
-            splitter.setStretchFactor(0, 0)
-            splitter.setStretchFactor(1, 1)
-            self._reports_view_stack = stack
-            if len(sizes) >= _REPORTS_SPLITTER_PANES and all(size > 0 for size in sizes[:_REPORTS_SPLITTER_PANES]):
-                splitter.setSizes(sizes[:_REPORTS_SPLITTER_PANES])
-            apply_sizes = getattr(self, "_apply_finance_reports_splitter_sizes", None)
-            if callable(apply_sizes):
-                apply_sizes()
-
+        stack = self._ensure_reports_result_pane()
         tree = QTreeView()
         tree.setObjectName("treeView_reports")
         tree.setUniformRowHeights(True)
@@ -488,6 +532,36 @@ class ReportOperations:
         self._close_report_build_toast()
         message_box.warning(cast("QWidget", self), "Report Error", f"Failed to generate report: {error_message}")
 
+    def _on_report_period_bar_changed(self) -> None:
+        """Rebuild Month/Year Summary when the inline period controls change."""
+        bar = getattr(self, "_report_period_bar", None)
+        if not isinstance(bar, ReportPeriodBar) or not bar.isVisible():
+            return
+        year = bar.selected_year()
+        if year is None:
+            return
+        month = bar.selected_month()
+        self._report_period_year = year
+        if month is not None:
+            self._report_period_month = month
+        report_type = self._selected_report_type()
+        if report_type == "Month Summary":
+            if month is None:
+                return
+            self.on_generate_report(
+                report_type=report_type,
+                period_year=year,
+                period_month=month,
+                prompt_for_period=False,
+            )
+            return
+        if report_type == "Year Summary":
+            self.on_generate_report(
+                report_type=report_type,
+                period_year=year,
+                prompt_for_period=False,
+            )
+
     def _open_month_summary_for_period(self, year: int, month: int) -> None:
         """Select Month Summary in the list and build it for `year`/`month` without a prompt."""
         self._report_period_year = year
@@ -512,28 +586,6 @@ class ReportOperations:
             return None
         return year, month
 
-    def _prompt_report_period(self, *, mode: str) -> tuple[int, int | None] | None:
-        """Ask for month+year or year; return `(year, month)` or `None` if cancelled."""
-        years = self._report_period_years()
-        now = datetime.now(UTC).astimezone()
-        default_year = getattr(self, "_report_period_year", now.year)
-        default_month = getattr(self, "_report_period_month", now.month)
-        dialog = ReportPeriodDialog(
-            cast("QWidget", self),
-            mode=mode,
-            years=years,
-            default_year=default_year,
-            default_month=default_month,
-        )
-        if dialog.exec() != QDialog.DialogCode.Accepted:
-            return None
-        year = dialog.selected_year()
-        month = dialog.selected_month()
-        self._report_period_year = year
-        if month is not None:
-            self._report_period_month = month
-        return year, month
-
     def _report_period_years(self) -> list[int]:
         """Return calendar years from earliest transaction through today."""
         now = datetime.now(UTC).astimezone()
@@ -556,6 +608,22 @@ class ReportOperations:
         if not isinstance(text, str):
             return None
         return self._parse_month_key(text)
+
+    def _resolved_month_summary_period(self) -> tuple[int, int]:
+        """Return stored month period, or the previous calendar month clamped to data years."""
+        stored_year = getattr(self, "_report_period_year", None)
+        stored_month = getattr(self, "_report_period_month", None)
+        if isinstance(stored_year, int) and isinstance(stored_month, int) and 1 <= stored_month <= _MONTHS_IN_YEAR:
+            return self._clamp_year_to_available(stored_year), stored_month
+        year, month = last_calendar_month()
+        return self._clamp_year_to_available(year), month
+
+    def _resolved_year_summary_period(self) -> int:
+        """Return stored year, or the previous calendar year clamped to data years."""
+        stored_year = getattr(self, "_report_period_year", None)
+        if isinstance(stored_year, int):
+            return self._clamp_year_to_available(stored_year)
+        return self._clamp_year_to_available(last_calendar_year())
 
     def _select_report_type_in_list(self, report_type: str) -> None:
         """Select `report_type` in `listView_report_type` without regenerating."""
@@ -636,6 +704,9 @@ class ReportOperations:
         stack = getattr(self, "_reports_view_stack", None)
         if isinstance(stack, QStackedWidget):
             stack.setCurrentWidget(self.tableView_reports)
+        bar = getattr(self, "_report_period_bar", None)
+        if isinstance(bar, ReportPeriodBar):
+            bar.hide()
         self.tableView_reports.show()
 
     def _show_reports_table_context_menu(self, position: QPoint) -> None:
@@ -665,6 +736,16 @@ class ReportOperations:
             stack.setCurrentWidget(tree)
         tree.show()
         return tree
+
+    def _sync_report_period_bar(self, *, mode: str, year: int, month: int | None) -> None:
+        """Show and sync the inline period bar for Month/Year Summary."""
+        self._ensure_reports_result_pane()
+        bar = getattr(self, "_report_period_bar", None)
+        if not isinstance(bar, ReportPeriodBar):
+            return
+        bar.set_mode(mode)
+        bar.set_period(year=year, month=month, years=self._report_period_years())
+        bar.show()
 
 
 def _report_amount_fill() -> QColor:
