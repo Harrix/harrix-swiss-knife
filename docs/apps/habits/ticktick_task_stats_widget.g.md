@@ -251,15 +251,14 @@ class TickTickTaskStatsWidget(QWidget):
         self._day_panel.setMaximumWidth(_DAY_MAX)
 
     def _backup_ticktick_data(self) -> None:
-        """Ask for a folder and write a TickTick-only backup there."""
+        """Write a TickTick-only backup into `path_backups`/TickTick."""
+        from harrix_swiss_knife.backup_paths import ticktick_backup_root  # noqa: PLC0415
+
         source = Path(self._db_path) if self._db_path is not None else default_ticktick_db_path()
         source = source.expanduser()
-        start_dir = str(source.parent) if source.parent.is_dir() else ""
-        dest = QFileDialog.getExistingDirectory(self, "Backup TickTick", start_dir)
-        if not dest:
-            return
+        dest = ticktick_backup_root()
         try:
-            folder = write_ticktick_backup(Path(dest), ticktick_db_path=source)
+            folder = write_ticktick_backup(dest, ticktick_db_path=source)
         except (FileNotFoundError, OSError, ValueError, sqlite3.Error) as exc:
             message_box.warning(self, "Backup TickTick", str(exc))
             return

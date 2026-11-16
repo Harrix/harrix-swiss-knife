@@ -27,6 +27,7 @@ lang: en
 - [🔧 Function `dev_pack_private_data`](#-function-dev_pack_private_data)
 - [🔧 Function `dev_setup_data_for_hsk`](#-function-dev_setup_data_for_hsk)
 - [🔧 Function `file_group`](#-function-file_group)
+- [🔧 Function `file_check_git_repos_needing_commit`](#-function-file_check_git_repos_needing_commit)
 - [🔧 Function `file_discard_git_changes`](#-function-file_discard_git_changes)
 - [🔧 Function `markdown_group`](#-function-markdown_group)
 - [🔧 Function `markdown_add_from_template`](#-function-markdown_add_from_template)
@@ -433,6 +434,26 @@ File-operation commands.
 
 ```python
 def file_group() -> None:
+```
+
+</details>
+
+## 🔧 Function `file_check_git_repos_needing_commit`
+
+```python
+def file_check_git_repos_needing_commit() -> None
+```
+
+List dirty Git repos under `paths_git_roots` (no commit / Desktop UI).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def file_check_git_repos_needing_commit() -> None:
+    action = OnCheckGitReposNeedingCommit()
+    action(noninteractive=True)
+    _finish_timed_action(action)
 ```
 
 </details>

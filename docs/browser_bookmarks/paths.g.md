@@ -30,14 +30,16 @@ lang: en
 def backup_root() -> Path
 ```
 
-Directory for timestamped Bookmarks backups.
+Directory for timestamped Bookmarks backups (`path_backups/browser_bookmarks`).
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def backup_root() -> Path:
-    return harrix_swiss_knife_data_dir() / "browser_bookmarks_backups"
+    from harrix_swiss_knife.backup_paths import browser_bookmarks_backup_root  # noqa: PLC0415
+
+    return browser_bookmarks_backup_root()
 ```
 
 </details>

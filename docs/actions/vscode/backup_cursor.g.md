@@ -114,7 +114,7 @@ class OnBackupCursor(ActionBase):
 
     def _default_output_zip(self) -> Path:
         stamp = datetime.now(UTC).astimezone().strftime("%Y%m%d-%H%M%S")
-        return get_action_output_dir() / f"cursor-backup-{stamp}.zip"
+        return cursor_backup_root(self.config) / f"cursor-backup-{stamp}.zip"
 
     def _resolve_cli_parts(self, parts: tuple[str, ...] | list[str] | None) -> list[BackupPart] | None:
         tokens = [str(token).strip().casefold() for token in (parts or ()) if str(token).strip()]

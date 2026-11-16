@@ -102,6 +102,7 @@ class AppConfig(TypedDict, total=False):
     paths_python_libraries: list[str]
     paths_notes: list[str]
     paths_git: list[str]
+    paths_git_roots: NotRequired[list[str]]
     vscode_workspace_notes: str
     vscode_workspace_articles: str
     ai: AiSettings
@@ -417,6 +418,7 @@ def validate_app_config(config: dict[str, Any]) -> list[str]:
         "paths_python_libraries",
         "paths_notes",
         "paths_git",
+        "paths_git_roots",
         "block_drives",
         "transfer_private_data_default_api_keys",
     ):

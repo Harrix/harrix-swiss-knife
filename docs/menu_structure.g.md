@@ -116,6 +116,7 @@ def get_menu_structure() -> list[Any]:
                 OnExtractZipArchives,
                 OnCombineForAI,
                 OnFlipSlashes,
+                OnCheckGitReposNeedingCommit,
                 OnDiscardGitChanges,
                 OnListFilesSimple,
                 OnListFilesSimpleIgnoreHiddenFolders,

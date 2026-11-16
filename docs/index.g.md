@@ -94,6 +94,7 @@ _Figure 1: Screenshot_
   - 📦 Upgrade packages (uv)
   - 📋 View recent action logs
 - **File operations**
+  - 📌 ★ Check Git repos needing commit… ꟲᴸᴵ
   - 🎵 Check MusicBee playlists
   - ✅ Check featured_image in all folders
   - ✅ Check featured_image in …
@@ -406,18 +407,18 @@ Folder arguments are optional (default: current directory) for commands that tak
 
 ### `hsk vscode`
 
-| Icon | Command                                   | Description                                                                 |
-| ---- | ----------------------------------------- | --------------------------------------------------------------------------- |
-| ✨   | `hsk vscode format`                       | Biome format for `vscode/harrix-notes-explorer-hsk/`                        |
-| 🔬   | `hsk vscode check`                        | Biome lint + format check for the VS Code extension                         |
-| 🔄   | `hsk vscode sync-notes-explorer`          | Sync HSK extension into public `path_harrix_notes_explorer` repo            |
-| 🔄   | `hsk vscode sync-save-commands`           | Union global Saved Commands across editors with the Save Commands extension |
-| 🔄   | `hsk vscode sync-save-commands EDITOR...` | Same for explicit editors (`cursor`, `insiders`, `vscode`, …)               |
-| 🔄   | `hsk vscode sync-save-commands --force`   | Write even if selected editors are running                                  |
-| 💾   | `hsk vscode backup-cursor`                | Zip Cursor settings, chats, home `.cursor`, and project `.cursor` folders   |
+| Icon | Command                                   | Description                                                                        |
+| ---- | ----------------------------------------- | ---------------------------------------------------------------------------------- |
+| ✨   | `hsk vscode format`                       | Biome format for `vscode/harrix-notes-explorer-hsk/`                               |
+| 🔬   | `hsk vscode check`                        | Biome lint + format check for the VS Code extension                                |
+| 🔄   | `hsk vscode sync-notes-explorer`          | Sync HSK extension into public `path_harrix_notes_explorer` repo                   |
+| 🔄   | `hsk vscode sync-save-commands`           | Union global Saved Commands across editors with the Save Commands extension        |
+| 🔄   | `hsk vscode sync-save-commands EDITOR...` | Same for explicit editors (`cursor`, `insiders`, `vscode`, …)                      |
+| 🔄   | `hsk vscode sync-save-commands --force`   | Write even if selected editors are running                                         |
+| 💾   | `hsk vscode backup-cursor`                | Zip Cursor settings, chats, home `.cursor`, and project `.cursor` folders          |
 | 💾   | `hsk vscode backup-cursor --part PART`    | Limit to `cursor-user`, `dot-cursor`, `dot-cursor-extensions`, or `project-cursor` |
-| 💾   | `hsk vscode backup-cursor --output PATH`  | Write the ZIP to an explicit path                                           |
-| 💾   | `hsk vscode backup-cursor --force`        | Pack even if Cursor is running                                              |
+| 💾   | `hsk vscode backup-cursor --output PATH`  | Write the ZIP to an explicit path (default: `path_backups`/Cursor/…)               |
+| 💾   | `hsk vscode backup-cursor --force`        | Pack even if Cursor is running                                                     |
 
 ### `hsk site`
 
@@ -436,6 +437,7 @@ Folder arguments are optional (default: current directory) for commands that tak
 
 | Icon | Command                                          | Description                                                            |
 | ---- | ------------------------------------------------ | ---------------------------------------------------------------------- |
+| 📌   | `hsk file check-git-repos-needing-commit`        | List dirty repos under `paths_git_roots` (CLI: status only)            |
 | ↩️    | `hsk file discard-git-changes [FOLDER]`          | `git reset --hard` + `git clean -fd` in each Git repo under the folder |
 | ↩️    | `hsk file discard-git-changes [FOLDER] --status` | Only list repositories with uncommitted changes (no discard)           |
 | 🤖   | `hsk text fix-text-with-ai`                      | BotHub fix via dialog; result copied to clipboard                      |

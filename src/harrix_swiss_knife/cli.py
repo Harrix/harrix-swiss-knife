@@ -20,7 +20,7 @@ from harrix_swiss_knife.actions.development import (
     OnShowActionUsageStats,
     OnTransferPrivateData,
 )
-from harrix_swiss_knife.actions.files import OnDiscardGitChanges
+from harrix_swiss_knife.actions.files import OnCheckGitReposNeedingCommit, OnDiscardGitChanges
 from harrix_swiss_knife.actions.markdown import (
     OnBeautifyMd,
     OnBeautifyMdAndRegenerateGMd,
@@ -314,6 +314,14 @@ def dev_setup_data_for_hsk(parent_dir: Path) -> None:
 @cli.group("file")
 def file_group() -> None:
     """File-operation commands."""
+
+
+@file_group.command("check-git-repos-needing-commit")
+def file_check_git_repos_needing_commit() -> None:
+    """List dirty Git repos under `paths_git_roots` (no commit / Desktop UI)."""
+    action = OnCheckGitReposNeedingCommit()
+    action(noninteractive=True)
+    _finish_timed_action(action)
 
 
 @file_group.command("discard-git-changes")

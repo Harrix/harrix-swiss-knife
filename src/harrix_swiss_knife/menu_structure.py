@@ -44,6 +44,7 @@ from harrix_swiss_knife.actions.development.view_recent_action_logs import OnVie
 from harrix_swiss_knife.actions.files.all_files_to_parent_folder import OnAllFilesToParentFolder
 from harrix_swiss_knife.actions.files.check_featured_image import OnCheckFeaturedImage
 from harrix_swiss_knife.actions.files.check_featured_image_in_folders import OnCheckFeaturedImageInFolders
+from harrix_swiss_knife.actions.files.check_git_repos_needing_commit import OnCheckGitReposNeedingCommit
 from harrix_swiss_knife.actions.files.check_musicbee_playlists import OnCheckMusicBeePlaylists
 from harrix_swiss_knife.actions.files.clean_temporary import OnCleanTemporary
 from harrix_swiss_knife.actions.files.close_all_adobe import OnCloseAllAdobe
@@ -239,6 +240,7 @@ def get_menu_structure() -> list[Any]:
                 OnExtractZipArchives,
                 OnCombineForAI,
                 OnFlipSlashes,
+                OnCheckGitReposNeedingCommit,
                 OnDiscardGitChanges,
                 OnListFilesSimple,
                 OnListFilesSimpleIgnoreHiddenFolders,

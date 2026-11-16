@@ -137,6 +137,7 @@ def default_musicbee_config() -> dict[str, Any]:
         "library_dir": "D:/Dropbox/Programs/MusicBee/Library",
         "music_root": "C:/Users/sergi/OneDrive/Music",
         "stream_root": "C:/Users/sergi/OneDrive/Music/Stream",
+        # Prefer top-level path_backups; backup_dir kept as legacy fallback.
         "backup_dir": "D:/Dropbox/Backups",
         "audio_extensions": list(DEFAULT_AUDIO_EXTENSIONS),
         "stream_playlist_prefix": DEFAULT_STREAM_PREFIX,

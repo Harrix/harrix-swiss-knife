@@ -329,6 +329,12 @@
     "<YOUR_GITHUB_FOLDER>/data-for-hsk/Notes/Notes-Temp",
     "<YOUR_GITHUB_FOLDER>/data-for-hsk/databases"
   ],
+  "paths_git_roots": [
+    "<YOUR_GITHUB_FOLDER>",
+    "<YOUR_GITHUB_FOLDER>/_content__harrix-dev",
+    "<YOUR_GITHUB_FOLDER>/_featured-image__harrix-dev",
+    "<YOUR_NOTES_FOLDER>"
+  ],
   "paths_notes": [
     "<YOUR_GITHUB_FOLDER>/data-for-hsk/Notes/Notes",
     "<YOUR_GITHUB_FOLDER>/data-for-hsk/Notes/Notes-Diaries",
