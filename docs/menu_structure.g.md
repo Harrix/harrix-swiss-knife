@@ -68,6 +68,7 @@ def get_menu_structure() -> list[Any]:
                 OnSyncHarrixNotesExplorer,
                 OnInstallHarrixNotesExplorerExtension,
                 OnSyncSaveCommands,
+                OnBackupCursor,
             ],
         ),
         (

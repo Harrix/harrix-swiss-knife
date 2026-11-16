@@ -415,6 +415,8 @@ def setup_file_logging() -> Path:
         root.addHandler(fh)
     if root.level == logging.NOTSET or root.level > logging.INFO:
         root.setLevel(logging.INFO)
+    # Finance FX updates: yfinance WARNING/ERROR (SSL crumb, empty history) spam stderr otherwise.
+    configure_yfinance_logging()
     return log_path
 ```
 

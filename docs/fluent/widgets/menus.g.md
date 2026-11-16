@@ -284,6 +284,8 @@ class FluentMenu(QMenu):
             self.windowFlags() | Qt.WindowType.FramelessWindowHint | Qt.WindowType.NoDropShadowWindowHint
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, on=True)
+        # Parent may be a bold caption/header; menus must stay on the app body font.
+        _apply_app_menu_font(self)
         self.aboutToShow.connect(self.refresh_theme)
         bind_theme(self, self.refresh_theme)
         self.refresh_theme()
@@ -304,6 +306,7 @@ class FluentMenu(QMenu):
 
     def refresh_theme(self) -> None:
         """Re-apply chrome and recolor Lucide icons for the owner's palette."""
+        _apply_app_menu_font(self)
         source = self._palette_source()
         palette = palette_for(source)
         self.setStyleSheet(menu_qss(palette, "QMenu"))
@@ -340,6 +343,8 @@ def __init__(self, title: str = "", parent: QWidget | None = None) -> None:
             self.windowFlags() | Qt.WindowType.FramelessWindowHint | Qt.WindowType.NoDropShadowWindowHint
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, on=True)
+        # Parent may be a bold caption/header; menus must stay on the app body font.
+        _apply_app_menu_font(self)
         self.aboutToShow.connect(self.refresh_theme)
         bind_theme(self, self.refresh_theme)
         self.refresh_theme()
@@ -402,6 +407,7 @@ Re-apply chrome and recolor Lucide icons for the owner's palette.
 
 ```python
 def refresh_theme(self) -> None:
+        _apply_app_menu_font(self)
         source = self._palette_source()
         palette = palette_for(source)
         self.setStyleSheet(menu_qss(palette, "QMenu"))

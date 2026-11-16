@@ -763,12 +763,22 @@ Model-based list view with Fluent item chrome.
 ```python
 class FluentListView(QListView):
 
-    def __init__(self, parent: QWidget | None = None, *, transparent: bool = True, smooth: bool = True) -> None:
-        """Create a list view."""
+    def __init__(
+        self,
+        parent: QWidget | None = None,
+        *,
+        transparent: bool = True,
+        smooth: bool = True,
+        compact: bool = False,
+    ) -> None:
+        """Create a list view (`compact` uses dense row padding)."""
         super().__init__(parent)
         self._transparent = transparent
+        self._compact = compact
         self.setObjectName(self.objectName() or "FluentListView")
         _init_fluent_view(self, smooth=smooth)
+        if self.iconSize().width() <= ICON_SIZE:
+            self.setIconSize(QSize(ICON_SIZE, ICON_SIZE))
         bind_theme(self, self.refresh_theme)
 
     def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802
@@ -779,7 +789,12 @@ class FluentListView(QListView):
     def refresh_theme(self) -> None:
         """Re-apply item chrome."""
         self.setStyleSheet(
-            item_view_qss(palette_for(self), f"QListView#{self.objectName()}", transparent=self._transparent)
+            item_view_qss(
+                palette_for(self),
+                f"QListView#{self.objectName()}",
+                transparent=self._transparent,
+                compact=self._compact,
+            )
         )
 ```
 
@@ -788,20 +803,30 @@ class FluentListView(QListView):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QWidget | None = None, *, transparent: bool = True, smooth: bool = True) -> None
+def __init__(self, parent: QWidget | None = None, *, transparent: bool = True, smooth: bool = True, compact: bool = False) -> None
 ```
 
-Create a list view.
+Create a list view (`compact` uses dense row padding).
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def __init__(self, parent: QWidget | None = None, *, transparent: bool = True, smooth: bool = True) -> None:
+def __init__(
+        self,
+        parent: QWidget | None = None,
+        *,
+        transparent: bool = True,
+        smooth: bool = True,
+        compact: bool = False,
+    ) -> None:
         super().__init__(parent)
         self._transparent = transparent
+        self._compact = compact
         self.setObjectName(self.objectName() or "FluentListView")
         _init_fluent_view(self, smooth=smooth)
+        if self.iconSize().width() <= ICON_SIZE:
+            self.setIconSize(QSize(ICON_SIZE, ICON_SIZE))
         bind_theme(self, self.refresh_theme)
 ```
 
@@ -840,7 +865,12 @@ Re-apply item chrome.
 ```python
 def refresh_theme(self) -> None:
         self.setStyleSheet(
-            item_view_qss(palette_for(self), f"QListView#{self.objectName()}", transparent=self._transparent)
+            item_view_qss(
+                palette_for(self),
+                f"QListView#{self.objectName()}",
+                transparent=self._transparent,
+                compact=self._compact,
+            )
         )
 ```
 
@@ -860,12 +890,23 @@ List widget with rounded hover/selection, accent indicator, and smooth scrolling
 ```python
 class FluentListWidget(QListWidget):
 
-    def __init__(self, parent: QWidget | None = None, *, transparent: bool = True, smooth: bool = True) -> None:
-        """Create a list widget."""
+    def __init__(
+        self,
+        parent: QWidget | None = None,
+        *,
+        transparent: bool = True,
+        smooth: bool = True,
+        compact: bool = False,
+    ) -> None:
+        """Create a list widget (`compact` uses dense row padding for long catalogs)."""
         super().__init__(parent)
         self._transparent = transparent
+        self._compact = compact
         self.setObjectName(self.objectName() or "FluentListWidget")
         _init_fluent_view(self, smooth=smooth)
+        # Menu actions often carry 32px icons; without a fixed size rows balloon.
+        if self.iconSize().width() <= ICON_SIZE:
+            self.setIconSize(QSize(ICON_SIZE, ICON_SIZE))
         bind_theme(self, self.refresh_theme)
 
     def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802
@@ -876,7 +917,12 @@ class FluentListWidget(QListWidget):
     def refresh_theme(self) -> None:
         """Re-apply item chrome."""
         self.setStyleSheet(
-            item_view_qss(palette_for(self), f"QListWidget#{self.objectName()}", transparent=self._transparent)
+            item_view_qss(
+                palette_for(self),
+                f"QListWidget#{self.objectName()}",
+                transparent=self._transparent,
+                compact=self._compact,
+            )
         )
 ```
 
@@ -885,20 +931,31 @@ class FluentListWidget(QListWidget):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QWidget | None = None, *, transparent: bool = True, smooth: bool = True) -> None
+def __init__(self, parent: QWidget | None = None, *, transparent: bool = True, smooth: bool = True, compact: bool = False) -> None
 ```
 
-Create a list widget.
+Create a list widget (`compact` uses dense row padding for long catalogs).
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def __init__(self, parent: QWidget | None = None, *, transparent: bool = True, smooth: bool = True) -> None:
+def __init__(
+        self,
+        parent: QWidget | None = None,
+        *,
+        transparent: bool = True,
+        smooth: bool = True,
+        compact: bool = False,
+    ) -> None:
         super().__init__(parent)
         self._transparent = transparent
+        self._compact = compact
         self.setObjectName(self.objectName() or "FluentListWidget")
         _init_fluent_view(self, smooth=smooth)
+        # Menu actions often carry 32px icons; without a fixed size rows balloon.
+        if self.iconSize().width() <= ICON_SIZE:
+            self.setIconSize(QSize(ICON_SIZE, ICON_SIZE))
         bind_theme(self, self.refresh_theme)
 ```
 
@@ -937,7 +994,12 @@ Re-apply item chrome.
 ```python
 def refresh_theme(self) -> None:
         self.setStyleSheet(
-            item_view_qss(palette_for(self), f"QListWidget#{self.objectName()}", transparent=self._transparent)
+            item_view_qss(
+                palette_for(self),
+                f"QListWidget#{self.objectName()}",
+                transparent=self._transparent,
+                compact=self._compact,
+            )
         )
 ```
 

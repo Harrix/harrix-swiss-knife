@@ -50,20 +50,23 @@ class ReportPeriodBar(QWidget):
         self._syncing = False
 
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 4)
-        layout.setSpacing(8)
+        layout.setContentsMargins(0, 0, 0, SPACE_XS)
+        layout.setSpacing(SPACE_S)
 
         self._month_label = QLabel("Month:", self)
+        self._month_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
         layout.addWidget(self._month_label)
-        self._month_combo = QComboBox(self)
-        self._month_combo.addItems(MONTH_NAMES)
-        self._month_combo.setMinimumWidth(120)
+        self._month_combo = FluentComboBox(self, items=MONTH_NAMES)
+        self._month_combo.setMinimumWidth(140)
+        self._month_combo.setFixedHeight(CONTROL_HEIGHT)
         layout.addWidget(self._month_combo)
 
         self._year_label = QLabel("Year:", self)
+        self._year_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
         layout.addWidget(self._year_label)
-        self._year_combo = QComboBox(self)
-        self._year_combo.setMinimumWidth(80)
+        self._year_combo = FluentComboBox(self)
+        self._year_combo.setMinimumWidth(96)
+        self._year_combo.setFixedHeight(CONTROL_HEIGHT)
         layout.addWidget(self._year_combo)
         layout.addStretch(1)
 
@@ -97,16 +100,16 @@ class ReportPeriodBar(QWidget):
             year_choices = sorted({*year_choices, year}, reverse=True)
         self._syncing = True
         try:
-            self._year_combo.blockSignals(True)
-            self._month_combo.blockSignals(True)
+            self._year_combo.blockSignals(True)  # noqa: FBT003
+            self._month_combo.blockSignals(True)  # noqa: FBT003
             self._year_combo.clear()
             self._year_combo.addItems([str(y) for y in year_choices])
             self._year_combo.setCurrentText(str(year))
             if month is not None:
                 self._month_combo.setCurrentIndex(max(0, min(11, month - 1)))
         finally:
-            self._year_combo.blockSignals(False)
-            self._month_combo.blockSignals(False)
+            self._year_combo.blockSignals(False)  # noqa: FBT003
+            self._month_combo.blockSignals(False)  # noqa: FBT003
             self._syncing = False
 
     def _emit_period_changed(self, *_args: object) -> None:
@@ -136,20 +139,23 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self._syncing = False
 
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 4)
-        layout.setSpacing(8)
+        layout.setContentsMargins(0, 0, 0, SPACE_XS)
+        layout.setSpacing(SPACE_S)
 
         self._month_label = QLabel("Month:", self)
+        self._month_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
         layout.addWidget(self._month_label)
-        self._month_combo = QComboBox(self)
-        self._month_combo.addItems(MONTH_NAMES)
-        self._month_combo.setMinimumWidth(120)
+        self._month_combo = FluentComboBox(self, items=MONTH_NAMES)
+        self._month_combo.setMinimumWidth(140)
+        self._month_combo.setFixedHeight(CONTROL_HEIGHT)
         layout.addWidget(self._month_combo)
 
         self._year_label = QLabel("Year:", self)
+        self._year_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
         layout.addWidget(self._year_label)
-        self._year_combo = QComboBox(self)
-        self._year_combo.setMinimumWidth(80)
+        self._year_combo = FluentComboBox(self)
+        self._year_combo.setMinimumWidth(96)
+        self._year_combo.setFixedHeight(CONTROL_HEIGHT)
         layout.addWidget(self._year_combo)
         layout.addStretch(1)
 
@@ -239,16 +245,16 @@ def set_period(self, *, year: int, month: int | None, years: list[int]) -> None:
             year_choices = sorted({*year_choices, year}, reverse=True)
         self._syncing = True
         try:
-            self._year_combo.blockSignals(True)
-            self._month_combo.blockSignals(True)
+            self._year_combo.blockSignals(True)  # noqa: FBT003
+            self._month_combo.blockSignals(True)  # noqa: FBT003
             self._year_combo.clear()
             self._year_combo.addItems([str(y) for y in year_choices])
             self._year_combo.setCurrentText(str(year))
             if month is not None:
                 self._month_combo.setCurrentIndex(max(0, min(11, month - 1)))
         finally:
-            self._year_combo.blockSignals(False)
-            self._month_combo.blockSignals(False)
+            self._year_combo.blockSignals(False)  # noqa: FBT003
+            self._month_combo.blockSignals(False)  # noqa: FBT003
             self._syncing = False
 ```
 

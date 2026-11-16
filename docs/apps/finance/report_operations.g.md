@@ -464,10 +464,15 @@ class ReportOperations:
         tree.setObjectName("treeView_reports")
         tree.setUniformRowHeights(True)
         tree.setIndentation(18)
+        tree.setIconSize(QSize(ICON_SIZE, ICON_SIZE))
         tree.setWordWrap(False)
         tree.setTextElideMode(Qt.TextElideMode.ElideRight)
-        tree.setStyleSheet(f"QTreeView::item {{ min-height: {TABLE_ROW_HEIGHT}px; }}")
+        # Comfortable row padding (default Fluent list chrome is 1px — too tight with icons).
         style_fluent_item_view(tree)
+        tree.setStyleSheet(
+            item_view_qss(palette_for(tree), "QTreeView#treeView_reports", compact=False)
+            + f"\nQTreeView#treeView_reports::item {{ min-height: {CONTROL_HEIGHT}px; }}"
+        )
         stack.addWidget(tree)
         self._reports_tree_view = tree
         return tree
@@ -563,7 +568,7 @@ class ReportOperations:
         return self._parse_month_key(text)
 
     def _resolved_month_summary_period(self) -> tuple[int, int]:
-        """Stored month period, or the previous calendar month clamped to data years."""
+        """Return stored month period, or the previous calendar month clamped to data years."""
         stored_year = getattr(self, "_report_period_year", None)
         stored_month = getattr(self, "_report_period_month", None)
         if isinstance(stored_year, int) and isinstance(stored_month, int) and 1 <= stored_month <= _MONTHS_IN_YEAR:
@@ -572,7 +577,7 @@ class ReportOperations:
         return self._clamp_year_to_available(year), month
 
     def _resolved_year_summary_period(self) -> int:
-        """Stored year, or the previous calendar year clamped to data years."""
+        """Return stored year, or the previous calendar year clamped to data years."""
         stored_year = getattr(self, "_report_period_year", None)
         if isinstance(stored_year, int):
             return self._clamp_year_to_available(stored_year)

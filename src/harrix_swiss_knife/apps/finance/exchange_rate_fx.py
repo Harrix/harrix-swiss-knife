@@ -20,13 +20,13 @@ def configure_yfinance_logging() -> None:
         logging.getLogger(name).setLevel(logging.CRITICAL)
 
 
-def latest_closed_fx_date(*, now: datetime | None = None) -> date:
-    """Return yesterday in local time — the latest day Yahoo daily FX bars are reliable."""
-    current = (now or datetime.now(UTC).astimezone()).date()
-    return current - timedelta(days=1)
-
-
 def dates_through_closed_fx_day(dates: list[str], *, now: datetime | None = None) -> list[str]:
     """Drop today/future dates that yfinance often returns empty for."""
     cutoff = latest_closed_fx_date(now=now).strftime("%Y-%m-%d")
     return [day for day in dates if day <= cutoff]
+
+
+def latest_closed_fx_date(*, now: datetime | None = None) -> date:
+    """Return yesterday in local time — the latest day Yahoo daily FX bars are reliable."""
+    current = (now or datetime.now(UTC).astimezone()).date()
+    return current - timedelta(days=1)

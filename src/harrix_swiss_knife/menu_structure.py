@@ -131,6 +131,7 @@ from harrix_swiss_knife.actions.text.fix_text_with_ai_from_clipboard import OnFi
 from harrix_swiss_knife.actions.text.rewrite_text_with_ai import OnRewriteTextWithAI
 from harrix_swiss_knife.actions.text.speech_to_text_with_ai import OnSpeechToTextWithAI
 from harrix_swiss_knife.actions.vscode import (
+    OnBackupCursor,
     OnInstallHarrixNotesExplorerExtension,
     OnSyncHarrixNotesExplorer,
     OnSyncSaveCommands,
@@ -190,6 +191,7 @@ def get_menu_structure() -> list[Any]:
                 OnSyncHarrixNotesExplorer,
                 OnInstallHarrixNotesExplorerExtension,
                 OnSyncSaveCommands,
+                OnBackupCursor,
             ],
         ),
         (

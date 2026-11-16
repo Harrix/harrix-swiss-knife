@@ -45,6 +45,7 @@ from harrix_swiss_knife.actions.site import (
 )
 from harrix_swiss_knife.actions.text import OnFixTextWithAI
 from harrix_swiss_knife.actions.vscode import (
+    OnBackupCursor,
     OnInstallHarrixNotesExplorerExtension,
     OnSyncHarrixNotesExplorer,
     OnSyncSaveCommands,
@@ -1042,6 +1043,33 @@ def text_fix_text_with_ai() -> None:
 @cli.group("vscode")
 def vscode_group() -> None:
     """VS Code extension format, quality checks, public-repo sync, and Saved Commands sync."""
+
+
+@vscode_group.command("backup-cursor")
+@click.option(
+    "--part",
+    "parts",
+    multiple=True,
+    type=click.Choice(OnBackupCursor.CLI_PART_TOKENS, case_sensitive=False),
+    help="Backup section (repeatable). Default: user + home .cursor + project .cursor.",
+)
+@click.option(
+    "--output",
+    "output_path",
+    type=click.Path(path_type=Path),
+    default=None,
+    help="Output ZIP path (default: action_output/cursor-backup-TIMESTAMP.zip).",
+)
+@click.option(
+    "--force",
+    is_flag=True,
+    help="Pack even if Cursor is running (chat DB may be locked or inconsistent).",
+)
+def vscode_backup_cursor(parts: tuple[str, ...], output_path: Path | None, *, force: bool) -> None:
+    """Zip Cursor User data, home `.cursor`, and project `.cursor` folders."""
+    action = OnBackupCursor()
+    action(parts=parts, output=output_path, force=force, noninteractive=True)
+    _exit_if_action_failed(action)
 
 
 @vscode_group.command("check")

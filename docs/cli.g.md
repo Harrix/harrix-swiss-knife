@@ -61,6 +61,7 @@ lang: en
 - [🔧 Function `text_group`](#-function-text_group)
 - [🔧 Function `text_fix_text_with_ai`](#-function-text_fix_text_with_ai)
 - [🔧 Function `vscode_group`](#-function-vscode_group)
+- [🔧 Function `vscode_backup_cursor`](#-function-vscode_backup_cursor)
 - [🔧 Function `vscode_check`](#-function-vscode_check)
 - [🔧 Function `vscode_format`](#-function-vscode_format)
 - [🔧 Function `vscode_sync_notes_explorer`](#-function-vscode_sync_notes_explorer)
@@ -1218,6 +1219,26 @@ VS Code extension format, quality checks, public-repo sync, and Saved Commands s
 
 ```python
 def vscode_group() -> None:
+```
+
+</details>
+
+## 🔧 Function `vscode_backup_cursor`
+
+```python
+def vscode_backup_cursor(parts: tuple[str, ...], output_path: Path | None, *, force: bool) -> None
+```
+
+Zip Cursor User data, home `.cursor`, and project `.cursor` folders.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def vscode_backup_cursor(parts: tuple[str, ...], output_path: Path | None, *, force: bool) -> None:
+    action = OnBackupCursor()
+    action(parts=parts, output=output_path, force=force, noninteractive=True)
+    _exit_if_action_failed(action)
 ```
 
 </details>
