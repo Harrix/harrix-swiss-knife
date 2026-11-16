@@ -29,18 +29,11 @@ def test_add_transaction_clears_category_after_add() -> None:
     assert "_clear_category_selection()" in source
 
 
-def test_refresh_after_transaction_add_clears_category() -> None:
-    """Table reload after add must not leave the previous category selected."""
-    source = inspect.getsource(MainWindow._refresh_after_transaction_add)
-    assert "_clear_category_selection()" in source
-    assert "_suppress_transaction_form_fill" in source
-    assert "QTimer.singleShot(0, self._clear_category_selection)" in source
-
-
-def test_process_purchase_items_clears_category_after_add() -> None:
-    """Add with AI used `update_all` → `_clear_all_forms`; keep that category reset."""
-    source = inspect.getsource(MainWindow._process_purchase_items)
-    assert "_clear_category_selection()" in source
+def test_clear_category_selection_keeps_fixed_category() -> None:
+    """Fixed category must survive the post-add clear path."""
+    source = inspect.getsource(MainWindow._clear_category_selection)
+    assert "_fixed_category_name" in source
+    assert "_select_category_by_name" in source
 
 
 def test_deferred_category_refresh_clears_selection_after_rebuild() -> None:
@@ -50,21 +43,15 @@ def test_deferred_category_refresh_clears_selection_after_rebuild() -> None:
     assert "QTimer.singleShot(0, self._clear_category_selection)" in source
 
 
-def test_mark_sets_dirty_and_flush_clears(qapp: QApplication) -> None:  # noqa: ARG001
+def test_flush_noop_when_not_dirty(qapp: QApplication) -> None:  # noqa: ARG001
     calls: list[tuple[bool, bool]] = []
 
     def on_flush(*, categories_may_change: bool, reload_transactions: bool) -> None:
         calls.append((categories_may_change, reload_transactions))
 
     scheduler = DeferredUiRefreshScheduler(None, on_flush, interval_ms=50_000)
-    assert not scheduler.dirty
-    scheduler.mark()
-    assert scheduler.dirty
-    assert not scheduler.categories_may_change
-    assert not scheduler.reload_transactions
     scheduler.flush()
-    assert not scheduler.dirty
-    assert calls == [(False, False)]
+    assert calls == []
 
 
 def test_mark_flags_sticky_until_flush(qapp: QApplication) -> None:  # noqa: ARG001
@@ -86,15 +73,35 @@ def test_mark_flags_sticky_until_flush(qapp: QApplication) -> None:  # noqa: ARG
     assert not scheduler.reload_transactions
 
 
-def test_flush_noop_when_not_dirty(qapp: QApplication) -> None:  # noqa: ARG001
+def test_mark_sets_dirty_and_flush_clears(qapp: QApplication) -> None:  # noqa: ARG001
     calls: list[tuple[bool, bool]] = []
 
     def on_flush(*, categories_may_change: bool, reload_transactions: bool) -> None:
         calls.append((categories_may_change, reload_transactions))
 
     scheduler = DeferredUiRefreshScheduler(None, on_flush, interval_ms=50_000)
+    assert not scheduler.dirty
+    scheduler.mark()
+    assert scheduler.dirty
+    assert not scheduler.categories_may_change
+    assert not scheduler.reload_transactions
     scheduler.flush()
-    assert calls == []
+    assert not scheduler.dirty
+    assert calls == [(False, False)]
+
+
+def test_process_purchase_items_clears_category_after_add() -> None:
+    """Add with AI used `update_all` → `_clear_all_forms`; keep that category reset."""
+    source = inspect.getsource(MainWindow._process_purchase_items)
+    assert "_clear_category_selection()" in source
+
+
+def test_refresh_after_transaction_add_clears_category() -> None:
+    """Table reload after add must not leave the previous category selected."""
+    source = inspect.getsource(MainWindow._refresh_after_transaction_add)
+    assert "_clear_category_selection()" in source
+    assert "_suppress_transaction_form_fill" in source
+    assert "QTimer.singleShot(0, self._clear_category_selection)" in source
 
 
 def test_stop_cancels_pending_without_flush(qapp: QApplication) -> None:  # noqa: ARG001

@@ -116,7 +116,7 @@ def apply_transactions_table_column_widths(table_view: QTableView, *, force: boo
 ## 🔧 Function `category_state_text`
 
 ```python
-def category_state_text(display_name: str | None) -> str
+def category_state_text(display_name: str | None, *, fixed: bool = False) -> str
 ```
 
 Return the one-line form category indicator (long hint stays in the tooltip).
@@ -125,16 +125,22 @@ Return the one-line form category indicator (long hint stays in the tooltip).
 <summary>Code:</summary>
 
 ```python
-def category_state_text(display_name: str | None) -> str:
+def category_state_text(display_name: str | None, *, fixed: bool = False) -> str:
     name = (display_name or "").strip()
     if not name:
         return _NO_CATEGORY
     lowered = name.casefold()
     if lowered.startswith(_CATEGORY_PREFIX.casefold()):
-        return name.split("\n", 1)[0].strip()
+        base = name.split("\n", 1)[0].strip()
+        if fixed and not base.casefold().endswith(_CATEGORY_FIXED_SUFFIX.casefold()):
+            return f"{base}{_CATEGORY_FIXED_SUFFIX}"
+        return base
     if lowered in {_NO_CATEGORY.casefold(), "no category selected"}:
         return _NO_CATEGORY
-    return f"{_CATEGORY_PREFIX}{name}"
+    text = f"{_CATEGORY_PREFIX}{name}"
+    if fixed:
+        return f"{text}{_CATEGORY_FIXED_SUFFIX}"
+    return text
 ```
 
 </details>
@@ -249,14 +255,23 @@ Update `label_category_now` with a Fluent status string.
 
 ```python
 def refresh_category_state_label(host: Any, display_name: str | None = None) -> None:
-    text = category_state_text(display_name)
+    fixed_name = getattr(host, "_fixed_category_name", None)
+    fixed = bool(isinstance(fixed_name, str) and fixed_name.strip())
+    text = category_state_text(display_name, fixed=fixed)
     selected = bool((display_name or "").strip()) and not text.startswith(_NO_CATEGORY)
     host.label_category_now.setText(text)
     host.label_category_now.setWordWrap(True)
-    host.label_category_now.setToolTip(_CATEGORY_HINT if not selected else text.split("\n", 1)[0])
+    if fixed and selected:
+        host.label_category_now.setToolTip(_CATEGORY_FIXED_HINT)
+    else:
+        host.label_category_now.setToolTip(_CATEGORY_HINT if not selected else text.split("\n", 1)[0])
     host.label_category_now.setProperty("hskCategorySelected", selected)
+    host.label_category_now.setProperty("hskCategoryFixed", fixed and selected)
     host.label_category_now.style().unpolish(host.label_category_now)
     host.label_category_now.style().polish(host.label_category_now)
+    unpin = getattr(host, "pushButton_unpin_category", None)
+    if unpin is not None:
+        unpin.setVisible(fixed)
 ```
 
 </details>

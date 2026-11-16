@@ -151,9 +151,17 @@ class OnHarrixCheckPython(ActionBase):
 
         md_checker = h.md_check.MdChecker()
         errors: list[str] = []
+        scoped_files: list[Path] = []
+        for py_file in py_files:
+            try:
+                py_file.resolve().relative_to(src_folder.resolve())
+            except ValueError:
+                continue
+            scoped_files.append(py_file)
+
         with tempfile.TemporaryDirectory(prefix="hsk-py-docstring-md-") as temp_dir:
             temp_root = Path(temp_dir)
-            for py_file in h.file.iter_with_progress(py_files):
+            for py_file in h.file.iter_with_progress(scoped_files):
                 if not h.py._is_docs_python_file(py_file):  # noqa: SLF001
                     continue
                 try:

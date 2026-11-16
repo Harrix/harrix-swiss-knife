@@ -307,8 +307,10 @@ from harrix_swiss_knife.qt_date_calendar import SoftCalendarWidget
 from harrix_swiss_knife.qt_lucide_icon import (
     CLOSE_BUTTON_ICON,
     COPY_BUTTON_ICON,
+    add_lucide_action,
     apply_leading_chrome_buttons,
     apply_leading_chrome_icons,
+    apply_lucide_button_icon,
     apply_lucide_dialog_buttons,
     apply_menu_icon_size,
     create_lucide_icon,
@@ -454,6 +456,8 @@ class MainWindow(
         self._category_suggest_delegate = CategorySuggestDelegate(self.listView_categories)
         self._category_suggest_delegate.use_clicked.connect(self._select_category_by_name)
         self.listView_categories.setItemDelegate(self._category_suggest_delegate)
+        self._fixed_category_name: str | None = None
+        self.pushButton_unpin_category: QPushButton | None = None
 
         # Exchange rates table pagination state
         self._exchange_rates_pagination = ScrollPagination()
@@ -2002,7 +2006,7 @@ class MainWindow(
         self._category_suggest_timer.stop()
         self.lineEdit_description.clear()
         self.lineEdit_tag.clear()
-        self._clear_category_selection()
+        self._unpin_category(clear_selection=True)
         self._clear_category_suggestions()
 
         # Exchange form
@@ -2019,7 +2023,11 @@ class MainWindow(
             status_bar.clearMessage()
 
     def _clear_category_selection(self) -> None:
-        """Clear selected category in the transaction form."""
+        """Clear selected category, or re-apply a fixed category when pinned."""
+        fixed = getattr(self, "_fixed_category_name", None)
+        if isinstance(fixed, str) and fixed.strip():
+            self._select_category_by_name(fixed)
+            return
         refresh_category_state_label(self, None)
         selection_model = self.listView_categories.selectionModel()
         if selection_model is not None:
@@ -3087,6 +3095,18 @@ class MainWindow(
         QTimer.singleShot(1000, self._auto_update_exchange_rates_on_startup)  # 1 second delay
         # Silent translate of missing transactions.description_en (status bar only).
         QTimer.singleShot(300, self._run_background_transaction_translate)
+
+    def _fix_category(self, category_name: str) -> None:
+        """Pin `category_name` so Add keeps it selected."""
+        name = category_name.strip()
+        if not name:
+            return
+        self._fixed_category_name = name
+        self.listView_categories.setProperty("hskFixedCategory", name)
+        self._select_category_by_name(name)
+        viewport = self.listView_categories.viewport()
+        if viewport is not None:
+            viewport.update()
 
     def _focus_amount_and_select_text(self) -> None:
         """Set focus to amount field and select all text."""
@@ -5870,7 +5890,7 @@ class MainWindow(
         # Connect double-click signal for exchange table
         self.tableView_exchange.doubleClicked.connect(self._on_exchange_table_double_clicked)
 
-        # Replace label_category_now with custom label that has dropdown arrow
+        # Replace label_category_now with custom label + unpin control
         old_label = self.label_category_now
         parent = old_label.parentWidget()
         if parent is None:
@@ -5887,19 +5907,39 @@ class MainWindow(
         if layout is not None:
             layout_index = layout.indexOf(old_label)
 
-            # Create new custom label with same properties
-            new_label = ClickableCategoryLabel(parent=parent)
+            category_row = QWidget(parent)
+            category_row.setObjectName("widget_category_now_row")
+            category_row_layout = QHBoxLayout(category_row)
+            category_row_layout.setContentsMargins(0, 0, 0, 0)
+            category_row_layout.setSpacing(4)
+
+            new_label = ClickableCategoryLabel(parent=category_row)
             new_label.setObjectName("label_category_now")
             new_label.setFont(old_label.font())
             new_label.setFocusPolicy(old_label.focusPolicy())
             new_label.setText(self._NO_CATEGORY_LABEL)
+            new_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
 
-            # Replace in layout
+            unpin_button = QPushButton(category_row)
+            unpin_button.setObjectName("pushButton_unpin_category")
+            unpin_button.setFlat(True)
+            unpin_button.setCursor(Qt.CursorShape.PointingHandCursor)
+            unpin_button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+            unpin_button.setToolTip("Unpin category")
+            unpin_button.setFixedSize(24, 24)
+            unpin_button.hide()
+            apply_lucide_button_icon(unpin_button, "x", icon_size=14)
+            unpin_button.clicked.connect(self._unpin_category)
+
+            category_row_layout.addWidget(new_label, 1)
+            category_row_layout.addWidget(unpin_button, 0, Qt.AlignmentFlag.AlignTop)
+
             layout.removeWidget(old_label)
-            layout.insertWidget(layout_index, new_label)
+            layout.insertWidget(layout_index, category_row)
             old_label.hide()
             old_label.deleteLater()
             self.label_category_now = new_label
+            self.pushButton_unpin_category = unpin_button
 
         # Enable category selection via label context menu (status indicator, not a combo)
         self.label_category_now.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -5907,7 +5947,7 @@ class MainWindow(
         self.label_category_now.installEventFilter(self)
         refresh_category_state_label(self, None)
 
-        # Add context menu for categories list (Filter by this category)
+        # Add context menu for categories list (Filter / Fix category)
         self.listView_categories.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.listView_categories.customContextMenuRequested.connect(self._show_categories_list_context_menu)
 
@@ -5974,7 +6014,7 @@ class MainWindow(
         context_menu.exec_(self.doubleSpinBox_amount.mapToGlobal(position))
 
     def _show_categories_list_context_menu(self, position: QPoint) -> None:
-        """Show context menu on listView_categories with Filter by this category."""
+        """Show context menu on listView_categories (filter / fix category)."""
         index: QModelIndex = self.listView_categories.indexAt(position)
         if not index.isValid() or bool(index.data(IS_SECTION_ROLE)):
             return
@@ -5984,9 +6024,18 @@ class MainWindow(
         category_value: str | None = model.data(index, Qt.ItemDataRole.UserRole)
         if not category_value:
             return
+        category_name = str(category_value)
         context_menu = QMenu(self)
         filter_action = add_filter_action(context_menu, LABEL_FILTER_BY_CATEGORY)
-        filter_action.triggered.connect(lambda: self._filter_by_category_from_table(str(category_value)))
+        filter_action.triggered.connect(lambda: self._filter_by_category_from_table(category_name))
+        add_separator(context_menu)
+        fixed = getattr(self, "_fixed_category_name", None)
+        if isinstance(fixed, str) and fixed == category_name:
+            unpin_action = add_lucide_action(context_menu, "Unpin category", "pin-off")
+            unpin_action.triggered.connect(self._unpin_category)
+        else:
+            fix_action = add_lucide_action(context_menu, "Fix category", "pin")
+            fix_action.triggered.connect(lambda: self._fix_category(category_name))
         apply_leading_chrome_icons(context_menu)
         context_menu.exec_(self.listView_categories.mapToGlobal(position))
 
@@ -6639,6 +6688,27 @@ class MainWindow(
         self._transactions_date_color_map = result.date_to_color_index
         self._transactions_color_index = result.color_index
         return result.rows
+
+    def _unpin_category(self, *_args: object, clear_selection: bool = False) -> None:
+        """Clear the pinned category; optionally clear list selection too."""
+        self._fixed_category_name = None
+        self.listView_categories.setProperty("hskFixedCategory", None)
+        if clear_selection:
+            refresh_category_state_label(self, None)
+            selection_model = self.listView_categories.selectionModel()
+            if selection_model is not None:
+                selection_model.blockSignals(True)  # noqa: FBT003
+                selection_model.clear()
+                selection_model.setCurrentIndex(QModelIndex(), QItemSelectionModel.SelectionFlag.NoUpdate)
+                selection_model.blockSignals(False)  # noqa: FBT003
+            self.listView_categories.setCurrentIndex(QModelIndex())
+        else:
+            current = self.listView_categories.currentIndex()
+            label = self._category_form_label_from_index(current) if current.isValid() else None
+            refresh_category_state_label(self, label)
+        viewport = self.listView_categories.viewport()
+        if viewport is not None:
+            viewport.update()
 
     def _update_accounts_balance_display(self) -> None:
         """Update the display of total accounts balance."""

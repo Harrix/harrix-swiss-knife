@@ -12,6 +12,7 @@ from harrix_swiss_knife.apps.finance.category_icon_display import category_lucid
 from harrix_swiss_knife.fluent.style import list_item_hover
 from harrix_swiss_knife.fluent.theme import mix, palette_for
 from harrix_swiss_knife.fluent.tokens import RADIUS_CONTROL
+from harrix_swiss_knife.qt_lucide_icon import create_lucide_icon
 
 if TYPE_CHECKING:
     from collections.abc import Collection
@@ -113,15 +114,16 @@ class CategorySuggestDelegate(QStyledItemDelegate):
         selected = bool(opt.state & QStyle.StateFlag.State_Selected)
         hovered = bool(opt.state & QStyle.StateFlag.State_MouseOver)
         focused = bool(opt.state & QStyle.StateFlag.State_HasFocus)
+        host = self._host_widget(option)
+        fixed = bool(category_name and self._fixed_category_name(host) == category_name)
 
         reserved_right = (self._button_width(opt) + _BUTTON_MARGIN) if show_button else 0
-        if selected and not show_button:
+        if (selected or fixed) and not show_button:
             reserved_right = _CHECK_WIDTH + _BUTTON_MARGIN
 
-        host = self._host_widget(option)
         fluent = palette_for(host)
         text_color = mix(fluent.window_bg, fluent.text_primary)
-        if selected:
+        if selected or fixed:
             accent_fill = QColor(fluent.accent)
             accent_fill.setAlpha(36 if fluent.dark else 28)
             background = mix(fluent.window_bg, accent_fill)
@@ -137,17 +139,17 @@ class CategorySuggestDelegate(QStyledItemDelegate):
             painter.setBrush(background)
             painter.drawRoundedRect(option.rect.adjusted(1, 1, -1, -1), RADIUS_CONTROL, RADIUS_CONTROL)
 
-        if selected:
+        if selected or fixed:
             marker = QRect(option.rect.left() + 1, option.rect.top() + 4, _MARKER_WIDTH, option.rect.height() - 8)
             painter.fillRect(marker, fluent.accent)
 
-        if focused and not selected:
+        if focused and not selected and not fixed:
             pen = QPen(fluent.focus_stroke_outer, 1)
             painter.setPen(pen)
             painter.setBrush(Qt.BrushStyle.NoBrush)
             painter.drawRoundedRect(option.rect.adjusted(1, 1, -2, -2), RADIUS_CONTROL, RADIUS_CONTROL)
 
-        content_left = 8 if not selected else 8 + _MARKER_WIDTH
+        content_left = 8 if not (selected or fixed) else 8 + _MARKER_WIDTH
         emoji = self._category_icon(index)
         icon_rect = QRect(
             option.rect.left() + content_left,
@@ -169,6 +171,8 @@ class CategorySuggestDelegate(QStyledItemDelegate):
 
         if show_button:
             self._paint_use_button(painter, opt, host)
+        elif fixed:
+            self._paint_pin(painter, option.rect, fluent.accent_text)
         elif selected:
             self._paint_check(painter, option.rect, fluent.accent_text)
         painter.restore()
@@ -222,6 +226,18 @@ class CategorySuggestDelegate(QStyledItemDelegate):
             return None
         text = str(value).strip()
         return text or None
+
+    @staticmethod
+    def _fixed_category_name(host: QWidget | None) -> str | None:
+        """Return the pinned category name from the list view or its window."""
+        if host is None:
+            return None
+        value = host.property("hskFixedCategory")
+        if isinstance(value, str) and value.strip():
+            return value
+        window = host.window()
+        fixed = getattr(window, "_fixed_category_name", None)
+        return fixed if isinstance(fixed, str) and fixed.strip() else None
 
     def _host_widget(self, option: QStyleOptionViewItem) -> QWidget | None:
         widget = option.widget
@@ -302,6 +318,18 @@ class CategorySuggestDelegate(QStyledItemDelegate):
         painter.setPen(QPen(color, 1.8, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
         painter.drawLine(x + 1, y + size // 2, x + 3, y + size - 1)
         painter.drawLine(x + 3, y + size - 1, x + size - 1, y + 1)
+
+    def _paint_pin(self, painter: QPainter, item_rect: QRect, color: QColor) -> None:
+        """Draw a Lucide pin glyph on the right of a fixed category row."""
+        size = 12
+        icon = create_lucide_icon("pin", size, color=color)
+        if icon.isNull():
+            self._paint_check(painter, item_rect, color)
+            return
+        pixmap = icon.pixmap(size, size)
+        x = item_rect.right() - _CHECK_WIDTH - 2
+        y = item_rect.top() + (item_rect.height() - size) // 2
+        painter.drawPixmap(x, y, pixmap)
 
     def _paint_section_header(
         self,
