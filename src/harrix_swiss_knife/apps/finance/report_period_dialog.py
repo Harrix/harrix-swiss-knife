@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
@@ -16,6 +16,8 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife import qt_modality
+from harrix_swiss_knife.fluent.tokens import CONTROL_HEIGHT, SPACE_S, SPACE_XS
+from harrix_swiss_knife.fluent.widgets import FluentComboBox
 from harrix_swiss_knife.qt_lucide_icon import apply_lucide_dialog_buttons
 
 MONTH_NAMES: list[str] = [
@@ -47,20 +49,23 @@ class ReportPeriodBar(QWidget):
         self._syncing = False
 
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 4)
-        layout.setSpacing(8)
+        layout.setContentsMargins(0, 0, 0, SPACE_XS)
+        layout.setSpacing(SPACE_S)
 
         self._month_label = QLabel("Month:", self)
+        self._month_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
         layout.addWidget(self._month_label)
-        self._month_combo = QComboBox(self)
-        self._month_combo.addItems(MONTH_NAMES)
-        self._month_combo.setMinimumWidth(120)
+        self._month_combo = FluentComboBox(self, items=MONTH_NAMES)
+        self._month_combo.setMinimumWidth(140)
+        self._month_combo.setFixedHeight(CONTROL_HEIGHT)
         layout.addWidget(self._month_combo)
 
         self._year_label = QLabel("Year:", self)
+        self._year_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
         layout.addWidget(self._year_label)
-        self._year_combo = QComboBox(self)
-        self._year_combo.setMinimumWidth(80)
+        self._year_combo = FluentComboBox(self)
+        self._year_combo.setMinimumWidth(96)
+        self._year_combo.setFixedHeight(CONTROL_HEIGHT)
         layout.addWidget(self._year_combo)
         layout.addStretch(1)
 

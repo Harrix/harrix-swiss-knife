@@ -28,7 +28,6 @@ from harrix_swiss_knife.apps.finance.exchange_rates_operations import (
     DbFilenameUnavailableForWorkerThreadError,
     _require_db_filename_for_worker,
 )
-from harrix_swiss_knife.apps.finance.layout_chrome import TABLE_ROW_HEIGHT
 from harrix_swiss_knife.apps.finance.mixins import requires_database
 from harrix_swiss_knife.apps.finance.report_build_worker import ReportBuildResult, ReportBuildWorker
 from harrix_swiss_knife.apps.finance.report_period_dialog import (
@@ -37,8 +36,9 @@ from harrix_swiss_knife.apps.finance.report_period_dialog import (
     last_calendar_year,
 )
 from harrix_swiss_knife.fluent.app_chrome import style_fluent_item_view
-from harrix_swiss_knife.fluent.theme import mix
-from harrix_swiss_knife.fluent.tokens import ICON_SIZE, LIGHT_PALETTE
+from harrix_swiss_knife.fluent.style import item_view_qss
+from harrix_swiss_knife.fluent.theme import mix, palette_for
+from harrix_swiss_knife.fluent.tokens import CONTROL_HEIGHT, ICON_SIZE, LIGHT_PALETTE
 from harrix_swiss_knife.qt_lucide_icon import (
     LUCIDE_COLOR_BLUE,
     LUCIDE_COLOR_CYAN,
@@ -511,10 +511,15 @@ class ReportOperations:
         tree.setObjectName("treeView_reports")
         tree.setUniformRowHeights(True)
         tree.setIndentation(18)
+        tree.setIconSize(QSize(ICON_SIZE, ICON_SIZE))
         tree.setWordWrap(False)
         tree.setTextElideMode(Qt.TextElideMode.ElideRight)
-        tree.setStyleSheet(f"QTreeView::item {{ min-height: {TABLE_ROW_HEIGHT}px; }}")
+        # Comfortable row padding (default Fluent list chrome is 1px — too tight with icons).
         style_fluent_item_view(tree)
+        tree.setStyleSheet(
+            item_view_qss(palette_for(tree), "QTreeView#treeView_reports", compact=False)
+            + f"\nQTreeView#treeView_reports::item {{ min-height: {CONTROL_HEIGHT}px; }}"
+        )
         stack.addWidget(tree)
         self._reports_tree_view = tree
         return tree
