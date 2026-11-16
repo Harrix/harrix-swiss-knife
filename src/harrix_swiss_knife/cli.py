@@ -932,10 +932,16 @@ def python_harrix_check(folder: Path) -> None:
     default=".",
     type=click.Path(exists=True, file_okay=False, path_type=Path),
 )
-def python_ruff_sort(folder: Path) -> None:
+@click.option(
+    "--only-changed",
+    is_flag=True,
+    default=False,
+    help="In a Git repo, process only working-tree-changed .py files.",
+)
+def python_ruff_sort(folder: Path, *, only_changed: bool) -> None:
     """Ruff sort, ruff format, sort code in PY files without docs step (same as tray action)."""
     action = OnSortRuffFmtPythonCode()
-    action(folder_path=folder, noninteractive=True)
+    action(folder_path=folder, noninteractive=True, only_changed=only_changed)
     _finish_timed_action(action)
 
 
@@ -954,10 +960,21 @@ def python_ruff_sort(folder: Path) -> None:
     default=True,
     help="Disable mechanical MdChecker autofixes in docstring/Markdown formatting (enabled by default).",
 )
-def python_ruff_sort_docs(folder: Path, *, apply_prose_fixes: bool) -> None:
+@click.option(
+    "--only-changed",
+    is_flag=True,
+    default=False,
+    help="In a Git repo, process only working-tree-changed .py files and regenerate their docs only.",
+)
+def python_ruff_sort_docs(folder: Path, *, apply_prose_fixes: bool, only_changed: bool) -> None:
     """Ruff sort, ruff format, sort code, generate docs and format Markdown (same as tray action)."""
     action = OnSortRuffFmtDocsPythonCode()
-    action(folder_path=folder, noninteractive=True, apply_prose_fixes=apply_prose_fixes)
+    action(
+        folder_path=folder,
+        noninteractive=True,
+        apply_prose_fixes=apply_prose_fixes,
+        only_changed=only_changed,
+    )
     _finish_timed_action(action)
 
 

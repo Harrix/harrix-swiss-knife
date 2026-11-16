@@ -383,7 +383,9 @@ Folder arguments are optional (default: current directory) for commands that tak
 | 🚧   | `hsk py check-all`                                | Same checks for all `paths_python_projects`                              |
 | 🚧   | `hsk py harrix-check [FOLDER]`                    | Harrix PY rules + docstring Markdown (incl. Private; locations in `.py`) |
 | 🌟   | `hsk py ruff-sort [FOLDER]`                       | Ruff sort/format + sort PY (no docs generation)                          |
+| 🌟   | `hsk py ruff-sort [FOLDER] --only-changed`        | Same, but only Git working-tree-changed `.py` files                      |
 | 🌟   | `hsk py ruff-sort-docs [FOLDER]`                  | Ruff sort/format + sort + generate docs / format MD                      |
+| 🌟   | `hsk py ruff-sort-docs [FOLDER] --only-changed`   | Same, but only Git working-tree-changed `.py` files (and their docs)     |
 | 🌟   | `hsk py ruff-sort-docs [FOLDER] --no-prose-fixes` | Skip MdChecker typography autofixes in docstrings and generated Markdown |
 
 ### `hsk android`

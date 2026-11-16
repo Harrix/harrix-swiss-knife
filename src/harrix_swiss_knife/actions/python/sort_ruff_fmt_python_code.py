@@ -28,7 +28,7 @@ class OnSortRuffFmtPythonCode(OnSortRuffFmtDocsPythonCode):
     bold_title = False
     include_docs_generation = False
     cli_available = True
-    cli_hint = "py ruff-sort"
+    cli_hint = "py ruff-sort [--only-changed]"
 
     @ActionBase.handle_exceptions("formatting and sorting Python thread")
     def in_thread(self) -> str | None:
@@ -36,7 +36,9 @@ class OnSortRuffFmtPythonCode(OnSortRuffFmtDocsPythonCode):
         if self.folder_path is None:
             return
         self.format_and_sort_python_common(
-            str(self.folder_path), is_include_docs_generation=self.include_docs_generation
+            str(self.folder_path),
+            is_include_docs_generation=self.include_docs_generation,
+            only_changed=bool(getattr(self, "only_changed", False)),
         )
 
     @ActionBase.handle_exceptions("formatting and sorting Python thread completion")

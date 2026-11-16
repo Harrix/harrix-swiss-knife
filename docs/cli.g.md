@@ -1050,7 +1050,7 @@ def python_harrix_check(folder: Path) -> None:
 ## 🔧 Function `python_ruff_sort`
 
 ```python
-def python_ruff_sort(folder: Path) -> None
+def python_ruff_sort(folder: Path, *, only_changed: bool) -> None
 ```
 
 Ruff sort, ruff format, sort code in PY files without docs step (same as tray action).
@@ -1059,9 +1059,9 @@ Ruff sort, ruff format, sort code in PY files without docs step (same as tray ac
 <summary>Code:</summary>
 
 ```python
-def python_ruff_sort(folder: Path) -> None:
+def python_ruff_sort(folder: Path, *, only_changed: bool) -> None:
     action = OnSortRuffFmtPythonCode()
-    action(folder_path=folder, noninteractive=True)
+    action(folder_path=folder, noninteractive=True, only_changed=only_changed)
     _finish_timed_action(action)
 ```
 
@@ -1070,7 +1070,7 @@ def python_ruff_sort(folder: Path) -> None:
 ## 🔧 Function `python_ruff_sort_docs`
 
 ```python
-def python_ruff_sort_docs(folder: Path, *, apply_prose_fixes: bool) -> None
+def python_ruff_sort_docs(folder: Path, *, apply_prose_fixes: bool, only_changed: bool) -> None
 ```
 
 Ruff sort, ruff format, sort code, generate docs and format Markdown (same as tray action).
@@ -1079,9 +1079,14 @@ Ruff sort, ruff format, sort code, generate docs and format Markdown (same as tr
 <summary>Code:</summary>
 
 ```python
-def python_ruff_sort_docs(folder: Path, *, apply_prose_fixes: bool) -> None:
+def python_ruff_sort_docs(folder: Path, *, apply_prose_fixes: bool, only_changed: bool) -> None:
     action = OnSortRuffFmtDocsPythonCode()
-    action(folder_path=folder, noninteractive=True, apply_prose_fixes=apply_prose_fixes)
+    action(
+        folder_path=folder,
+        noninteractive=True,
+        apply_prose_fixes=apply_prose_fixes,
+        only_changed=only_changed,
+    )
     _finish_timed_action(action)
 ```
 

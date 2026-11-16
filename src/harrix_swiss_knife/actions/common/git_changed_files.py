@@ -1,0 +1,100 @@
+"""List working-tree changes in a Git repository (for incremental tooling)."""
+
+from __future__ import annotations
+
+import subprocess
+from pathlib import Path
+
+_PORCELAIN_PATH_OFFSET = 3  # "XY " then path
+_PORCELAIN_MIN_LEN = _PORCELAIN_PATH_OFFSET + 1
+
+
+def git_repo_root(path: Path) -> Path | None:
+    """Return the Git toplevel for `path`, or `None` when not inside a work tree."""
+    path = path.resolve()
+    proc = subprocess.run(
+        ["git", "-C", str(path), "rev-parse", "--show-toplevel"],  # noqa: S607
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        check=False,
+    )
+    if proc.returncode != 0:
+        return None
+    root = proc.stdout.strip()
+    if not root:
+        return None
+    return Path(root).resolve()
+
+
+def list_changed_python_files(folder: Path) -> list[Path] | None:
+    """Return changed `.py` files under `folder`, or `None` when not a Git repo.
+
+    `None` means the caller should fall back to processing the whole tree.
+    An empty list means the repo is clean for Python under `folder`.
+
+    """
+    folder = folder.resolve()
+    root = git_repo_root(folder)
+    if root is None:
+        return None
+    changed: list[Path] = []
+    for path in list_git_changed_files(root):
+        if path.suffix.casefold() != ".py":
+            continue
+        try:
+            path.relative_to(folder)
+        except ValueError:
+            continue
+        changed.append(path)
+    return sorted(changed, key=lambda item: str(item).casefold())
+
+
+def list_git_changed_files(repo: Path) -> list[Path]:
+    """Return absolute paths of changed, added, and untracked files under `repo`.
+
+    Uses `git status --porcelain` (including untracked files). Deleted paths are
+    omitted. Rename detection is disabled (`--no-renames`) for simpler parsing.
+
+    """
+    repo = repo.resolve()
+    argv = ["git", "-C", str(repo), "status", "--porcelain", "--untracked-files=all", "--no-renames"]
+    proc = subprocess.run(
+        argv,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        check=False,
+    )
+    if proc.returncode != 0:
+        return []
+
+    paths: list[Path] = []
+    seen: set[Path] = set()
+    for raw_line in proc.stdout.splitlines():
+        line = raw_line.rstrip("\r")
+        if len(line) < _PORCELAIN_MIN_LEN:
+            continue
+        rel = _porcelain_path(line)
+        if not rel:
+            continue
+        absolute = (repo / rel).resolve()
+        if not absolute.is_file():
+            continue
+        if absolute in seen:
+            continue
+        seen.add(absolute)
+        paths.append(absolute)
+    return paths
+
+
+def _porcelain_path(line: str) -> str | None:
+    """Extract the path from a porcelain v1 status line (`XY PATH`)."""
+    if len(line) < _PORCELAIN_MIN_LEN or line[2] != " ":
+        return None
+    path = line[_PORCELAIN_PATH_OFFSET:]
+    if path.startswith('"') and path.endswith('"'):
+        path = path[1:-1].encode("utf-8").decode("unicode_escape")
+    return path.replace("\\", "/")

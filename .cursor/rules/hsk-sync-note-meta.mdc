@@ -43,4 +43,4 @@ Return both the calendar date and a source tag (`filename` / `yaml` / `file_ctim
 - Update unit tests in `harrix-pylib/tests/test_note_meta.py` when behavior changes.
 - After VS Code changes, run `hsk vscode format` / `hsk vscode check` / sync notes explorer.
 - After Android changes, run `hsk android format` / `hsk android check` in that repo.
-- After Python changes, run linked `hsk py ruff-sort-docs` + `hsk py check` on swiss-knife, pylib, and pyssg.
+- After Python changes, run linked `hsk py ruff-sort-docs --only-changed` + `hsk py check` on swiss-knife, pylib, and pyssg.

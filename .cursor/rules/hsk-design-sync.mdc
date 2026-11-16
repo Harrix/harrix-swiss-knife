@@ -14,7 +14,7 @@ Shared chrome mirrors Harrix-HTML-Template. Visual source of truth: HTML `_varia
 3. Update both `.cursor/design-tokens.md` files if roles change
 4. Update `hsk-ui-chrome.mdc` and HTML `h-brand-colors.mdc`
 5. For tracker CTA QSS: edit `window.ui` then regenerate `window.py` with `pyside6-uic`
-6. Run `hsk py ruff-sort-docs` and `hsk py check` (respect `.cursor/hsk-py-check.flag`)
+6. Run `hsk py ruff-sort-docs --only-changed` and `hsk py check` (respect `.cursor/hsk-py-check.flag`)
 
 ## Do not sync
 

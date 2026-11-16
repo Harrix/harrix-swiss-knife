@@ -8,6 +8,7 @@ from typing import Any, ClassVar
 import harrix_pylib as h
 
 from harrix_swiss_knife.actions.common.base import ActionBase
+from harrix_swiss_knife.actions.common.git_changed_files import list_changed_python_files
 from harrix_swiss_knife.actions.common.python_project import is_python_project
 from harrix_swiss_knife.actions.common.subprocess_run import run_argv_output, venv_module_argv, venv_python
 from harrix_swiss_knife.actions.markdown import OnBeautifyMd
@@ -30,6 +31,9 @@ class OnSortRuffFmtDocsPythonCode(ActionBase):
     6. Generating Markdown documentation from Python code using `h.py.generate_md_docs`
     7. Formatting generated Markdown files with the harrix-pylib formatter
 
+    With `only_changed=True` in a Git repository, steps run only for working-tree-changed
+    `.py` files, and docs are regenerated only for those sources (docs folder is not wiped).
+
     """
 
     icon = "🌟"
@@ -37,12 +41,13 @@ class OnSortRuffFmtDocsPythonCode(ActionBase):
     bold_title = True
     include_docs_generation: ClassVar[bool] = True
     cli_available = True
-    cli_hint = "py ruff-sort-docs"
+    cli_hint = "py ruff-sort-docs [--only-changed]"
 
     def __init__(self, **kwargs) -> None:  # noqa: ANN003
         """Initialize the OnGetMenu action."""
         super().__init__(**kwargs)
         self.parent = kwargs.get("parent")
+        self.only_changed = False
 
     @ActionBase.handle_exceptions("formatting and sorting Python code with docs")
     def execute(
@@ -51,10 +56,12 @@ class OnSortRuffFmtDocsPythonCode(ActionBase):
         folder_path: Path | None = None,
         noninteractive: bool = False,
         apply_prose_fixes: bool = True,
+        only_changed: bool = False,
         **_kwargs: Any,
     ) -> None:
         """Format, sort Python code and generate documentation in a selected folder."""
         self.apply_prose_fixes = apply_prose_fixes
+        self.only_changed = only_changed
         if noninteractive and folder_path is None:
             self.handle_error(
                 ValueError("folder_path is required when noninteractive is True"),
@@ -80,88 +87,100 @@ class OnSortRuffFmtDocsPythonCode(ActionBase):
         if noninteractive:
             self.add_line(f"🔵 Starting processing for path: {self.folder_path}")
             self.format_and_sort_python_common(
-                str(self.folder_path), is_include_docs_generation=self.include_docs_generation
+                str(self.folder_path),
+                is_include_docs_generation=self.include_docs_generation,
+                only_changed=self.only_changed,
             )
             return
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def format_and_sort_python_common(self, folder_path: str, *, is_include_docs_generation: bool = True) -> None:
+    def format_and_sort_python_common(
+        self,
+        folder_path: str,
+        *,
+        is_include_docs_generation: bool = True,
+        only_changed: bool = False,
+    ) -> None:
         """Perform common formatting and sorting operations on Python files in a folder.
-
-        This method applies a series of code formatting and organization operations to all
-        Python files in the specified folder, including import sorting and code
-        formatting with Ruff, and custom code element sorting. Optionally includes
-        documentation generation and Markdown formatting.
 
         Args:
 
         - `folder_path` (`str`): Path to the folder containing Python files to process.
         - `is_include_docs_generation` (`bool`): Whether to include documentation generation
           and Markdown formatting steps. Defaults to `True`.
-
-        Returns:
-
-        - `None`: This method performs operations and logs results but returns nothing.
-
-        Note:
-
-        - The method preserves the exact execution order of operations for consistency.
-        - All operations are logged using `self.add_line()` for user feedback.
-        - Docstring Markdown formatting runs even when docs generation is disabled.
-        - If `is_include_docs_generation` is `True`, the method will generate Markdown
-          documentation and format Markdown with the harrix-pylib formatter.
-        - After formatting, empty folders are removed via `h.file.remove_empty_folders`
-          (ignored paths such as `.git` and `.venv` are skipped).
+        - `only_changed` (`bool`): When `True` and `folder_path` is inside a Git repo,
+          process only working-tree-changed `.py` files (and their docs). Outside Git,
+          falls back to the full tree. Defaults to `False`.
 
         """
-        # Sort imports and format with Ruff (single tool for both steps).
-        self.add_line("🔵 Format and sort imports")
-        self.add_line(self._run_venv_ruff(folder_path, "check", "--select", "I", "--fix", "."))
-        self.add_line(self._run_venv_ruff(folder_path, "format"))
+        root = Path(folder_path).resolve()
+        py_files: list[Path] | None = None
+        if only_changed:
+            py_files = list_changed_python_files(root)
+            if py_files is None:
+                self.add_line("⚪ `--only-changed`: not a Git repository; processing all Python files")
+            elif not py_files:
+                self.add_line("✅ `--only-changed`: no changed Python files; nothing to do")
+                return
+            else:
+                self.add_line(f"🔵 `--only-changed`: {len(py_files)} Python file(s)")
+                for path in py_files:
+                    self.add_line(f"  • {path.relative_to(root).as_posix()}")
 
-        # Sort Python code elements (skip per-file ruff: pipeline already runs ruff format).
+        ruff_targets = ["."] if py_files is None else [str(path) for path in py_files]
+
+        self.add_line("🔵 Format and sort imports")
+        self.add_line(self._run_venv_ruff(folder_path, "check", "--select", "I", "--fix", *ruff_targets))
+        self.add_line(self._run_venv_ruff(folder_path, "format", *ruff_targets))
+
         self.add_line("🔵 Sort Python code elements")
         try:
-            self.add_line(
-                h.file.apply_func(
-                    folder_path,
-                    ".py",
-                    lambda filename: h.py.sort_py_code(filename, is_use_ruff_format=False),
+            if py_files is None:
+                self.add_line(
+                    h.file.apply_func(
+                        folder_path,
+                        ".py",
+                        lambda filename: h.py.sort_py_code(filename, is_use_ruff_format=False),
+                    )
                 )
-            )
+            else:
+                self.add_line(self._apply_to_files(py_files, lambda p: h.py.sort_py_code(p, is_use_ruff_format=False)))
         except Exception as e:
-            # `h.py.sort_py_code` can fail on some syntax constructs; don't block the rest of the pipeline.
             self.add_line(f"⚠️ Skip sorting Python code elements due to error: {e!s}")
 
-        # Format Markdown inside Python docstrings (adapted MdFormatter + D301-safe r""").
         self.add_line("🔵 Format Markdown in Python docstrings")
         apply_prose_fixes = getattr(self, "apply_prose_fixes", True)
         try:
-            self.add_line(h.py.PyDocstringFormatter(apply_prose_fixes=apply_prose_fixes).format_folder(folder_path))
+            formatter = h.py.PyDocstringFormatter(apply_prose_fixes=apply_prose_fixes)
+            if py_files is None:
+                self.add_line(formatter.format_folder(folder_path))
+            else:
+                self.add_line(self._apply_to_files(py_files, formatter.format_file))
         except Exception as e:
             self.add_line(f"⚠️ Skip docstring Markdown formatting due to error: {e!s}")
 
         self.add_line("🔵 Format with Ruff after docstring updates")
-        self.add_line(self._run_venv_ruff(folder_path, "format"))
+        self.add_line(self._run_venv_ruff(folder_path, "format", *ruff_targets))
 
-        if Path(folder_path).resolve() == h.dev.get_project_root().resolve():
+        if root == h.dev.get_project_root().resolve():
             self.add_line("🔵 Update README List of commands")
             self.add_line(update_readme_list_of_commands())
 
         if is_include_docs_generation:
-            # Generate Markdown documentation
-            self.add_line("🔵 Generate Markdown documentation")
-            domain = f"https://github.com/{self.config['github_user']}/{Path(folder_path).parts[-1]}"
+            domain = f"https://github.com/{self.config['github_user']}/{root.name}"
             beginning_docs = OnNewMarkdown.apply_personal_data_to_beginning(
                 self.config["beginning_of_md_docs"],
                 self.config.get("personal_data"),
             )
-            self.add_line(h.py.generate_md_docs(folder_path, beginning_docs, domain))
-
-            # Format markdown files
-            self.add_line("🔵 Format markdown files")
-            OnBeautifyMd.beautify_markdown_common(self, folder_path, is_include_summaries_and_combine=False)
+            if py_files is None:
+                self.add_line("🔵 Generate Markdown documentation")
+                self.add_line(h.py.generate_md_docs(folder_path, beginning_docs, domain))
+                self.add_line("🔵 Format markdown files")
+                OnBeautifyMd.beautify_markdown_common(self, folder_path, is_include_summaries_and_combine=False)
+            else:
+                self.add_line("🔵 Generate Markdown documentation (changed files only)")
+                self.add_line(self._generate_md_docs_for_files(root, py_files, beginning_docs))
 
         self.add_line("🔵 Remove empty folders")
         self.add_line(h.file.remove_empty_folders(folder_path))
@@ -172,7 +191,9 @@ class OnSortRuffFmtDocsPythonCode(ActionBase):
         if self.folder_path is None:
             return
         self.format_and_sort_python_common(
-            str(self.folder_path), is_include_docs_generation=self.include_docs_generation
+            str(self.folder_path),
+            is_include_docs_generation=self.include_docs_generation,
+            only_changed=bool(getattr(self, "only_changed", False)),
         )
 
     @ActionBase.handle_exceptions("formatting and sorting Python with docs thread completion")
@@ -180,6 +201,78 @@ class OnSortRuffFmtDocsPythonCode(ActionBase):
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} completed")
         self.show_result()
+
+    @staticmethod
+    def _apply_to_files(files: list[Path], func: Any) -> str:
+        """Apply `func` to each path and join status lines."""
+        lines: list[str] = []
+        for path in files:
+            result = func(str(path))
+            if result is None:
+                lines.append(f"✅ {path}")
+            elif isinstance(result, str):
+                text = result.strip()
+                if text and text != "File is not changed.":
+                    lines.append(text)
+            else:
+                lines.append(str(result))
+        if not lines:
+            return f"ℹ️ {len(files)} file(s) left unchanged."  # noqa: RUF001
+        return "\n".join(lines)
+
+    @staticmethod
+    def _docs_g_md_relative_path(py_file: Path, src_folder: Path) -> Path:
+        """Mirror harrix-pylib docs path mapping for a source file under `src/`."""
+        relative_path = py_file.relative_to(src_folder)
+        if len(relative_path.parts) > 1:
+            return Path(*relative_path.parts[1:]).with_suffix(".g.md")
+        return relative_path.with_suffix(".g.md")
+
+    def _generate_md_docs_for_files(
+        self,
+        project_root: Path,
+        py_files: list[Path],
+        beginning_of_md: str,
+    ) -> str:
+        """Regenerate `.g.md` docs for changed sources without wiping `docs/`."""
+        src_folder = project_root / "src"
+        docs_folder = project_root / "docs"
+        docs_folder.mkdir(parents=True, exist_ok=True)
+        lines: list[str] = []
+        header = beginning_of_md.rstrip("\n")
+
+        for py_file in py_files:
+            try:
+                py_file.relative_to(src_folder)
+            except ValueError:
+                lines.append(f"⚪ Skip docs for {py_file.name} (outside src/)")
+                continue
+
+            try:
+                docs_relative = self._docs_g_md_relative_path(py_file, src_folder)
+                docs_body = h.py.generate_md_docs_content(
+                    py_file,
+                    docs_relative_path=docs_relative,
+                )
+            except Exception as exc:
+                lines.append(f"⚠️ Skip docs for {py_file.name}: {exc}")
+                continue
+
+            if not docs_body.strip():
+                lines.append(f"⚪ Skip docs for {py_file.name} (empty / no public API)")
+                continue
+
+            final_content = f"{header}\n\n{docs_body.lstrip()}" if header else docs_body
+            final_content = h.md.generate_toc_with_links_content(final_content)
+            final_content = h.md.generate_image_captions_content(final_content)
+            target = docs_folder / docs_relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(final_content, encoding="utf-8", newline="\n")
+            lines.append(f"✅ Docs updated: {target.relative_to(project_root).as_posix()}")
+
+        if not lines:
+            return "ℹ️ No docs updated."  # noqa: RUF001
+        return "\n".join(lines)
 
     def _run_venv_ruff(self, folder_path: str, *ruff_args: str) -> str:
         """Run `ruff` via the project's `.venv` Python, without `uv run`.
