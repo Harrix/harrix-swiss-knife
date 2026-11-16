@@ -71,6 +71,7 @@ def _dispose(qapp: QApplication, widget: QWidget) -> None:
     qapp.processEvents()
 
 
+@pytest.mark.slow
 def test_gallery_builds_and_toggles_theme(qapp: QApplication, light_theme: FluentTheme) -> None:
     window = build_gallery()
     window.show()

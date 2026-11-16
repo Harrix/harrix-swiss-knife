@@ -379,7 +379,7 @@ Folder arguments are optional (default: current directory) for commands that tak
 
 | Icon | Command                                           | Description                                                              |
 | ---- | ------------------------------------------------- | ------------------------------------------------------------------------ |
-| 🚧   | `hsk py check [FOLDER]`                           | ty, ruff, pytest, Harrix PY/MD for one folder                            |
+| 🚧   | `hsk py check [FOLDER]`                           | ty, ruff, pytest (`-m 'not slow'`), Harrix PY/MD for one folder          |
 | 🚧   | `hsk py check-all`                                | Same checks for all `paths_python_projects`                              |
 | 🚧   | `hsk py harrix-check [FOLDER]`                    | Harrix PY rules + docstring Markdown (incl. Private; locations in `.py`) |
 | 🌟   | `hsk py ruff-sort [FOLDER]`                       | Ruff sort/format + sort PY (no docs generation)                          |

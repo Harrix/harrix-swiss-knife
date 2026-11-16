@@ -154,6 +154,7 @@ def test_icon_lightbox_reuses_cached_raster_preview(
     second.close()
 
 
+@pytest.mark.slow
 def test_icon_lightbox_shows_toast_after_one_second(
     tmp_path: Path,
     qapp: QApplication,

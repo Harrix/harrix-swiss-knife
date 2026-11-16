@@ -910,6 +910,7 @@ def test_example_config_binds_ctrl_shift_f3() -> None:
     assert "Ctrl+Shift+F3" in matching[0]["hotkeys"]
 
 
+@pytest.mark.slow
 def test_scripts_panel_scroll_uses_dark_window_bg(qapp: QApplication) -> None:
     """Scripts glyph grid stays on Fluent window_bg in dark theme, not the light plate."""
     assert qapp is not None

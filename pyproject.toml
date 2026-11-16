@@ -147,6 +147,10 @@ exclude = ["android"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = "-m 'not slow'"
+markers = [
+    "slow: long / rarely changing coverage; excluded from default `hsk py check` (run with `pytest -m slow`).",
+]
 
 [tool.uv.sources]
 harrix-pylib = { path = "../harrix-pylib", editable = true }

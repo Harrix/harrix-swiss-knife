@@ -137,6 +137,7 @@ def test_fluent_caption_theme_toggle_is_fluent_icon_button(qapp: QApplication) -
     window.close()
 
 
+@pytest.mark.slow
 @pytest.mark.skipif(sys.platform != "win32", reason="Win11 caption is Windows-only")
 def test_overlay_caption_matches_window_bg_in_dark_theme(qapp: QApplication) -> None:  # noqa: ARG001
     """Solid overlay dialogs keep caption fill on window_bg, not lilac wallpaper top."""
@@ -505,6 +506,7 @@ def test_caption_overflow_hides_title_then_menu(qapp: QApplication) -> None:
     window.close()
 
 
+@pytest.mark.slow
 @pytest.mark.skipif(sys.platform != "win32", reason="Win11 caption is Windows-only")
 def test_panels_and_menus_are_white(qapp: QApplication) -> None:
     """Group boxes and popup menus use a white background."""
@@ -555,6 +557,7 @@ def _handle_colors(splitter: QSplitter) -> list[str]:
     return [image.pixelColor(x, y).name() for y in range(geometry.top(), geometry.bottom() + 1)]
 
 
+@pytest.mark.slow
 @pytest.mark.skipif(sys.platform != "win32", reason="Win11 caption is Windows-only")
 def test_splitter_handle_keeps_width_with_gray_hairline(qapp: QApplication) -> None:
     """Splitter handles are a wide white gutter with a 1px gray line that fills on hover."""
@@ -594,6 +597,7 @@ def test_splitter_handle_keeps_width_with_gray_hairline(qapp: QApplication) -> N
         qapp.setStyle(previous_style)
 
 
+@pytest.mark.slow
 @pytest.mark.skipif(sys.platform != "win32", reason="Win11 caption is Windows-only")
 def test_install_caption_on_menu_only_window(qapp: QApplication) -> None:
     """A window without tabs keeps File in the caption row next to the window buttons."""

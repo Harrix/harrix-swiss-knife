@@ -65,6 +65,7 @@ Developer tooling after installation:
 | 📥   | `uv self update`                                            | Update uv itself                                                                                           |
 | ⬆️    | `uv sync --upgrade`                                         | Update all project libraries (sometimes call twice)                                                        |
 | 🔬   | `vermin src`                                                | Probe minimum Python version via [vermin](https://github.com/netromdk/vermin); keep ≥ 3.10 for annotations |
+| ⚗️   | `pytest` / `pytest -m slow`                                 | Default suite skips `@pytest.mark.slow`; run slow markers explicitly when needed                          |
 
 Full UIC one-liners:
 

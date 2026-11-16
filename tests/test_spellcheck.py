@@ -90,6 +90,7 @@ def test_user_dict_roundtrip(tmp_path: Path) -> None:
     assert "NotepadPlusPlus" in load_user_words(path)
 
 
+@pytest.mark.slow
 def test_engine_lookup_en_ru_and_user(dicts_dir: Path, tmp_path: Path) -> None:
     reset_spell_engine_for_tests()
     user_path = tmp_path / "user.txt"
@@ -102,6 +103,7 @@ def test_engine_lookup_en_ru_and_user(dicts_dir: Path, tmp_path: Path) -> None:
     assert engine.lookup("zzzznotawordzzz")
 
 
+@pytest.mark.slow
 def test_engine_suggest_russian_typo(dicts_dir: Path, tmp_path: Path) -> None:
     engine = SpellEngine(dictionaries_dir=dicts_dir, user_dict_path=tmp_path / "user.txt")
     assert engine.ensure_loaded()
