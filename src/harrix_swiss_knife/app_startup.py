@@ -25,6 +25,7 @@ from harrix_swiss_knife.actions.common.quick_launcher_context import QuickLaunch
 from harrix_swiss_knife.actions.common.quick_launcher_registry import iter_menu_structure
 from harrix_swiss_knife.actions.development.setup_data_for_hsk import run_setup_data_for_hsk_dialog
 from harrix_swiss_knife.apps.common.uic_compile import install_safe_qt_translate
+from harrix_swiss_knife.apps.finance.exchange_rate_fx import configure_yfinance_logging
 from harrix_swiss_knife.capture_action_picker import choose_capture_hotkey_action
 from harrix_swiss_knife.capture_hotkey import CAPTURE_HOTKEY_ACTIONS, CAPTURE_HOTKEY_LONG_PRESS_MS
 from harrix_swiss_knife.cli_menu import CliContextMenu
@@ -404,6 +405,8 @@ def setup_file_logging() -> Path:
         root.addHandler(fh)
     if root.level == logging.NOTSET or root.level > logging.INFO:
         root.setLevel(logging.INFO)
+    # Finance FX updates: yfinance WARNING/ERROR (SSL crumb, empty history) spam stderr otherwise.
+    configure_yfinance_logging()
     return log_path
 
 

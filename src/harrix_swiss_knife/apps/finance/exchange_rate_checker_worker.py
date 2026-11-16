@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-from datetime import UTC, date, datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QThread, Signal
 
 from harrix_swiss_knife.apps.finance.database_manager import DatabaseManager
+from harrix_swiss_knife.apps.finance.exchange_rate_fx import latest_closed_fx_date
 
 if TYPE_CHECKING:
     from PySide6.QtCore import QObject
@@ -75,10 +76,11 @@ class ExchangeRateCheckerWorker(QThread):
 
             # Calculate which currencies need updates and missing records
             currencies_to_process = []
-            today = datetime.now(UTC).astimezone().date()
-            today_str = today.strftime("%Y-%m-%d")
+            # Stop at yesterday: Yahoo daily FX bars for "today" are often empty until close.
+            end_date = latest_closed_fx_date()
+            end_date_str = end_date.strftime("%Y-%m-%d")
 
-            self.progress_updated.emit(f"📅 Checking rates up to {today_str}")
+            self.progress_updated.emit(f"📅 Checking rates up to {end_date_str} (last closed day)")
 
             # Determine start date based on configuration
             if self.check_from_first_transaction:
@@ -128,7 +130,7 @@ class ExchangeRateCheckerWorker(QThread):
                 batch_size = 100
                 batch_count = 0
 
-                while current_date <= today:
+                while current_date <= end_date:
                     if self.should_stop:
                         self.check_failed.emit("Check cancelled by user")
                         return

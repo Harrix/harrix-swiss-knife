@@ -15,9 +15,16 @@ import yfinance as yf
 from PySide6.QtCore import QThread, Signal
 
 from harrix_swiss_knife.apps.finance.database_manager import DatabaseManager
+from harrix_swiss_knife.apps.finance.exchange_rate_fx import (
+    configure_yfinance_logging,
+    dates_through_closed_fx_day,
+    latest_closed_fx_date,
+)
 
 if TYPE_CHECKING:
     from PySide6.QtCore import QObject
+
+configure_yfinance_logging()
 
 
 class ExchangeRateUpdateWorker(QThread):
@@ -80,13 +87,14 @@ class ExchangeRateUpdateWorker(QThread):
             total_processed = 0
             # Count only operations we actually attempt:
             # - inserts for missing dates
-            # - updates only for recent existing records (last 7 days)
+            # - updates only for recent existing records (last 7 closed days)
+            closed_day = latest_closed_fx_date().strftime("%Y-%m-%d")
             recent_cutoff = (datetime.now(UTC).astimezone() - timedelta(days=7)).strftime("%Y-%m-%d")
             total_operations = 0
             for _currency_id, _currency_code, records in self.currencies_to_process:
-                missing_dates = records["missing_dates"]
+                missing_dates = dates_through_closed_fx_day(records["missing_dates"])
                 existing_records = records["existing_records"]
-                recent_records = [(date, rate) for date, rate in existing_records if date >= recent_cutoff]
+                recent_records = [(day, rate) for day, rate in existing_records if recent_cutoff <= day <= closed_day]
                 total_operations += len(missing_dates) + len(recent_records)
 
             # Clean invalid exchange rates before processing
@@ -276,16 +284,17 @@ class ExchangeRateUpdateWorker(QThread):
                     break
 
                 self.currency_started.emit(currency_code)
-                missing_dates = records_dict["missing_dates"]
+                missing_dates = dates_through_closed_fx_day(records_dict["missing_dates"])
                 existing_records = records_dict["existing_records"]
+                recent_records = [(day, rate) for day, rate in existing_records if recent_cutoff <= day <= closed_day]
 
                 self.progress_updated.emit(
-                    f"📈 Processing {currency_code}: {len(missing_dates)} missing + {len(existing_records)} updates"
+                    f"📈 Processing {currency_code}: {len(missing_dates)} missing + {len(recent_records)} updates"
                 )
 
                 currency_processed = 0
 
-                # Batch process missing dates
+                # Batch process missing dates (skip today — daily Yahoo bars are often empty)
                 if missing_dates:
                     # Download all missing dates at once
                     rates_dict = get_yfinance_data_batch(currency_code, missing_dates, currency_id)
@@ -324,41 +333,35 @@ class ExchangeRateUpdateWorker(QThread):
                         total_processed += success_count
                         self.progress_updated.emit(f"✅ Batch inserted {success_count} rates for {currency_code}")
 
-                # Update existing records (only recent ones, not weekends)
-                if existing_records:
-                    # Only update last 7 days of records
-                    recent_records = [(date, rate) for date, rate in existing_records if date >= recent_cutoff]
+                # Update existing records (only recent closed days)
+                if recent_records:
+                    update_dates = [day for day, _ in recent_records]
+                    rates_dict = get_yfinance_data_batch(currency_code, update_dates, currency_id)
 
-                    if recent_records:
-                        # Get dates for batch download
-                        update_dates = [date for date, _ in recent_records]
-                        rates_dict = get_yfinance_data_batch(currency_code, update_dates, currency_id)
+                    for date_str, old_rate in recent_records:
+                        if self.should_stop:
+                            break
 
-                        for date_str, old_rate in recent_records:
-                            if self.should_stop:
-                                break
+                        if date_str in rates_dict:
+                            new_rate = rates_dict[date_str]
 
-                            if date_str in rates_dict:
-                                new_rate = rates_dict[date_str]
-
-                                # Only update if significantly different
-                                rate_diff = abs(new_rate - old_rate) / old_rate if old_rate != 0 else 1
-                                min_rate_diff = 0.001
-                                if rate_diff > min_rate_diff and db_manager.update_exchange_rate(
-                                    currency_id, date_str, new_rate
-                                ):
-                                    total_processed += 1
-                                    currency_processed += 1
-                                    self.rates_added.emit(currency_code, new_rate, date_str)
-                                    self.progress_updated.emit(
-                                        f"✅ Updated {currency_code} rate for {date_str}: "
-                                        f"{old_rate:.6f} → {new_rate:.6f}"
-                                    )
-                            else:
+                            # Only update if significantly different
+                            rate_diff = abs(new_rate - old_rate) / old_rate if old_rate != 0 else 1
+                            min_rate_diff = 0.001
+                            if rate_diff > min_rate_diff and db_manager.update_exchange_rate(
+                                currency_id, date_str, new_rate
+                            ):
+                                total_processed += 1
+                                currency_processed += 1
+                                self.rates_added.emit(currency_code, new_rate, date_str)
                                 self.progress_updated.emit(
-                                    f"⚠️ Skipping update {currency_code} on {date_str}: no valid rate"
+                                    f"✅ Updated {currency_code} rate for {date_str}: {old_rate:.6f} → {new_rate:.6f}"
                                 )
-                                self.unresolved_rates.setdefault(currency_code, []).append(date_str)
+                        else:
+                            self.progress_updated.emit(
+                                f"⚠️ Skipping update {currency_code} on {date_str}: no valid rate"
+                            )
+                            self.unresolved_rates.setdefault(currency_code, []).append(date_str)
 
                 self.progress_updated.emit(f"📊 Processed {currency_processed} operations for {currency_code}")
 
