@@ -1,7 +1,8 @@
-"""Copy object name / class name for any widget (Fluent gallery — style inspector).
+"""Copy object name / class name / text for any widget (style inspector).
 
 Middle-click a widget to open the identity menu. Right-click keeps each control's
-own context menu (editors, tables, habit rows, etc.).
+own context menu (editors, tables, habit rows, etc.). When the target exposes
+visible text (label, edit, button, combo, …), the menu also offers Copy text.
 
 Command cards and the tray menu handle middle-click themselves for the richer
 action copy menu; this filter skips those targets so both do not fire.
@@ -31,9 +32,14 @@ if TYPE_CHECKING:
 _PROP_FILTER = "_hskWidgetIdentityFilter"
 _COPY_OBJECT_NAME_PREFIX = "📋 Copy object name ("
 _COPY_CLASS_NAME_PREFIX = "📋 Copy class name ("
+_COPY_TEXT_PREFIX = "📋 Copy text: "
+_COPY_TEXT_PREVIEW_MAX_LEN = 40
+_ELLIPSIS = "…"
 _AUTO_NAME_COUNTS: dict[str, int] = {}
 _SLUG_RE = re.compile(r"[^\w]+", re.UNICODE)
 _WHITESPACE_RE = re.compile(r"\s+")
+# Prefer content APIs first; `text()` covers labels, buttons, line edits, spin boxes.
+_TEXT_GETTERS = ("toPlainText", "currentText", "text")
 
 
 class WidgetIdentityEventFilter(QObject):
@@ -56,13 +62,17 @@ class WidgetIdentityEventFilter(QObject):
 
 
 def add_widget_identity_actions(menu: QMenu, widget: QWidget) -> None:
-    """Append Copy object name / Copy class name actions for `widget` to `menu`."""
+    """Append Copy object name / Copy class name / Copy text actions for `widget`."""
     object_name = widget_object_name_for_copy(widget)
     class_name = widget_class_name_for_copy(widget)
     copy_name = menu.addAction(format_copy_object_name_menu_label(object_name))
     copy_name.triggered.connect(lambda *_args, text=object_name: _copy_text(text))
     copy_class = menu.addAction(format_copy_class_name_menu_label(class_name))
     copy_class.triggered.connect(lambda *_args, text=class_name: _copy_text(text))
+    widget_text = widget_text_for_copy(widget)
+    if widget_text is not None:
+        copy_value = menu.addAction(format_copy_text_menu_label(widget_text))
+        copy_value.triggered.connect(lambda *_args, text=widget_text: _copy_text(text))
 
 
 def ensure_widget_object_name(widget: QWidget) -> str:
@@ -85,6 +95,11 @@ def format_copy_class_name_menu_label(class_name: str) -> str:
 def format_copy_object_name_menu_label(object_name: str) -> str:
     """Build the Copy object name menu label."""
     return f"{_COPY_OBJECT_NAME_PREFIX}{object_name})"
+
+
+def format_copy_text_menu_label(text: str, max_len: int = _COPY_TEXT_PREVIEW_MAX_LEN) -> str:
+    """Build the Copy text menu label with a single-line truncated preview."""
+    return f"{_COPY_TEXT_PREFIX}{truncate_text_preview(text, max_len=max_len)}"
 
 
 def install_widget_identity_context_menus(app: QApplication) -> None:
@@ -113,12 +128,22 @@ def resolve_identity_widget(obj: QObject | None) -> QWidget | None:
 
 
 def show_widget_identity_context_menu(widget: QWidget, global_pos: QPoint) -> None:
-    """Show Copy object name / Copy class name for `widget` at `global_pos`."""
+    """Show Copy object name / Copy class name / Copy text for `widget` at `global_pos`."""
     menu = FluentMenu("", widget)
     add_widget_identity_actions(menu, widget)
     apply_leading_chrome_icons(menu)
     menu.refresh_theme()
     menu.exec(global_pos)
+
+
+def truncate_text_preview(text: str, max_len: int = _COPY_TEXT_PREVIEW_MAX_LEN) -> str:
+    """Return a single-line preview, ending with `…` when longer than `max_len`."""
+    preview = _WHITESPACE_RE.sub(" ", text.strip())
+    if max_len <= 0:
+        return _ELLIPSIS
+    if len(preview) <= max_len:
+        return preview
+    return preview[:max_len].rstrip() + _ELLIPSIS
 
 
 def widget_class_name_for_copy(widget: QWidget) -> str:
@@ -129,6 +154,34 @@ def widget_class_name_for_copy(widget: QWidget) -> str:
 def widget_object_name_for_copy(widget: QWidget) -> str:
     """Return the object name shown and copied for `widget`."""
     return ensure_widget_object_name(widget)
+
+
+def widget_text_for_copy(widget: QWidget) -> str | None:
+    """Return visible text content for `widget`, or `None` when there is none.
+
+    Reads `toPlainText` / `currentText` / `text` (labels, edits, buttons, combos,
+    spin boxes). Group titles are included; placeholders and tooltips are not.
+
+    """
+    for attr in _TEXT_GETTERS:
+        getter = getattr(widget, attr, None)
+        if not callable(getter):
+            continue
+        try:
+            value = getter()
+        except TypeError:
+            continue
+        if isinstance(value, str) and value.strip():
+            return value
+    title = getattr(widget, "title", None)
+    if callable(title):
+        try:
+            value = title()
+        except TypeError:
+            value = None
+        if isinstance(value, str) and value.strip():
+            return value
+    return None
 
 
 def _allocate_object_name(base: str) -> str:

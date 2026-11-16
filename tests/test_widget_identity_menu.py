@@ -16,10 +16,13 @@ from harrix_swiss_knife.qt_widget_identity_menu import (
     ensure_widget_object_name,
     format_copy_class_name_menu_label,
     format_copy_object_name_menu_label,
+    format_copy_text_menu_label,
     install_widget_identity_context_menus,
     resolve_identity_widget,
+    truncate_text_preview,
     widget_class_name_for_copy,
     widget_object_name_for_copy,
+    widget_text_for_copy,
 )
 
 
@@ -82,6 +85,23 @@ def test_ensure_skips_when_name_already_set(qapp: QApplication) -> None:  # noqa
 def test_format_copy_labels() -> None:
     assert format_copy_object_name_menu_label("foo") == "📋 Copy object name (foo)"
     assert format_copy_class_name_menu_label("Bar") == "📋 Copy class name (Bar)"
+    assert format_copy_text_menu_label("Hello") == "📋 Copy text: Hello"
+    long_text = "x" * 50
+    assert format_copy_text_menu_label(long_text) == f"📋 Copy text: {'x' * 40}…"
+
+
+def test_widget_text_for_copy_reads_label_and_edit(qapp: QApplication) -> None:  # noqa: ARG001
+    assert widget_text_for_copy(QLabel("Amount")) == "Amount"
+    edit = QLineEdit("42.5")
+    assert widget_text_for_copy(edit) == "42.5"
+    assert widget_text_for_copy(QPushButton("Save")) == "Save"
+    assert widget_text_for_copy(QWidget()) is None
+    assert widget_text_for_copy(QLabel("   ")) is None
+
+
+def test_truncate_text_preview_flattens_whitespace() -> None:
+    assert truncate_text_preview("one\n two\t three") == "one two three"
+    assert truncate_text_preview("a" * 45, max_len=10) == "aaaaaaaaaa…"
 
 
 def test_resolve_identity_widget_prefers_named_view(qapp: QApplication) -> None:  # noqa: ARG001
