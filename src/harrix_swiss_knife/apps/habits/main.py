@@ -45,7 +45,6 @@ from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
     QDialog,
-    QFileDialog,
     QGroupBox,
     QLabel,
     QLineEdit,
@@ -1273,14 +1272,13 @@ class MainWindow(
         else:
             hsk_db_path = Path(str(self._app_config.get("sqlite_habits", "")))
             ticktick_path = None
-        start_dir = str(hsk_db_path.parent) if hsk_db_path.parent.is_dir() else ""
-        dest = QFileDialog.getExistingDirectory(self, "Backup habits", start_dir)
-        if not dest:
-            return
+        from harrix_swiss_knife.backup_paths import habits_backup_root  # noqa: PLC0415
+
+        dest = habits_backup_root(self._app_config)
 
         try:
             folder, ticktick_error = write_habits_backup(
-                Path(dest),
+                dest,
                 hsk_db_path=hsk_db_path,
                 db_manager=self.db_manager,
                 ticktick_db_path=ticktick_path,

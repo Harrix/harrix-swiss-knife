@@ -2,12 +2,9 @@
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
-
-from harrix_swiss_knife.paths import get_config_path_str, get_temp_config_path
 
 DEFAULT_AUDIO_EXTENSIONS = (".mp3", ".flac", ".m4a", ".ogg", ".opus", ".wav", ".wma")
 DEFAULT_STREAM_PREFIX = "Stream - "
@@ -67,6 +64,7 @@ def default_musicbee_config() -> dict[str, Any]:
         "library_dir": "D:/Dropbox/Programs/MusicBee/Library",
         "music_root": "C:/Users/sergi/OneDrive/Music",
         "stream_root": "C:/Users/sergi/OneDrive/Music/Stream",
+        # Prefer top-level path_backups; backup_dir kept as legacy fallback.
         "backup_dir": "D:/Dropbox/Backups",
         "audio_extensions": list(DEFAULT_AUDIO_EXTENSIONS),
         "stream_playlist_prefix": DEFAULT_STREAM_PREFIX,
@@ -109,10 +107,10 @@ def load_musicbee_settings(
 
 
 def _backup_dir(block: dict[str, Any], config_path: str | None) -> Path:
-    temp_override = _temp_backup_dir(config_path)
-    if temp_override is not None:
-        return temp_override
-    return _required_path(block, "backup_dir")
+    from harrix_swiss_knife.backup_paths import resolve_backup_dir  # noqa: PLC0415
+
+    # Shared `path_backups` wins; `musicbee.backup_dir` remains a legacy fallback.
+    return resolve_backup_dir({"musicbee": block}, config_path=config_path)
 
 
 def _required_path(block: dict[str, Any], key: str) -> Path:
@@ -121,30 +119,3 @@ def _required_path(block: dict[str, Any], key: str) -> Path:
         msg = f"musicbee.{key} is missing"
         raise ValueError(msg)
     return Path(raw)
-
-
-def _sibling_temp_config(config_path: Path) -> Path:
-    return config_path.with_name(f"{config_path.stem}-temp{config_path.suffix}")
-
-
-def _temp_backup_dir(config_path: str | None) -> Path | None:
-    if config_path:
-        temp_path = _sibling_temp_config(Path(config_path))
-    else:
-        temp_path = get_temp_config_path()
-        if not temp_path.is_file():
-            sibling = _sibling_temp_config(Path(get_config_path_str()))
-            temp_path = sibling if sibling.is_file() else temp_path
-    if not temp_path.is_file():
-        return None
-    try:
-        data = json.loads(temp_path.read_text(encoding="utf-8"))
-    except (OSError, TypeError, ValueError, json.JSONDecodeError):
-        return None
-    if not isinstance(data, dict):
-        return None
-    block = data.get("musicbee")
-    if not isinstance(block, dict):
-        return None
-    raw = str(block.get("backup_dir") or "").strip()
-    return Path(raw) if raw else None

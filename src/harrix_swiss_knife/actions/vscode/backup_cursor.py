@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from harrix_swiss_knife.actions.common.base import ActionBase
+from harrix_swiss_knife.backup_paths import cursor_backup_root
 from harrix_swiss_knife.cursor_backup.pack import (
     DEFAULT_PARTS,
     PART_DOT_CURSOR,
@@ -22,7 +23,6 @@ from harrix_swiss_knife.cursor_backup.pack import (
     parts_from_labels,
 )
 from harrix_swiss_knife.cursor_backup.paths import cursor_dot_dir, cursor_running, cursor_user_dir
-from harrix_swiss_knife.paths import get_action_output_dir
 
 
 class OnBackupCursor(ActionBase):
@@ -112,7 +112,7 @@ class OnBackupCursor(ActionBase):
 
     def _default_output_zip(self) -> Path:
         stamp = datetime.now(UTC).astimezone().strftime("%Y%m%d-%H%M%S")
-        return get_action_output_dir() / f"cursor-backup-{stamp}.zip"
+        return cursor_backup_root(self.config) / f"cursor-backup-{stamp}.zip"
 
     def _resolve_cli_parts(self, parts: tuple[str, ...] | list[str] | None) -> list[BackupPart] | None:
         tokens = [str(token).strip().casefold() for token in (parts or ()) if str(token).strip()]

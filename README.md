@@ -410,7 +410,7 @@ Folder arguments are optional (default: current directory) for commands that tak
 | 🔄   | `hsk vscode sync-save-commands --force`   | Write even if selected editors are running                                         |
 | 💾   | `hsk vscode backup-cursor`                | Zip Cursor settings, chats, home `.cursor`, and project `.cursor` folders          |
 | 💾   | `hsk vscode backup-cursor --part PART`    | Limit to `cursor-user`, `dot-cursor`, `dot-cursor-extensions`, or `project-cursor` |
-| 💾   | `hsk vscode backup-cursor --output PATH`  | Write the ZIP to an explicit path                                                  |
+| 💾   | `hsk vscode backup-cursor --output PATH`  | Write the ZIP to an explicit path (default: `path_backups`/Cursor/…)                |
 | 💾   | `hsk vscode backup-cursor --force`        | Pack even if Cursor is running                                                     |
 
 ### `hsk site`

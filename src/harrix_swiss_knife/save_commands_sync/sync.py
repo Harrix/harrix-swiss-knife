@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
-from harrix_swiss_knife.browser_bookmarks.paths import harrix_swiss_knife_data_dir
+from harrix_swiss_knife.backup_paths import save_commands_backup_root
 from harrix_swiss_knife.save_commands_sync.editors import (
     discover_editors,
     running_editor_names,
@@ -273,7 +273,7 @@ def _backup_filename(label: str) -> str:
 
 
 def _backup_root() -> Path:
-    return harrix_swiss_knife_data_dir() / "save_commands_backups"
+    return save_commands_backup_root()
 
 
 def _delta_for(snap: EditorSnapshot, merged: MergeResult, merged_payload: str) -> EditorWriteDelta:

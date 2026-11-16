@@ -128,6 +128,7 @@ class AppConfig(TypedDict, total=False):
     data_for_hsk_setup_done: NotRequired[bool]
     android_build_variant: str
     path_photos: str
+    path_backups: NotRequired[str]
     musicbee: NotRequired[MusicBeeConfig]
     path_vector_icons: NotRequired[str]
     path_vector_icons_ai: NotRequired[str]

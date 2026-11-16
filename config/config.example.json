@@ -244,6 +244,7 @@
   "path_last_note_folder": "<YOUR_GITHUB_FOLDER>/data-for-hsk/Notes/Notes",
   "path_notes": "<YOUR_GITHUB_FOLDER>/data-for-hsk/Notes/Notes",
   "path_photos": "<YOUR_PHOTOS_FOLDER>",
+  "path_backups": "D:/Dropbox/Backups",
   "musicbee": {
     "library_dir": "D:/Dropbox/Programs/MusicBee/Library",
     "music_root": "C:/Users/sergi/OneDrive/Music",

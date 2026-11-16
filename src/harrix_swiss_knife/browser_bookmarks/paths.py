@@ -13,8 +13,10 @@ _YANDEX_PROCESS = "browser.exe"
 
 
 def backup_root() -> Path:
-    """Directory for timestamped Bookmarks backups."""
-    return harrix_swiss_knife_data_dir() / "browser_bookmarks_backups"
+    """Directory for timestamped Bookmarks backups (`path_backups/browser_bookmarks`)."""
+    from harrix_swiss_knife.backup_paths import browser_bookmarks_backup_root  # noqa: PLC0415
+
+    return browser_bookmarks_backup_root()
 
 
 def default_chrome_bookmarks_path() -> Path:

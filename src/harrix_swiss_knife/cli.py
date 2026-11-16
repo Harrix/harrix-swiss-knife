@@ -1058,7 +1058,7 @@ def vscode_group() -> None:
     "output_path",
     type=click.Path(path_type=Path),
     default=None,
-    help="Output ZIP path (default: action_output/cursor-backup-TIMESTAMP.zip).",
+    help="Output ZIP path (default: path_backups/Cursor/cursor-backup-TIMESTAMP.zip).",
 )
 @click.option(
     "--force",
