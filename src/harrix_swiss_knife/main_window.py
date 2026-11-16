@@ -339,7 +339,7 @@ class MainWindow(QMainWindow):
         list_layout.setContentsMargins(SPACE_XS, SPACE_XS, 0, SPACE_M)
         list_layout.setSpacing(SPACE_S)
 
-        self.list_widget = FluentListWidget(list_pane)
+        self.list_widget = FluentListWidget(list_pane, compact=True)
         self.list_widget.itemClicked.connect(self.on_item_clicked)
         list_viewport = self.list_widget.viewport()
         if list_viewport is not None:
