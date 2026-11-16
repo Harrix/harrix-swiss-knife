@@ -664,7 +664,10 @@ def _style_item_view(view: QAbstractItemView, palette: FluentPalette) -> None:
     icon = view.iconSize()
     if icon.width() <= ICON_SIZE:
         view.setIconSize(QSize(ICON_SIZE, ICON_SIZE))
-    view.setSpacing(0)
+    # QListView/QListWidget only — QTreeView has no setSpacing.
+    set_spacing = getattr(view, "setSpacing", None)
+    if callable(set_spacing):
+        set_spacing(0)
     _set_sheet(
         view,
         f"""

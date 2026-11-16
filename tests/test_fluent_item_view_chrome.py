@@ -6,7 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 from PySide6.QtGui import QPalette
-from PySide6.QtWidgets import QApplication, QLabel, QListView, QWidget
+from PySide6.QtWidgets import QApplication, QLabel, QListView, QTreeView, QWidget
 
 from harrix_swiss_knife.apps.fitness.fitness_entry_chrome import _polish_exercise_list
 from harrix_swiss_knife.apps.food.food_entry_chrome import _polish_items_list
@@ -23,6 +23,17 @@ def qapp() -> QApplication:
         msg = "QApplication.instance() returned a non-QApplication object."
         raise TypeError(msg)
     return app
+
+
+def test_style_fluent_item_view_accepts_tree_view(qapp: QApplication) -> None:
+    """QTreeView has no setSpacing; Fluent chrome must not require it."""
+    assert qapp is not None
+    host = QWidget()
+    tree = QTreeView(host)
+    tree.setObjectName("treeView_reports")
+    style_fluent_item_view(tree)
+    assert "color:" in tree.styleSheet().lower()
+    host.close()
 
 
 def test_style_fluent_item_view_keeps_light_text_in_dark_theme(qapp: QApplication) -> None:
