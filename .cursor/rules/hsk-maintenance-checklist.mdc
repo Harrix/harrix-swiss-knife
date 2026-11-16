@@ -1,0 +1,38 @@
+---
+description: When adding a new On* action, decide if it belongs on the maintenance checklist
+globs: src/harrix_swiss_knife/actions/**/*.py
+alwaysApply: false
+---
+
+# hsk maintenance checklist
+
+Canonical step list: [`src/harrix_swiss_knife/actions/common/maintenance_checklist_steps.py`](src/harrix_swiss_knife/actions/common/maintenance_checklist_steps.py) (`MAINTENANCE_STEP_SPECS` → `maintenance_steps()`).
+
+UI: **Dev → Maintenance checklist…** (`OnRunMaintenanceChecklist`).
+
+## When creating a new `On*` action
+
+Ask: is this a **recurring** update, sync, backup, or health-check the user would run periodically together with other maintenance steps?
+
+**Usually yes — add a `MaintenanceStep`:**
+
+- Update tooling / packages / icons / Node / uv / npm
+- Beautify / regenerate notes, build site, project checks
+- Sync bookmarks, editors, backups, private data
+- Scan dirty git repos or similar hygiene checks
+
+**Usually no — skip the list:**
+
+- One-shot create/rename/optimize-of-selection tools
+- App launchers (unless the step only exists inside that app, e.g. TickTick sync via Habits)
+- Pure UI helpers (Settings, About, gallery, Quick launcher)
+- Destructive one-offs (discard git changes) unless the user wants them in the ritual
+
+## How to add
+
+1. Append a `MaintenanceStepSpec` to `MAINTENANCE_STEP_SPECS` (`module`, `class_name`, `group`, `lucide_icon`, short `note`)
+2. Set `include_in_run_all=False` when the step exits the app, opens a long-lived window, or needs a deliberate manual confirm (e.g. Upgrade packages uv, Update HSK, Transfer private data, Habits)
+3. Prefer existing Lucide IDs under `assets/lucide/`
+4. Do not import action classes at module top-level in the steps file (lazy resolve avoids cycles)
+
+Do not invent a second parallel list; keep this registry as the single source of truth.

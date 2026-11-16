@@ -36,6 +36,7 @@ def get_menu_structure() -> list[Any]:
                 OnOpenConfigJson,
                 OnSettingsEditor,
                 OnSetupDataForHsk,
+                OnRunMaintenanceChecklist,
                 OnTransferPrivateData,
                 OnSyncQuickAccessToTotalCommander,
                 OnUpdateHarrixSwissKnife,

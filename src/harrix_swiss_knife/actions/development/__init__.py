@@ -10,6 +10,7 @@ from harrix_swiss_knife.actions.development.exit_ import OnExit
 from harrix_swiss_knife.actions.development.install_cli import OnInstallCli
 from harrix_swiss_knife.actions.development.npm_manage_packages import OnNpmManagePackages
 from harrix_swiss_knife.actions.development.open_config_json import OnOpenConfigJson
+from harrix_swiss_knife.actions.development.run_maintenance_checklist import OnRunMaintenanceChecklist
 from harrix_swiss_knife.actions.development.settings_editor import OnSettingsEditor
 from harrix_swiss_knife.actions.development.setup_data_for_hsk import OnSetupDataForHsk
 from harrix_swiss_knife.actions.development.show_action_usage_stats import OnShowActionUsageStats
@@ -35,6 +36,7 @@ __all__ = [
     "OnInstallCli",
     "OnNpmManagePackages",
     "OnOpenConfigJson",
+    "OnRunMaintenanceChecklist",
     "OnSettingsEditor",
     "OnSetupDataForHsk",
     "OnShowActionUsageStats",

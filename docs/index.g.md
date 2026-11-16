@@ -78,6 +78,7 @@ _Figure 1: Screenshot_
   - ⬇️ Download ffmpeg, avifenc, avifdec
   - 🧩 Fluent widget gallery
   - ⌨️ Install CLI (hsk on PATH) ꟲᴸᴵ
+  - 🛠️ ★ Maintenance checklist… ꟲᴸᴵ
   - ⚙️ Open `config.json`
   - ⚡ Quick launcher…
   - 📁 Set up data-for-hsk ꟲᴸᴵ
@@ -447,6 +448,7 @@ Folder arguments are optional (default: current directory) for commands that tak
 | Icon | Command                                                                                               | Description                                                                                                                                 |
 | ---- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | 📊   | `hsk dev action-usage`                                                                                | Show sorted action invocation statistics (unused first)                                                                                     |
+| 🛠️   | `hsk dev maintenance-checklist`                                                                       | List maintenance / update / sync checklist steps (CLI); GUI opens Fluent dialog                                                             |
 | 📅   | `hsk dev generate-action-added-at`                                                                    | Fill `config/action_added_at.json` from Git history (merge keeps existing dates; `now()` when Git has no hit)                               |
 | 📅   | `hsk dev generate-action-added-at --force`                                                            | Overwrite existing dates from Git                                                                                                           |
 | ⌨️   | `hsk dev install-cli`                                                                                 | Global `hsk` on PATH via `uv tool install -e`                                                                                               |

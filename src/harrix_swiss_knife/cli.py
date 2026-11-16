@@ -16,6 +16,7 @@ from harrix_swiss_knife.actions.common.quick_launcher_registry import iter_menu_
 from harrix_swiss_knife.actions.development import (
     OnBuildInstallZips,
     OnInstallCli,
+    OnRunMaintenanceChecklist,
     OnSetupDataForHsk,
     OnShowActionUsageStats,
     OnTransferPrivateData,
@@ -258,6 +259,14 @@ def dev_install_private_data(
         food=food,
         config=config,
     )
+
+
+@dev_group.command("maintenance-checklist")
+def dev_maintenance_checklist() -> None:
+    """List maintenance checklist steps (GUI: open the Fluent checklist)."""
+    action = OnRunMaintenanceChecklist()
+    action(noninteractive=True)
+    _finish_timed_action(action)
 
 
 @dev_group.command("pack-private-data", hidden=True)

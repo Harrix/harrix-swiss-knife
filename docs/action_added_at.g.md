@@ -27,7 +27,7 @@ lang: en
 def added_at_for(class_name: str, *, path: Path | None = None) -> datetime | None
 ```
 
-Return the parsed added-at stamp for `class_name`, or `None` if unknown.
+Return the parsed added-at stamp for [`class_name`](actions/common/maintenance_checklist_steps.g.md#%EF%B8%8F-method-class_name-property), or `None` if unknown.
 
 <details>
 <summary>Code:</summary>

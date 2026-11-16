@@ -21,6 +21,10 @@ If helpers or classes are used by **more than one** action (and are not package-
 
 `common/` holds framework pieces (`base`, dialogs) and domain helpers — not tray-menu `On*` action classes.
 
+## Maintenance checklist
+
+When you **create** a new `On*` that is a recurring update / sync / backup / health-check, decide whether to add it to `MAINTENANCE_STEP_SPECS` in `actions/common/maintenance_checklist_steps.py`. See `.cursor/rules/hsk-maintenance-checklist.mdc`.
+
 ## Added-at date
 
 When you **create** a new `On*` and register it in `menu_structure.py`, set its creation date **in the same session**:

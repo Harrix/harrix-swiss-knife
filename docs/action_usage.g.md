@@ -121,7 +121,7 @@ def load_action_usage(path: Path | None = None) -> ActionUsageMap:
 def record_action_usage(class_name: str, *, via_cli: bool, path: Path | None = None) -> None
 ```
 
-Increment counters for `class_name` and persist atomically.
+Increment counters for [`class_name`](actions/common/maintenance_checklist_steps.g.md#%EF%B8%8F-method-class_name-property) and persist atomically.
 
 Errors are logged and swallowed so statistics never break actions.
 

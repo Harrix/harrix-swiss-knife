@@ -24,6 +24,7 @@ lang: en
 - [🔧 Function `dev_install_cli`](#-function-dev_install_cli)
 - [🔧 Function `dev_install_harrix_notes_explorer_hsk`](#-function-dev_install_harrix_notes_explorer_hsk)
 - [🔧 Function `dev_install_private_data`](#-function-dev_install_private_data)
+- [🔧 Function `dev_maintenance_checklist`](#-function-dev_maintenance_checklist)
 - [🔧 Function `dev_pack_private_data`](#-function-dev_pack_private_data)
 - [🔧 Function `dev_setup_data_for_hsk`](#-function-dev_setup_data_for_hsk)
 - [🔧 Function `file_group`](#-function-file_group)
@@ -363,6 +364,26 @@ def dev_install_private_data(
         food=food,
         config=config,
     )
+```
+
+</details>
+
+## 🔧 Function `dev_maintenance_checklist`
+
+```python
+def dev_maintenance_checklist() -> None
+```
+
+List maintenance checklist steps (GUI: open the Fluent checklist).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def dev_maintenance_checklist() -> None:
+    action = OnRunMaintenanceChecklist()
+    action(noninteractive=True)
+    _finish_timed_action(action)
 ```
 
 </details>
