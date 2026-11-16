@@ -61,4 +61,4 @@ Dialog idle buttons use `button_idle_qss()` (`SURFACE` + `INPUT_BORDER`). Drop z
 3. Update both `.cursor/design-tokens.md` tables if roles change
 4. Update `h-brand-colors.mdc` and `hsk-ui-chrome.mdc`
 5. HTML: `npm run check` / `check:css` / `build`
-6. HSK: `hsk py ruff-sort-docs --only-changed` + `hsk py check`
+6. HSK: `hsk py ruff-sort-docs --only-changed` + `hsk py check --only-changed`

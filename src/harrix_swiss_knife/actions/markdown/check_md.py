@@ -23,6 +23,7 @@ class OnCheckMd(ActionBase):
     cli_hint = "md check"
 
     include_g_md: bool = False
+    selected_md_files: list[Path] | None = None
 
     _RULE_ID_RE = re.compile(r"^H\d+")
     # Location may be `path`, `path:line`, or `path:line:col` (Windows drive-safe via non-greedy path).
@@ -38,11 +39,15 @@ class OnCheckMd(ActionBase):
         if self.folder_path is None:
             return
 
-        md_files = [
-            md_file
-            for md_file in checker.find_markdown_files(self.folder_path)
-            if self.include_g_md or not md_file.name.endswith(".g.md")
-        ]
+        selected = getattr(self, "selected_md_files", None)
+        if selected is not None:
+            md_files = [md_file for md_file in selected if self.include_g_md or not md_file.name.endswith(".g.md")]
+        else:
+            md_files = [
+                md_file
+                for md_file in checker.find_markdown_files(self.folder_path)
+                if self.include_g_md or not md_file.name.endswith(".g.md")
+            ]
 
         errors_dict: dict[str, list[str]] = {}
         for md_file in h.file.iter_with_progress(md_files):

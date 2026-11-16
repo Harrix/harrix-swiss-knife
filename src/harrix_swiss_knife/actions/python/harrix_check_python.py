@@ -2,12 +2,37 @@
 
 from __future__ import annotations
 
+import ast
+import tempfile
 from pathlib import Path
 from typing import Any, ClassVar
 
 import harrix_pylib as h
 
 from harrix_swiss_knife.actions.common.base import ActionBase
+
+# Matches harrix_pylib.py.check_python_docstring_markdown_errors exclude set.
+_DOCSTRING_MD_EXCLUDE_RULES: frozenset[str] = frozenset(
+    {
+        "H001",
+        "H002",
+        "H003",
+        "H004",
+        "H005",
+        "H011",
+        "H046",
+        "H047",
+        "H082",
+        "H083",
+        "H086",
+        "H087",
+        "H089",
+        "H090",
+        "H091",
+        "H092",
+        "H093",
+    }
+)
 
 
 class OnHarrixCheckPython(ActionBase):
@@ -17,6 +42,8 @@ class OnHarrixCheckPython(ActionBase):
     title = "Harrix PY check in …"
     cli_available = True
     cli_hint = "py harrix-check"
+
+    selected_python_files: list[Path] | None = None
 
     _DOCSTRING_SECTION_HEADERS_REQUIRING_BLANK_LINE: ClassVar[set[str]] = {
         "Args:",
@@ -60,26 +87,40 @@ class OnHarrixCheckPython(ActionBase):
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
     def harrix_check_python_common(self) -> None:
-        """Check all Python files in `folder_path` and log results."""
+        """Check Python files in `folder_path` (or `selected_python_files`) and log results."""
         self.last_error_count = 0
         checker = h.py_check.PyChecker()
         if self.folder_path is None:
             return
 
-        errors = h.file.check_func(self.folder_path, ".py", checker)
         folder = Path(self.folder_path)
+        selected = getattr(self, "selected_python_files", None)
+        py_files = list(selected) if selected is not None else self._iter_python_files(folder)
+
+        errors: list[str] = []
+        if selected is None:
+            errors = h.file.check_func(self.folder_path, ".py", checker) or []
+        else:
+            for py_file in h.file.iter_with_progress(py_files):
+                file_errors = checker.check(py_file)
+                if file_errors:
+                    errors.extend(file_errors)
+
         docstring_errors: list[str] = []
-        for py_file in h.file.iter_with_progress(self._iter_python_files(folder)):
+        for py_file in h.file.iter_with_progress(py_files):
             docstring_errors.extend(self._check_docstring_section_blank_line_before_list(py_file))
         if docstring_errors:
-            errors = (errors or []) + docstring_errors
+            errors.extend(docstring_errors)
 
         self.add_line("🔵 Starting docstring Markdown check (incl. private, locations in .py)")
-        md_doc_errors = h.py.check_python_docstring_markdown_errors(folder, include_private=True)
+        if selected is None:
+            md_doc_errors = h.py.check_python_docstring_markdown_errors(folder, include_private=True)
+        else:
+            md_doc_errors = self._check_docstring_markdown_for_files(folder, py_files, include_private=True)
         if md_doc_errors:
-            errors = (errors or []) + md_doc_errors
+            errors.extend(md_doc_errors)
 
-        self.last_error_count = len(errors) if errors else 0
+        self.last_error_count = len(errors)
         if errors:
             for index, error in enumerate(errors):
                 if index:
@@ -100,6 +141,46 @@ class OnHarrixCheckPython(ActionBase):
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} {self.folder_path} completed")
         self.show_result()
+
+    def _check_docstring_markdown_for_files(
+        self,
+        folder: Path,
+        py_files: list[Path],
+        *,
+        include_private: bool = True,
+    ) -> list[str]:
+        """Run docstring Markdown checks only for the given Python files."""
+        src_folder = folder / "src"
+        if not src_folder.is_dir():
+            return []
+
+        md_checker = h.md_check.MdChecker()
+        errors: list[str] = []
+        with tempfile.TemporaryDirectory(prefix="hsk-py-docstring-md-") as temp_dir:
+            temp_root = Path(temp_dir)
+            for py_file in h.file.iter_with_progress(py_files):
+                if not h.py._is_docs_python_file(py_file):  # noqa: SLF001
+                    continue
+                try:
+                    with py_file.open(encoding="utf-8") as source_file:
+                        tree = ast.parse(source_file.read(), filename=str(py_file))
+                except (OSError, SyntaxError, UnicodeDecodeError):
+                    continue
+                if not h.py._has_documented_entities(tree, include_private=include_private):  # noqa: SLF001
+                    continue
+                content, line_map = h.py.generate_md_docs_content_with_source_map(
+                    py_file,
+                    include_private=include_private,
+                )
+                relative = h.py._docs_g_md_relative_path(py_file, src_folder)  # noqa: SLF001
+                md_path = temp_root / relative
+                md_path.parent.mkdir(parents=True, exist_ok=True)
+                md_path.write_text(content, encoding="utf-8", newline="\n")
+                errors.extend(
+                    h.py.remap_markdown_docs_error(error, line_map)
+                    for error in md_checker.check(md_path, exclude_rules=set(_DOCSTRING_MD_EXCLUDE_RULES))
+                )
+        return errors
 
     def _check_docstring_section_blank_line_before_list(self, path: Path) -> list[str]:
         """Check blank lines and list indentation in docstrings."""

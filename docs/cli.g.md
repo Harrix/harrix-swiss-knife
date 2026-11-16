@@ -970,7 +970,7 @@ def python_group() -> None:
 ## 🔧 Function `python_check`
 
 ```python
-def python_check(folder: Path) -> None
+def python_check(folder: Path, *, only_changed: bool) -> None
 ```
 
 Full check (ty, ruff, pytest, Harrix PY/MD) for one project FOLDER.
@@ -979,9 +979,9 @@ Full check (ty, ruff, pytest, Harrix PY/MD) for one project FOLDER.
 <summary>Code:</summary>
 
 ```python
-def python_check(folder: Path) -> None:
+def python_check(folder: Path, *, only_changed: bool) -> None:
     action = OnCheckPythonProject()
-    action(folder_path=folder, noninteractive=True)
+    action(folder_path=folder, noninteractive=True, only_changed=only_changed)
     _finish_timed_action(action)
 ```
 

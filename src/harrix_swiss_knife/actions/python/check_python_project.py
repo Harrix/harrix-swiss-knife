@@ -15,7 +15,12 @@ class OnCheckPythonProject(PythonProjectChecksMixin):
     icon = "🚧"
     title = "Full PY check in …"
     cli_available = True
-    cli_hint = "py check"
+    cli_hint = "py check [--only-changed]"
+
+    def __init__(self, **kwargs) -> None:  # noqa: ANN003
+        """Initialize the check action."""
+        super().__init__(**kwargs)
+        self.only_changed = False
 
     def check_python_project_common(self) -> None:
         """Run ty, ruff, pytest, and Harrix Python/Markdown checks for `folder_path`."""
@@ -28,7 +33,10 @@ class OnCheckPythonProject(PythonProjectChecksMixin):
             return
 
         self.add_line(f"\n=== {project_path.name} ({project_path}) ===")
-        project_failures = self.check_single_python_project(project_path)
+        project_failures = self.check_single_python_project(
+            project_path,
+            only_changed=bool(getattr(self, "only_changed", False)),
+        )
 
         if not project_failures:
             self.add_line(f"\n✅ All checks passed for {project_path.name}.")
@@ -42,9 +50,11 @@ class OnCheckPythonProject(PythonProjectChecksMixin):
         *_args: Any,
         folder_path: Path | None = None,
         noninteractive: bool = False,
+        only_changed: bool = False,
         **_kwargs: Any,
     ) -> None:
         """Run full Python checks for one project folder."""
+        self.only_changed = only_changed
         if noninteractive and folder_path is None:
             self.handle_error(
                 ValueError("folder_path is required when noninteractive is True"),
@@ -62,7 +72,8 @@ class OnCheckPythonProject(PythonProjectChecksMixin):
             return
 
         if noninteractive:
-            self.add_line(f"🔵 Starting full PY check for path: {self.folder_path}")
+            mode = "incremental (`--only-changed`)" if only_changed else "full"
+            self.add_line(f"🔵 Starting {mode} PY check for path: {self.folder_path}")
             self.check_python_project_common()
             return
 

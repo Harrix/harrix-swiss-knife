@@ -882,10 +882,16 @@ def python_group() -> None:
     default=".",
     type=click.Path(exists=True, file_okay=False, path_type=Path),
 )
-def python_check(folder: Path) -> None:
+@click.option(
+    "--only-changed",
+    is_flag=True,
+    default=False,
+    help="In a Git repo, run ty/ruff/pytest/Harrix only for working-tree-changed files.",
+)
+def python_check(folder: Path, *, only_changed: bool) -> None:
     """Full check (ty, ruff, pytest, Harrix PY/MD) for one project FOLDER."""
     action = OnCheckPythonProject()
-    action(folder_path=folder, noninteractive=True)
+    action(folder_path=folder, noninteractive=True, only_changed=only_changed)
     _finish_timed_action(action)
 
 

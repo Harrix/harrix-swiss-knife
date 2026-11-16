@@ -28,20 +28,21 @@ def git_repo_root(path: Path) -> Path | None:
     return Path(root).resolve()
 
 
-def list_changed_python_files(folder: Path) -> list[Path] | None:
-    """Return changed `.py` files under `folder`, or `None` when not a Git repo.
+def list_changed_files_with_suffixes(folder: Path, suffixes: set[str]) -> list[Path] | None:
+    """Return changed files under `folder` matching `suffixes`, or `None` outside Git.
 
     `None` means the caller should fall back to processing the whole tree.
-    An empty list means the repo is clean for Python under `folder`.
+    An empty list means no matching dirty files under `folder`.
 
     """
     folder = folder.resolve()
     root = git_repo_root(folder)
     if root is None:
         return None
+    wanted = {suffix.casefold() if suffix.startswith(".") else f".{suffix.casefold()}" for suffix in suffixes}
     changed: list[Path] = []
     for path in list_git_changed_files(root):
-        if path.suffix.casefold() != ".py":
+        if path.suffix.casefold() not in wanted:
             continue
         try:
             path.relative_to(folder)
@@ -49,6 +50,25 @@ def list_changed_python_files(folder: Path) -> list[Path] | None:
             continue
         changed.append(path)
     return sorted(changed, key=lambda item: str(item).casefold())
+
+
+def list_changed_markdown_files(folder: Path) -> list[Path] | None:
+    """Return changed Markdown files under `folder`, or `None` when not a Git repo.
+
+    Includes `.md` and `.g.md` (any path whose suffix is `.md`).
+
+    """
+    return list_changed_files_with_suffixes(folder, {".md"})
+
+
+def list_changed_python_files(folder: Path) -> list[Path] | None:
+    """Return changed `.py` files under `folder`, or `None` when not a Git repo.
+
+    `None` means the caller should fall back to processing the whole tree.
+    An empty list means the repo is clean for Python under `folder`.
+
+    """
+    return list_changed_files_with_suffixes(folder, {".py"})
 
 
 def list_git_changed_files(repo: Path) -> list[Path]:
