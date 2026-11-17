@@ -40,7 +40,6 @@ class MaintenanceChecklistDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Maintenance checklist")
         self.setMinimumSize(720, 560)
-        self.resize(820, 720)
         enable_fluent_theme(self)
 
         self._output_bus = output_bus
@@ -99,6 +98,8 @@ class MaintenanceChecklistDialog(QDialog):
         root.addLayout(footer)
 
         self._refresh_all_rows()
+        # Same sizing as food/finance/habits main windows (maximize or ~1920 wide).
+        apply_app_window_size_and_position(self)
 
     def _on_run_all(self) -> None:
         if self._busy:
@@ -159,7 +160,7 @@ class MaintenanceChecklistDialog(QDialog):
         if not row.step.include_in_run_all:
             description = f"{description} · Not in Run all"
         row.set_description(description)
-        row.set_done(class_name in self._session_done)
+        row.set_done(done=class_name in self._session_done)
         row.run_button.setEnabled(not self._busy)
 
     def _run_step(self, step: MaintenanceStep) -> None:
@@ -202,7 +203,6 @@ def __init__(
         super().__init__(parent)
         self.setWindowTitle("Maintenance checklist")
         self.setMinimumSize(720, 560)
-        self.resize(820, 720)
         enable_fluent_theme(self)
 
         self._output_bus = output_bus
@@ -261,6 +261,8 @@ def __init__(
         root.addLayout(footer)
 
         self._refresh_all_rows()
+        # Same sizing as food/finance/habits main windows (maximize or ~1920 wide).
+        apply_app_window_size_and_position(self)
 ```
 
 </details>

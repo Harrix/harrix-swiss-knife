@@ -13,6 +13,7 @@ from harrix_swiss_knife.actions.common.maintenance_checklist_steps import (
     last_used_for_class,
     maintenance_groups,
 )
+from harrix_swiss_knife.apps.common.qt_main_window import apply_app_window_size_and_position
 from harrix_swiss_knife.fluent.theme import enable_fluent_theme
 from harrix_swiss_knife.fluent.tokens import SPACE_L, SPACE_M, SPACE_S, SPACE_XL
 from harrix_swiss_knife.fluent.widgets import (
@@ -46,7 +47,6 @@ class MaintenanceChecklistDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Maintenance checklist")
         self.setMinimumSize(720, 560)
-        self.resize(820, 720)
         enable_fluent_theme(self)
 
         self._output_bus = output_bus
@@ -105,6 +105,8 @@ class MaintenanceChecklistDialog(QDialog):
         root.addLayout(footer)
 
         self._refresh_all_rows()
+        # Same sizing as food/finance/habits main windows (maximize or ~1920 wide).
+        apply_app_window_size_and_position(self)
 
     def _on_run_all(self) -> None:
         if self._busy:
