@@ -8,6 +8,7 @@ from harrix_swiss_knife.actions.common.ai_markdown_html import (
     adapt_math_for_harrix_katex,
     build_ai_answer_html,
     markdown_to_article_html,
+    normalize_ai_latex_delimiters,
     resolve_html_template_dist,
 )
 
@@ -48,6 +49,32 @@ def test_markdown_to_article_html_renders_fence() -> None:
     html = markdown_to_article_html("Hello\n\n```python\nprint(1)\n```\n")
     assert 'class="language-python"' in html
     assert "print(1)" in html
+
+
+def test_markdown_to_article_html_renders_latex_delimiters() -> None:
+    html = markdown_to_article_html(r"Value \(x=1\) and \[ y=2 \].")
+    assert 'class="math inline"' in html
+    assert 'class="math block"' in html
+    assert "(x=1)" not in html
+    adapted = adapt_math_for_harrix_katex(html)
+    assert 'data-expr="x=1"' in adapted
+    assert 'data-expr="y=2"' in adapted
+
+
+def test_normalize_ai_latex_delimiters_converts_paren_and_bracket() -> None:
+    md = r"Digits \(x\) and \[ a+b=c \]."
+    out = normalize_ai_latex_delimiters(md)
+    assert "$x$" in out
+    assert "$$\na+b=c\n$$" in out
+    assert r"\(" not in out
+    assert r"\[" not in out
+
+
+def test_normalize_ai_latex_delimiters_skips_fenced_code() -> None:
+    md = "See \\(x\\)\n\n```tex\n\\(keep\\)\n```\n"
+    out = normalize_ai_latex_delimiters(md)
+    assert "$x$" in out
+    assert "\\(keep\\)" in out
 
 
 def test_resolve_html_template_dist_requires_blank(tmp_path: Path) -> None:
