@@ -64,6 +64,7 @@ class OnRecognizeTextWithAI(ActionBase):
             markdown,
             save_button=True,
             save_default_path=str(self._markdown_base / default_name),
+            rich_markdown=True,
         )
         self.show_toast(f"✅ Recognized text in {len(self._sections)} image(s)")
 
