@@ -40,6 +40,7 @@ lang: en
   - [⚙️ Method `show_about_dialog`](#%EF%B8%8F-method-show_about_dialog)
   - [⚙️ Method `show_action_output_log_browser`](#%EF%B8%8F-method-show_action_output_log_browser)
   - [⚙️ Method `show_action_usage_stats_browser`](#%EF%B8%8F-method-show_action_usage_stats_browser)
+  - [⚙️ Method `show_ai_markdown`](#%EF%B8%8F-method-show_ai_markdown)
   - [⚙️ Method `show_extracted_tables`](#%EF%B8%8F-method-show_extracted_tables)
   - [⚙️ Method `show_git_commit_offer`](#%EF%B8%8F-method-show_git_commit_offer)
   - [⚙️ Method `show_instructions`](#%EF%B8%8F-method-show_instructions)
@@ -56,7 +57,7 @@ lang: en
 class ActionDialogService
 ```
 
-Dialog builder/service for [`ActionBase`](base.g.md#%EF%B8%8F-class-actionbase)-like actions.
+Dialog builder/service for `ActionBase`-like actions.
 
 <details>
 <summary>Code:</summary>
@@ -1345,6 +1346,137 @@ class ActionDialogService:
         apply_app_window_size_and_position(dialog)
         dialog.exec()
 
+    def show_ai_markdown(
+        self,
+        text: str,
+        title: str = "Ask AI answer",
+        *,
+        dist_dir: Path,
+        open_folder_path: Path | str | None = None,
+        rerun_button: bool = False,
+        rerun_button_label: str = RERUN_BUTTON_LABEL,
+        rerun_button_icon: str = RERUN_BUTTON_ICON,
+        rewrite_button: bool = False,
+        ask_ai_button: bool = False,
+        translate_button: bool = False,
+        remove_paragraphs_button: bool = False,
+        save_button: bool = False,
+        save_default_path: str | None = None,
+        save_filter: str = "Markdown Files (*.md);;All Files (*)",
+        ok_button_label: str = OK_BUTTON_LABEL,
+        ok_button_icon: str = OK_BUTTON_ICON,
+        ok_button_before_actions: bool = False,
+    ) -> str | tuple[str | None, int] | None:
+        """Show AI Markdown in a Harrix `blank.html` WebView (code + KaTeX)."""
+        from harrix_swiss_knife.actions.common.ai_answer_webview import (  # noqa: PLC0415
+            create_ai_answer_webview,
+            load_ai_answer_html,
+        )
+        from harrix_swiss_knife.actions.common.ai_markdown_html import build_ai_answer_html  # noqa: PLC0415
+
+        has_action_buttons = (
+            rerun_button or rewrite_button or ask_ai_button or translate_button or remove_paragraphs_button
+        )
+        folder_to_open = Path(open_folder_path) if open_folder_path is not None else None
+        current_text = text
+        page_html = build_ai_answer_html(current_text, dist_dir=dist_dir, title=title)
+
+        def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
+            nonlocal current_text
+            view = create_ai_answer_webview(dialog)
+            load_ai_answer_html(view, page_html, dist_dir=dist_dir)
+            layout.addWidget(view)
+
+            button_layout = QHBoxLayout()
+            button_layout.addStretch(1)
+
+            def click_copy_button() -> None:
+                QGuiApplication.clipboard().setText(current_text)
+                self._show_toast("Copied to Clipboard")
+
+            add_copy_button(button_layout, click_copy_button)
+
+            if save_button:
+
+                def click_save_markdown() -> None:
+                    path = self.get_save_filename(
+                        "Save Markdown",
+                        save_default_path or "",
+                        save_filter,
+                    )
+                    if path is None:
+                        return
+                    if path.suffix == "":
+                        path = path.with_suffix(".md")
+                    markdown = current_text if current_text.endswith("\n") else f"{current_text}\n"
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_text(markdown, encoding="utf-8")
+                    self._add_line(f"💾 Saved Markdown: {path}")
+                    self._show_toast(f"Saved: {path.name}")
+
+                add_save_markdown_button(button_layout, click_save_markdown)
+
+            if folder_to_open is not None:
+
+                def click_open_folder() -> None:
+                    h.file.open_file_or_folder(folder_to_open)
+
+                add_open_folder_button(button_layout, click_open_folder)
+
+            def on_remove_paragraphs() -> None:
+                nonlocal current_text
+                current_text = collapse_text_to_single_line(current_text)
+                QGuiApplication.clipboard().setText(current_text)
+                self._show_toast("Converted to single line")
+                if remove_paragraphs_btn is not None:
+                    remove_paragraphs_btn.setVisible(False)
+
+            remove_paragraphs_btn: QPushButton | None = None
+
+            def add_action_buttons() -> QPushButton | None:
+                return append_result_action_buttons(
+                    dialog,
+                    button_layout,
+                    rerun_button=rerun_button,
+                    rerun_button_label=rerun_button_label,
+                    rerun_button_icon=rerun_button_icon,
+                    rewrite_button=rewrite_button,
+                    ask_ai_button=ask_ai_button,
+                    translate_button=translate_button,
+                    remove_paragraphs_button=remove_paragraphs_button,
+                    on_remove_paragraphs=on_remove_paragraphs if remove_paragraphs_button else None,
+                    remove_paragraphs_source_text=current_text,
+                )
+
+            def add_dismiss_button() -> None:
+                add_ok_button(
+                    dialog,
+                    button_layout,
+                    label=ok_button_label,
+                    icon=ok_button_icon,
+                )
+
+            if ok_button_before_actions:
+                add_dismiss_button()
+                remove_paragraphs_btn = add_action_buttons()
+            else:
+                remove_paragraphs_btn = add_action_buttons()
+                add_dismiss_button()
+
+            layout.addLayout(button_layout)
+
+        result, _dialog = self._exec_standard_dialog(title, _build, stretch_row=0, adaptive=False)
+        if has_action_buttons:
+            if result in (
+                RERUN_DIALOG_CODE,
+                REWRITE_DIALOG_CODE,
+                ASK_AI_DIALOG_CODE,
+                TRANSLATE_DIALOG_CODE,
+            ):
+                return current_text, result
+            return (current_text if result == QDialog.DialogCode.Accepted else None, result)
+        return current_text if result == QDialog.DialogCode.Accepted else None
+
     def show_extracted_tables(
         self,
         tables: list[ExtractedTable],
@@ -1889,7 +2021,7 @@ class ActionDialogService:
 def __init__(self, *, default_size: QSize, compact_size: QSize, add_line: Callable[[str], None], show_toast: Callable[[str], None], create_emoji_icon: Callable[[str, int], QIcon]) -> None
 ```
 
-Create service with UI callbacks injected from [`ActionBase`](base.g.md#%EF%B8%8F-class-actionbase).
+Create service with UI callbacks injected from `ActionBase`.
 
 <details>
 <summary>Code:</summary>
@@ -3540,6 +3672,151 @@ def show_action_usage_stats_browser(
         # Same sizing as food/finance/habits main windows (maximize or ~1920 wide).
         apply_app_window_size_and_position(dialog)
         dialog.exec()
+```
+
+</details>
+
+### ⚙️ Method `show_ai_markdown`
+
+```python
+def show_ai_markdown(self, text: str, title: str = 'Ask AI answer', *, dist_dir: Path, open_folder_path: Path | str | None = None, rerun_button: bool = False, rerun_button_label: str = RERUN_BUTTON_LABEL, rerun_button_icon: str = RERUN_BUTTON_ICON, rewrite_button: bool = False, ask_ai_button: bool = False, translate_button: bool = False, remove_paragraphs_button: bool = False, save_button: bool = False, save_default_path: str | None = None, save_filter: str = 'Markdown Files (*.md);;All Files (*)', ok_button_label: str = OK_BUTTON_LABEL, ok_button_icon: str = OK_BUTTON_ICON, ok_button_before_actions: bool = False) -> str | tuple[str | None, int] | None
+```
+
+Show AI Markdown in a Harrix `blank.html` WebView (code + KaTeX).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def show_ai_markdown(
+        self,
+        text: str,
+        title: str = "Ask AI answer",
+        *,
+        dist_dir: Path,
+        open_folder_path: Path | str | None = None,
+        rerun_button: bool = False,
+        rerun_button_label: str = RERUN_BUTTON_LABEL,
+        rerun_button_icon: str = RERUN_BUTTON_ICON,
+        rewrite_button: bool = False,
+        ask_ai_button: bool = False,
+        translate_button: bool = False,
+        remove_paragraphs_button: bool = False,
+        save_button: bool = False,
+        save_default_path: str | None = None,
+        save_filter: str = "Markdown Files (*.md);;All Files (*)",
+        ok_button_label: str = OK_BUTTON_LABEL,
+        ok_button_icon: str = OK_BUTTON_ICON,
+        ok_button_before_actions: bool = False,
+    ) -> str | tuple[str | None, int] | None:
+        from harrix_swiss_knife.actions.common.ai_answer_webview import (  # noqa: PLC0415
+            create_ai_answer_webview,
+            load_ai_answer_html,
+        )
+        from harrix_swiss_knife.actions.common.ai_markdown_html import build_ai_answer_html  # noqa: PLC0415
+
+        has_action_buttons = (
+            rerun_button or rewrite_button or ask_ai_button or translate_button or remove_paragraphs_button
+        )
+        folder_to_open = Path(open_folder_path) if open_folder_path is not None else None
+        current_text = text
+        page_html = build_ai_answer_html(current_text, dist_dir=dist_dir, title=title)
+
+        def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
+            nonlocal current_text
+            view = create_ai_answer_webview(dialog)
+            load_ai_answer_html(view, page_html, dist_dir=dist_dir)
+            layout.addWidget(view)
+
+            button_layout = QHBoxLayout()
+            button_layout.addStretch(1)
+
+            def click_copy_button() -> None:
+                QGuiApplication.clipboard().setText(current_text)
+                self._show_toast("Copied to Clipboard")
+
+            add_copy_button(button_layout, click_copy_button)
+
+            if save_button:
+
+                def click_save_markdown() -> None:
+                    path = self.get_save_filename(
+                        "Save Markdown",
+                        save_default_path or "",
+                        save_filter,
+                    )
+                    if path is None:
+                        return
+                    if path.suffix == "":
+                        path = path.with_suffix(".md")
+                    markdown = current_text if current_text.endswith("\n") else f"{current_text}\n"
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_text(markdown, encoding="utf-8")
+                    self._add_line(f"💾 Saved Markdown: {path}")
+                    self._show_toast(f"Saved: {path.name}")
+
+                add_save_markdown_button(button_layout, click_save_markdown)
+
+            if folder_to_open is not None:
+
+                def click_open_folder() -> None:
+                    h.file.open_file_or_folder(folder_to_open)
+
+                add_open_folder_button(button_layout, click_open_folder)
+
+            def on_remove_paragraphs() -> None:
+                nonlocal current_text
+                current_text = collapse_text_to_single_line(current_text)
+                QGuiApplication.clipboard().setText(current_text)
+                self._show_toast("Converted to single line")
+                if remove_paragraphs_btn is not None:
+                    remove_paragraphs_btn.setVisible(False)
+
+            remove_paragraphs_btn: QPushButton | None = None
+
+            def add_action_buttons() -> QPushButton | None:
+                return append_result_action_buttons(
+                    dialog,
+                    button_layout,
+                    rerun_button=rerun_button,
+                    rerun_button_label=rerun_button_label,
+                    rerun_button_icon=rerun_button_icon,
+                    rewrite_button=rewrite_button,
+                    ask_ai_button=ask_ai_button,
+                    translate_button=translate_button,
+                    remove_paragraphs_button=remove_paragraphs_button,
+                    on_remove_paragraphs=on_remove_paragraphs if remove_paragraphs_button else None,
+                    remove_paragraphs_source_text=current_text,
+                )
+
+            def add_dismiss_button() -> None:
+                add_ok_button(
+                    dialog,
+                    button_layout,
+                    label=ok_button_label,
+                    icon=ok_button_icon,
+                )
+
+            if ok_button_before_actions:
+                add_dismiss_button()
+                remove_paragraphs_btn = add_action_buttons()
+            else:
+                remove_paragraphs_btn = add_action_buttons()
+                add_dismiss_button()
+
+            layout.addLayout(button_layout)
+
+        result, _dialog = self._exec_standard_dialog(title, _build, stretch_row=0, adaptive=False)
+        if has_action_buttons:
+            if result in (
+                RERUN_DIALOG_CODE,
+                REWRITE_DIALOG_CODE,
+                ASK_AI_DIALOG_CODE,
+                TRANSLATE_DIALOG_CODE,
+            ):
+                return current_text, result
+            return (current_text if result == QDialog.DialogCode.Accepted else None, result)
+        return current_text if result == QDialog.DialogCode.Accepted else None
 ```
 
 </details>

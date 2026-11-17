@@ -22,6 +22,7 @@ dependencies = [
     "pymupdf>=1.25.0",
     "pypdf>=5.7.0",
     "pyside6>=6.8.1.1",
+    "pyside6-webengine>=6.8.1.1",
     "pythonnet>=3.0.5",
     "pyyaml>=6.0.2",
     "spylls>=0.1.7",

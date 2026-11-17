@@ -90,14 +90,119 @@ def parse_ocr_translate_response(text: str, *, local_language_code: str | None =
     )
 
 
+def present_ai_markdown_answer(
+    action: ActionBase,
+    markdown: str,
+    *,
+    title: str | None = None,
+    save_button: bool = False,
+    save_default_path: str | None = None,
+    rerun_button: bool = False,
+    rerun_button_label: str = "Run again",
+    rerun_button_icon: str = "refresh-cw",
+    rewrite_button: bool = False,
+    ask_ai_button: bool = False,
+    translate_button: bool | None = None,
+    remove_paragraphs_button: bool = False,
+    handle_translate: bool = True,
+) -> str | tuple[str | None, int] | None:
+    """Show an AI Markdown answer with Harrix `blank.html` when possible.
+
+    Prefers `QWebEngineView` + `path_html_template_dist/blank.html` (code highlight +
+    KaTeX). Falls back to Qt `setMarkdown` when WebEngine or the template is missing.
+
+    When `handle_translate` is `True` (default), starts translation if the user
+    presses Translate and does not return the dialog tuple to the caller.
+
+    """
+    from harrix_swiss_knife.actions.common.ai_answer_webview import webengine_available  # noqa: PLC0415
+    from harrix_swiss_knife.actions.common.ai_markdown_html import resolve_html_template_dist  # noqa: PLC0415
+
+    offer_translate = (
+        text_needs_translation(markdown, local_language_code_from_config(action.config))
+        if translate_button is None
+        else translate_button
+    )
+    dialog_title = title
+    if dialog_title is None:
+        dialog_title = "Ask AI answer"
+        elapsed = action.elapsed_mm_ss()
+        if elapsed is not None:
+            dialog_title = f"Ask AI answer — {elapsed}"
+
+    dist = resolve_html_template_dist(action.config if isinstance(action.config, dict) else None)
+
+    def _show_plain_markdown() -> str | tuple[str | None, int] | None:
+        return action.dialogs.show_text_multiline(
+            markdown,
+            dialog_title,
+            open_folder_path=action.result_folder,
+            save_button=save_button,
+            save_default_path=save_default_path,
+            rerun_button=rerun_button,
+            rerun_button_label=rerun_button_label,
+            rerun_button_icon=rerun_button_icon,
+            rewrite_button=rewrite_button,
+            ask_ai_button=ask_ai_button,
+            translate_button=offer_translate,
+            remove_paragraphs_button=remove_paragraphs_button,
+            use_markdown=True,
+        )
+
+    dialog_result: str | tuple[str | None, int] | None
+    if dist is not None and webengine_available():
+        try:
+            dialog_result = action.dialogs.show_ai_markdown(
+                markdown,
+                dialog_title,
+                dist_dir=dist,
+                open_folder_path=action.result_folder,
+                save_button=save_button,
+                save_default_path=save_default_path,
+                rerun_button=rerun_button,
+                rerun_button_label=rerun_button_label,
+                rerun_button_icon=rerun_button_icon,
+                rewrite_button=rewrite_button,
+                ask_ai_button=ask_ai_button,
+                translate_button=offer_translate,
+                remove_paragraphs_button=remove_paragraphs_button,
+            )
+        except Exception:
+            action.add_line("⚠️ Rich AI Markdown view failed; falling back to Qt Markdown")
+            dialog_result = _show_plain_markdown()
+    else:
+        if dist is None:
+            action.add_line("⚪ Rich AI Markdown needs `path_html_template_dist` with blank.html")
+        elif not webengine_available():
+            action.add_line("⚪ Rich AI Markdown needs PySide6-WebEngine; using Qt Markdown")
+        dialog_result = _show_plain_markdown()
+
+    if handle_translate and offer_translate and isinstance(dialog_result, tuple):
+        text, action_code = dialog_result
+        if action_code == TRANSLATE_DIALOG_CODE:
+            start_text_translation(action, text or markdown)
+            return None
+    return dialog_result
+
+
 def present_recognized_text(
     action: ActionBase,
     markdown: str,
     *,
     save_button: bool = False,
     save_default_path: str | None = None,
+    rich_markdown: bool = False,
 ) -> None:
     """Show recognized text and offer Translate when it is not the local language."""
+    if rich_markdown:
+        present_ai_markdown_answer(
+            action,
+            markdown,
+            save_button=save_button,
+            save_default_path=save_default_path,
+        )
+        return
+
     offer_translate = text_needs_translation(markdown, local_language_code_from_config(action.config))
     title = "Result"
     elapsed = action.elapsed_mm_ss()

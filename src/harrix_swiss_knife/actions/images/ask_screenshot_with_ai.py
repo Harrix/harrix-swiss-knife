@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from harrix_swiss_knife.actions.common.base import ActionBase
-from harrix_swiss_knife.actions.common.ocr_translate import present_recognized_text
+from harrix_swiss_knife.actions.common.ocr_translate import present_ai_markdown_answer
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.integrations.bothub import (
     BothubRequestState,
@@ -68,7 +68,7 @@ class OnAskScreenshotWithAI(ActionBase):
 
         self.text_to_clipboard(answer)
         self.add_line("📋 Answer copied to clipboard")
-        present_recognized_text(self, answer)
+        present_ai_markdown_answer(self, answer)
         self.show_toast(f"✅ Answer for {len(self._sections)} image(s)")
 
     def _process_image(self, index: int) -> None:

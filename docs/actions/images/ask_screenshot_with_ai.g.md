@@ -77,7 +77,7 @@ class OnAskScreenshotWithAI(ActionBase):
 
         self.text_to_clipboard(answer)
         self.add_line("📋 Answer copied to clipboard")
-        present_recognized_text(self, answer)
+        present_ai_markdown_answer(self, answer)
         self.show_toast(f"✅ Answer for {len(self._sections)} image(s)")
 
     def _process_image(self, index: int) -> None:

@@ -238,21 +238,35 @@ class OnSpeechToTextWithAI(ActionBase):
         """Show speech/Ask AI result and dispatch result-dialog actions."""
         current = text
         self.text_to_clipboard(current)
-        dialog_result = self.show_text_multiline(
-            current,
-            title="Ask AI answer" if use_markdown else "Speech to text result",
-            rerun_button=True,
-            rerun_button_label="Record new",
-            rerun_button_icon="mic",
-            rewrite_button=not use_markdown,
-            ask_ai_button=not use_markdown,
-            translate_button=text_needs_translation(
+        if use_markdown:
+            dialog_result = present_ai_markdown_answer(
+                self,
                 current,
-                local_language_code_from_config(self.config),
-            ),
-            remove_paragraphs_button=True,
-            use_markdown=use_markdown,
-        )
+                title="Ask AI answer",
+                rerun_button=True,
+                rerun_button_label="Record new",
+                rerun_button_icon="mic",
+                rewrite_button=False,
+                ask_ai_button=False,
+                remove_paragraphs_button=True,
+                handle_translate=False,
+            )
+        else:
+            dialog_result = self.show_text_multiline(
+                current,
+                title="Speech to text result",
+                rerun_button=True,
+                rerun_button_label="Record new",
+                rerun_button_icon="mic",
+                rewrite_button=True,
+                ask_ai_button=True,
+                translate_button=text_needs_translation(
+                    current,
+                    local_language_code_from_config(self.config),
+                ),
+                remove_paragraphs_button=True,
+                use_markdown=False,
+            )
         if not isinstance(dialog_result, tuple):
             return
         result_text, action_code = dialog_result
