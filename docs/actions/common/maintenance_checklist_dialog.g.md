@@ -98,6 +98,10 @@ class MaintenanceChecklistDialog(QDialog):
         root.addLayout(footer)
 
         self._refresh_all_rows()
+        self._last_run_timer = QTimer(self)
+        self._last_run_timer.setInterval(_LAST_RUN_REFRESH_MS)
+        self._last_run_timer.timeout.connect(self._refresh_last_run_labels)
+        self._last_run_timer.start()
         # Same sizing as food/finance/habits main windows (maximize or ~1920 wide).
         apply_app_window_size_and_position(self)
 
@@ -147,7 +151,20 @@ class MaintenanceChecklistDialog(QDialog):
         if done:
             self._progress.setText(f"Done this session: {done}/{len(self._rows)}")
 
+    def _refresh_last_run_labels(self) -> None:
+        """Recompute relative Last-run captions without touching progress/busy UI."""
+        for class_name in self._rows:
+            self._refresh_row_last_run(class_name)
+
     def _refresh_row(self, class_name: str) -> None:
+        row = self._rows.get(class_name)
+        if row is None:
+            return
+        self._refresh_row_last_run(class_name)
+        row.set_done(done=class_name in self._session_done)
+        row.run_button.setEnabled(not self._busy)
+
+    def _refresh_row_last_run(self, class_name: str) -> None:
         row = self._rows.get(class_name)
         if row is None:
             return
@@ -160,8 +177,6 @@ class MaintenanceChecklistDialog(QDialog):
         if not row.step.include_in_run_all:
             description = f"{description} · Not in Run all"
         row.set_description(description)
-        row.set_done(done=class_name in self._session_done)
-        row.run_button.setEnabled(not self._busy)
 
     def _run_step(self, step: MaintenanceStep) -> None:
         action: ActionBase = step.action_cls(output_bus=self._output_bus)
@@ -261,6 +276,10 @@ def __init__(
         root.addLayout(footer)
 
         self._refresh_all_rows()
+        self._last_run_timer = QTimer(self)
+        self._last_run_timer.setInterval(_LAST_RUN_REFRESH_MS)
+        self._last_run_timer.timeout.connect(self._refresh_last_run_labels)
+        self._last_run_timer.start()
         # Same sizing as food/finance/habits main windows (maximize or ~1920 wide).
         apply_app_window_size_and_position(self)
 ```

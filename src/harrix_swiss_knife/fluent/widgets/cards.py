@@ -708,23 +708,38 @@ class FluentSettingEditorCard(FluentCard):
         root.setSpacing(SPACE_S)
         header = QHBoxLayout()
         header.setSpacing(SPACE_M)
+        header.setAlignment(Qt.AlignmentFlag.AlignVCenter)
         if icon:
-            header.addWidget(_IconView(icon, self), 0, Qt.AlignmentFlag.AlignTop)
+            header.addWidget(_IconView(icon, self), 0, Qt.AlignmentFlag.AlignVCenter)
         text_column = QVBoxLayout()
         text_column.setSpacing(2)
         text_column.addWidget(FluentText(title, self, style=TextStyle.BODY_STRONG))
-        if description:
-            text_column.addWidget(FluentText(description, self, role=TextRole.SECONDARY, word_wrap=True))
+        self._description_label = FluentText(
+            description,
+            self,
+            role=TextRole.SECONDARY,
+            word_wrap=True,
+        )
+        self._description_label.setVisible(bool(description.strip()))
+        text_column.addWidget(self._description_label)
         header.addLayout(text_column, 1)
         self.trailing_layout = QHBoxLayout()
         self.trailing_layout.setSpacing(SPACE_S)
         self.trailing_layout.setContentsMargins(0, 0, 0, 0)
+        self.trailing_layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
         header.addLayout(self.trailing_layout, 0)
+        header.setAlignment(self.trailing_layout, Qt.AlignmentFlag.AlignVCenter)
         root.addLayout(header)
         self.body_layout = QVBoxLayout()
         self.body_layout.setSpacing(SPACE_S)
         self.body_layout.setContentsMargins(ICON_SIZE_LARGE + SPACE_M if icon else 0, 0, 0, 0)
         root.addLayout(self.body_layout)
+
+    def set_description(self, text: str) -> None:
+        """Update the secondary caption under the title (hidden when empty)."""
+        cleaned = text.strip()
+        self._description_label.setText(cleaned)
+        self._description_label.setVisible(bool(cleaned))
 
 
 class FluentSettingHyperlinkCard(FluentSettingCard):

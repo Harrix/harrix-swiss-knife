@@ -54,6 +54,7 @@ lang: en
   - [⚙️ Method `url`](#%EF%B8%8F-method-url-1)
 - [🏛️ Class `FluentSettingEditorCard`](#%EF%B8%8F-class-fluentsettingeditorcard)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-8)
+  - [⚙️ Method `set_description`](#%EF%B8%8F-method-set_description)
 - [🏛️ Class `FluentSettingHyperlinkCard`](#%EF%B8%8F-class-fluentsettinghyperlinkcard)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-9)
 - [🔧 Function `elide_lines`](#-function-elide_lines)
@@ -252,7 +253,7 @@ class FluentCommandCard(FluentInteractiveCard)
 Command tile: icon on the left, bold title and two-line description.
 
 The tray command window shows every action as one of these. Height comes from
-`fluent.tokens`; preferred width is `COMMAND_CARD_WIDTH` and a [`FluentCardGrid`](views.g.md#%EF%B8%8F-class-fluentcardgrid)
+`fluent.tokens`; preferred width is `COMMAND_CARD_WIDTH` and a `FluentCardGrid`
 assigns the shared column width in its layout pass (no fixed-width thrash).
 
 <details>
@@ -387,7 +388,7 @@ Args:
 - `title` (`str`): Command title (one line, elided).
 - [`description`](#%EF%B8%8F-method-description) (`str`): Hint text (two lines, elided).
 - `parent` (`QWidget | None`): Optional parent.
-- [`icon`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-icon) (`QIcon | str | None`): Ready icon, or a Lucide ID painted in the text color.
+- `icon` (`QIcon | str | None`): Ready icon, or a Lucide ID painted in the text color.
 - `overline` (`str`): Small caption above the title (for example the section name).
 - `user_data` (`object`): Arbitrary payload (for example a `QAction`).
 
@@ -589,7 +590,7 @@ class FluentIconTileCard(FluentInteractiveCard)
 Compact tile: centered icon above a wrapped title (no description).
 
 Used by Quick launcher and the capture picker. Preferred width is
-`ICON_TILE_WIDTH`; a [`FluentCardGrid`](views.g.md#%EF%B8%8F-class-fluentcardgrid) with matching `base_width` assigns the
+`ICON_TILE_WIDTH`; a `FluentCardGrid` with matching `base_width` assigns the
 shared column width.
 
 <details>
@@ -684,7 +685,7 @@ Args:
 
 - `title` (`str`): Label under the icon (up to three wrapped lines).
 - `parent` (`QWidget | None`): Optional parent.
-- [`icon`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-icon) (`QIcon | str | None`): Ready icon, or a Lucide ID.
+- `icon` (`QIcon | str | None`): Ready icon, or a Lucide ID.
 - `user_data` (`object`): Arbitrary payload (for example an action class).
 
 <details>
@@ -1417,7 +1418,7 @@ class FluentSettingCard(FluentInteractiveCard)
 
 Full-width Windows Settings row: icon, title, description, and a trailing chevron.
 
-Stack these inside [`FluentGroupBox`](navigation.g.md#%EF%B8%8F-class-fluentgroupbox) for Settings-style category lists. Click
+Stack these inside `FluentGroupBox` for Settings-style category lists. Click
 emits `clicked`; set `url` (or use [`FluentSettingHyperlinkCard`](#%EF%B8%8F-class-fluentsettinghyperlinkcard)) to open a link.
 
 <details>
@@ -1566,7 +1567,7 @@ Args:
 - `title` (`str`): Primary label (one line, elided).
 - [`content`](#%EF%B8%8F-method-content) (`str`): Secondary description (one line, elided).
 - `parent` (`QWidget | None`): Optional parent.
-- [`icon`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-icon) (`QIcon | str | None`): Ready icon, or a Lucide ID.
+- `icon` (`QIcon | str | None`): Ready icon, or a Lucide ID.
 - `url` (`str`): When set, clicking also opens this URL.
 - `trailing_icon` (`str`): Lucide ID on the right (`chevron-right` by default).
 - `user_data` (`object`): Arbitrary payload for the click handler.
@@ -1805,7 +1806,7 @@ class FluentSettingEditorCard(FluentCard)
 
 Windows Settings detail card: title, optional description, and an editor body.
 
-Use `trailing_layout` for compact controls (toggle, Save) and [`body_layout`](../../apps/common/chart_widgets.g.md#%EF%B8%8F-method-body_layout) for
+Use `trailing_layout` for compact controls (toggle, Save) and `body_layout` for
 the main field. Unlike [`FluentSettingCard`](#%EF%B8%8F-class-fluentsettingcard), this is not a navigation row.
 
 <details>
@@ -1839,23 +1840,38 @@ class FluentSettingEditorCard(FluentCard):
         root.setSpacing(SPACE_S)
         header = QHBoxLayout()
         header.setSpacing(SPACE_M)
+        header.setAlignment(Qt.AlignmentFlag.AlignVCenter)
         if icon:
-            header.addWidget(_IconView(icon, self), 0, Qt.AlignmentFlag.AlignTop)
+            header.addWidget(_IconView(icon, self), 0, Qt.AlignmentFlag.AlignVCenter)
         text_column = QVBoxLayout()
         text_column.setSpacing(2)
         text_column.addWidget(FluentText(title, self, style=TextStyle.BODY_STRONG))
-        if description:
-            text_column.addWidget(FluentText(description, self, role=TextRole.SECONDARY, word_wrap=True))
+        self._description_label = FluentText(
+            description,
+            self,
+            role=TextRole.SECONDARY,
+            word_wrap=True,
+        )
+        self._description_label.setVisible(bool(description.strip()))
+        text_column.addWidget(self._description_label)
         header.addLayout(text_column, 1)
         self.trailing_layout = QHBoxLayout()
         self.trailing_layout.setSpacing(SPACE_S)
         self.trailing_layout.setContentsMargins(0, 0, 0, 0)
+        self.trailing_layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
         header.addLayout(self.trailing_layout, 0)
+        header.setAlignment(self.trailing_layout, Qt.AlignmentFlag.AlignVCenter)
         root.addLayout(header)
         self.body_layout = QVBoxLayout()
         self.body_layout.setSpacing(SPACE_S)
         self.body_layout.setContentsMargins(ICON_SIZE_LARGE + SPACE_M if icon else 0, 0, 0, 0)
         root.addLayout(self.body_layout)
+
+    def set_description(self, text: str) -> None:
+        """Update the secondary caption under the title (hidden when empty)."""
+        cleaned = text.strip()
+        self._description_label.setText(cleaned)
+        self._description_label.setVisible(bool(cleaned))
 ```
 
 </details>
@@ -1873,7 +1889,7 @@ Args:
 - `title` (`str`): Primary label.
 - `parent` (`QWidget | None`): Optional parent.
 - [`description`](#%EF%B8%8F-method-description) (`str`): Secondary caption under the title.
-- [`icon`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-icon) (`str`): Optional Lucide ID on the left.
+- `icon` (`str`): Optional Lucide ID on the left.
 
 <details>
 <summary>Code:</summary>
@@ -1894,23 +1910,52 @@ def __init__(
         root.setSpacing(SPACE_S)
         header = QHBoxLayout()
         header.setSpacing(SPACE_M)
+        header.setAlignment(Qt.AlignmentFlag.AlignVCenter)
         if icon:
-            header.addWidget(_IconView(icon, self), 0, Qt.AlignmentFlag.AlignTop)
+            header.addWidget(_IconView(icon, self), 0, Qt.AlignmentFlag.AlignVCenter)
         text_column = QVBoxLayout()
         text_column.setSpacing(2)
         text_column.addWidget(FluentText(title, self, style=TextStyle.BODY_STRONG))
-        if description:
-            text_column.addWidget(FluentText(description, self, role=TextRole.SECONDARY, word_wrap=True))
+        self._description_label = FluentText(
+            description,
+            self,
+            role=TextRole.SECONDARY,
+            word_wrap=True,
+        )
+        self._description_label.setVisible(bool(description.strip()))
+        text_column.addWidget(self._description_label)
         header.addLayout(text_column, 1)
         self.trailing_layout = QHBoxLayout()
         self.trailing_layout.setSpacing(SPACE_S)
         self.trailing_layout.setContentsMargins(0, 0, 0, 0)
+        self.trailing_layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
         header.addLayout(self.trailing_layout, 0)
+        header.setAlignment(self.trailing_layout, Qt.AlignmentFlag.AlignVCenter)
         root.addLayout(header)
         self.body_layout = QVBoxLayout()
         self.body_layout.setSpacing(SPACE_S)
         self.body_layout.setContentsMargins(ICON_SIZE_LARGE + SPACE_M if icon else 0, 0, 0, 0)
         root.addLayout(self.body_layout)
+```
+
+</details>
+
+### ⚙️ Method `set_description`
+
+```python
+def set_description(self, text: str) -> None
+```
+
+Update the secondary caption under the title (hidden when empty).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_description(self, text: str) -> None:
+        cleaned = text.strip()
+        self._description_label.setText(cleaned)
+        self._description_label.setVisible(bool(cleaned))
 ```
 
 </details>
