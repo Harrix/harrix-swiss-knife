@@ -59,22 +59,11 @@ class MaintenanceStepSpec:
     title_override: str | None = None
 
 
-_SECONDS_PER_MINUTE = 60
-_SECONDS_PER_HOUR = 3600
-_SECONDS_PER_DAY = 86400
-_RELATIVE_WEEK_DAYS = 7
-
-
 def format_last_used(iso_stamp: str | None) -> str:
     """Return a short relative or absolute label for a usage timestamp."""
-    if not iso_stamp or not str(iso_stamp).strip():
-        return "Never"
-    try:
-        parsed = datetime.fromisoformat(str(iso_stamp).strip())
-    except ValueError:
-        return str(iso_stamp)
-    if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=UTC)
+    parsed = _parse_last_used(iso_stamp)
+    if parsed is None:
+        return "Never" if not iso_stamp or not str(iso_stamp).strip() else str(iso_stamp)
     now = datetime.now(UTC).astimezone()
     local = parsed.astimezone()
     delta = now - local
@@ -93,6 +82,16 @@ def format_last_used(iso_stamp: str | None) -> str:
         days = seconds // _SECONDS_PER_DAY
         return f"{days} d ago"
     return local.strftime("%Y-%m-%d %H:%M")
+
+
+def is_last_used_within(iso_stamp: str | None, *, hours: float = 24) -> bool:
+    """Return whether `iso_stamp` falls within the last `hours` (inclusive of now)."""
+    parsed = _parse_last_used(iso_stamp)
+    if parsed is None or hours <= 0:
+        return False
+    now = datetime.now(UTC).astimezone()
+    seconds = (now - parsed.astimezone()).total_seconds()
+    return 0 <= seconds < hours * _SECONDS_PER_HOUR
 
 
 def last_used_for_class(class_name: str) -> str:
@@ -123,6 +122,18 @@ def maintenance_steps() -> tuple[MaintenanceStep, ...]:
     return tuple(_resolve_spec(spec) for spec in MAINTENANCE_STEP_SPECS)
 
 
+def _parse_last_used(iso_stamp: str | None) -> datetime | None:
+    if not iso_stamp or not str(iso_stamp).strip():
+        return None
+    try:
+        parsed = datetime.fromisoformat(str(iso_stamp).strip())
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=UTC)
+    return parsed
+
+
 def _resolve_spec(spec: MaintenanceStepSpec) -> MaintenanceStep:
     module = importlib.import_module(spec.module)
     action_cls = getattr(module, spec.class_name)
@@ -134,6 +145,12 @@ def _resolve_spec(spec: MaintenanceStepSpec) -> MaintenanceStep:
         include_in_run_all=spec.include_in_run_all,
         title_override=spec.title_override,
     )
+
+
+_SECONDS_PER_MINUTE = 60
+_SECONDS_PER_HOUR = 3600
+_SECONDS_PER_DAY = 86400
+_RELATIVE_WEEK_DAYS = 7
 
 
 # Order is the suggested Run-all sequence within and across groups.

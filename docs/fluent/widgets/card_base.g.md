@@ -14,6 +14,7 @@ lang: en
 - [🏛️ Class `FluentCard`](#%EF%B8%8F-class-fluentcard)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `paintEvent`](#%EF%B8%8F-method-paintevent)
+  - [⚙️ Method `set_success_tint`](#%EF%B8%8F-method-set_success_tint)
 - [🏛️ Class `FluentInteractiveCard`](#%EF%B8%8F-class-fluentinteractivecard)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
   - [⚙️ Method `enterEvent`](#%EF%B8%8F-method-enterevent)
@@ -47,14 +48,28 @@ class FluentCard(QWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
         """Create an empty card; add content through `layout()` or your own layout."""
         super().__init__(parent)
+        self._success_tint = False
         bind_theme(self, self.update)
 
     def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
         """Paint the card surface."""
         palette = palette_for(self)
         painter = antialiased_painter(self)
-        paint_surface(painter, self.rect(), palette.card_bg, palette.card_stroke, RADIUS_CARD)
+        if self._success_tint:
+            fill = palette.success_bg
+            stroke = with_alpha(palette.success, 140)
+        else:
+            fill = palette.card_bg
+            stroke = palette.card_stroke
+        paint_surface(painter, self.rect(), fill, stroke, RADIUS_CARD)
         painter.end()
+
+    def set_success_tint(self, *, enabled: bool) -> None:
+        """Use the success surface colors (soft green) when `enabled` is true."""
+        if self._success_tint == enabled:
+            return
+        self._success_tint = enabled
+        self.update()
 ```
 
 </details>
@@ -73,6 +88,7 @@ Create an empty card; add content through `layout()` or your own layout.
 ```python
 def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
+        self._success_tint = False
         bind_theme(self, self.update)
 ```
 
@@ -93,8 +109,35 @@ Paint the card surface.
 def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
         palette = palette_for(self)
         painter = antialiased_painter(self)
-        paint_surface(painter, self.rect(), palette.card_bg, palette.card_stroke, RADIUS_CARD)
+        if self._success_tint:
+            fill = palette.success_bg
+            stroke = with_alpha(palette.success, 140)
+        else:
+            fill = palette.card_bg
+            stroke = palette.card_stroke
+        paint_surface(painter, self.rect(), fill, stroke, RADIUS_CARD)
         painter.end()
+```
+
+</details>
+
+### ⚙️ Method `set_success_tint`
+
+```python
+def set_success_tint(self, *, enabled: bool) -> None
+```
+
+Use the success surface colors (soft green) when `enabled` is true.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_success_tint(self, *, enabled: bool) -> None:
+        if self._success_tint == enabled:
+            return
+        self._success_tint = enabled
+        self.update()
 ```
 
 </details>

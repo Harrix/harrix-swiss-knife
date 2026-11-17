@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from PySide6.QtCore import QPoint, Qt, Signal
 from PySide6.QtWidgets import QWidget
 
-from harrix_swiss_knife.fluent.paint import antialiased_painter, paint_surface
+from harrix_swiss_knife.fluent.paint import antialiased_painter, paint_surface, with_alpha
 from harrix_swiss_knife.fluent.theme import bind_theme, palette_for
 from harrix_swiss_knife.fluent.tokens import (
     RADIUS_CARD,
@@ -33,14 +33,28 @@ class FluentCard(QWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
         """Create an empty card; add content through `layout()` or your own layout."""
         super().__init__(parent)
+        self._success_tint = False
         bind_theme(self, self.update)
 
     def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
         """Paint the card surface."""
         palette = palette_for(self)
         painter = antialiased_painter(self)
-        paint_surface(painter, self.rect(), palette.card_bg, palette.card_stroke, RADIUS_CARD)
+        if self._success_tint:
+            fill = palette.success_bg
+            stroke = with_alpha(palette.success, 140)
+        else:
+            fill = palette.card_bg
+            stroke = palette.card_stroke
+        paint_surface(painter, self.rect(), fill, stroke, RADIUS_CARD)
         painter.end()
+
+    def set_success_tint(self, *, enabled: bool) -> None:
+        """Use the success surface colors (soft green) when `enabled` is true."""
+        if self._success_tint == enabled:
+            return
+        self._success_tint = enabled
+        self.update()
 
 
 class FluentInteractiveCard(FluentCard):

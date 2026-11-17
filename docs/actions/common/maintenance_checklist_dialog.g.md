@@ -55,7 +55,7 @@ class MaintenanceChecklistDialog(QDialog):
         root.addWidget(
             FluentText(
                 "Run update, sync, and check actions. Last run comes from action usage; "
-                "Done marks steps finished in this session.",
+                "green cards ran in the last 24 hours; Done marks steps finished in this session.",
                 self,
                 role=TextRole.SECONDARY,
                 word_wrap=True,
@@ -177,6 +177,7 @@ class MaintenanceChecklistDialog(QDialog):
         if not row.step.include_in_run_all:
             description = f"{description} · Not in Run all"
         row.set_description(description)
+        row.set_recent(recent=is_last_used_within(stamp, hours=24))
 
     def _run_step(self, step: MaintenanceStep) -> None:
         action: ActionBase = step.action_cls(output_bus=self._output_bus)
@@ -233,7 +234,7 @@ def __init__(
         root.addWidget(
             FluentText(
                 "Run update, sync, and check actions. Last run comes from action usage; "
-                "Done marks steps finished in this session.",
+                "green cards ran in the last 24 hours; Done marks steps finished in this session.",
                 self,
                 role=TextRole.SECONDARY,
                 word_wrap=True,

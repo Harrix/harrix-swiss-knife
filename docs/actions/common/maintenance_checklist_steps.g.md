@@ -16,6 +16,7 @@ lang: en
   - [⚙️ Method `title (property)`](#%EF%B8%8F-method-title-property)
 - [🏛️ Class `MaintenanceStepSpec`](#%EF%B8%8F-class-maintenancestepspec)
 - [🔧 Function `format_last_used`](#-function-format_last_used)
+- [🔧 Function `is_last_used_within`](#-function-is_last_used_within)
 - [🔧 Function `last_used_for_class`](#-function-last_used_for_class)
 - [🔧 Function `maintenance_groups`](#-function-maintenance_groups)
 - [🔧 Function `maintenance_steps`](#-function-maintenance_steps)
@@ -136,32 +137,50 @@ Return a short relative or absolute label for a usage timestamp.
 
 ```python
 def format_last_used(iso_stamp: str | None) -> str:
-    if not iso_stamp or not str(iso_stamp).strip():
-        return "Never"
-    try:
-        parsed = datetime.fromisoformat(str(iso_stamp).strip())
-    except ValueError:
-        return str(iso_stamp)
-    if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=UTC)
+    parsed = _parse_last_used(iso_stamp)
+    if parsed is None:
+        return "Never" if not iso_stamp or not str(iso_stamp).strip() else str(iso_stamp)
     now = datetime.now(UTC).astimezone()
     local = parsed.astimezone()
     delta = now - local
     seconds = int(delta.total_seconds())
     if seconds < 0:
         return local.strftime("%Y-%m-%d %H:%M")
-    if seconds < 60:
+    if seconds < _SECONDS_PER_MINUTE:
         return "Just now"
-    if seconds < 3600:
-        minutes = seconds // 60
+    if seconds < _SECONDS_PER_HOUR:
+        minutes = seconds // _SECONDS_PER_MINUTE
         return f"{minutes} min ago"
-    if seconds < 86400:
-        hours = seconds // 3600
+    if seconds < _SECONDS_PER_DAY:
+        hours = seconds // _SECONDS_PER_HOUR
         return f"{hours} h ago"
-    if seconds < 86400 * 7:
-        days = seconds // 86400
+    if seconds < _SECONDS_PER_DAY * _RELATIVE_WEEK_DAYS:
+        days = seconds // _SECONDS_PER_DAY
         return f"{days} d ago"
     return local.strftime("%Y-%m-%d %H:%M")
+```
+
+</details>
+
+## 🔧 Function `is_last_used_within`
+
+```python
+def is_last_used_within(iso_stamp: str | None, *, hours: float = 24) -> bool
+```
+
+Return whether `iso_stamp` falls within the last `hours` (inclusive of now).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def is_last_used_within(iso_stamp: str | None, *, hours: float = 24) -> bool:
+    parsed = _parse_last_used(iso_stamp)
+    if parsed is None or hours <= 0:
+        return False
+    now = datetime.now(UTC).astimezone()
+    seconds = (now - parsed.astimezone()).total_seconds()
+    return 0 <= seconds < hours * _SECONDS_PER_HOUR
 ```
 
 </details>
