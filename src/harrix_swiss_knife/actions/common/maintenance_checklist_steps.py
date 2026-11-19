@@ -13,12 +13,19 @@ import importlib
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from functools import lru_cache
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
+
+import harrix_pylib as h
 
 from harrix_swiss_knife.action_usage import load_action_usage
+from harrix_swiss_knife.paths import get_config_path_str
 
 if TYPE_CHECKING:
     from harrix_swiss_knife.actions.common.base import ActionBase
+
+# Optional Tools row: hidden unless the checklist footer checkbox is on.
+UPDATE_HSK_STEP_CLASS = "OnUpdateHarrixSwissKnife"
+_SHOW_UPDATE_HSK_KEY = "maintenance_checklist_show_update_hsk"
 
 
 @dataclass(frozen=True, slots=True)
@@ -102,6 +109,16 @@ def last_used_for_class(class_name: str) -> str:
     return entry.get("last_used") or ""
 
 
+def load_show_update_hsk_step() -> bool:
+    """Return whether the Update HSK checklist row is visible (default: hidden)."""
+    try:
+        loaded: dict[str, Any] = h.dev.config_load(get_config_path_str(), is_temp=True)
+    except Exception:
+        return False
+    value = loaded.get(_SHOW_UPDATE_HSK_KEY, False)
+    return value if isinstance(value, bool) else False
+
+
 def maintenance_groups() -> list[tuple[str, list[MaintenanceStep]]]:
     """Group resolved steps preserving order."""
     groups: list[tuple[str, list[MaintenanceStep]]] = []
@@ -120,6 +137,11 @@ def maintenance_groups() -> list[tuple[str, list[MaintenanceStep]]]:
 def maintenance_steps() -> tuple[MaintenanceStep, ...]:
     """Resolve and cache checklist steps."""
     return tuple(_resolve_spec(spec) for spec in MAINTENANCE_STEP_SPECS)
+
+
+def save_show_update_hsk_step(*, enabled: bool) -> None:
+    """Persist whether the Update HSK checklist row is visible (`config-temp.json`)."""
+    h.dev.config_update_value(_SHOW_UPDATE_HSK_KEY, bool(enabled), get_config_path_str(), is_temp=True)
 
 
 def _parse_last_used(iso_stamp: str | None) -> datetime | None:

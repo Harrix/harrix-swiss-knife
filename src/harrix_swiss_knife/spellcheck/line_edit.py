@@ -30,7 +30,7 @@ class LineEditSpellController(QObject):
         self._timer.setInterval(_DEBOUNCE_MS)
         self._timer.timeout.connect(self._recompute)
         line_edit.textChanged.connect(self._schedule)
-        line_edit.paintEvent = self._paint_event  # ty: ignore[invalid-assignment]
+        line_edit.paintEvent = self._paint_event
         self._recompute()
 
     def detach(self) -> None:
@@ -38,7 +38,7 @@ class LineEditSpellController(QObject):
         self._timer.stop()
         with contextlib.suppress(TypeError, RuntimeError):
             self._line_edit.textChanged.disconnect(self._schedule)
-        self._line_edit.paintEvent = self._original_paint  # ty: ignore[invalid-assignment]
+        self._line_edit.paintEvent = self._original_paint
         self._misspellings.clear()
         self._line_edit.update()
 

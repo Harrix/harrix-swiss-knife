@@ -138,10 +138,9 @@ class ProcessHabitIntDelegate(QStyledItemDelegate):
                 if not _persistent_index_equals(self._hover_index, new_hover):
                     self._hover_index = new_hover
                     view.viewport().update()
-        elif event.type() in {QEvent.Type.Leave, QEvent.Type.HoverLeave}:
-            if self._hover_index is not None:
-                self._hover_index = None
-                view.viewport().update()
+        elif event.type() in {QEvent.Type.Leave, QEvent.Type.HoverLeave} and self._hover_index is not None:
+            self._hover_index = None
+            view.viewport().update()
 
         return super().eventFilter(watched, event)
 

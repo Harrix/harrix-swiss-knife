@@ -34,5 +34,6 @@ Ask: is this a **recurring** update, sync, backup, or health-check the user woul
 2. Set `include_in_run_all=False` when the step exits the app, opens a long-lived window, or needs a deliberate manual confirm (e.g. Upgrade packages uv, Update HSK, Transfer private data, Habits)
 3. Prefer existing Lucide IDs under `assets/lucide/`
 4. Do not import action classes at module top-level in the steps file (lazy resolve avoids cycles)
+5. **Update HSK** stays in the registry but is hidden in the dialog until the footer checkbox is on (pref in `config-temp.json`, default off)
 
 Do not invent a second parallel list; keep this registry as the single source of truth.

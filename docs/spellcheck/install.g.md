@@ -195,7 +195,7 @@ def install_spellcheck(app: QApplication, engine: SpellEngine | None = None) -> 
 def scan_and_attach(root: QWidget | None = None, engine: SpellEngine | None = None) -> int
 ```
 
-Attach spellcheck under [`root`](../apps/habits/habit_comments.g.md#%EF%B8%8F-method-root) (or all app widgets). Returns attach count.
+Attach spellcheck under `root` (or all app widgets). Returns attach count.
 
 <details>
 <summary>Code:</summary>

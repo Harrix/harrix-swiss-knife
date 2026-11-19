@@ -11,12 +11,15 @@ from PySide6.QtWidgets import QApplication
 from harrix_swiss_knife.actions.common.maintenance_checklist_dialog import MaintenanceChecklistDialog
 from harrix_swiss_knife.actions.common.maintenance_checklist_steps import (
     MAINTENANCE_STEP_SPECS,
+    UPDATE_HSK_STEP_CLASS,
     format_last_used,
     is_last_used_within,
+    load_show_update_hsk_step,
     maintenance_groups,
     maintenance_steps,
 )
 from harrix_swiss_knife.actions.development.run_maintenance_checklist import OnRunMaintenanceChecklist
+from harrix_swiss_knife.actions.development.update_harrix_swiss_knife import OnUpdateHarrixSwissKnife
 from harrix_swiss_knife.actions.development.upgrade_uv_packages import OnUpgradeUvPackages
 
 
@@ -87,6 +90,42 @@ def test_noninteractive_lists_steps() -> None:
     text = "\n".join(action.result_lines)
     assert "step" in text.lower()
     assert any("uv" in line.lower() for line in action.result_lines)
+
+
+def test_show_update_hsk_pref_defaults_off(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        "harrix_swiss_knife.actions.common.maintenance_checklist_steps.h.dev.config_load",
+        lambda *_args, **_kwargs: {},
+    )
+    assert load_show_update_hsk_step() is False
+
+
+def test_update_hsk_step_hidden_by_default(qapp: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Update HSK stays in the registry but is off until the footer checkbox is checked."""
+    assert qapp is not None
+    monkeypatch.setattr(
+        "harrix_swiss_knife.actions.common.maintenance_checklist_dialog.load_show_update_hsk_step",
+        lambda: False,
+    )
+    saved: list[bool] = []
+    monkeypatch.setattr(
+        "harrix_swiss_knife.actions.common.maintenance_checklist_dialog.save_show_update_hsk_step",
+        lambda *, enabled: saved.append(enabled),
+    )
+    OnRunMaintenanceChecklist.clear_checklist_dialog()
+    dialog = MaintenanceChecklistDialog()
+    try:
+        row = dialog._rows[UPDATE_HSK_STEP_CLASS]
+        assert row.step.action_cls is OnUpdateHarrixSwissKnife
+        assert row.card.isHidden() is True
+        assert dialog._show_update_hsk.isChecked() is False
+        dialog._show_update_hsk.setChecked(True)
+        assert row.card.isHidden() is False
+        assert saved == [True]
+    finally:
+        dialog.close()
+        dialog.deleteLater()
+        OnRunMaintenanceChecklist.clear_checklist_dialog()
 
 
 def test_upgrade_uv_packages_excluded_from_run_all() -> None:

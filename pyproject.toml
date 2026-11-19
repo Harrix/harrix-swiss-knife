@@ -72,9 +72,10 @@ dev = [
 ]
 
 [tool.ty.rules]
-unresolved-attribute = "ignore"
+missing-attribute = "ignore"
+missing-union-attribute = "ignore"
 redundant-condition = "ignore"
-invalid-mutable-override = "ignore"
+incompatible-mutable-override = "ignore"
 
 # Disabling some pydocstyle rules that conflict with Markdown-style documentation.
 # We use Markdown for docstrings instead of traditional reST/Napoleon/Google formats:

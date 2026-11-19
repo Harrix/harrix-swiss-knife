@@ -18,8 +18,10 @@ lang: en
 - [🔧 Function `format_last_used`](#-function-format_last_used)
 - [🔧 Function `is_last_used_within`](#-function-is_last_used_within)
 - [🔧 Function `last_used_for_class`](#-function-last_used_for_class)
+- [🔧 Function `load_show_update_hsk_step`](#-function-load_show_update_hsk_step)
 - [🔧 Function `maintenance_groups`](#-function-maintenance_groups)
 - [🔧 Function `maintenance_steps`](#-function-maintenance_steps)
+- [🔧 Function `save_show_update_hsk_step`](#-function-save_show_update_hsk_step)
 
 </details>
 
@@ -206,6 +208,29 @@ def last_used_for_class(class_name: str) -> str:
 
 </details>
 
+## 🔧 Function `load_show_update_hsk_step`
+
+```python
+def load_show_update_hsk_step() -> bool
+```
+
+Return whether the Update HSK checklist row is visible (default: hidden).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def load_show_update_hsk_step() -> bool:
+    try:
+        loaded: dict[str, Any] = h.dev.config_load(get_config_path_str(), is_temp=True)
+    except Exception:
+        return False
+    value = loaded.get(_SHOW_UPDATE_HSK_KEY, False)
+    return value if isinstance(value, bool) else False
+```
+
+</details>
+
 ## 🔧 Function `maintenance_groups`
 
 ```python
@@ -247,6 +272,24 @@ Resolve and cache checklist steps.
 ```python
 def maintenance_steps() -> tuple[MaintenanceStep, ...]:
     return tuple(_resolve_spec(spec) for spec in MAINTENANCE_STEP_SPECS)
+```
+
+</details>
+
+## 🔧 Function `save_show_update_hsk_step`
+
+```python
+def save_show_update_hsk_step(*, enabled: bool) -> None
+```
+
+Persist whether the Update HSK checklist row is visible (`config-temp.json`).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def save_show_update_hsk_step(*, enabled: bool) -> None:
+    h.dev.config_update_value(_SHOW_UPDATE_HSK_KEY, bool(enabled), get_config_path_str(), is_temp=True)
 ```
 
 </details>

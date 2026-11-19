@@ -193,4 +193,4 @@ def _install_context_hook(
         menu.exec_(event.globalPos())
         event.accept()
 
-    widget.contextMenuEvent = context_menu_event  # ty: ignore[invalid-assignment]
+    widget.contextMenuEvent = context_menu_event

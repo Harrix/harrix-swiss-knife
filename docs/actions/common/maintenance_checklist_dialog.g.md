@@ -94,12 +94,22 @@ class MaintenanceChecklistDialog(QDialog):
         root.addWidget(scroll, 1)
 
         footer = QHBoxLayout()
-        footer.addStretch(1)
+        footer.setSpacing(SPACE_S)
+        update_title = (
+            self._rows[UPDATE_HSK_STEP_CLASS].step.title
+            if UPDATE_HSK_STEP_CLASS in self._rows
+            else ("Update Harrix Swiss Knife from GitHub…")
+        )
+        self._show_update_hsk = FluentCheckBox(f"Show {update_title}", self)
+        self._show_update_hsk.setChecked(load_show_update_hsk_step())
+        self._show_update_hsk.toggled.connect(lambda checked: self._on_show_update_hsk_toggled(enabled=checked))
+        footer.addWidget(self._show_update_hsk, 1)
         close_button = FluentPushButton("Close", self)
         close_button.clicked.connect(self.accept)
         footer.addWidget(close_button)
         root.addLayout(footer)
 
+        self._apply_update_hsk_visibility(visible=self._show_update_hsk.isChecked())
         self._refresh_all_rows()
         self._last_run_timer = QTimer(self)
         self._last_run_timer.setInterval(_LAST_RUN_REFRESH_MS)
@@ -108,13 +118,18 @@ class MaintenanceChecklistDialog(QDialog):
         # Same sizing as food/finance/habits main windows (maximize or ~1920 wide).
         apply_app_window_size_and_position(self)
 
+    def _apply_update_hsk_visibility(self, *, visible: bool) -> None:
+        row = self._rows.get(UPDATE_HSK_STEP_CLASS)
+        if row is not None:
+            row.card.setVisible(visible)
+
     def _on_run_all(self) -> None:
         if self._busy:
             return
         ordered = [
             row.step
             for row in self._rows.values()
-            if row.step.include_in_run_all and row.step.class_name not in self._session_done
+            if row.card.isVisible() and row.step.include_in_run_all and row.step.class_name not in self._session_done
         ]
         if not ordered:
             self._progress.setText("Nothing left to run in this session")
@@ -144,15 +159,21 @@ class MaintenanceChecklistDialog(QDialog):
             self._set_busy(busy=False)
             self._progress.setText("")
             self._refresh_row(step.class_name)
-            done = len(self._session_done)
-            self._progress.setText(f"Done this session: {done}/{len(self._rows)}")
+            visible = self._visible_row_count()
+            done = self._visible_session_done_count()
+            self._progress.setText(f"Done this session: {done}/{visible}")
+
+    def _on_show_update_hsk_toggled(self, *, enabled: bool) -> None:
+        save_show_update_hsk_step(enabled=enabled)
+        self._apply_update_hsk_visibility(visible=enabled)
+        self._refresh_all_rows()
 
     def _refresh_all_rows(self) -> None:
         for class_name in self._rows:
             self._refresh_row(class_name)
-        done = len(self._session_done)
+        done = self._visible_session_done_count()
         if done:
-            self._progress.setText(f"Done this session: {done}/{len(self._rows)}")
+            self._progress.setText(f"Done this session: {done}/{self._visible_row_count()}")
 
     def _refresh_last_run_labels(self) -> None:
         """Recompute relative Last-run captions without touching progress/busy UI."""
@@ -165,7 +186,7 @@ class MaintenanceChecklistDialog(QDialog):
             return
         self._refresh_row_last_run(class_name)
         row.set_done(done=class_name in self._session_done)
-        row.run_button.setEnabled(not self._busy)
+        row.run_button.setEnabled(not self._busy and row.card.isVisible())
 
     def _refresh_row_last_run(self, class_name: str) -> None:
         row = self._rows.get(class_name)
@@ -196,7 +217,15 @@ class MaintenanceChecklistDialog(QDialog):
         self._busy = busy
         self._run_all_button.setEnabled(not busy)
         for row in self._rows.values():
-            row.run_button.setEnabled(not busy)
+            row.run_button.setEnabled(not busy and row.card.isVisible())
+
+    def _visible_row_count(self) -> int:
+        return sum(1 for row in self._rows.values() if row.card.isVisible())
+
+    def _visible_session_done_count(self) -> int:
+        return sum(
+            1 for class_name, row in self._rows.items() if row.card.isVisible() and class_name in self._session_done
+        )
 ```
 
 </details>
@@ -276,12 +305,22 @@ def __init__(
         root.addWidget(scroll, 1)
 
         footer = QHBoxLayout()
-        footer.addStretch(1)
+        footer.setSpacing(SPACE_S)
+        update_title = (
+            self._rows[UPDATE_HSK_STEP_CLASS].step.title
+            if UPDATE_HSK_STEP_CLASS in self._rows
+            else ("Update Harrix Swiss Knife from GitHub…")
+        )
+        self._show_update_hsk = FluentCheckBox(f"Show {update_title}", self)
+        self._show_update_hsk.setChecked(load_show_update_hsk_step())
+        self._show_update_hsk.toggled.connect(lambda checked: self._on_show_update_hsk_toggled(enabled=checked))
+        footer.addWidget(self._show_update_hsk, 1)
         close_button = FluentPushButton("Close", self)
         close_button.clicked.connect(self.accept)
         footer.addWidget(close_button)
         root.addLayout(footer)
 
+        self._apply_update_hsk_visibility(visible=self._show_update_hsk.isChecked())
         self._refresh_all_rows()
         self._last_run_timer = QTimer(self)
         self._last_run_timer.setInterval(_LAST_RUN_REFRESH_MS)
