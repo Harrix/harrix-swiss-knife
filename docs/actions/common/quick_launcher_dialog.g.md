@@ -492,11 +492,12 @@ class QuickLauncherDialog(QDialog):
         )
         card.clicked.connect(lambda listed=action_cls, host=card: self._on_action_card_clicked(listed, host))
         card.context_menu_requested.connect(
-            lambda global_pos, listed=action_cls, host=card: show_action_class_context_menu(
+            lambda global_pos, listed=action_cls, host=card, label=title: show_action_class_context_menu(
                 parent=self,
                 global_pos=global_pos,
                 action_cls=listed,
                 host_widget=host,
+                menu_title=label,
             ),
         )
         return card

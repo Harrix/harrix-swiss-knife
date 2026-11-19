@@ -20,11 +20,14 @@ lang: en
 - [🔧 Function `format_copy_action_name_menu_label`](#-function-format_copy_action_name_menu_label)
 - [🔧 Function `format_copy_action_path_menu_label`](#-function-format_copy_action_path_menu_label)
 - [🔧 Function `format_copy_cli_menu_label`](#-function-format_copy_cli_menu_label)
+- [🔧 Function `format_copy_menu_title_menu_label`](#-function-format_copy_menu_title_menu_label)
 - [🔧 Function `get_action_identity_parts`](#-function-get_action_identity_parts)
 - [🔧 Function `get_action_identity_text`](#-function-get_action_identity_text)
 - [🔧 Function `get_cli_copy_command`](#-function-get_cli_copy_command)
+- [🔧 Function `get_menu_item_title`](#-function-get_menu_item_title)
 - [🔧 Function `is_tracker_launcher_action`](#-function-is_tracker_launcher_action)
 - [🔧 Function `iter_tracker_launcher_actions`](#-function-iter_tracker_launcher_actions)
+- [🔧 Function `menu_title_from_action_class`](#-function-menu_title_from_action_class)
 - [🔧 Function `show_action_class_context_menu`](#-function-show_action_class_context_menu)
 - [🔧 Function `show_action_identity_context_menu`](#-function-show_action_identity_context_menu)
 - [🔧 Function `show_action_item_context_menu`](#-function-show_action_item_context_menu)
@@ -245,6 +248,24 @@ def format_copy_cli_menu_label(cli_copy_command: str) -> str:
 
 </details>
 
+## 🔧 Function `format_copy_menu_title_menu_label`
+
+```python
+def format_copy_menu_title_menu_label(title: str) -> str
+```
+
+Build context menu item text: prefix, colon, and a shortened menu-title preview.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def format_copy_menu_title_menu_label(title: str) -> str:
+    return f"{COPY_MENU_TITLE_MENU_PREFIX}{truncate_action_name_preview(title)}"
+```
+
+</details>
+
 ## 🔧 Function `get_action_identity_parts`
 
 ```python
@@ -317,6 +338,27 @@ def get_cli_copy_command(action: QAction | None) -> str | None:
 
 </details>
 
+## 🔧 Function `get_menu_item_title`
+
+```python
+def get_menu_item_title(action: QAction | None) -> str | None
+```
+
+Return the visible tray/menu label without the CLI suffix marker.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_menu_item_title(action: QAction | None) -> str | None:
+    if action is None:
+        return None
+    text = action.text().replace(CLI_MENU_SUFFIX, "").strip()
+    return text or None
+```
+
+</details>
+
 ## 🔧 Function `is_tracker_launcher_action`
 
 ```python
@@ -342,7 +384,7 @@ def is_tracker_launcher_action(action: QAction | None) -> bool:
 def iter_tracker_launcher_actions(menu: QMenu) -> Iterable[QAction]
 ```
 
-Yield Finance/Fitness/Food/Habits leaf actions from [`menu`](qt_split_menu_button.g.md#%EF%B8%8F-method-menu) in menu order.
+Yield Finance/Fitness/Food/Habits leaf actions from `menu` in menu order.
 
 <details>
 <summary>Code:</summary>
@@ -356,10 +398,28 @@ def iter_tracker_launcher_actions(menu: QMenu) -> Iterable[QAction]:
 
 </details>
 
+## 🔧 Function `menu_title_from_action_class`
+
+```python
+def menu_title_from_action_class(action_cls: type) -> str
+```
+
+Return the UI title for `action_cls` (card label without CLI / bold markers).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def menu_title_from_action_class(action_cls: type) -> str:
+    return strip_md_inline_code_markers(str(getattr(action_cls, "title", "") or "")).strip()
+```
+
+</details>
+
 ## 🔧 Function `show_action_class_context_menu`
 
 ```python
-def show_action_class_context_menu(*, parent: QWidget | None, global_pos: QPoint, action_cls: type, host_widget: QWidget | None = None) -> None
+def show_action_class_context_menu(*, parent: QWidget | None, global_pos: QPoint, action_cls: type, host_widget: QWidget | None = None, menu_title: str | None = None) -> None
 ```
 
 Show copy name/class/path (and CLI when available) for an action class.
@@ -374,15 +434,20 @@ def show_action_class_context_menu(
     global_pos: QPoint,
     action_cls: type,
     host_widget: QWidget | None = None,
+    menu_title: str | None = None,
 ) -> None:
     identity_parts = action_identity_parts(action_cls)
     identity_text = format_action_identity_text(action_cls)
     cli_copy_command: str | None = None
     if getattr(action_cls, "cli_available", False):
         cli_copy_command = build_cli_copy_command(str(getattr(action_cls, "cli_hint", "") or ""))
+    title = menu_title.strip() if isinstance(menu_title, str) and menu_title.strip() else None
+    if title is None:
+        title = menu_title_from_action_class(action_cls) or None
     show_action_identity_context_menu(
         parent=parent,
         global_pos=global_pos,
+        menu_title=title,
         identity_text=identity_text,
         identity_parts=identity_parts,
         cli_copy_command=cli_copy_command,
@@ -395,7 +460,7 @@ def show_action_class_context_menu(
 ## 🔧 Function `show_action_identity_context_menu`
 
 ```python
-def show_action_identity_context_menu(*, parent: QWidget | None, global_pos: QPoint, identity_text: str | None = None, identity_parts: ActionIdentityParts | None = None, cli_copy_command: str | None = None, host_widget: QWidget | None = None) -> None
+def show_action_identity_context_menu(*, parent: QWidget | None, global_pos: QPoint, identity_text: str | None = None, identity_parts: ActionIdentityParts | None = None, cli_copy_command: str | None = None, host_widget: QWidget | None = None, menu_title: str | None = None) -> None
 ```
 
 Show a context menu to copy action identity fields and optional CLI command.
@@ -412,11 +477,23 @@ def show_action_identity_context_menu(
     identity_parts: ActionIdentityParts | None = None,
     cli_copy_command: str | None = None,
     host_widget: QWidget | None = None,
+    menu_title: str | None = None,
 ) -> None:
-    if identity_text is None and identity_parts is None and cli_copy_command is None and host_widget is None:
+    if (
+        menu_title is None
+        and identity_text is None
+        and identity_parts is None
+        and cli_copy_command is None
+        and host_widget is None
+    ):
         return
 
     menu = FluentMenu("", parent)
+    if menu_title is not None:
+        copy_menu_title = menu.addAction(format_copy_menu_title_menu_label(menu_title))
+        copy_menu_title.triggered.connect(
+            lambda *_args, text=menu_title: copy_text_to_clipboard(text),
+        )
     if identity_text is not None:
         copy_identity = menu.addAction(COPY_ACTION_IDENTITY_MENU_LABEL)
         copy_identity.triggered.connect(
@@ -475,6 +552,7 @@ def show_action_item_context_menu(
     show_action_identity_context_menu(
         parent=parent,
         global_pos=global_pos,
+        menu_title=get_menu_item_title(action),
         identity_text=get_action_identity_text(action),
         identity_parts=get_action_identity_parts(action),
         cli_copy_command=get_cli_copy_command(action),
@@ -564,7 +642,7 @@ def show_tracker_launcher_context_menu(
 def trigger_all_tracker_launchers(menu: QMenu) -> None
 ```
 
-Trigger every tracker launcher QAction found on [`menu`](qt_split_menu_button.g.md#%EF%B8%8F-method-menu).
+Trigger every tracker launcher QAction found on `menu`.
 
 <details>
 <summary>Code:</summary>
@@ -583,7 +661,7 @@ def trigger_all_tracker_launchers(menu: QMenu) -> None:
 def trigger_all_tracker_launchers_presentation_mode(menu: QMenu) -> None
 ```
 
-Open every tracker launcher from [`menu`](qt_split_menu_button.g.md#%EF%B8%8F-method-menu) in presentation mode.
+Open every tracker launcher from `menu` in presentation mode.
 
 <details>
 <summary>Code:</summary>
