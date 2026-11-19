@@ -275,6 +275,17 @@ class SnippetsDialog(QDialog):
         self._reload_zone(ZONE_EMOJI, self._emoji)
         self._refresh_ai_candidates()
 
+    def _add_filter_phrase(self, value: str) -> None:
+        """Insert the shared-input phrase when it is missing from the phrases zone."""
+        text = value.strip()
+        if not text or self.db_manager is None:
+            return
+        if self.db_manager.has_item_value(ZONE_PHRASE, text):
+            self._warn_duplicate(ZONE_PHRASE, text)
+            return
+        self.db_manager.add_item(ZONE_PHRASE, text, "")
+        self._reload_zone(ZONE_PHRASE, self._phrases)
+
     def _add_item(self, zone: str) -> None:
         dialog = ItemEditDialog(self, title=f"Add {_ZONE_TITLES[zone].lower()}", zone=zone)
         if dialog.exec() != QDialog.DialogCode.Accepted:
@@ -330,6 +341,7 @@ class SnippetsDialog(QDialog):
             panel.edit_all_requested.connect(lambda zone_panel=panel: self._edit_all(zone_panel.zone))
             panel.delete_requested.connect(self._delete_item)
             panel.sort_requested.connect(lambda mode, zone_panel=panel: self._sort_zone(zone_panel.zone, mode))
+        self._phrases.add_filter_requested.connect(self._add_filter_phrase)
         self._emoji.ai_pick_requested.connect(self._suggest_emoji_with_ai)
         self._emoji.ai_add_requested.connect(self._add_ai_emoji)
         self._emoji.ai_paste_requested.connect(self._paste_ai_emoji)

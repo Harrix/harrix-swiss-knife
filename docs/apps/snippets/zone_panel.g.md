@@ -72,6 +72,9 @@ class ColorItemDelegate(QStyledItemDelegate):
         """Draw the selection, hex chip, and optional hint."""
         self.initStyleOption(option, index)
         painter.save()
+        dimmed = _item_filter_dimmed(index)
+        if dimmed:
+            painter.setOpacity(_FILTER_DIM_OPACITY)
         matches = _item_matches_input(index, option)
         if matches or _item_is_highlighted(option):
             paint_snippet_highlight(painter, option.rect, outlined=matches, widget=option.widget)
@@ -139,6 +142,9 @@ def paint(
     ) -> None:
         self.initStyleOption(option, index)
         painter.save()
+        dimmed = _item_filter_dimmed(index)
+        if dimmed:
+            painter.setOpacity(_FILTER_DIM_OPACITY)
         matches = _item_matches_input(index, option)
         if matches or _item_is_highlighted(option):
             paint_snippet_highlight(painter, option.rect, outlined=matches, widget=option.widget)
@@ -228,12 +234,17 @@ class HighlightItemDelegate(QStyledItemDelegate):
         if matches or _item_is_highlighted(opt):
             paint_snippet_highlight(painter, opt.rect, outlined=matches, widget=opt.widget)
         opt.state &= ~_HIGHLIGHT_STATES
+        text_color = (
+            _muted_ink(opt.widget) if _item_filter_dimmed(index) else opt.palette.color(QPalette.ColorRole.Text)
+        )
         widget = opt.widget
         style = widget.style() if widget is not None else None
         if style is not None:
             text_rect = style.subElementRect(QStyle.SubElement.SE_ItemViewItemText, opt, widget)
             if not text_rect.isValid():
                 text_rect = opt.rect.adjusted(4, 0, -4, 0)
+            for group in (QPalette.ColorGroup.Active, QPalette.ColorGroup.Inactive, QPalette.ColorGroup.Disabled):
+                opt.palette.setColor(group, QPalette.ColorRole.Text, text_color)
             enabled = bool(opt.state & QStyle.StateFlag.State_Enabled)
             style.drawItemText(
                 painter,
@@ -245,7 +256,7 @@ class HighlightItemDelegate(QStyledItemDelegate):
                 QPalette.ColorRole.Text,
             )
         else:
-            painter.setPen(opt.palette.color(QPalette.ColorRole.Text))
+            painter.setPen(text_color)
             painter.drawText(opt.rect, Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft, opt.text)
         painter.restore()
 
@@ -283,12 +294,17 @@ def paint(
         if matches or _item_is_highlighted(opt):
             paint_snippet_highlight(painter, opt.rect, outlined=matches, widget=opt.widget)
         opt.state &= ~_HIGHLIGHT_STATES
+        text_color = (
+            _muted_ink(opt.widget) if _item_filter_dimmed(index) else opt.palette.color(QPalette.ColorRole.Text)
+        )
         widget = opt.widget
         style = widget.style() if widget is not None else None
         if style is not None:
             text_rect = style.subElementRect(QStyle.SubElement.SE_ItemViewItemText, opt, widget)
             if not text_rect.isValid():
                 text_rect = opt.rect.adjusted(4, 0, -4, 0)
+            for group in (QPalette.ColorGroup.Active, QPalette.ColorGroup.Inactive, QPalette.ColorGroup.Disabled):
+                opt.palette.setColor(group, QPalette.ColorRole.Text, text_color)
             enabled = bool(opt.state & QStyle.StateFlag.State_Enabled)
             style.drawItemText(
                 painter,
@@ -300,7 +316,7 @@ def paint(
                 QPalette.ColorRole.Text,
             )
         else:
-            painter.setPen(opt.palette.color(QPalette.ColorRole.Text))
+            painter.setPen(text_color)
             painter.drawText(opt.rect, Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft, opt.text)
         painter.restore()
 ```
@@ -350,6 +366,9 @@ class IconItemDelegate(QStyledItemDelegate):
         """Draw a flat highlight and the icon, never the native selection chrome."""
         self.initStyleOption(option, index)
         painter.save()
+        dimmed = _item_filter_dimmed(index)
+        if dimmed:
+            painter.setOpacity(_FILTER_DIM_OPACITY)
         matches = _item_matches_input(index, option)
         if matches or _item_is_highlighted(option):
             paint_snippet_highlight(painter, option.rect, outlined=matches, widget=option.widget)
@@ -364,7 +383,7 @@ class IconItemDelegate(QStyledItemDelegate):
                 painter,
                 QRect(x, y, size.width(), size.height()),
                 Qt.AlignmentFlag.AlignCenter,
-                QIcon.Mode.Normal,
+                QIcon.Mode.Disabled if dimmed else QIcon.Mode.Normal,
             )
         painter.restore()
 ```
@@ -391,6 +410,9 @@ def paint(
     ) -> None:
         self.initStyleOption(option, index)
         painter.save()
+        dimmed = _item_filter_dimmed(index)
+        if dimmed:
+            painter.setOpacity(_FILTER_DIM_OPACITY)
         matches = _item_matches_input(index, option)
         if matches or _item_is_highlighted(option):
             paint_snippet_highlight(painter, option.rect, outlined=matches, widget=option.widget)
@@ -405,7 +427,7 @@ def paint(
                 painter,
                 QRect(x, y, size.width(), size.height()),
                 Qt.AlignmentFlag.AlignCenter,
-                QIcon.Mode.Normal,
+                QIcon.Mode.Disabled if dimmed else QIcon.Mode.Normal,
             )
         painter.restore()
 ```
@@ -428,6 +450,7 @@ class ZonePanel(QWidget):
 
     item_activated = Signal(object)
     add_requested = Signal()
+    add_filter_requested = Signal(str)
     add_many_requested = Signal()
     edit_requested = Signal(object)
     edit_all_requested = Signal()
@@ -466,6 +489,7 @@ class ZonePanel(QWidget):
         self._ai_candidates: QWidget | None = None
         self._ai_candidates_layout: FlowLayout | None = None
         self._ai_emojis: list[str] = []
+        self._filter_add_button: QToolButton | None = None
 
         self._list = QListWidget(self)
         self._list.setFrameShape(QListWidget.Shape.NoFrame)
@@ -540,6 +564,17 @@ class ZonePanel(QWidget):
             panel.hide()
             self._ai_candidates = panel
             layout.addWidget(panel)
+        if zone == ZONE_PHRASE:
+            add_filter = QToolButton(self)
+            add_filter.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+            add_filter.setIconSize(QSize(_FILTER_ADD_ICON_SIZE, _FILTER_ADD_ICON_SIZE))
+            add_filter.setAutoRaise(True)
+            add_filter.setCursor(Qt.CursorShape.PointingHandCursor)
+            add_filter.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
+            add_filter.setVisible(False)
+            add_filter.clicked.connect(self._on_filter_add_clicked)
+            self._filter_add_button = add_filter
+            layout.addWidget(add_filter)
         layout.addWidget(self._list, stretch=1)
         bind_theme(self, self._refresh_theme)
 
@@ -693,25 +728,6 @@ class ZonePanel(QWidget):
     def set_items(self, items: list[SnippetItem]) -> None:
         """Replace the visible items."""
         self._items = items
-        self._list.clear()
-        for snippet in items:
-            list_item = QListWidgetItem()
-            list_item.setData(_ITEM_ROLE, snippet)
-            label = display_text(snippet.value, snippet.hint, snippet.zone)
-            if self.zone == ZONE_EMOJI:
-                list_item.setIcon(create_emoji_icon(snippet.value, _ICON_PIXEL_SIZE))
-                list_item.setToolTip(snippet.value)
-            elif self.zone == ZONE_SYMBOL:
-                list_item.setIcon(create_emoji_icon(snippet.value, _ICON_PIXEL_SIZE, color=self._symbol_ink()))
-                list_item.setToolTip(hint_tooltip(snippet.hint, snippet.value))
-            elif self.zone == ZONE_COLOR:
-                list_item.setData(_COLOR_ROLE, snippet.value)
-                list_item.setToolTip(snippet.hint or snippet.value)
-            else:
-                list_item.setText(label)
-                if snippet.hint:
-                    list_item.setToolTip(snippet.hint)
-            self._list.addItem(list_item)
         self._apply_filter()
 
     def set_sort_state(self, zone_sort: ZoneSort) -> None:
@@ -720,27 +736,39 @@ class ZonePanel(QWidget):
         self._sort_descending = zone_sort.descending
 
     def visible_rows(self) -> list[int]:
-        """Return indexes of items that pass the current filter."""
+        """Return indexes of filter matches (or every row when the query is empty)."""
+        query_active = bool(self._filter_query.strip())
         rows: list[int] = []
         for row in range(self._list.count()):
             item = self._list.item(row)
-            if item is not None and not item.isHidden():
-                rows.append(row)
+            if item is None or item.isHidden():
+                continue
+            if query_active and item.data(_FILTER_MATCH_ROLE) is False:
+                continue
+            rows.append(row)
         return rows
 
     def _apply_filter(self) -> None:
         query = self._filter_query
-        for row in range(self._list.count()):
-            item = self._list.item(row)
-            if item is None:
-                continue
-            snippet = item.data(_ITEM_ROLE)
-            if snippet is None:
-                item.setHidden(False)
-                continue
-            item.setHidden(not item_matches_search(snippet.value, snippet.hint, query))
+        needle = query.strip()
+        if needle:
+            matched_items: list[SnippetItem] = []
+            unmatched_items: list[SnippetItem] = []
+            for item in self._items:
+                if item_matches_search(item.value, item.hint, query):
+                    matched_items.append(item)
+                else:
+                    unmatched_items.append(item)
+            ordered = [(item, True) for item in matched_items] + [(item, False) for item in unmatched_items]
+        else:
+            ordered = [(item, True) for item in self._items]
+        self._list.clear()
+        for snippet, is_match in ordered:
+            self._list.addItem(self._make_list_item(snippet, matched=is_match))
+        self._update_filter_add_button()
+        self._list.viewport().update()
         current = self._list.currentItem()
-        if current is not None and current.isHidden():
+        if current is not None and (current.isHidden() or (bool(needle) and current.data(_FILTER_MATCH_ROLE) is False)):
             self._clear_list_current()
 
     def _build_context_menu(self, snippet: SnippetItem | None) -> FluentMenu:
@@ -789,6 +817,27 @@ class ZonePanel(QWidget):
         self.clear_ai_candidates()
         self.ai_dismiss_requested.emit()
 
+    def _make_list_item(self, snippet: SnippetItem, *, matched: bool) -> QListWidgetItem:
+        list_item = QListWidgetItem()
+        list_item.setData(_ITEM_ROLE, snippet)
+        list_item.setData(_FILTER_MATCH_ROLE, matched)
+        list_item.setHidden(False)
+        label = display_text(snippet.value, snippet.hint, snippet.zone)
+        if self.zone == ZONE_EMOJI:
+            list_item.setIcon(create_emoji_icon(snippet.value, _ICON_PIXEL_SIZE))
+            list_item.setToolTip(snippet.value)
+        elif self.zone == ZONE_SYMBOL:
+            list_item.setIcon(create_emoji_icon(snippet.value, _ICON_PIXEL_SIZE, color=self._symbol_ink()))
+            list_item.setToolTip(hint_tooltip(snippet.hint, snippet.value))
+        elif self.zone == ZONE_COLOR:
+            list_item.setData(_COLOR_ROLE, snippet.value)
+            list_item.setToolTip(snippet.hint or snippet.value)
+        else:
+            list_item.setText(label)
+            if snippet.hint:
+                list_item.setToolTip(snippet.hint)
+        return list_item
+
     def _on_context_menu(self, pos: QPoint) -> None:
         widget = self.sender()
         if widget is self._list:
@@ -811,6 +860,11 @@ class ZonePanel(QWidget):
         snippet = current.data(_ITEM_ROLE)
         if snippet is not None:
             self._remembered_id = snippet.item_id
+
+    def _on_filter_add_clicked(self) -> None:
+        query = self._filter_query.strip()
+        if query:
+            self.add_filter_requested.emit(query)
 
     def _on_item_clicked(self, item: QListWidgetItem) -> None:
         snippet = item.data(_ITEM_ROLE)
@@ -850,6 +904,7 @@ class ZonePanel(QWidget):
         _paint_zone_viewport(self._list, palette)
         if self.zone == ZONE_SYMBOL:
             self._restyle_symbol_icons()
+        self._style_filter_add_button(palette)
         self._list.viewport().update()
 
     def _remember_current(self) -> None:
@@ -881,10 +936,54 @@ class ZonePanel(QWidget):
                 continue
             item.setIcon(create_emoji_icon(snippet.value, _ICON_PIXEL_SIZE, color=ink))
 
+    def _style_filter_add_button(self, palette: FluentPalette) -> None:
+        button = self._filter_add_button
+        if button is None:
+            return
+        ink = mix(palette.window_bg, palette.text_primary)
+        muted = mix(palette.window_bg, palette.text_secondary)
+        button.setIcon(create_lucide_icon("plus", _FILTER_ADD_ICON_SIZE, color=ink))
+        button.setStyleSheet(
+            "QToolButton {"
+            f" color: {css(ink)};"
+            f" background: {css(palette.control_fill)};"
+            f" border: 1px solid {css(palette.control_stroke)};"
+            " border-radius: 6px;"
+            " padding: 4px 8px;"
+            " text-align: left;"
+            "}"
+            "QToolButton:hover {"
+            f" background: {css(palette.control_fill_hover)};"
+            "}"
+            "QToolButton:pressed {"
+            f" background: {css(palette.control_fill_pressed)};"
+            "}"
+            "QToolButton:disabled {"
+            f" color: {css(muted)};"
+            "}",
+        )
+
     def _symbol_ink(self) -> QColor:
         """Return the pen color for monochrome symbol glyphs."""
         palette = palette_for(self)
         return mix(palette.window_bg, palette.text_primary)
+
+    def _update_filter_add_button(self) -> None:
+        button = self._filter_add_button
+        if button is None:
+            return
+        query = self._filter_query.strip()
+        if not query:
+            button.hide()
+            return
+        if any(item_values_equal(self.zone, item.value, query) for item in self._items):
+            button.hide()
+            return
+        metrics = button.fontMetrics()
+        elided = metrics.elidedText(query, Qt.TextElideMode.ElideRight, max(120, self.width() - 48))
+        button.setText(elided)
+        button.setToolTip(f"Add phrase: {query}")
+        button.show()
 ```
 
 </details>
@@ -926,6 +1025,7 @@ def __init__(
         self._ai_candidates: QWidget | None = None
         self._ai_candidates_layout: FlowLayout | None = None
         self._ai_emojis: list[str] = []
+        self._filter_add_button: QToolButton | None = None
 
         self._list = QListWidget(self)
         self._list.setFrameShape(QListWidget.Shape.NoFrame)
@@ -1000,6 +1100,17 @@ def __init__(
             panel.hide()
             self._ai_candidates = panel
             layout.addWidget(panel)
+        if zone == ZONE_PHRASE:
+            add_filter = QToolButton(self)
+            add_filter.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+            add_filter.setIconSize(QSize(_FILTER_ADD_ICON_SIZE, _FILTER_ADD_ICON_SIZE))
+            add_filter.setAutoRaise(True)
+            add_filter.setCursor(Qt.CursorShape.PointingHandCursor)
+            add_filter.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
+            add_filter.setVisible(False)
+            add_filter.clicked.connect(self._on_filter_add_clicked)
+            self._filter_add_button = add_filter
+            layout.addWidget(add_filter)
         layout.addWidget(self._list, stretch=1)
         bind_theme(self, self._refresh_theme)
 ```
@@ -1415,25 +1526,6 @@ Replace the visible items.
 ```python
 def set_items(self, items: list[SnippetItem]) -> None:
         self._items = items
-        self._list.clear()
-        for snippet in items:
-            list_item = QListWidgetItem()
-            list_item.setData(_ITEM_ROLE, snippet)
-            label = display_text(snippet.value, snippet.hint, snippet.zone)
-            if self.zone == ZONE_EMOJI:
-                list_item.setIcon(create_emoji_icon(snippet.value, _ICON_PIXEL_SIZE))
-                list_item.setToolTip(snippet.value)
-            elif self.zone == ZONE_SYMBOL:
-                list_item.setIcon(create_emoji_icon(snippet.value, _ICON_PIXEL_SIZE, color=self._symbol_ink()))
-                list_item.setToolTip(hint_tooltip(snippet.hint, snippet.value))
-            elif self.zone == ZONE_COLOR:
-                list_item.setData(_COLOR_ROLE, snippet.value)
-                list_item.setToolTip(snippet.hint or snippet.value)
-            else:
-                list_item.setText(label)
-                if snippet.hint:
-                    list_item.setToolTip(snippet.hint)
-            self._list.addItem(list_item)
         self._apply_filter()
 ```
 
@@ -1464,18 +1556,22 @@ def set_sort_state(self, zone_sort: ZoneSort) -> None:
 def visible_rows(self) -> list[int]
 ```
 
-Return indexes of items that pass the current filter.
+Return indexes of filter matches (or every row when the query is empty).
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def visible_rows(self) -> list[int]:
+        query_active = bool(self._filter_query.strip())
         rows: list[int] = []
         for row in range(self._list.count()):
             item = self._list.item(row)
-            if item is not None and not item.isHidden():
-                rows.append(row)
+            if item is None or item.isHidden():
+                continue
+            if query_active and item.data(_FILTER_MATCH_ROLE) is False:
+                continue
+            rows.append(row)
         return rows
 ```
 

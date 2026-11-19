@@ -56,6 +56,8 @@ from harrix_swiss_knife.apps.snippets.seed import (
 )
 from harrix_swiss_knife.apps.snippets.sort import dash_length_rank, sort_items
 from harrix_swiss_knife.apps.snippets.zone_panel import (
+    _FILTER_MATCH_ROLE,
+    _ITEM_ROLE,
     HighlightItemDelegate,
     IconItemDelegate,
     ZonePanel,
@@ -85,161 +87,16 @@ def qapp() -> QApplication:
     return app
 
 
-def _item(
-    item_id: int,
-    value: str,
-    *,
-    created_at: str = "2026-01-01T00:00:00+00:00",
-    last_used_at: str | None = None,
-) -> SnippetItem:
-    return SnippetItem(
-        item_id=item_id,
-        zone="phrase",
-        value=value,
-        hint="",
-        created_at=created_at,
-        last_used_at=last_used_at,
-        sort_index=item_id,
-    )
-
-
-def test_extract_phrase_emojis_includes_commit_prefixes() -> None:
-    emojis = extract_phrase_emojis(SEED_PHRASES)
-    assert "➕" in emojis
-    assert "🐞" in emojis
-    assert "📜" in emojis
-
-
-def test_seed_emojis_merges_phrase_extras_without_duplicates() -> None:
-    merged = seed_emojis()
-    assert merged.count("🔍") == 1
-    assert merged.count("📚") == 1
-    for extra in ("➕", "☕", "🚀", "✨", "📜", "🏃", "🍔", "🤖", "🧮", "👃"):
-        assert extra in merged
-    for base in SEED_EMOJIS_BASE:
-        assert base in merged
-
-
-def test_sort_items_used_puts_unused_last_alphabetically() -> None:
-    items = [
-        _item(1, "Beta", last_used_at="2026-08-20T10:00:00+00:00"),
-        _item(2, "Alpha"),
-        _item(3, "Gamma", last_used_at="2026-08-25T10:00:00+00:00"),
-        _item(4, "Zed"),
-    ]
-    ordered = [item.value for item in sort_items(items, SORT_USED, descending=False)]
-    assert ordered == ["Gamma", "Beta", "Alpha", "Zed"]
-    reversed_used = [item.value for item in sort_items(items, SORT_USED, descending=True)]
-    assert reversed_used[:2] == ["Beta", "Gamma"]
-    assert reversed_used[2:] == ["Alpha", "Zed"]
-
-
-def test_sort_items_added_and_alpha() -> None:
-    items = [
-        _item(1, "Beta", created_at="2026-01-02T00:00:00+00:00"),
-        _item(2, "Alpha", created_at="2026-01-03T00:00:00+00:00"),
-        _item(3, "Gamma", created_at="2026-01-01T00:00:00+00:00"),
-    ]
-    assert [item.value for item in sort_items(items, SORT_ADDED, descending=False)] == ["Alpha", "Beta", "Gamma"]
-    assert [item.value for item in sort_items(items, SORT_ADDED, descending=True)] == ["Gamma", "Beta", "Alpha"]
-    assert [item.value for item in sort_items(items, SORT_ALPHA, descending=False)] == ["Alpha", "Beta", "Gamma"]
-    assert [item.value for item in sort_items(items, SORT_ALPHA, descending=True)] == ["Gamma", "Beta", "Alpha"]
-
-
-def test_sort_items_pins_symbol_dashes_first_by_length() -> None:
-    items = [
-        SnippetItem(
-            item_id=1,
-            zone=ZONE_SYMBOL,
-            value="©",
-            hint="copyright",
-            created_at="2026-01-01T00:00:00+00:00",
-            last_used_at=None,
-            sort_index=0,
-        ),
-        SnippetItem(
-            item_id=2,
-            zone=ZONE_SYMBOL,
-            value="—",
-            hint="em dash",
-            created_at="2026-01-01T00:00:00+00:00",
-            last_used_at=None,
-            sort_index=1,
-        ),
-        SnippetItem(
-            item_id=3,
-            zone=ZONE_SYMBOL,
-            value="-",
-            hint="hyphen",
-            created_at="2026-01-01T00:00:00+00:00",
-            last_used_at=None,
-            sort_index=2,
-        ),
-        SnippetItem(
-            item_id=4,
-            zone=ZONE_SYMBOL,
-            value="–",
-            hint="en dash",
-            created_at="2026-01-01T00:00:00+00:00",
-            last_used_at=None,
-            sort_index=3,
-        ),
-        SnippetItem(
-            item_id=5,
-            zone=ZONE_SYMBOL,
-            value="−",
-            hint="minus",
-            created_at="2026-01-01T00:00:00+00:00",
-            last_used_at=None,
-            sort_index=4,
-        ),
-    ]
-    assert dash_length_rank("-") == 0
-    assert dash_length_rank("©") is None
-    ordered = [item.value for item in sort_items(items, SORT_ALPHA, descending=False)]
-    assert ordered[:4] == ["-", "−", "–", "—"]
-    assert ordered[4:] == ["©"]
-
-
-def test_item_matches_search_ignores_case_and_layout() -> None:
-    assert item_matches_search("🐞 Fix ruff check issues", "", "FIX")
-    assert item_matches_search("Quick paste", "", "зфыеу")
-    assert item_matches_search("#ffffff", "white color in icons", "white")
-    assert not item_matches_search("Add", "", "zzzz")
-
-
-def test_parse_snippets_emoji_response_collects_unique() -> None:
-    assert parse_snippets_emoji_response("🍕\n🍔\n🍕") == ["🍕", "🍔"]
-    assert parse_snippets_emoji_response("```\n💧 📚\n```") == ["💧", "📚"]
-    assert parse_snippets_emoji_response("no emoji") == []
-
-
-def test_parse_value_hint_line_and_bulk_lines() -> None:
-    assert parse_value_hint_line("— | Век живи — век учись. | Тире") == (
-        "—",
-        "Век живи — век учись. | Тире",
-    )
-    assert parse_value_hint_line("#ffffff: white color in icons") == ("#ffffff", "white color in icons")
-    assert parse_bulk_lines("➕ Add\n\n🐞 Fix\n", "phrase") == [("➕ Add", ""), ("🐞 Fix", "")]
-    assert parse_bulk_lines("© | Знак копирайта\n", ZONE_SYMBOL) == [("©", "Знак копирайта")]
-    assert parse_bulk_lines("#de2b26: logo\n", ZONE_COLOR) == [("#de2b26", "logo")]
-
-
-def test_display_text_adds_hint_brackets() -> None:
-    assert display_text("—", "Век живи — век учись. | Тире", ZONE_SYMBOL) == ("— [Век живи — век учись. | Тире]")
-
-
-def test_hint_tooltip_strips_wrapping_brackets() -> None:
-    assert hint_tooltip("Век живи — век учись. | Тире") == "Век живи — век учись. | Тире"
-    assert hint_tooltip("[Тире]") == "Тире"
-    assert hint_tooltip("  [Короткое тире]  ") == "Короткое тире"
-    assert hint_tooltip("", "—") == "—"
-
-
-def test_color_hex_label_strips_brackets() -> None:
-    assert color_hex_label("#ffffff") == "#ffffff"
-    assert color_hex_label("  [#de2b26]  ") == "#de2b26"
-    assert color_hex_label("[#122a3a]") == "#122a3a"
+def test_add_sort_menu_actions_marks_active_mode(qapp: QApplication) -> None:
+    assert qapp is not None
+    menu = QMenu()
+    chosen: list[str] = []
+    add_sort_menu_actions(menu, mode=SORT_ALPHA, descending=False, on_sort=chosen.append)
+    alpha = next(action for action in menu.actions() if action.text() == "Sort alphabetically")
+    assert alpha.isChecked()
+    alpha.trigger()
+    assert chosen == [SORT_ALPHA]
+    menu.deleteLater()
 
 
 def test_chip_border_color_is_darker() -> None:
@@ -248,43 +105,59 @@ def test_chip_border_color_is_darker() -> None:
     assert border.lightness() < fill.lightness()
 
 
-def test_recover_sql_matches_builder_and_creates_seed(qapp: QApplication, tmp_path: Path) -> None:  # noqa: ARG001
-    assert _RECOVER_SQL.is_file()
-    assert _RECOVER_SQL.read_text(encoding="utf-8") == build_recover_sql()
-    db_path = tmp_path / "snippets.db"
-    assert QtSqliteDatabaseManagerBase.create_database_from_sql(str(db_path), str(_RECOVER_SQL))
-    manager = DatabaseManager(str(db_path))
-    try:
-        assert manager.table_exists("items")
-        assert manager.table_exists("zone_sort")
-        phrases = manager.list_items("phrase")
-        emojis = manager.list_items("emoji")
-        symbols = manager.list_items("symbol")
-        colors = manager.list_items("color")
-        assert [item.value for item in phrases] == list(SEED_PHRASES)
-        assert [item.value for item in emojis] == seed_emojis()
-        assert [item.value for item in symbols[:4]] == ["-", "−", "–", "—"]
-        assert "дефис" in symbols[0].hint
-        assert "Тире" in symbols[3].hint
-        assert colors[0].value == "#ffffff"
-        assert colors[-1].value == "#66442b"
-        assert ensure_seed_emojis(manager) == 0
-    finally:
-        manager.close()
+def test_color_hex_label_strips_brackets() -> None:
+    assert color_hex_label("#ffffff") == "#ffffff"
+    assert color_hex_label("  [#de2b26]  ") == "#de2b26"
+    assert color_hex_label("[#122a3a]") == "#122a3a"
 
 
-def test_ensure_seed_emojis_inserts_missing(qapp: QApplication, tmp_path: Path) -> None:  # noqa: ARG001
-    db_path = tmp_path / "snippets.db"
-    assert QtSqliteDatabaseManagerBase.create_database_from_sql(str(db_path), str(_RECOVER_SQL))
-    manager = DatabaseManager(str(db_path))
-    try:
-        first = manager.list_items("emoji")[0]
-        assert manager.delete_item(first.item_id)
-        assert ensure_seed_emojis(manager) == 1
-        assert first.value in {item.value for item in manager.list_items("emoji")}
-        assert ensure_seed_emojis(manager) == 0
-    finally:
-        manager.close()
+def test_color_zone_items_have_no_bracket_text(qapp: QApplication) -> None:
+    assert qapp is not None
+    panel = ZonePanel(zone=ZONE_COLOR, title="Add color")
+    panel.set_items(
+        [
+            SnippetItem(
+                item_id=1,
+                zone=ZONE_COLOR,
+                value="#ffffff",
+                hint="white color in icons",
+                created_at="2026-01-01T00:00:00+00:00",
+                last_used_at=None,
+                sort_index=0,
+            ),
+        ],
+    )
+    item = panel._list.item(0)
+    assert item is not None
+    assert item.text() == ""
+    assert "[" not in item.text()
+    assert "]" not in item.text()
+    panel.close()
+
+
+def test_display_text_adds_hint_brackets() -> None:
+    assert display_text("—", "Век живи — век учись. | Тире", ZONE_SYMBOL) == (  # ignore: HP001
+        "— [Век живи — век учись. | Тире]"  # ignore: HP001
+    )
+
+
+def test_emoji_ai_candidates_close_shows_pick_button(qapp: QApplication) -> None:
+    assert qapp is not None
+    panel = ZonePanel(zone=ZONE_EMOJI, title="Emoji")
+    panel.show()
+    pick = panel._ai_pick_button
+    assert pick is not None
+    assert pick.toolTip() == "Pick emoji by name"
+    panel.set_ai_pick_visible(visible=True)
+    assert pick.isVisible()
+    panel.set_ai_candidates(["🍕"], existing_values=[])
+    assert not pick.isVisible()
+    close_buttons = [button for button in panel.findChildren(QToolButton) if button.toolTip() == "Close suggestions"]
+    assert len(close_buttons) == 1
+    close_buttons[0].click()
+    panel.set_ai_pick_visible(visible=True)
+    assert pick.isVisible()
+    panel.close()
 
 
 def test_emoji_ai_candidates_show_plus_when_missing(qapp: QApplication) -> None:
@@ -312,25 +185,6 @@ def test_emoji_ai_candidates_show_plus_when_missing(qapp: QApplication) -> None:
     panel.close()
 
 
-def test_emoji_ai_candidates_close_shows_pick_button(qapp: QApplication) -> None:
-    assert qapp is not None
-    panel = ZonePanel(zone=ZONE_EMOJI, title="Emoji")
-    panel.show()
-    pick = panel._ai_pick_button
-    assert pick is not None
-    assert pick.toolTip() == "Pick emoji by name"
-    panel.set_ai_pick_visible(visible=True)
-    assert pick.isVisible()
-    panel.set_ai_candidates(["🍕"], existing_values=[])
-    assert not pick.isVisible()
-    close_buttons = [button for button in panel.findChildren(QToolButton) if button.toolTip() == "Close suggestions"]
-    assert len(close_buttons) == 1
-    close_buttons[0].click()
-    panel.set_ai_pick_visible(visible=True)
-    assert pick.isVisible()
-    panel.close()
-
-
 def test_emoji_pick_button_appears_when_input_has_text(qapp: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:
     assert qapp is not None
     monkeypatch.setattr(SnippetsDialog, "_init_database", lambda _dialog: None)
@@ -350,30 +204,41 @@ def test_emoji_pick_button_appears_when_input_has_text(qapp: QApplication, monke
     dialog.close()
 
 
-def test_present_parents_under_active_modal(qapp: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_emoji_prepare_keyboard_focus_restores_remembered(qapp: QApplication) -> None:
     assert qapp is not None
-    monkeypatch.setattr(SnippetsDialog, "_init_database", lambda _dialog: None)
-    modal = QDialog()
-    modal.setWindowModality(Qt.WindowModality.ApplicationModal)
-    modal.show()
-    QApplication.processEvents()
-    assert QApplication.activeModalWidget() is modal
-
-    dialog = SnippetsDialog()
-    dialog.present()
-    QApplication.processEvents()
-
-    assert dialog.parentWidget() is modal
-    assert dialog.isVisible()
-    assert dialog.windowModality() == Qt.WindowModality.NonModal
-    assert dialog.isEnabled()
-
-    dialog.hide()
-    QApplication.processEvents()
-    assert dialog.parentWidget() is None
-
-    modal.close()
-    dialog.close()
+    panel = ZonePanel(zone=ZONE_EMOJI, title="Add emoji")
+    panel.set_items(
+        [
+            SnippetItem(
+                item_id=1,
+                zone=ZONE_EMOJI,
+                value="😀",
+                hint="",
+                created_at="2026-01-01T00:00:00+00:00",
+                last_used_at=None,
+                sort_index=0,
+            ),
+            SnippetItem(
+                item_id=2,
+                zone=ZONE_EMOJI,
+                value="🐞",
+                hint="",
+                created_at="2026-01-01T00:00:00+00:00",
+                last_used_at=None,
+                sort_index=1,
+            ),
+        ],
+    )
+    panel.prepare_keyboard_focus()
+    assert panel.current_snippet() is not None
+    assert panel.current_snippet().value == "😀"
+    panel.select_row(1)
+    panel._list.clearSelection()
+    panel._list.setCurrentRow(-1)
+    panel.prepare_keyboard_focus()
+    assert panel.current_snippet() is not None
+    assert panel.current_snippet().value == "🐞"
+    panel.close()
 
 
 def test_emoji_zone_items_have_icon_without_caption(qapp: QApplication) -> None:
@@ -400,122 +265,33 @@ def test_emoji_zone_items_have_icon_without_caption(qapp: QApplication) -> None:
     panel.close()
 
 
-def test_list_highlight_is_flat_without_inverted_text(qapp: QApplication) -> None:
-    assert qapp is not None
-    emoji = ZonePanel(zone=ZONE_EMOJI, title="Emoji")
-    assert isinstance(emoji._list.itemDelegate(), IconItemDelegate)
-    phrase = ZonePanel(zone=ZONE_PHRASE, title="Phrases")
-    style = phrase._list.styleSheet()
-    assert "item:hover" in style
-    assert "#6a6a6a" not in style
-    fluent = palette_for(phrase)
-    expected = list_item_selected(fluent)
-    highlight = phrase._list.palette().color(QPalette.ColorRole.Highlight)
-    assert highlight.name() == expected.name()
-    text = phrase._list.palette().color(QPalette.ColorRole.Text)
-    highlighted_text = phrase._list.palette().color(QPalette.ColorRole.HighlightedText)
-    assert highlighted_text == text
-    emoji.close()
-    phrase.close()
+def test_ensure_seed_emojis_inserts_missing(qapp: QApplication, tmp_path: Path) -> None:  # noqa: ARG001
+    db_path = tmp_path / "snippets.db"
+    assert QtSqliteDatabaseManagerBase.create_database_from_sql(str(db_path), str(_RECOVER_SQL))
+    manager = DatabaseManager(str(db_path))
+    try:
+        first = manager.list_items("emoji")[0]
+        assert manager.delete_item(first.item_id)
+        assert ensure_seed_emojis(manager) == 1
+        assert first.value in {item.value for item in manager.list_items("emoji")}
+        assert ensure_seed_emojis(manager) == 0
+    finally:
+        manager.close()
 
 
-def test_symbol_zone_items_are_icon_buttons_with_hint_tooltip(qapp: QApplication) -> None:
-    assert qapp is not None
-    panel = ZonePanel(zone=ZONE_SYMBOL, title="Add symbol")
-    panel.set_items(
-        [
-            SnippetItem(
-                item_id=1,
-                zone=ZONE_SYMBOL,
-                value="—",
-                hint="Век живи — век учись. | Тире",
-                created_at="2026-01-01T00:00:00+00:00",
-                last_used_at=None,
-                sort_index=0,
-            ),
-        ],
-    )
-    item = panel._list.item(0)
-    assert item is not None
-    assert item.text() == ""
-    assert not item.icon().isNull()
-    assert item.toolTip() == "Век живи — век учись. | Тире"
-    assert "[" not in item.toolTip()
-    assert "]" not in item.toolTip()
-    panel.close()
+def test_example_config_binds_ctrl_shift_f3() -> None:
+    data = json.loads(_EXAMPLE_CONFIG.read_text(encoding="utf-8"))
+    assert data["sqlite_snippets"].endswith("snippets.db")
+    matching = [entry for entry in data["hotkeys"] if entry.get("action") == "OnSnippets"]
+    assert matching
+    assert "Ctrl+Shift+F3" in matching[0]["hotkeys"]
 
 
-def test_color_zone_items_have_no_bracket_text(qapp: QApplication) -> None:
-    assert qapp is not None
-    panel = ZonePanel(zone=ZONE_COLOR, title="Add color")
-    panel.set_items(
-        [
-            SnippetItem(
-                item_id=1,
-                zone=ZONE_COLOR,
-                value="#ffffff",
-                hint="white color in icons",
-                created_at="2026-01-01T00:00:00+00:00",
-                last_used_at=None,
-                sort_index=0,
-            ),
-        ],
-    )
-    item = panel._list.item(0)
-    assert item is not None
-    assert item.text() == ""
-    assert "[" not in item.text()
-    assert "]" not in item.text()
-    panel.close()
-
-
-def test_highlight_item_delegate_paints_text(qapp: QApplication) -> None:
-    assert qapp is not None
-    panel = ZonePanel(zone=ZONE_PHRASE, title="Phrases")
-    panel.set_items(
-        [
-            SnippetItem(
-                item_id=1,
-                zone=ZONE_PHRASE,
-                value="hello",
-                hint="",
-                created_at="2026-01-01T00:00:00+00:00",
-                last_used_at=None,
-                sort_index=0,
-            ),
-        ],
-    )
-    item = panel._list.item(0)
-    assert item is not None
-    pixmap = QPixmap(240, 32)
-    pixmap.fill(Qt.GlobalColor.white)
-    painter = QPainter(pixmap)
-    option = QStyleOptionViewItem()
-    option.rect = QRect(0, 0, 240, 32)
-    option.widget = panel._list
-    option.text = "hello"
-    option.displayAlignment = Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
-    option.palette = panel._list.palette()
-    option.state = QStyle.StateFlag.State_Enabled
-    HighlightItemDelegate(panel._list).paint(painter, option, panel._list.indexFromItem(item))
-    painter.end()
-    panel.set_input_match("hello")
-    assert panel.item_matches_input(panel._items[0])
-    panel.set_input_match("")
-    assert not panel.item_matches_input(panel._items[0])
-    panel.close()
-
-
-def test_add_sort_menu_actions_marks_active_mode(qapp: QApplication) -> None:
-    assert qapp is not None
-    menu = QMenu()
-    chosen: list[str] = []
-    add_sort_menu_actions(menu, mode=SORT_ALPHA, descending=False, on_sort=chosen.append)
-    alpha = next(action for action in menu.actions() if action.text() == "Sort alphabetically")
-    assert alpha.isChecked()
-    alpha.trigger()
-    assert chosen == [SORT_ALPHA]
-    menu.deleteLater()
+def test_extract_phrase_emojis_includes_commit_prefixes() -> None:
+    emojis = extract_phrase_emojis(SEED_PHRASES)
+    assert "➕" in emojis
+    assert "🐞" in emojis
+    assert "📜" in emojis
 
 
 def test_filter_new_snippet_items_skips_duplicates() -> None:
@@ -572,24 +348,181 @@ def test_header_menu_includes_add_and_sort(qapp: QApplication, monkeypatch: pyte
     dialog.close()
 
 
+def test_highlight_item_delegate_paints_text(qapp: QApplication) -> None:
+    assert qapp is not None
+    panel = ZonePanel(zone=ZONE_PHRASE, title="Phrases")
+    panel.set_items(
+        [
+            SnippetItem(
+                item_id=1,
+                zone=ZONE_PHRASE,
+                value="hello",
+                hint="",
+                created_at="2026-01-01T00:00:00+00:00",
+                last_used_at=None,
+                sort_index=0,
+            ),
+        ],
+    )
+    item = panel._list.item(0)
+    assert item is not None
+    pixmap = QPixmap(240, 32)
+    pixmap.fill(Qt.GlobalColor.white)
+    painter = QPainter(pixmap)
+    option = QStyleOptionViewItem()
+    option.rect = QRect(0, 0, 240, 32)
+    option.widget = panel._list
+    option.text = "hello"
+    option.displayAlignment = Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+    option.palette = panel._list.palette()
+    option.state = QStyle.StateFlag.State_Enabled
+    HighlightItemDelegate(panel._list).paint(painter, option, panel._list.indexFromItem(item))
+    painter.end()
+    panel.set_input_match("hello")
+    assert panel.item_matches_input(panel._items[0])
+    panel.set_input_match("")
+    assert not panel.item_matches_input(panel._items[0])
+    panel.close()
+
+
+def test_hint_tooltip_strips_wrapping_brackets() -> None:
+    assert hint_tooltip("Век живи — век учись. | Тире") == "Век живи — век учись. | Тире"  # ignore: HP001
+    assert hint_tooltip("[Тире]") == "Тире"  # ignore: HP001
+    assert hint_tooltip("  [Короткое тире]  ") == "Короткое тире"  # ignore: HP001
+    assert hint_tooltip("", "—") == "—"
+
+
+def test_item_matches_search_ignores_case_and_layout() -> None:
+    assert item_matches_search("🐞 Fix ruff check issues", "", "FIX")
+    assert item_matches_search("Quick paste", "", "зфыеу")  # ignore: HP001
+    assert item_matches_search("#ffffff", "white color in icons", "white")
+    assert not item_matches_search("Add", "", "zzzz")
+
+
 def test_item_values_equal_colors_ignore_case_and_brackets() -> None:
     assert item_values_equal(ZONE_COLOR, "#AABBCC", "#aabbcc")
     assert item_values_equal(ZONE_COLOR, "[#fff]", "#FFF")
     assert not item_values_equal(ZONE_PHRASE, "Hello", "hello")
 
 
-def test_zone_panel_context_menu_includes_sort(qapp: QApplication) -> None:
+def test_list_highlight_is_flat_without_inverted_text(qapp: QApplication) -> None:
+    assert qapp is not None
+    emoji = ZonePanel(zone=ZONE_EMOJI, title="Emoji")
+    assert isinstance(emoji._list.itemDelegate(), IconItemDelegate)
+    phrase = ZonePanel(zone=ZONE_PHRASE, title="Phrases")
+    style = phrase._list.styleSheet()
+    assert "item:hover" in style
+    assert "#6a6a6a" not in style
+    fluent = palette_for(phrase)
+    expected = list_item_selected(fluent)
+    highlight = phrase._list.palette().color(QPalette.ColorRole.Highlight)
+    assert highlight.name() == expected.name()
+    text = phrase._list.palette().color(QPalette.ColorRole.Text)
+    highlighted_text = phrase._list.palette().color(QPalette.ColorRole.HighlightedText)
+    assert highlighted_text == text
+    emoji.close()
+    phrase.close()
+
+
+def test_on_snippets_is_quick_launcher_action() -> None:
+    assert OnSnippets.quick_launcher is True
+    assert OnSnippets.title == "Quick paste"
+    assert OnSnippets in list(iter_menu_structure(get_menu_structure()))
+
+
+def test_parse_snippets_emoji_response_collects_unique() -> None:
+    assert parse_snippets_emoji_response("🍕\n🍔\n🍕") == ["🍕", "🍔"]
+    assert parse_snippets_emoji_response("```\n💧 📚\n```") == ["💧", "📚"]
+    assert parse_snippets_emoji_response("no emoji") == []
+
+
+def test_parse_value_hint_line_and_bulk_lines() -> None:
+    assert parse_value_hint_line("— | Век живи — век учись. | Тире") == (  # ignore: HP001
+        "—",
+        "Век живи — век учись. | Тире",  # ignore: HP001
+    )
+    assert parse_value_hint_line("#ffffff: white color in icons") == ("#ffffff", "white color in icons")
+    assert parse_bulk_lines("➕ Add\n\n🐞 Fix\n", "phrase") == [("➕ Add", ""), ("🐞 Fix", "")]
+    assert parse_bulk_lines("© | Знак копирайта\n", ZONE_SYMBOL) == [("©", "Знак копирайта")]  # ignore: HP001
+    assert parse_bulk_lines("#de2b26: logo\n", ZONE_COLOR) == [("#de2b26", "logo")]
+
+
+def test_phrase_enter_without_selection_activates_first(qapp: QApplication) -> None:
+    assert qapp is not None
+    panel = ZonePanel(zone=ZONE_PHRASE, title="Add phrase")
+    activated: list[SnippetItem] = []
+    panel.item_activated.connect(activated.append)
+    panel.set_items([_item(1, "Alpha"), _item(2, "Beta")])
+    panel.activate_current_or_first()
+    assert [item.value for item in activated] == ["Alpha"]
+    panel.close()
+
+
+def test_phrase_filter_add_button_for_missing_value(qapp: QApplication) -> None:
     assert qapp is not None
     panel = ZonePanel(zone=ZONE_PHRASE, title="Phrases")
-    panel.set_sort_state(ZoneSort(mode=SORT_USED, descending=True))
-    menu = panel._build_context_menu(None)
-    texts = [action.text() for action in menu.actions() if action.text()]
-    assert "Add item" in texts
-    assert "Sort by last used (reversed)" in texts
-    assert "Sort alphabetically" in texts
-    used = next(action for action in menu.actions() if action.text().startswith("Sort by last used"))
-    assert used.isChecked()
-    menu.deleteLater()
+    added: list[str] = []
+    panel.add_filter_requested.connect(added.append)
+    panel.set_items([_item(1, "Alpha"), _item(2, "Alpine")])
+    panel.set_filter_query("Update Lucide")
+    assert panel._filter_add_button is not None
+    assert not panel._filter_add_button.isHidden()
+    panel._filter_add_button.click()
+    assert added == ["Update Lucide"]
+    panel.set_filter_query("Alpha")
+    assert panel._filter_add_button.isHidden()
+    panel.set_filter_query("")
+    assert panel._filter_add_button.isHidden()
+    panel.close()
+
+
+def test_phrase_filter_arrows_select_visible(qapp: QApplication) -> None:
+    assert qapp is not None
+    panel = ZonePanel(zone=ZONE_PHRASE, title="Add phrase")
+    panel.set_items([_item(1, "Alpha"), _item(2, "Alpine"), _item(3, "Beta")])
+    panel.set_filter_query("Al")
+    assert [panel._list.item(row).data(_ITEM_ROLE).value for row in range(3)] == [
+        "Alpha",
+        "Alpine",
+        "Beta",
+    ]
+    assert panel._list.item(2) is not None
+    assert not panel._list.item(2).isHidden()
+    assert panel._list.item(2).data(_FILTER_MATCH_ROLE) is False
+    assert panel.visible_rows() == [0, 1]
+    assert panel.move_visible(1)
+    assert panel.current_snippet() is not None
+    assert panel.current_snippet().value == "Alpha"
+    assert panel.filter_query() == "Al"
+    assert panel._list.item(1) is not None
+    assert not panel._list.item(1).isHidden()
+    assert panel.move_visible(1)
+    assert panel.current_snippet() is not None
+    assert panel.current_snippet().value == "Alpine"
+    panel.close()
+
+
+def test_phrase_filter_keeps_non_matches_dimmed_below(qapp: QApplication) -> None:
+    assert qapp is not None
+    panel = ZonePanel(zone=ZONE_PHRASE, title="Phrases")
+    panel.set_items([_item(1, "Beta"), _item(2, "Alpha"), _item(3, "Alpine")])
+    panel.set_filter_query("Al")
+    assert [panel._list.item(row).data(_ITEM_ROLE).value for row in range(3)] == [
+        "Alpha",
+        "Alpine",
+        "Beta",
+    ]
+    assert panel._list.item(0).data(_FILTER_MATCH_ROLE) is True
+    assert panel._list.item(1).data(_FILTER_MATCH_ROLE) is True
+    assert panel._list.item(2).data(_FILTER_MATCH_ROLE) is False
+    assert not panel._list.item(2).isHidden()
+    panel.clear_filter()
+    assert [panel._list.item(row).data(_ITEM_ROLE).value for row in range(3)] == [
+        "Beta",
+        "Alpha",
+        "Alpine",
+    ]
+    assert panel._list.item(0).data(_FILTER_MATCH_ROLE) is True
     panel.close()
 
 
@@ -603,29 +536,147 @@ def test_phrase_zone_clear_filter_empties_search(qapp: QApplication) -> None:
     panel.close()
 
 
-def test_on_snippets_is_quick_launcher_action() -> None:
-    assert OnSnippets.quick_launcher is True
-    assert OnSnippets.title == "Quick paste"
-    assert OnSnippets in list(iter_menu_structure(get_menu_structure()))
-
-
-def test_phrase_filter_arrows_select_visible(qapp: QApplication) -> None:
+def test_present_parents_under_active_modal(qapp: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:
     assert qapp is not None
-    panel = ZonePanel(zone=ZONE_PHRASE, title="Add phrase")
-    panel.set_items([_item(1, "Alpha"), _item(2, "Alpine"), _item(3, "Beta")])
-    panel.set_filter_query("Al")
-    assert panel._list.item(2) is not None
-    assert panel._list.item(2).isHidden()
-    assert panel.move_visible(1)
-    assert panel.current_snippet() is not None
-    assert panel.current_snippet().value == "Alpha"
-    assert panel.filter_query() == "Al"
-    assert panel._list.item(1) is not None
-    assert not panel._list.item(1).isHidden()
-    assert panel.move_visible(1)
-    assert panel.current_snippet() is not None
-    assert panel.current_snippet().value == "Alpine"
-    panel.close()
+    monkeypatch.setattr(SnippetsDialog, "_init_database", lambda _dialog: None)
+    modal = QDialog()
+    modal.setWindowModality(Qt.WindowModality.ApplicationModal)
+    modal.show()
+    QApplication.processEvents()
+    assert QApplication.activeModalWidget() is modal
+
+    dialog = SnippetsDialog()
+    dialog.present()
+    QApplication.processEvents()
+
+    assert dialog.parentWidget() is modal
+    assert dialog.isVisible()
+    assert dialog.windowModality() == Qt.WindowModality.NonModal
+    assert dialog.isEnabled()
+
+    dialog.hide()
+    QApplication.processEvents()
+    assert dialog.parentWidget() is None
+
+    modal.close()
+    dialog.close()
+
+
+def test_recover_sql_matches_builder_and_creates_seed(qapp: QApplication, tmp_path: Path) -> None:  # noqa: ARG001
+    assert _RECOVER_SQL.is_file()
+    assert _RECOVER_SQL.read_text(encoding="utf-8") == build_recover_sql()
+    db_path = tmp_path / "snippets.db"
+    assert QtSqliteDatabaseManagerBase.create_database_from_sql(str(db_path), str(_RECOVER_SQL))
+    manager = DatabaseManager(str(db_path))
+    try:
+        assert manager.table_exists("items")
+        assert manager.table_exists("zone_sort")
+        phrases = manager.list_items("phrase")
+        emojis = manager.list_items("emoji")
+        symbols = manager.list_items("symbol")
+        colors = manager.list_items("color")
+        assert [item.value for item in phrases] == list(SEED_PHRASES)
+        assert [item.value for item in emojis] == seed_emojis()
+        assert [item.value for item in symbols[:4]] == ["-", "−", "–", "—"]
+        assert "дефис" in symbols[0].hint  # ignore: HP001
+        assert "Тире" in symbols[3].hint  # ignore: HP001
+        assert colors[0].value == "#ffffff"
+        assert colors[-1].value == "#66442b"
+        assert ensure_seed_emojis(manager) == 0
+    finally:
+        manager.close()
+
+
+def test_script_glyphs_are_unique_single_characters() -> None:
+    chars: list[str] = []
+    for title, glyphs in SCRIPT_SECTIONS:
+        assert title
+        for glyph, base in glyphs:
+            assert len(glyph) == 1
+            assert base.strip()
+            chars.append(glyph)
+    assert len(chars) == len(set(chars))
+    assert "²" in chars
+    assert "₂" in chars
+    assert "ⁿ" in chars
+    assert "ₐ" in chars
+
+
+@pytest.mark.slow
+def test_scripts_panel_scroll_uses_dark_window_bg(qapp: QApplication) -> None:
+    """Scripts glyph grid stays on Fluent window_bg in dark theme, not the light plate."""
+    assert qapp is not None
+    theme = FluentTheme.instance()
+    previous = theme.mode()
+    theme.set_mode(ThemeMode.DARK, persist=False)
+    host = QWidget()
+    enable_fluent_theme(host)
+    panel = ScriptsPanel(host)
+    try:
+        viewport = panel._scroll.viewport()
+        assert viewport.palette().color(QPalette.ColorRole.Base) == DARK_PALETTE.window_bg
+        scroll_sheet = panel._scroll.styleSheet().casefold()
+        assert "rgba(32, 32, 32" in scroll_sheet or DARK_PALETTE.window_bg.name().casefold() in scroll_sheet
+        sections_sheet = panel._sections.styleSheet().casefold()
+        assert "rgba(32, 32, 32" in sections_sheet or DARK_PALETTE.window_bg.name().casefold() in sections_sheet
+        assert "#f3f3f3" not in scroll_sheet
+    finally:
+        theme.set_mode(previous, persist=False)
+        panel.close()
+        host.close()
+
+
+def test_scripts_tab_add_pastes_composed_text(qapp: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:
+    assert qapp is not None
+    monkeypatch.setattr(SnippetsDialog, "_init_database", lambda _dialog: None)
+    pasted: list[str] = []
+
+    def capture(text: str, _saved: object, **_kwargs: object) -> None:
+        pasted.append(text)
+
+    monkeypatch.setattr("harrix_swiss_knife.apps.snippets.dialog.paste_text_then_restore_clipboard", capture)
+    dialog = SnippetsDialog()
+    dialog.show()
+    qapp.processEvents()
+    assert dialog._page_tabs.tabText(0) == "Snippets"
+    assert dialog._page_tabs.tabText(1) == "Scripts"
+    assert dialog._input.isVisible()
+    assert not dialog._scripts._add_button.isVisible()
+    tab_bar = dialog._page_tabs.tabBar()
+    tab_bottom = tab_bar.mapTo(dialog, tab_bar.rect().bottomLeft()).y()
+    input_top = dialog._input.mapTo(dialog, dialog._input.rect().topLeft()).y()
+    assert tab_bottom <= input_top
+    if dialog._win11_caption:
+        row = dialog.findChild(QWidget, "captionButtonRow")
+        assert row is not None
+        assert abs(tab_bar.mapTo(dialog, tab_bar.rect().center()).y() - row.mapTo(dialog, row.rect().center()).y()) <= 4
+
+    dialog._page_tabs.setCurrentIndex(dialog._scripts_tab_index)
+    qapp.processEvents()
+    assert not dialog._input.isVisible()
+    assert dialog._scripts._add_button.isVisible()
+    composer_top = dialog._scripts._edit.mapTo(dialog, dialog._scripts._edit.rect().topLeft()).y()
+    assert tab_bottom <= composer_top
+    dialog._scripts.append_glyph("²")
+    dialog._scripts.append_glyph("₃")
+    assert dialog._scripts.composed_text() == "²₃"
+    dialog._scripts._add_button.click()
+    qapp.processEvents()
+    assert pasted == ["²₃"]
+    assert dialog._scripts.composed_text() == ""
+    dialog._scripts._add_button.click()
+    assert pasted == ["²₃"]
+    dialog.close()
+
+
+def test_seed_emojis_merges_phrase_extras_without_duplicates() -> None:
+    merged = seed_emojis()
+    assert merged.count("🔍") == 1
+    assert merged.count("📚") == 1
+    for extra in ("➕", "☕", "🚀", "✨", "📜", "🏃", "🍔", "🤖", "🧮", "👃"):
+        assert extra in merged
+    for base in SEED_EMOJIS_BASE:
+        assert base in merged
 
 
 def test_shared_input_arrows_select_visible_and_fill_field(
@@ -676,91 +727,6 @@ def test_shared_input_mouse_press_does_not_start_window_drag(
     assert dialog.eventFilter(dialog._input, press) is False
     assert dialog._dragging is False
     dialog.close()
-
-
-def test_tab_clears_previous_zone_filter(
-    qapp: QApplication,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    assert qapp is not None
-    monkeypatch.setattr(SnippetsDialog, "_init_database", lambda _dialog: None)
-    dialog = SnippetsDialog()
-    dialog._phrases.set_items([_item(1, "Alpha"), _item(2, "Alpine"), _item(3, "Beta")])
-    dialog._emoji.set_items(
-        [
-            SnippetItem(
-                item_id=10,
-                zone=ZONE_EMOJI,
-                value="😀",
-                hint="",
-                created_at="2026-01-01T00:00:00+00:00",
-                last_used_at=None,
-                sort_index=0,
-            ),
-        ],
-    )
-    dialog.show()
-    QApplication.processEvents()
-    dialog._activate_zone(ZONE_PHRASE, select_item=False)
-    dialog._input.setText("Al")
-    assert dialog._phrases.filter_query() == "Al"
-    assert dialog._phrases._list.item(2) is not None
-    assert dialog._phrases._list.item(2).isHidden()
-    dialog.focusNextPrevChild(True)  # noqa: FBT003
-    QApplication.processEvents()
-    assert dialog._phrases.filter_query() == ""
-    assert dialog._phrases._list.item(2) is not None
-    assert not dialog._phrases._list.item(2).isHidden()
-    assert dialog._input.text() == "😀"
-    dialog.close()
-
-
-def test_phrase_enter_without_selection_activates_first(qapp: QApplication) -> None:
-    assert qapp is not None
-    panel = ZonePanel(zone=ZONE_PHRASE, title="Add phrase")
-    activated: list[SnippetItem] = []
-    panel.item_activated.connect(activated.append)
-    panel.set_items([_item(1, "Alpha"), _item(2, "Beta")])
-    panel.activate_current_or_first()
-    assert [item.value for item in activated] == ["Alpha"]
-    panel.close()
-
-
-def test_emoji_prepare_keyboard_focus_restores_remembered(qapp: QApplication) -> None:
-    assert qapp is not None
-    panel = ZonePanel(zone=ZONE_EMOJI, title="Add emoji")
-    panel.set_items(
-        [
-            SnippetItem(
-                item_id=1,
-                zone=ZONE_EMOJI,
-                value="😀",
-                hint="",
-                created_at="2026-01-01T00:00:00+00:00",
-                last_used_at=None,
-                sort_index=0,
-            ),
-            SnippetItem(
-                item_id=2,
-                zone=ZONE_EMOJI,
-                value="🐞",
-                hint="",
-                created_at="2026-01-01T00:00:00+00:00",
-                last_used_at=None,
-                sort_index=1,
-            ),
-        ],
-    )
-    panel.prepare_keyboard_focus()
-    assert panel.current_snippet() is not None
-    assert panel.current_snippet().value == "😀"
-    panel.select_row(1)
-    panel._list.clearSelection()
-    panel._list.setCurrentRow(-1)
-    panel.prepare_keyboard_focus()
-    assert panel.current_snippet() is not None
-    assert panel.current_snippet().value == "🐞"
-    panel.close()
 
 
 def test_snippets_tab_cycles_shared_input_emoji_symbols_colors(
@@ -844,91 +810,180 @@ def test_snippets_tab_cycles_shared_input_emoji_symbols_colors(
     dialog.close()
 
 
-def test_script_glyphs_are_unique_single_characters() -> None:
-    chars: list[str] = []
-    for title, glyphs in SCRIPT_SECTIONS:
-        assert title
-        for glyph, base in glyphs:
-            assert len(glyph) == 1
-            assert base.strip()
-            chars.append(glyph)
-    assert len(chars) == len(set(chars))
-    assert "²" in chars
-    assert "₂" in chars
-    assert "ⁿ" in chars
-    assert "ₐ" in chars
+def test_sort_items_added_and_alpha() -> None:
+    items = [
+        _item(1, "Beta", created_at="2026-01-02T00:00:00+00:00"),
+        _item(2, "Alpha", created_at="2026-01-03T00:00:00+00:00"),
+        _item(3, "Gamma", created_at="2026-01-01T00:00:00+00:00"),
+    ]
+    assert [item.value for item in sort_items(items, SORT_ADDED, descending=False)] == ["Alpha", "Beta", "Gamma"]
+    assert [item.value for item in sort_items(items, SORT_ADDED, descending=True)] == ["Gamma", "Beta", "Alpha"]
+    assert [item.value for item in sort_items(items, SORT_ALPHA, descending=False)] == ["Alpha", "Beta", "Gamma"]
+    assert [item.value for item in sort_items(items, SORT_ALPHA, descending=True)] == ["Gamma", "Beta", "Alpha"]
 
 
-def test_scripts_tab_add_pastes_composed_text(qapp: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_sort_items_pins_symbol_dashes_first_by_length() -> None:
+    items = [
+        SnippetItem(
+            item_id=1,
+            zone=ZONE_SYMBOL,
+            value="©",
+            hint="copyright",
+            created_at="2026-01-01T00:00:00+00:00",
+            last_used_at=None,
+            sort_index=0,
+        ),
+        SnippetItem(
+            item_id=2,
+            zone=ZONE_SYMBOL,
+            value="—",
+            hint="em dash",
+            created_at="2026-01-01T00:00:00+00:00",
+            last_used_at=None,
+            sort_index=1,
+        ),
+        SnippetItem(
+            item_id=3,
+            zone=ZONE_SYMBOL,
+            value="-",
+            hint="hyphen",
+            created_at="2026-01-01T00:00:00+00:00",
+            last_used_at=None,
+            sort_index=2,
+        ),
+        SnippetItem(
+            item_id=4,
+            zone=ZONE_SYMBOL,
+            value="–",
+            hint="en dash",
+            created_at="2026-01-01T00:00:00+00:00",
+            last_used_at=None,
+            sort_index=3,
+        ),
+        SnippetItem(
+            item_id=5,
+            zone=ZONE_SYMBOL,
+            value="−",
+            hint="minus",
+            created_at="2026-01-01T00:00:00+00:00",
+            last_used_at=None,
+            sort_index=4,
+        ),
+    ]
+    assert dash_length_rank("-") == 0
+    assert dash_length_rank("©") is None
+    ordered = [item.value for item in sort_items(items, SORT_ALPHA, descending=False)]
+    assert ordered[:4] == ["-", "−", "–", "—"]
+    assert ordered[4:] == ["©"]
+
+
+def test_sort_items_used_puts_unused_last_alphabetically() -> None:
+    items = [
+        _item(1, "Beta", last_used_at="2026-08-20T10:00:00+00:00"),
+        _item(2, "Alpha"),
+        _item(3, "Gamma", last_used_at="2026-08-25T10:00:00+00:00"),
+        _item(4, "Zed"),
+    ]
+    ordered = [item.value for item in sort_items(items, SORT_USED, descending=False)]
+    assert ordered == ["Gamma", "Beta", "Alpha", "Zed"]
+    reversed_used = [item.value for item in sort_items(items, SORT_USED, descending=True)]
+    assert reversed_used[:2] == ["Beta", "Gamma"]
+    assert reversed_used[2:] == ["Alpha", "Zed"]
+
+
+def test_symbol_zone_items_are_icon_buttons_with_hint_tooltip(qapp: QApplication) -> None:
+    assert qapp is not None
+    panel = ZonePanel(zone=ZONE_SYMBOL, title="Add symbol")
+    panel.set_items(
+        [
+            SnippetItem(
+                item_id=1,
+                zone=ZONE_SYMBOL,
+                value="—",
+                hint="Век живи — век учись. | Тире",  # ignore: HP001
+                created_at="2026-01-01T00:00:00+00:00",
+                last_used_at=None,
+                sort_index=0,
+            ),
+        ],
+    )
+    item = panel._list.item(0)
+    assert item is not None
+    assert item.text() == ""
+    assert not item.icon().isNull()
+    assert item.toolTip() == "Век живи — век учись. | Тире"  # ignore: HP001
+    assert "[" not in item.toolTip()
+    assert "]" not in item.toolTip()
+    panel.close()
+
+
+def test_tab_clears_previous_zone_filter(
+    qapp: QApplication,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     assert qapp is not None
     monkeypatch.setattr(SnippetsDialog, "_init_database", lambda _dialog: None)
-    pasted: list[str] = []
-
-    def capture(text: str, _saved: object, **_kwargs: object) -> None:
-        pasted.append(text)
-
-    monkeypatch.setattr("harrix_swiss_knife.apps.snippets.dialog.paste_text_then_restore_clipboard", capture)
     dialog = SnippetsDialog()
+    dialog._phrases.set_items([_item(1, "Alpha"), _item(2, "Alpine"), _item(3, "Beta")])
+    dialog._emoji.set_items(
+        [
+            SnippetItem(
+                item_id=10,
+                zone=ZONE_EMOJI,
+                value="😀",
+                hint="",
+                created_at="2026-01-01T00:00:00+00:00",
+                last_used_at=None,
+                sort_index=0,
+            ),
+        ],
+    )
     dialog.show()
-    qapp.processEvents()
-    assert dialog._page_tabs.tabText(0) == "Snippets"
-    assert dialog._page_tabs.tabText(1) == "Scripts"
-    assert dialog._input.isVisible()
-    assert not dialog._scripts._add_button.isVisible()
-    tab_bar = dialog._page_tabs.tabBar()
-    tab_bottom = tab_bar.mapTo(dialog, tab_bar.rect().bottomLeft()).y()
-    input_top = dialog._input.mapTo(dialog, dialog._input.rect().topLeft()).y()
-    assert tab_bottom <= input_top
-    if dialog._win11_caption:
-        row = dialog.findChild(QWidget, "captionButtonRow")
-        assert row is not None
-        assert abs(tab_bar.mapTo(dialog, tab_bar.rect().center()).y() - row.mapTo(dialog, row.rect().center()).y()) <= 4
-
-    dialog._page_tabs.setCurrentIndex(dialog._scripts_tab_index)
-    qapp.processEvents()
-    assert not dialog._input.isVisible()
-    assert dialog._scripts._add_button.isVisible()
-    composer_top = dialog._scripts._edit.mapTo(dialog, dialog._scripts._edit.rect().topLeft()).y()
-    assert tab_bottom <= composer_top
-    dialog._scripts.append_glyph("²")
-    dialog._scripts.append_glyph("₃")
-    assert dialog._scripts.composed_text() == "²₃"
-    dialog._scripts._add_button.click()
-    qapp.processEvents()
-    assert pasted == ["²₃"]
-    assert dialog._scripts.composed_text() == ""
-    dialog._scripts._add_button.click()
-    assert pasted == ["²₃"]
+    QApplication.processEvents()
+    dialog._activate_zone(ZONE_PHRASE, select_item=False)
+    dialog._input.setText("Al")
+    assert dialog._phrases.filter_query() == "Al"
+    assert dialog._phrases._list.item(2) is not None
+    assert not dialog._phrases._list.item(2).isHidden()
+    assert dialog._phrases._list.item(2).data(_FILTER_MATCH_ROLE) is False
+    dialog.focusNextPrevChild(True)  # noqa: FBT003
+    QApplication.processEvents()
+    assert dialog._phrases.filter_query() == ""
+    assert dialog._phrases._list.item(2) is not None
+    assert not dialog._phrases._list.item(2).isHidden()
+    assert dialog._phrases._list.item(2).data(_FILTER_MATCH_ROLE) is True
+    assert dialog._input.text() == "😀"
     dialog.close()
 
 
-def test_example_config_binds_ctrl_shift_f3() -> None:
-    data = json.loads(_EXAMPLE_CONFIG.read_text(encoding="utf-8"))
-    assert data["sqlite_snippets"].endswith("snippets.db")
-    matching = [entry for entry in data["hotkeys"] if entry.get("action") == "OnSnippets"]
-    assert matching
-    assert "Ctrl+Shift+F3" in matching[0]["hotkeys"]
-
-
-@pytest.mark.slow
-def test_scripts_panel_scroll_uses_dark_window_bg(qapp: QApplication) -> None:
-    """Scripts glyph grid stays on Fluent window_bg in dark theme, not the light plate."""
+def test_zone_panel_context_menu_includes_sort(qapp: QApplication) -> None:
     assert qapp is not None
-    theme = FluentTheme.instance()
-    previous = theme.mode()
-    theme.set_mode(ThemeMode.DARK, persist=False)
-    host = QWidget()
-    enable_fluent_theme(host)
-    panel = ScriptsPanel(host)
-    try:
-        viewport = panel._scroll.viewport()
-        assert viewport.palette().color(QPalette.ColorRole.Base) == DARK_PALETTE.window_bg
-        scroll_sheet = panel._scroll.styleSheet().casefold()
-        assert "rgba(32, 32, 32" in scroll_sheet or DARK_PALETTE.window_bg.name().casefold() in scroll_sheet
-        sections_sheet = panel._sections.styleSheet().casefold()
-        assert "rgba(32, 32, 32" in sections_sheet or DARK_PALETTE.window_bg.name().casefold() in sections_sheet
-        assert "#f3f3f3" not in scroll_sheet
-    finally:
-        theme.set_mode(previous, persist=False)
-        panel.close()
-        host.close()
+    panel = ZonePanel(zone=ZONE_PHRASE, title="Phrases")
+    panel.set_sort_state(ZoneSort(mode=SORT_USED, descending=True))
+    menu = panel._build_context_menu(None)
+    texts = [action.text() for action in menu.actions() if action.text()]
+    assert "Add item" in texts
+    assert "Sort by last used (reversed)" in texts
+    assert "Sort alphabetically" in texts
+    used = next(action for action in menu.actions() if action.text().startswith("Sort by last used"))
+    assert used.isChecked()
+    menu.deleteLater()
+    panel.close()
+
+
+def _item(
+    item_id: int,
+    value: str,
+    *,
+    created_at: str = "2026-01-01T00:00:00+00:00",
+    last_used_at: str | None = None,
+) -> SnippetItem:
+    return SnippetItem(
+        item_id=item_id,
+        zone="phrase",
+        value=value,
+        hint="",
+        created_at=created_at,
+        last_used_at=last_used_at,
+        sort_index=item_id,
+    )
