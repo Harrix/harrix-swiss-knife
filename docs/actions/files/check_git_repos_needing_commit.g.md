@@ -46,7 +46,7 @@ class DirtyRepo:
 class OnCheckGitReposNeedingCommit(ActionBase)
 ```
 
-Scan `paths_git_roots` for repositories with uncommitted changes.
+Git: scan `paths_git_roots` for repositories with uncommitted changes.
 
 For each dirty repo you can open it in GitHub Desktop or create a commit
 (`git add -A` + `git commit`) with a message you enter.
@@ -58,8 +58,8 @@ For each dirty repo you can open it in GitHub Desktop or create a commit
 class OnCheckGitReposNeedingCommit(ActionBase):
 
     icon = "📌"
-    title = "Check Git repos needing commit…"
-    description = "List dirty repos under paths_git_roots; open GitHub Desktop or commit."
+    title = "Git repos needing commit…"
+    description = "Git: list dirty repos under paths_git_roots; open GitHub Desktop or commit."
     cli_available = True
     cli_hint = "file check-git-repos-needing-commit"
     bold_title = True

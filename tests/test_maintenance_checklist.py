@@ -70,7 +70,7 @@ def test_git_repos_step_tint_follows_all_clean_status(
         )
         dialog._refresh_row(CHECK_GIT_REPOS_STEP_CLASS)
         assert row.card._success_tint is False
-        assert "Dirty repos" in row.card._description_label.text()
+        assert "Git: dirty repos" in row.card._description_label.text()
     finally:
         dialog.close()
         dialog.deleteLater()

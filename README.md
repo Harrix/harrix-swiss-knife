@@ -89,7 +89,6 @@ _Figure 1: Screenshot_
   - 📦 Upgrade packages (uv)
   - 📋 View recent action logs
 - **File operations**
-  - 📌 ★ Check Git repos needing commit… ꟲᴸᴵ
   - 🎵 Check MusicBee playlists
   - ✅ Check featured_image in all folders
   - ✅ Check featured_image in …
@@ -100,6 +99,7 @@ _Figure 1: Screenshot_
   - 📦 Extract ZIP archives in …
   - 🔀 Flip slashes
   - 🎯 Git commit message…
+  - 📌 ★ Git repos needing commit… ꟲᴸᴵ
   - 📄 List files in …
   - 📄 List files in … (ignore hidden folders)
   - 📄 List files in … (only current folder)

@@ -263,7 +263,7 @@ class MaintenanceChecklistDialog(QDialog):
             if git_clean is True:
                 note = "All configured repos are clean"
             elif git_clean is False:
-                note = "Dirty repos under `paths_git_roots`"
+                note = "Git: dirty repos under `paths_git_roots`"
         if note:
             description = f"{description} · {note}"
         if not row.step.include_in_run_all:
