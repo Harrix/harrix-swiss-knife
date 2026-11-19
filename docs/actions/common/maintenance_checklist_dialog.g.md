@@ -39,6 +39,9 @@ class MaintenanceChecklistDialog(QDialog):
         """Build the checklist UI."""
         super().__init__(parent)
         self.setWindowTitle("Maintenance checklist")
+        self.setModal(False)
+        self.setWindowModality(Qt.WindowModality.NonModal)
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)  # noqa: FBT003
         self.setMinimumSize(720, 560)
         enable_fluent_theme(self)
 
@@ -218,6 +221,9 @@ def __init__(
     ) -> None:
         super().__init__(parent)
         self.setWindowTitle("Maintenance checklist")
+        self.setModal(False)
+        self.setWindowModality(Qt.WindowModality.NonModal)
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)  # noqa: FBT003
         self.setMinimumSize(720, 560)
         enable_fluent_theme(self)
 

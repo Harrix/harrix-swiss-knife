@@ -12,6 +12,7 @@ lang: en
 ## Contents
 
 - [🏛️ Class `OnRunMaintenanceChecklist`](#%EF%B8%8F-class-onrunmaintenancechecklist)
+  - [⚙️ Method `clear_checklist_dialog (classmethod)`](#%EF%B8%8F-method-clear_checklist_dialog-classmethod)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
 
 </details>
@@ -40,6 +41,12 @@ class OnRunMaintenanceChecklist(ActionBase):
     cli_available = True
     cli_hint = "dev maintenance-checklist"
     bold_title = True
+    checklist_dialog: ClassVar[MaintenanceChecklistDialog | None] = None
+
+    @classmethod
+    def clear_checklist_dialog(cls, *_args: object) -> None:
+        """Drop the cached checklist after Qt destroys it."""
+        cls.checklist_dialog = None
 
     @ActionBase.handle_exceptions("maintenance checklist")
     def execute(self, *_args: Any, noninteractive: bool = False, **_kwargs: Any) -> None:
@@ -58,8 +65,39 @@ class OnRunMaintenanceChecklist(ActionBase):
             MaintenanceChecklistDialog,
         )
 
+        dialog = OnRunMaintenanceChecklist.checklist_dialog
+        if dialog is not None and isValid(dialog):
+            dialog.show()
+            dialog.raise_()
+            dialog.activateWindow()
+            self.add_line("✅ Maintenance checklist is already open")
+            return
+
         dialog = MaintenanceChecklistDialog(output_bus=self._output_bus)
-        dialog.exec()
+        dialog.destroyed.connect(OnRunMaintenanceChecklist.clear_checklist_dialog)
+        OnRunMaintenanceChecklist.checklist_dialog = dialog
+        dialog.show()
+        dialog.raise_()
+        dialog.activateWindow()
+        self.add_line("✅ Maintenance checklist opened")
+```
+
+</details>
+
+### ⚙️ Method `clear_checklist_dialog (classmethod)`
+
+```python
+def clear_checklist_dialog(cls, *_args: object) -> None
+```
+
+Drop the cached checklist after Qt destroys it.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def clear_checklist_dialog(cls, *_args: object) -> None:
+        cls.checklist_dialog = None
 ```
 
 </details>
@@ -91,8 +129,21 @@ def execute(self, *_args: Any, noninteractive: bool = False, **_kwargs: Any) -> 
             MaintenanceChecklistDialog,
         )
 
+        dialog = OnRunMaintenanceChecklist.checklist_dialog
+        if dialog is not None and isValid(dialog):
+            dialog.show()
+            dialog.raise_()
+            dialog.activateWindow()
+            self.add_line("✅ Maintenance checklist is already open")
+            return
+
         dialog = MaintenanceChecklistDialog(output_bus=self._output_bus)
-        dialog.exec()
+        dialog.destroyed.connect(OnRunMaintenanceChecklist.clear_checklist_dialog)
+        OnRunMaintenanceChecklist.checklist_dialog = dialog
+        dialog.show()
+        dialog.raise_()
+        dialog.activateWindow()
+        self.add_line("✅ Maintenance checklist opened")
 ```
 
 </details>

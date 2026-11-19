@@ -4,6 +4,11 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
+import pytest
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QApplication
+
+from harrix_swiss_knife.actions.common.maintenance_checklist_dialog import MaintenanceChecklistDialog
 from harrix_swiss_knife.actions.common.maintenance_checklist_steps import (
     MAINTENANCE_STEP_SPECS,
     format_last_used,
@@ -13,6 +18,17 @@ from harrix_swiss_knife.actions.common.maintenance_checklist_steps import (
 )
 from harrix_swiss_knife.actions.development.run_maintenance_checklist import OnRunMaintenanceChecklist
 from harrix_swiss_knife.actions.development.upgrade_uv_packages import OnUpgradeUvPackages
+
+
+@pytest.fixture
+def qapp() -> QApplication:
+    app = QApplication.instance()
+    if app is None:
+        return QApplication([])
+    if not isinstance(app, QApplication):
+        msg = "QApplication.instance() returned a non-QApplication object."
+        raise TypeError(msg)
+    return app
 
 
 def test_format_last_used_never_and_relative() -> None:
@@ -30,6 +46,20 @@ def test_is_last_used_within_last_day() -> None:
     assert is_last_used_within((now - timedelta(hours=23)).isoformat(timespec="seconds"))
     assert not is_last_used_within((now - timedelta(hours=25)).isoformat(timespec="seconds"))
     assert not is_last_used_within((now + timedelta(hours=1)).isoformat(timespec="seconds"))
+
+
+def test_maintenance_checklist_dialog_is_non_modal(qapp: QApplication) -> None:
+    """Checklist must not block the rest of the app as an application-modal dialog."""
+    assert qapp is not None
+    OnRunMaintenanceChecklist.clear_checklist_dialog()
+    dialog = MaintenanceChecklistDialog()
+    try:
+        assert dialog.isModal() is False
+        assert dialog.windowModality() == Qt.WindowModality.NonModal
+    finally:
+        dialog.close()
+        dialog.deleteLater()
+        OnRunMaintenanceChecklist.clear_checklist_dialog()
 
 
 def test_maintenance_groups_preserve_order() -> None:

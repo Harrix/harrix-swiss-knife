@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any, ClassVar
+
+from shiboken6 import isValid
 
 from harrix_swiss_knife.actions.common.base import ActionBase
 from harrix_swiss_knife.actions.common.maintenance_checklist_steps import maintenance_steps
+
+if TYPE_CHECKING:
+    from harrix_swiss_knife.actions.common.maintenance_checklist_dialog import MaintenanceChecklistDialog
 
 
 class OnRunMaintenanceChecklist(ActionBase):
@@ -23,6 +28,12 @@ class OnRunMaintenanceChecklist(ActionBase):
     cli_available = True
     cli_hint = "dev maintenance-checklist"
     bold_title = True
+    checklist_dialog: ClassVar[MaintenanceChecklistDialog | None] = None
+
+    @classmethod
+    def clear_checklist_dialog(cls, *_args: object) -> None:
+        """Drop the cached checklist after Qt destroys it."""
+        cls.checklist_dialog = None
 
     @ActionBase.handle_exceptions("maintenance checklist")
     def execute(self, *_args: Any, noninteractive: bool = False, **_kwargs: Any) -> None:
@@ -41,5 +52,18 @@ class OnRunMaintenanceChecklist(ActionBase):
             MaintenanceChecklistDialog,
         )
 
+        dialog = OnRunMaintenanceChecklist.checklist_dialog
+        if dialog is not None and isValid(dialog):
+            dialog.show()
+            dialog.raise_()
+            dialog.activateWindow()
+            self.add_line("✅ Maintenance checklist is already open")
+            return
+
         dialog = MaintenanceChecklistDialog(output_bus=self._output_bus)
-        dialog.exec()
+        dialog.destroyed.connect(OnRunMaintenanceChecklist.clear_checklist_dialog)
+        OnRunMaintenanceChecklist.checklist_dialog = dialog
+        dialog.show()
+        dialog.raise_()
+        dialog.activateWindow()
+        self.add_line("✅ Maintenance checklist opened")
