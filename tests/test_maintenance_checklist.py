@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import sys
 from datetime import UTC, datetime, timedelta
 
 import pytest
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QWidget
 
 from harrix_swiss_knife.actions.common.maintenance_checklist_dialog import MaintenanceChecklistDialog
 from harrix_swiss_knife.actions.common.maintenance_checklist_steps import (
@@ -21,6 +22,7 @@ from harrix_swiss_knife.actions.common.maintenance_checklist_steps import (
 from harrix_swiss_knife.actions.development.run_maintenance_checklist import OnRunMaintenanceChecklist
 from harrix_swiss_knife.actions.development.update_harrix_swiss_knife import OnUpdateHarrixSwissKnife
 from harrix_swiss_knife.actions.development.upgrade_uv_packages import OnUpgradeUvPackages
+from harrix_swiss_knife.win11_caption import OVERLAY_CAPTION_PROPERTY
 
 
 @pytest.fixture
@@ -88,6 +90,23 @@ def test_maintenance_checklist_run_buttons_enabled_before_show(
         assert all(enabled)
         assert dialog._rows[UPDATE_HSK_STEP_CLASS].run_button.isEnabled() is False
         assert dialog._run_all_button.isEnabled() is True
+    finally:
+        dialog.close()
+        dialog.deleteLater()
+        OnRunMaintenanceChecklist.clear_checklist_dialog()
+
+
+def test_maintenance_checklist_uses_app_caption_chrome(qapp: QApplication) -> None:
+    """Use the same Win11 caption / frameless chrome as other HSK app Windows."""
+    assert qapp is not None
+    OnRunMaintenanceChecklist.clear_checklist_dialog()
+    dialog = MaintenanceChecklistDialog()
+    try:
+        assert dialog.property(OVERLAY_CAPTION_PROPERTY) is True
+        if sys.platform == "win32":
+            assert dialog._win11_caption is True
+            assert dialog.windowFlags() & Qt.WindowType.FramelessWindowHint
+            assert dialog.findChild(QWidget, "captionBar") is not None
     finally:
         dialog.close()
         dialog.deleteLater()

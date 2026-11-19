@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
 
 from PySide6.QtCore import QEventLoop, Qt, QTimer
 from PySide6.QtWidgets import QDialog, QHBoxLayout, QVBoxLayout, QWidget
@@ -18,7 +18,7 @@ from harrix_swiss_knife.actions.common.maintenance_checklist_steps import (
     save_show_update_hsk_step,
 )
 from harrix_swiss_knife.apps.common.qt_main_window import apply_app_window_size_and_position
-from harrix_swiss_knife.fluent.theme import enable_fluent_theme
+from harrix_swiss_knife.fluent.app_chrome import install_fluent_app_window, prepare_fluent_app_window
 from harrix_swiss_knife.fluent.tokens import SPACE_L, SPACE_M, SPACE_S, SPACE_XL
 from harrix_swiss_knife.fluent.widgets import (
     FluentCheckBox,
@@ -31,7 +31,12 @@ from harrix_swiss_knife.fluent.widgets import (
     FluentText,
     Severity,
     TextRole,
-    TextStyle,
+)
+from harrix_swiss_knife.installer.icon_assets import apply_window_icon
+from harrix_swiss_knife.win11_caption import (
+    OVERLAY_CAPTION_PROPERTY,
+    install_win11_caption,
+    try_handle_win11_caption_native_event,
 )
 
 if TYPE_CHECKING:
@@ -53,28 +58,40 @@ class MaintenanceChecklistDialog(QDialog):
     ) -> None:
         """Build the checklist UI."""
         super().__init__(parent)
+        self.setObjectName("maintenanceChecklistDialog")
         self.setWindowTitle("Maintenance checklist")
         self.setModal(False)
         self.setWindowModality(Qt.WindowModality.NonModal)
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)  # noqa: FBT003
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
+        self.setProperty(OVERLAY_CAPTION_PROPERTY, True)  # noqa: FBT003
         self.setMinimumSize(720, 560)
-        enable_fluent_theme(self)
+        apply_window_icon(self)
+        prepare_fluent_app_window(self)
 
         self._output_bus = output_bus
         self._session_done: set[str] = set()
         self._busy = False
         self._rows: dict[str, _StepRow] = {}
+        self._win11_caption = False
 
         root = QVBoxLayout(self)
-        root.setContentsMargins(SPACE_XL, SPACE_XL, SPACE_XL, SPACE_XL)
-        root.setSpacing(SPACE_M)
+        root.setContentsMargins(0, 0, 0, 0)
+        root.setSpacing(0)
 
-        root.addWidget(FluentText("Maintenance checklist", self, style=TextStyle.SUBTITLE))
-        root.addWidget(
+        self._win11_caption = install_win11_caption(self)
+
+        body = QWidget(self)
+        body.setObjectName("maintenanceChecklistBody")
+        body_layout = QVBoxLayout(body)
+        body_layout.setContentsMargins(SPACE_XL, SPACE_M, SPACE_XL, SPACE_XL)
+        body_layout.setSpacing(SPACE_M)
+
+        body_layout.addWidget(
             FluentText(
                 "Run update, sync, and check actions. Last run comes from action usage; "
                 "green cards ran in the last 24 hours; Done marks steps finished in this session.",
-                self,
+                body,
                 role=TextRole.SECONDARY,
                 word_wrap=True,
             )
@@ -82,14 +99,14 @@ class MaintenanceChecklistDialog(QDialog):
 
         toolbar = QHBoxLayout()
         toolbar.setSpacing(SPACE_S)
-        self._run_all_button = FluentPrimaryButton("Run all remaining", self)
+        self._run_all_button = FluentPrimaryButton("Run all remaining", body)
         self._run_all_button.clicked.connect(self._on_run_all)
         toolbar.addWidget(self._run_all_button)
-        self._progress = FluentText("", self, role=TextRole.SECONDARY)
+        self._progress = FluentText("", body, role=TextRole.SECONDARY)
         toolbar.addWidget(self._progress, 1)
-        root.addLayout(toolbar)
+        body_layout.addLayout(toolbar)
 
-        scroll = FluentScrollArea(self)
+        scroll = FluentScrollArea(body)
         content = QWidget(scroll)
         content_layout = QVBoxLayout(content)
         content_layout.setContentsMargins(0, 0, SPACE_S, 0)
@@ -106,7 +123,7 @@ class MaintenanceChecklistDialog(QDialog):
 
         content_layout.addStretch(1)
         scroll.setWidget(content)
-        root.addWidget(scroll, 1)
+        body_layout.addWidget(scroll, 1)
 
         footer = QHBoxLayout()
         footer.setSpacing(SPACE_S)
@@ -115,14 +132,17 @@ class MaintenanceChecklistDialog(QDialog):
             if UPDATE_HSK_STEP_CLASS in self._rows
             else ("Update Harrix Swiss Knife from GitHub…")
         )
-        self._show_update_hsk = FluentCheckBox(f"Show {update_title}", self)
+        self._show_update_hsk = FluentCheckBox(f"Show {update_title}", body)
         self._show_update_hsk.setChecked(load_show_update_hsk_step())
         self._show_update_hsk.toggled.connect(lambda checked: self._on_show_update_hsk_toggled(enabled=checked))
         footer.addWidget(self._show_update_hsk, 1)
-        close_button = FluentPushButton("Close", self)
+        close_button = FluentPushButton("Close", body)
         close_button.clicked.connect(self.accept)
         footer.addWidget(close_button)
-        root.addLayout(footer)
+        body_layout.addLayout(footer)
+
+        root.addWidget(body, 1)
+        install_fluent_app_window(self)
 
         self._apply_update_hsk_visibility(visible=self._show_update_hsk.isChecked())
         self._refresh_all_rows()
@@ -131,7 +151,15 @@ class MaintenanceChecklistDialog(QDialog):
         self._last_run_timer.timeout.connect(self._refresh_last_run_labels)
         self._last_run_timer.start()
         # Same sizing as food/finance/habits main windows (maximize or ~1920 wide).
+        # Win11 caption is frameless; maximize uses the monitor work area (above the taskbar).
         apply_app_window_size_and_position(self)
+
+    def nativeEvent(self, event_type: Any, message: Any) -> tuple[bool, int]:  # noqa: N802
+        """Keep caption drag, edge resize, and maximized work-area sizing on Windows."""
+        handled = try_handle_win11_caption_native_event(self, event_type, message)
+        if handled is not None:
+            return handled
+        return cast("tuple[bool, int]", super().nativeEvent(event_type, message))
 
     def _apply_update_hsk_visibility(self, *, visible: bool) -> None:
         row = self._rows.get(UPDATE_HSK_STEP_CLASS)
