@@ -8,11 +8,13 @@ from PySide6.QtCore import QEventLoop, Qt, QTimer
 from PySide6.QtWidgets import QDialog, QHBoxLayout, QVBoxLayout, QWidget
 
 from harrix_swiss_knife.actions.common.maintenance_checklist_steps import (
+    CHECK_GIT_REPOS_STEP_CLASS,
     UPDATE_HSK_STEP_CLASS,
     MaintenanceStep,
     format_last_used,
     is_last_used_within,
     last_used_for_class,
+    load_git_repos_all_clean,
     load_show_update_hsk_step,
     maintenance_groups,
     save_show_update_hsk_step,
@@ -90,7 +92,9 @@ class MaintenanceChecklistDialog(QDialog):
         body_layout.addWidget(
             FluentText(
                 "Run update, sync, and check actions. Last run comes from action usage; "
-                "green cards ran in the last 24 hours; Done marks steps finished in this session.",
+                "green cards ran in the last 24 hours "
+                "(Git check stays green when all repos are clean); "
+                "Done marks steps finished in this session.",
                 body,
                 role=TextRole.SECONDARY,
                 word_wrap=True,
@@ -106,8 +110,8 @@ class MaintenanceChecklistDialog(QDialog):
         toolbar.addWidget(self._progress, 1)
         body_layout.addLayout(toolbar)
 
-        scroll = FluentScrollArea(body)
-        content = QWidget(scroll)
+        self._scroll = FluentScrollArea(body)
+        content = QWidget(self._scroll)
         content_layout = QVBoxLayout(content)
         content_layout.setContentsMargins(0, 0, SPACE_S, 0)
         content_layout.setSpacing(SPACE_L)
@@ -122,8 +126,8 @@ class MaintenanceChecklistDialog(QDialog):
             content_layout.addWidget(group)
 
         content_layout.addStretch(1)
-        scroll.setWidget(content)
-        body_layout.addWidget(scroll, 1)
+        self._scroll.setWidget(content)
+        body_layout.addWidget(self._scroll, 1)
 
         footer = QHBoxLayout()
         footer.setSpacing(SPACE_S)
@@ -166,6 +170,13 @@ class MaintenanceChecklistDialog(QDialog):
         if row is not None:
             row.card.setVisible(visible)
 
+    def _ensure_step_card_visible(self, step: MaintenanceStep) -> None:
+        """Keep the step card in view after Run (busy disable can scroll the list away)."""
+        row = self._rows.get(step.class_name)
+        if row is None:
+            return
+        self._scroll.ensureWidgetVisible(row.card, 0, 48)
+
     def _on_run_all(self) -> None:
         if self._busy:
             return
@@ -180,6 +191,7 @@ class MaintenanceChecklistDialog(QDialog):
             self._progress.setText("Nothing left to run in this session")
             return
 
+        scroll_pos = self._scroll.verticalScrollBar().value()
         self._set_busy(busy=True)
         try:
             for index, step in enumerate(ordered, start=1):
@@ -191,10 +203,13 @@ class MaintenanceChecklistDialog(QDialog):
             self._set_busy(busy=False)
             self._progress.setText("Run all finished")
             self._refresh_all_rows()
+            self._scroll.verticalScrollBar().setValue(scroll_pos)
+            self._ensure_step_card_visible(ordered[-1])
 
     def _on_run_one(self, step: MaintenanceStep) -> None:
         if self._busy:
             return
+        scroll_pos = self._scroll.verticalScrollBar().value()
         self._set_busy(busy=True)
         self._progress.setText(f"Running: {step.title}")
         try:
@@ -207,6 +222,8 @@ class MaintenanceChecklistDialog(QDialog):
             visible = self._visible_row_count()
             done = self._visible_session_done_count()
             self._progress.setText(f"Done this session: {done}/{visible}")
+            self._scroll.verticalScrollBar().setValue(scroll_pos)
+            self._ensure_step_card_visible(step)
 
     def _on_show_update_hsk_toggled(self, *, enabled: bool) -> None:
         save_show_update_hsk_step(enabled=enabled)
@@ -241,12 +258,18 @@ class MaintenanceChecklistDialog(QDialog):
         last_label = format_last_used(stamp)
         note = row.step.note
         description = f"Last run: {last_label}"
+        if class_name == CHECK_GIT_REPOS_STEP_CLASS:
+            git_clean = load_git_repos_all_clean()
+            if git_clean is True:
+                note = "All configured repos are clean"
+            elif git_clean is False:
+                note = "Dirty repos under `paths_git_roots`"
         if note:
             description = f"{description} · {note}"
         if not row.step.include_in_run_all:
             description = f"{description} · Not in Run all"
         row.set_description(description)
-        row.set_recent(recent=is_last_used_within(stamp, hours=24))
+        row.set_recent(recent=self._step_success_tint(class_name, stamp=stamp))
 
     def _row_is_listed(self, row: _StepRow) -> bool:
         """Return whether the step is shown in the checklist (not Qt visibility).
@@ -270,10 +293,21 @@ class MaintenanceChecklistDialog(QDialog):
                 loop.exec()
 
     def _set_busy(self, *, busy: bool) -> None:
+        if busy:
+            # Disabling the focused Run button makes Qt move focus to the next
+            # focusable card inside the scroll area and auto-scroll to it.
+            # Keep focus on the dialog itself (Run all is also disabled while busy).
+            self.setFocus(Qt.FocusReason.OtherFocusReason)
         self._busy = busy
         self._run_all_button.setEnabled(not busy)
         for row in self._rows.values():
             row.run_button.setEnabled(not busy and self._row_is_listed(row))
+
+    def _step_success_tint(self, class_name: str, *, stamp: str) -> bool:
+        """Return whether the card should use the green success tint."""
+        if class_name == CHECK_GIT_REPOS_STEP_CLASS:
+            return load_git_repos_all_clean() is True
+        return is_last_used_within(stamp, hours=24)
 
     def _visible_row_count(self) -> int:
         return sum(1 for row in self._rows.values() if self._row_is_listed(row))

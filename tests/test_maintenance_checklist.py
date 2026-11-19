@@ -11,6 +11,7 @@ from PySide6.QtWidgets import QApplication, QWidget
 
 from harrix_swiss_knife.actions.common.maintenance_checklist_dialog import MaintenanceChecklistDialog
 from harrix_swiss_knife.actions.common.maintenance_checklist_steps import (
+    CHECK_GIT_REPOS_STEP_CLASS,
     MAINTENANCE_STEP_SPECS,
     UPDATE_HSK_STEP_CLASS,
     format_last_used,
@@ -43,6 +44,39 @@ def test_format_last_used_never_and_relative() -> None:
     assert format_last_used(recent) == "3 min ago"
 
 
+def test_git_repos_step_tint_follows_all_clean_status(
+    qapp: QApplication,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Git check card is green only when the last scan reported every repo clean."""
+    assert qapp is not None
+    monkeypatch.setattr(
+        "harrix_swiss_knife.actions.common.maintenance_checklist_dialog.load_show_update_hsk_step",
+        lambda: False,
+    )
+    monkeypatch.setattr(
+        "harrix_swiss_knife.actions.common.maintenance_checklist_dialog.load_git_repos_all_clean",
+        lambda: True,
+    )
+    OnRunMaintenanceChecklist.clear_checklist_dialog()
+    dialog = MaintenanceChecklistDialog()
+    try:
+        row = dialog._rows[CHECK_GIT_REPOS_STEP_CLASS]
+        assert row.card._success_tint is True
+        assert "All configured repos are clean" in row.card._description_label.text()
+        monkeypatch.setattr(
+            "harrix_swiss_knife.actions.common.maintenance_checklist_dialog.load_git_repos_all_clean",
+            lambda: False,
+        )
+        dialog._refresh_row(CHECK_GIT_REPOS_STEP_CLASS)
+        assert row.card._success_tint is False
+        assert "Dirty repos" in row.card._description_label.text()
+    finally:
+        dialog.close()
+        dialog.deleteLater()
+        OnRunMaintenanceChecklist.clear_checklist_dialog()
+
+
 def test_is_last_used_within_last_day() -> None:
     assert is_last_used_within("") is False
     assert is_last_used_within(None) is False
@@ -51,6 +85,37 @@ def test_is_last_used_within_last_day() -> None:
     assert is_last_used_within((now - timedelta(hours=23)).isoformat(timespec="seconds"))
     assert not is_last_used_within((now - timedelta(hours=25)).isoformat(timespec="seconds"))
     assert not is_last_used_within((now + timedelta(hours=1)).isoformat(timespec="seconds"))
+
+
+def test_maintenance_checklist_busy_keeps_focus_out_of_scroll_list(
+    qapp: QApplication,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Disabling Run must not move focus into another card (that auto-scrolls the list)."""
+    assert qapp is not None
+    monkeypatch.setattr(
+        "harrix_swiss_knife.actions.common.maintenance_checklist_dialog.load_show_update_hsk_step",
+        lambda: False,
+    )
+    OnRunMaintenanceChecklist.clear_checklist_dialog()
+    dialog = MaintenanceChecklistDialog()
+    dialog.show()
+    qapp.processEvents()
+    try:
+        first = next(row for class_name, row in dialog._rows.items() if class_name != UPDATE_HSK_STEP_CLASS)
+        first.run_button.setFocus(Qt.FocusReason.OtherFocusReason)
+        qapp.processEvents()
+        dialog._scroll.verticalScrollBar().setValue(0)
+        dialog._set_busy(busy=True)
+        qapp.processEvents()
+        focused = dialog.focusWidget()
+        assert focused is dialog or focused is None or not dialog._scroll.isAncestorOf(focused)
+        assert dialog._scroll.verticalScrollBar().value() == 0
+        dialog._set_busy(busy=False)
+    finally:
+        dialog.close()
+        dialog.deleteLater()
+        OnRunMaintenanceChecklist.clear_checklist_dialog()
 
 
 def test_maintenance_checklist_dialog_is_non_modal(qapp: QApplication) -> None:

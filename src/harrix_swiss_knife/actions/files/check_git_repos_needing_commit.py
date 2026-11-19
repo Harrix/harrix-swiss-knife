@@ -12,6 +12,7 @@ from typing import Any
 from urllib.parse import quote
 
 from harrix_swiss_knife.actions.common.base import ActionBase
+from harrix_swiss_knife.actions.common.maintenance_checklist_steps import save_git_repos_all_clean
 from harrix_swiss_knife.actions.files.discard_git_changes import OnDiscardGitChanges
 
 
@@ -237,6 +238,7 @@ class OnCheckGitReposNeedingCommit(ActionBase):
         return False, "GitHub Desktop CLI (`github`) not found on PATH"
 
     def _report_scan(self, roots: list[Path], dirty: list[DirtyRepo]) -> None:
+        save_git_repos_all_clean(all_clean=not dirty)
         self.add_line(f"🔵 Scanned {len(roots)} root(s) from `paths_git_roots`")
         for root in roots:
             self.add_line(f"  • {root}")

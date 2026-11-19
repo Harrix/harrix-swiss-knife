@@ -26,6 +26,9 @@ if TYPE_CHECKING:
 # Optional Tools row: hidden unless the checklist footer checkbox is on.
 UPDATE_HSK_STEP_CLASS = "OnUpdateHarrixSwissKnife"
 _SHOW_UPDATE_HSK_KEY = "maintenance_checklist_show_update_hsk"
+# Checks row: green tint follows last scan result (all clean), not only last-run age.
+CHECK_GIT_REPOS_STEP_CLASS = "OnCheckGitReposNeedingCommit"
+_GIT_REPOS_ALL_CLEAN_KEY = "maintenance_checklist_git_repos_all_clean"
 
 
 @dataclass(frozen=True, slots=True)
@@ -109,6 +112,18 @@ def last_used_for_class(class_name: str) -> str:
     return entry.get("last_used") or ""
 
 
+def load_git_repos_all_clean() -> bool | None:
+    """Return last Git-check result for the checklist tint, or `None` if unknown."""
+    try:
+        loaded: dict[str, Any] = h.dev.config_load(get_config_path_str(), is_temp=True)
+    except Exception:
+        return None
+    if _GIT_REPOS_ALL_CLEAN_KEY not in loaded:
+        return None
+    value = loaded.get(_GIT_REPOS_ALL_CLEAN_KEY)
+    return value if isinstance(value, bool) else None
+
+
 def load_show_update_hsk_step() -> bool:
     """Return whether the Update HSK checklist row is visible (default: hidden)."""
     try:
@@ -137,6 +152,11 @@ def maintenance_groups() -> list[tuple[str, list[MaintenanceStep]]]:
 def maintenance_steps() -> tuple[MaintenanceStep, ...]:
     """Resolve and cache checklist steps."""
     return tuple(_resolve_spec(spec) for spec in MAINTENANCE_STEP_SPECS)
+
+
+def save_git_repos_all_clean(*, all_clean: bool) -> None:
+    """Persist whether the last Git-repos check found every repo committed."""
+    h.dev.config_update_value(_GIT_REPOS_ALL_CLEAN_KEY, bool(all_clean), get_config_path_str(), is_temp=True)
 
 
 def save_show_update_hsk_step(*, enabled: bool) -> None:

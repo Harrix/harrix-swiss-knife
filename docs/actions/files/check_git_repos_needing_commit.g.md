@@ -262,6 +262,7 @@ class OnCheckGitReposNeedingCommit(ActionBase):
         return False, "GitHub Desktop CLI (`github`) not found on PATH"
 
     def _report_scan(self, roots: list[Path], dirty: list[DirtyRepo]) -> None:
+        save_git_repos_all_clean(all_clean=not dirty)
         self.add_line(f"🔵 Scanned {len(roots)} root(s) from `paths_git_roots`")
         for root in roots:
             self.add_line(f"  • {root}")

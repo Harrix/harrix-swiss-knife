@@ -18,9 +18,11 @@ lang: en
 - [🔧 Function `format_last_used`](#-function-format_last_used)
 - [🔧 Function `is_last_used_within`](#-function-is_last_used_within)
 - [🔧 Function `last_used_for_class`](#-function-last_used_for_class)
+- [🔧 Function `load_git_repos_all_clean`](#-function-load_git_repos_all_clean)
 - [🔧 Function `load_show_update_hsk_step`](#-function-load_show_update_hsk_step)
 - [🔧 Function `maintenance_groups`](#-function-maintenance_groups)
 - [🔧 Function `maintenance_steps`](#-function-maintenance_steps)
+- [🔧 Function `save_git_repos_all_clean`](#-function-save_git_repos_all_clean)
 - [🔧 Function `save_show_update_hsk_step`](#-function-save_show_update_hsk_step)
 
 </details>
@@ -208,6 +210,31 @@ def last_used_for_class(class_name: str) -> str:
 
 </details>
 
+## 🔧 Function `load_git_repos_all_clean`
+
+```python
+def load_git_repos_all_clean() -> bool | None
+```
+
+Return last Git-check result for the checklist tint, or `None` if unknown.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def load_git_repos_all_clean() -> bool | None:
+    try:
+        loaded: dict[str, Any] = h.dev.config_load(get_config_path_str(), is_temp=True)
+    except Exception:
+        return None
+    if _GIT_REPOS_ALL_CLEAN_KEY not in loaded:
+        return None
+    value = loaded.get(_GIT_REPOS_ALL_CLEAN_KEY)
+    return value if isinstance(value, bool) else None
+```
+
+</details>
+
 ## 🔧 Function `load_show_update_hsk_step`
 
 ```python
@@ -272,6 +299,24 @@ Resolve and cache checklist steps.
 ```python
 def maintenance_steps() -> tuple[MaintenanceStep, ...]:
     return tuple(_resolve_spec(spec) for spec in MAINTENANCE_STEP_SPECS)
+```
+
+</details>
+
+## 🔧 Function `save_git_repos_all_clean`
+
+```python
+def save_git_repos_all_clean(*, all_clean: bool) -> None
+```
+
+Persist whether the last Git-repos check found every repo committed.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def save_git_repos_all_clean(*, all_clean: bool) -> None:
+    h.dev.config_update_value(_GIT_REPOS_ALL_CLEAN_KEY, bool(all_clean), get_config_path_str(), is_temp=True)
 ```
 
 </details>
