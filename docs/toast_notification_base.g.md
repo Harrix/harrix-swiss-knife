@@ -307,10 +307,10 @@ class ToastNotificationBase(QDialog):
 
     def _apply_collapse_button_icon(self, *, compact: bool) -> None:
         side = COMPACT_ACTION_BUTTON_SIDE if compact else DEFAULT_ACTION_BUTTON_SIDE
-        symbol = _EXPAND_SYMBOL if self._is_pinned else _COLLAPSE_SYMBOL
+        name = _EXPAND_ICON if self._is_pinned else _COLLAPSE_ICON
         self._collapse_button.setFixedSize(side, side)
         self._collapse_button.setIconSize(QSize(side, side))
-        self._collapse_button.setIcon(make_action_icon(side, symbol))
+        self._collapse_button.setIcon(make_action_icon(side, name))
         self._collapse_button.setToolTip("Expand" if self._is_pinned else "Collapse")
 
     def _apply_compact_style(self) -> None:
@@ -319,7 +319,7 @@ class ToastNotificationBase(QDialog):
             "background-color: transparent;"
             "color: white;"
             f"padding: {toast_label_padding(compact=True)};"
-            "border-radius: 8px;"
+            f"border-radius: {TOAST_RADIUS_COMPACT}px;"
             "font-size: 10pt;"
             "font-weight: bold;",
         )
@@ -334,7 +334,7 @@ class ToastNotificationBase(QDialog):
             "background-color: transparent;"
             "color: white;"
             f"padding: {toast_label_padding(compact=False)};"
-            "border-radius: 10px;"
+            f"border-radius: {TOAST_RADIUS_DEFAULT}px;"
             "font-size: 16pt;"
             "font-weight: bold;",
         )
@@ -894,7 +894,7 @@ def compute_toast_stack_positions(
 def event_targets_widget(watched: QObject, root: QWidget) -> bool
 ```
 
-Return whether `watched` belongs to [`root`](apps/habits/habit_comments.g.md#%EF%B8%8F-method-root) or its native window.
+Return whether `watched` belongs to `root` or its native window.
 
 <details>
 <summary>Code:</summary>
@@ -945,28 +945,26 @@ def format_toast_cancel_hint_html(body: str, hint: str, *, compact: bool = False
 ## 🔧 Function `make_action_icon`
 
 ```python
-def make_action_icon(side: int, symbol: str) -> QIcon
+def make_action_icon(side: int, name: str) -> QIcon
 ```
 
-Render a centered action symbol for the given button side length.
+Render a white Lucide action icon for a toast corner button.
+
+Args:
+
+- `side` (`int`): Button side in pixels. The icon is painted at this size.
+- `name` (`str`): Lucide icon ID, such as `minus`, `square`, or `x`.
+
+Returns:
+
+- `QIcon`: White stroke icon, or an empty icon when `name` is unknown.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def make_action_icon(side: int, symbol: str) -> QIcon:
-    pixmap = QPixmap(side, side)
-    pixmap.fill(Qt.GlobalColor.transparent)
-    painter = QPainter(pixmap)
-    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-    font = painter.font()
-    font.setPixelSize(max(10, int(side * 0.72)))
-    font.setBold(True)
-    painter.setFont(font)
-    painter.setPen(QColor(255, 255, 255, 200))
-    painter.drawText(pixmap.rect(), Qt.AlignmentFlag.AlignCenter, symbol)
-    painter.end()
-    return QIcon(pixmap)
+def make_action_icon(side: int, name: str) -> QIcon:
+    return create_lucide_icon(name, side, color=_ACTION_ICON_COLOR)
 ```
 
 </details>

@@ -12,7 +12,7 @@ from harrix_swiss_knife import qt_modality, toast_countdown_notification, toast_
 if TYPE_CHECKING:
     from PySide6.QtGui import QCloseEvent, QKeyEvent, QResizeEvent
 
-_CLOSE_SYMBOL = "\u00d7"
+_CLOSE_ICON = "x"
 _CANCEL_HINT = "Press Esc to stop the request"
 
 
@@ -116,7 +116,7 @@ class ToastCancellableHttpNotification(toast_countdown_notification.ToastCountdo
         )
         self._close_button.setFixedSize(side, side)
         self._close_button.setIconSize(QSize(side, side))
-        self._close_button.setIcon(toast_notification_base.make_action_icon(side, _CLOSE_SYMBOL))
+        self._close_button.setIcon(toast_notification_base.make_action_icon(side, _CLOSE_ICON))
 
     def _apply_compact_style(self) -> None:
         """Apply compact styling to the label and close button."""

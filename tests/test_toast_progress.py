@@ -3,8 +3,13 @@
 from __future__ import annotations
 
 import pytest
+from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QApplication
 
+from harrix_swiss_knife.fluent.theme import FluentTheme, ThemeMode, css
+from harrix_swiss_knife.fluent.tokens import RADIUS_OVERLAY
+from harrix_swiss_knife.qt_lucide_icon import create_lucide_icon
+from harrix_swiss_knife.toast_notification_base import TOAST_RADIUS_COMPACT, TOAST_RADIUS_DEFAULT
 from harrix_swiss_knife.toast_progress_notification import ToastProgressNotification
 
 
@@ -17,6 +22,55 @@ def qapp() -> QApplication:
         msg = "QApplication.instance() returned a non-QApplication object."
         raise TypeError(msg)
     return app
+
+
+def test_progress_chunk_follows_theme_accent(qapp: QApplication) -> None:  # noqa: ARG001
+    theme = FluentTheme.instance()
+    previous = theme.mode()
+    theme.set_mode(ThemeMode.LIGHT, persist=False)
+    toast = ToastProgressNotification("Working…", total=4)
+    try:
+        light = css(theme.palette().accent)
+        assert light in toast.progress_bar.styleSheet()
+        assert "90, 170, 255" not in toast.progress_bar.styleSheet()
+        assert f"border-bottom-left-radius: {RADIUS_OVERLAY}px" in toast._progress_container.styleSheet()
+        theme.set_mode(ThemeMode.DARK, persist=False)
+        dark = css(theme.palette().accent)
+        assert dark in toast.progress_bar.styleSheet()
+        assert light not in toast.progress_bar.styleSheet()
+    finally:
+        toast.close()
+        theme.set_mode(previous, persist=False)
+
+
+def test_progress_toast_cancel_emits_once(qapp: QApplication) -> None:  # noqa: ARG001
+    toast = ToastProgressNotification("Opening folder…", cancellable=True)
+    cancelled: list[int] = []
+    toast.cancel_requested.connect(lambda: cancelled.append(1))
+    toast.close()
+    toast.close()
+    assert cancelled == [1]
+
+
+def test_progress_toast_cancel_hint_uses_smaller_font(qapp: QApplication) -> None:  # noqa: ARG001
+    toast = ToastProgressNotification("Opening folder…", cancellable=True)
+    toast._refresh_label_text()
+    html = toast.label.text()
+    assert "Press Esc to cancel" in html
+    assert "font-size: 10pt" in html
+    assert "font-weight: normal" in html
+    toast.close()
+
+
+def test_progress_toast_detail_line(qapp: QApplication) -> None:  # noqa: ARG001
+    toast = ToastProgressNotification("Syncing…", total=4)
+    assert toast.detail_label.isHidden()
+    toast.set_detail("English: TickTick Done 2026-08-01")
+    assert not toast.detail_label.isHidden()
+    assert toast.detail_label.text() == "English: TickTick Done 2026-08-01"
+    toast.set_detail("")
+    assert toast.detail_label.isHidden()
+    toast.close()
 
 
 def test_progress_toast_updates_bar(qapp: QApplication) -> None:  # noqa: ARG001
@@ -50,31 +104,17 @@ def test_progress_toast_zero_total_is_indeterminate(qapp: QApplication) -> None:
     toast.close()
 
 
-def test_progress_toast_cancel_emits_once(qapp: QApplication) -> None:  # noqa: ARG001
-    toast = ToastProgressNotification("Opening folder…", cancellable=True)
-    cancelled: list[int] = []
-    toast.cancel_requested.connect(lambda: cancelled.append(1))
-    toast.close()
-    toast.close()
-    assert cancelled == [1]
-
-
-def test_progress_toast_cancel_hint_uses_smaller_font(qapp: QApplication) -> None:  # noqa: ARG001
-    toast = ToastProgressNotification("Opening folder…", cancellable=True)
-    toast._refresh_label_text()
-    html = toast.label.text()
-    assert "Press Esc to cancel" in html
-    assert "font-size: 10pt" in html
-    assert "font-weight: normal" in html
+def test_toast_action_icons_are_lucide(qapp: QApplication) -> None:  # noqa: ARG001
+    white = QColor(255, 255, 255)
+    toast = ToastProgressNotification("Working…", cancellable=True)
+    assert toast._collapse_button.icon().cacheKey() == create_lucide_icon("minus", 24, color=white).cacheKey()
+    assert toast._close_button.icon().cacheKey() == create_lucide_icon("x", 24, color=white).cacheKey()
+    toast.set_pinned(pinned=True)
+    assert toast._collapse_button.icon().cacheKey() == create_lucide_icon("square", 18, color=white).cacheKey()
+    assert toast._close_button.icon().cacheKey() == create_lucide_icon("x", 18, color=white).cacheKey()
     toast.close()
 
 
-def test_progress_toast_detail_line(qapp: QApplication) -> None:  # noqa: ARG001
-    toast = ToastProgressNotification("Syncing…", total=4)
-    assert toast.detail_label.isHidden()
-    toast.set_detail("English: TickTick Done 2026-08-01")
-    assert not toast.detail_label.isHidden()
-    assert toast.detail_label.text() == "English: TickTick Done 2026-08-01"
-    toast.set_detail("")
-    assert toast.detail_label.isHidden()
-    toast.close()
+def test_toast_plate_radius_matches_overlay() -> None:
+    assert TOAST_RADIUS_DEFAULT == RADIUS_OVERLAY == 8
+    assert TOAST_RADIUS_COMPACT == RADIUS_OVERLAY

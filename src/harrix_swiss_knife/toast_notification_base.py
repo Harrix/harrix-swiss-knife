@@ -12,14 +12,18 @@ from html import escape
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QEvent, QEventLoop, QObject, QPoint, QRect, QSize, Qt
-from PySide6.QtGui import QCloseEvent, QColor, QIcon, QMouseEvent, QPainter, QPaintEvent, QPixmap, QShowEvent
+from PySide6.QtGui import QCloseEvent, QColor, QIcon, QMouseEvent, QPainter, QPaintEvent, QShowEvent
 from PySide6.QtWidgets import QApplication, QDialog, QLabel, QPushButton, QVBoxLayout, QWidget
+
+from harrix_swiss_knife.fluent.tokens import RADIUS_OVERLAY
+from harrix_swiss_knife.qt_lucide_icon import create_lucide_icon
 
 if TYPE_CHECKING:
     from PySide6.QtGui import QResizeEvent
 
-_COLLAPSE_SYMBOL = "\u2212"
-_EXPAND_SYMBOL = "\u25a1"
+_COLLAPSE_ICON = "minus"
+_EXPAND_ICON = "square"
+_ACTION_ICON_COLOR = QColor(255, 255, 255)
 
 DEFAULT_ACTION_BUTTON_SIDE = 24
 COMPACT_ACTION_BUTTON_SIDE = 18
@@ -39,8 +43,8 @@ CANCEL_HINT_FONT_SIZE_COMPACT = "8pt"
 STACK_GAP = 8
 SCREEN_MARGIN = 20
 TOAST_BG = QColor(40, 40, 40, 230)
-TOAST_RADIUS_DEFAULT = 10
-TOAST_RADIUS_COMPACT = 8
+TOAST_RADIUS_DEFAULT = RADIUS_OVERLAY
+TOAST_RADIUS_COMPACT = RADIUS_OVERLAY
 
 DEFAULT_ACTION_BUTTON_STYLE = (
     "QPushButton {"
@@ -330,10 +334,10 @@ class ToastNotificationBase(QDialog):
 
     def _apply_collapse_button_icon(self, *, compact: bool) -> None:
         side = COMPACT_ACTION_BUTTON_SIDE if compact else DEFAULT_ACTION_BUTTON_SIDE
-        symbol = _EXPAND_SYMBOL if self._is_pinned else _COLLAPSE_SYMBOL
+        name = _EXPAND_ICON if self._is_pinned else _COLLAPSE_ICON
         self._collapse_button.setFixedSize(side, side)
         self._collapse_button.setIconSize(QSize(side, side))
-        self._collapse_button.setIcon(make_action_icon(side, symbol))
+        self._collapse_button.setIcon(make_action_icon(side, name))
         self._collapse_button.setToolTip("Expand" if self._is_pinned else "Collapse")
 
     def _apply_compact_style(self) -> None:
@@ -342,7 +346,7 @@ class ToastNotificationBase(QDialog):
             "background-color: transparent;"
             "color: white;"
             f"padding: {toast_label_padding(compact=True)};"
-            "border-radius: 8px;"
+            f"border-radius: {TOAST_RADIUS_COMPACT}px;"
             "font-size: 10pt;"
             "font-weight: bold;",
         )
@@ -357,7 +361,7 @@ class ToastNotificationBase(QDialog):
             "background-color: transparent;"
             "color: white;"
             f"padding: {toast_label_padding(compact=False)};"
-            "border-radius: 10px;"
+            f"border-radius: {TOAST_RADIUS_DEFAULT}px;"
             "font-size: 16pt;"
             "font-weight: bold;",
         )
@@ -475,20 +479,20 @@ def format_toast_cancel_hint_html(body: str, hint: str, *, compact: bool = False
     return f'{lines}<br><span style="font-size: {size}; font-weight: normal;">{escape(hint)}</span>'
 
 
-def make_action_icon(side: int, symbol: str) -> QIcon:
-    """Render a centered action symbol for the given button side length."""
-    pixmap = QPixmap(side, side)
-    pixmap.fill(Qt.GlobalColor.transparent)
-    painter = QPainter(pixmap)
-    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-    font = painter.font()
-    font.setPixelSize(max(10, int(side * 0.72)))
-    font.setBold(True)
-    painter.setFont(font)
-    painter.setPen(QColor(255, 255, 255, 200))
-    painter.drawText(pixmap.rect(), Qt.AlignmentFlag.AlignCenter, symbol)
-    painter.end()
-    return QIcon(pixmap)
+def make_action_icon(side: int, name: str) -> QIcon:
+    """Render a white Lucide action icon for a toast corner button.
+
+    Args:
+
+    - `side` (`int`): Button side in pixels. The icon is painted at this size.
+    - `name` (`str`): Lucide icon ID, such as `minus`, `square`, or `x`.
+
+    Returns:
+
+    - `QIcon`: White stroke icon, or an empty icon when `name` is unknown.
+
+    """
+    return create_lucide_icon(name, side, color=_ACTION_ICON_COLOR)
 
 
 def process_events_allowing_widget(widget: QWidget | None) -> None:

@@ -8,11 +8,12 @@ from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtWidgets import QLabel, QProgressBar, QPushButton, QVBoxLayout, QWidget
 
 from harrix_swiss_knife import toast_countdown_notification, toast_notification_base
+from harrix_swiss_knife.fluent.theme import FluentTheme, css
 
 if TYPE_CHECKING:
     from PySide6.QtGui import QCloseEvent, QKeyEvent, QResizeEvent
 
-_CLOSE_SYMBOL = "\u00d7"
+_CLOSE_ICON = "x"
 _CANCEL_HINT = "Press Esc to cancel"
 
 
@@ -45,6 +46,7 @@ class ToastProgressNotification(toast_countdown_notification.ToastCountdownNotif
         self._cancelled = False
         self._completed = False
         self._detail = ""
+        self._theme_connected = False
         super().__init__(message, parent)
 
         self._progress_container = QWidget(self)
@@ -85,9 +87,14 @@ class ToastProgressNotification(toast_countdown_notification.ToastCountdownNotif
 
         self._apply_progress_style(compact=False)
         self.set_progress(0, self._total)
+        self._theme_connected = True
+        FluentTheme.instance().changed.connect(self._restyle_progress_for_theme)
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         """Emit cancel when the user closes a still-running cancellable toast."""
+        if self._theme_connected:
+            FluentTheme.instance().changed.disconnect(self._restyle_progress_for_theme)
+            self._theme_connected = False
         if self._cancellable and not self._completed and not self._cancelled:
             self._emit_cancel_requested()
         super().closeEvent(event)
@@ -171,7 +178,7 @@ class ToastProgressNotification(toast_countdown_notification.ToastCountdownNotif
         )
         self._close_button.setFixedSize(side, side)
         self._close_button.setIconSize(QSize(side, side))
-        self._close_button.setIcon(toast_notification_base.make_action_icon(side, _CLOSE_SYMBOL))
+        self._close_button.setIcon(toast_notification_base.make_action_icon(side, _CLOSE_ICON))
 
     def _apply_compact_style(self) -> None:
         """Apply compact styling to the label and progress bar."""
@@ -201,7 +208,7 @@ class ToastProgressNotification(toast_countdown_notification.ToastCountdownNotif
             return
 
         if compact:
-            radius = 8
+            radius = toast_notification_base.TOAST_RADIUS_COMPACT
             bar_radius = 5
             bar_height = 16
             h_pad = 12
@@ -211,7 +218,7 @@ class ToastProgressNotification(toast_countdown_notification.ToastCountdownNotif
             detail_font = "8pt"
             label_padding = toast_notification_base.toast_label_padding(compact=True, bottom=4)
         else:
-            radius = 10
+            radius = toast_notification_base.TOAST_RADIUS_DEFAULT
             bar_radius = 6
             bar_height = 22
             h_pad = 20
@@ -247,7 +254,7 @@ class ToastProgressNotification(toast_countdown_notification.ToastCountdownNotif
             "font-weight: bold;"
             "}"
             "QProgressBar::chunk {"
-            "background-color: rgba(90, 170, 255, 220);"
+            f"background-color: {css(FluentTheme.instance().palette().accent)};"
             f"border-radius: {bar_radius}px;"
             "margin: 0px;"
             "}",
@@ -339,6 +346,10 @@ class ToastProgressNotification(toast_countdown_notification.ToastCountdownNotif
         self.reposition_action_buttons()
         if self.size() != previous_size:
             self.restack_group(pinned=self.is_pinned)
+
+    def _restyle_progress_for_theme(self, _mode: str) -> None:
+        """Repaint the progress chunk when the app theme changes."""
+        self._apply_progress_style(compact=self._is_pinned)
 
     def _trailing_controls_width(self) -> int:
         if not hasattr(self, "_close_button"):

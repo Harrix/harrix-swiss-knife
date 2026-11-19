@@ -131,7 +131,7 @@ class ToastCancellableHttpNotification(toast_countdown_notification.ToastCountdo
         )
         self._close_button.setFixedSize(side, side)
         self._close_button.setIconSize(QSize(side, side))
-        self._close_button.setIcon(toast_notification_base.make_action_icon(side, _CLOSE_SYMBOL))
+        self._close_button.setIcon(toast_notification_base.make_action_icon(side, _CLOSE_ICON))
 
     def _apply_compact_style(self) -> None:
         """Apply compact styling to the label and close button."""
