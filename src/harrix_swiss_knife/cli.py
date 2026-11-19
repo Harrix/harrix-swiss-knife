@@ -240,6 +240,11 @@ def dev_install_harrix_notes_explorer_hsk(editor: str, *, with_public: bool) -> 
 @click.option("--finance", is_flag=True, help="Import finance catalog only if this flag is set.")
 @click.option("--food", is_flag=True, help="Import food catalog only if this flag is set.")
 @click.option("--config", is_flag=True, help="Import config.json only if this flag is set.")
+@click.option(
+    "--spellcheck-dict",
+    is_flag=True,
+    help="Import spellcheck dictionary only if this flag is set.",
+)
 def dev_install_private_data(
     zip_path: Path | None,
     *,
@@ -248,6 +253,7 @@ def dev_install_private_data(
     finance: bool,
     food: bool,
     config: bool,
+    spellcheck_dict: bool,
 ) -> None:
     """Alias for `private-data import`."""
     _invoke_transfer_private_data(
@@ -258,6 +264,7 @@ def dev_install_private_data(
         finance=finance,
         food=food,
         config=config,
+        spellcheck_dict=spellcheck_dict,
     )
 
 
@@ -284,6 +291,11 @@ def dev_maintenance_checklist() -> None:
 @click.option("--finance", is_flag=True, help="Include finance catalog only if this flag is set.")
 @click.option("--food", is_flag=True, help="Include food catalog only if this flag is set.")
 @click.option("--config", is_flag=True, help="Include config.json only if this flag is set.")
+@click.option(
+    "--spellcheck-dict",
+    is_flag=True,
+    help="Include spellcheck dictionary only if this flag is set.",
+)
 def dev_pack_private_data(
     zip_path: Path | None,
     *,
@@ -292,6 +304,7 @@ def dev_pack_private_data(
     finance: bool,
     food: bool,
     config: bool,
+    spellcheck_dict: bool,
 ) -> None:
     """Alias for `private-data export`."""
     _invoke_transfer_private_data(
@@ -302,6 +315,7 @@ def dev_pack_private_data(
         finance=finance,
         food=food,
         config=config,
+        spellcheck_dict=spellcheck_dict,
     )
 
 
@@ -780,6 +794,11 @@ def private_data_group() -> None:
     help="Include config/config.json (machine paths). Omit all part flags to include every part.",
 )
 @click.option(
+    "--spellcheck-dict",
+    is_flag=True,
+    help="Include config/spellcheck_user_dict.txt. Omit all part flags to include every part.",
+)
+@click.option(
     "--api-key",
     "api_key_files",
     multiple=True,
@@ -793,6 +812,7 @@ def private_data_export(
     finance: bool,
     food: bool,
     config: bool,
+    spellcheck_dict: bool,
     api_key_files: tuple[str, ...],
 ) -> None:
     """Pack selected private data into a personal ZIP (history not included)."""
@@ -804,6 +824,7 @@ def private_data_export(
         finance=finance,
         food=food,
         config=config,
+        spellcheck_dict=spellcheck_dict,
         api_key_files=api_key_files,
     )
 
@@ -842,6 +863,11 @@ def private_data_export(
     help="Import config/config.json. Omit all part flags to import parts present in the ZIP.",
 )
 @click.option(
+    "--spellcheck-dict",
+    is_flag=True,
+    help="Import spellcheck dictionary. Omit all part flags to import parts present in the ZIP.",
+)
+@click.option(
     "--api-key",
     "api_key_files",
     multiple=True,
@@ -855,6 +881,7 @@ def private_data_import(
     finance: bool,
     food: bool,
     config: bool,
+    spellcheck_dict: bool,
     api_key_files: tuple[str, ...],
 ) -> None:
     """Install selected private data; upsert catalogs and keep history tables."""
@@ -866,6 +893,7 @@ def private_data_import(
         finance=finance,
         food=food,
         config=config,
+        spellcheck_dict=spellcheck_dict,
         api_key_files=api_key_files,
     )
 
@@ -1215,6 +1243,7 @@ def _invoke_transfer_private_data(
     finance: bool = False,
     food: bool = False,
     config: bool = False,
+    spellcheck_dict: bool = False,
     api_key_files: tuple[str, ...] = (),
 ) -> None:
     """Run `OnTransferPrivateData` for CLI export/import (including hidden aliases)."""
@@ -1227,7 +1256,8 @@ def _invoke_transfer_private_data(
         "include_finance": finance,
         "include_food": food,
         "include_config": config,
-        "parts_specified": api_keys or fitness or finance or food or config or bool(api_key_files),
+        "include_spellcheck_dict": spellcheck_dict,
+        "parts_specified": (api_keys or fitness or finance or food or config or spellcheck_dict or bool(api_key_files)),
         "api_key_files": api_key_files,
     }
     if zip_path is not None:

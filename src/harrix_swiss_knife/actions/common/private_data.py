@@ -6,7 +6,9 @@ upsert preserves existing IDs on the target machine. Fitness images are
 `{exercise English name}.avif` under `fitness_img/` next to the DB, optional
 high-resolution copies in `fitness_img/high/`, static WebP table icons in
 `fitness_img/min/`, and static WebP dialog previews in `fitness_img/static/`.
-Optional `config.json` copies machine paths between installs.
+Optional `config.json` copies machine paths between installs. Optional
+`spellcheck_user_dict.txt` transfers the personal spellcheck word list (import
+merges with any local words).
 
 """
 
@@ -47,6 +49,7 @@ from harrix_swiss_knife.apps.food.catalog_sync import (
     load_food_catalog_json,
     upsert_food_catalog,
 )
+from harrix_swiss_knife.spellcheck.user_dict import load_user_words, save_user_words
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -59,6 +62,7 @@ ZIP_CATALOG_NAME = "fitness_catalog.json"
 ZIP_FINANCE_CATALOG_NAME = "finance_catalog.json"
 ZIP_FOOD_CATALOG_NAME = "food_catalog.json"
 ZIP_CONFIG_NAME = "config.json"
+ZIP_SPELLCHECK_USER_DICT_NAME = "spellcheck_user_dict.txt"
 ZIP_MANIFEST_NAME = "manifest.json"
 _STAGE_INSTALL_PREFIX = ".hsk-private-data-install-"
 _STAGE_PACK_PREFIX = ".hsk-private-data-pack-"
@@ -84,6 +88,8 @@ class InstallPrivateDataResult:
     created_finance_database: bool = False
     created_food_database: bool = False
     config_imported: bool = False
+    spellcheck_dict_imported: bool = False
+    spellcheck_words_count: int = 0
 
 
 @dataclass(frozen=True)
@@ -103,6 +109,8 @@ class PackPrivateDataResult:
     food_items_count: int = 0
     food_recipes_count: int = 0
     config_exported: bool = False
+    spellcheck_dict_exported: bool = False
+    spellcheck_words_count: int = 0
 
 
 @dataclass(frozen=True)
@@ -114,11 +122,12 @@ class PrivateDataSelection:
     finance: bool = False
     food: bool = False
     config: bool = False
+    spellcheck_dict: bool = False
     api_key_files: tuple[str, ...] = ()
 
     def any_selected(self) -> bool:
         """Return whether at least one part is selected."""
-        return self.api_keys or self.fitness or self.finance or self.food or self.config
+        return self.api_keys or self.fitness or self.finance or self.food or self.config or self.spellcheck_dict
 
 
 def api_key_file_matches_config_token(filename: str, token: str) -> bool:
@@ -241,12 +250,14 @@ def inspect_private_data_zip(zip_path: Path) -> PrivateDataSelection:
     has_finance = ZIP_FINANCE_CATALOG_NAME in names
     has_food = ZIP_FOOD_CATALOG_NAME in names
     has_config = ZIP_CONFIG_NAME in names
+    has_spellcheck_dict = ZIP_SPELLCHECK_USER_DICT_NAME in names
     return PrivateDataSelection(
         api_keys=has_api_keys,
         fitness=has_catalog or has_images,
         finance=has_finance,
         food=has_food,
         config=has_config,
+        spellcheck_dict=has_spellcheck_dict,
     )
 
 
@@ -285,6 +296,7 @@ def install_private_data(
     include_finance = wanted.finance and present.finance
     include_food = wanted.food and present.food
     include_config = wanted.config and present.config
+    include_spellcheck_dict = wanted.spellcheck_dict and present.spellcheck_dict
     if wanted.api_keys and not present.api_keys:
         msg = f"ZIP has no API keys: {zip_path}"
         raise FileNotFoundError(msg)
@@ -300,7 +312,17 @@ def install_private_data(
     if wanted.config and not present.config:
         msg = f"ZIP has no config.json: {zip_path}"
         raise FileNotFoundError(msg)
-    if not include_api_keys and not include_fitness and not include_finance and not include_food and not include_config:
+    if wanted.spellcheck_dict and not present.spellcheck_dict:
+        msg = f"ZIP has no spellcheck dictionary: {zip_path}"
+        raise FileNotFoundError(msg)
+    if not (
+        include_api_keys
+        or include_fitness
+        or include_finance
+        or include_food
+        or include_config
+        or include_spellcheck_dict
+    ):
         msg = "Nothing to import from this ZIP with the current selection."
         raise ValueError(msg)
 
@@ -345,6 +367,8 @@ def install_private_data(
     food_stats = FoodCatalogUpsertStats()
     missing_images: list[str] = []
     config_imported = False
+    spellcheck_dict_imported = False
+    spellcheck_words_count = 0
     try:
         with zipfile.ZipFile(zip_path, "r") as archive:
             archive.extractall(stage_root)
@@ -360,6 +384,13 @@ def install_private_data(
             config_imported = _install_config_json(
                 stage_root / ZIP_CONFIG_NAME, project_root / "config" / ZIP_CONFIG_NAME
             )
+
+        if include_spellcheck_dict:
+            spellcheck_words_count = _install_spellcheck_user_dict(
+                stage_root / ZIP_SPELLCHECK_USER_DICT_NAME,
+                _local_spellcheck_user_dict_path(project_root),
+            )
+            spellcheck_dict_imported = True
 
         if include_fitness:
             if db_path is None or fitness_img_dir is None:
@@ -410,6 +441,8 @@ def install_private_data(
         created_finance_database=created_finance_database,
         created_food_database=created_food_database,
         config_imported=config_imported,
+        spellcheck_dict_imported=spellcheck_dict_imported,
+        spellcheck_words_count=spellcheck_words_count,
     )
 
 
@@ -510,6 +543,15 @@ def pack_private_data(
             msg = f"config.json not found: {config_path}"
             raise FileNotFoundError(msg)
 
+    spellcheck_dict_path: Path | None = None
+    spellcheck_words_count = 0
+    if wanted.spellcheck_dict:
+        spellcheck_dict_path = _local_spellcheck_user_dict_path(project_root)
+        if not spellcheck_dict_path.is_file():
+            msg = f"Spellcheck dictionary not found: {spellcheck_dict_path}"
+            raise FileNotFoundError(msg)
+        spellcheck_words_count = len(load_user_words(spellcheck_dict_path))
+
     finance_currencies_count = len(finance_catalog["currencies"]) if finance_catalog is not None else 0
     finance_categories_count = len(finance_catalog["categories"]) if finance_catalog is not None else 0
     finance_standard_items_count = len(finance_catalog["standard_items"]) if finance_catalog is not None else 0
@@ -567,6 +609,12 @@ def pack_private_data(
                 raise ValueError(msg)
             shutil.copy2(config_path, stage_root / ZIP_CONFIG_NAME)
 
+        if wanted.spellcheck_dict:
+            if spellcheck_dict_path is None:
+                msg = "Spellcheck dictionary is not resolved."
+                raise ValueError(msg)
+            shutil.copy2(spellcheck_dict_path, stage_root / ZIP_SPELLCHECK_USER_DICT_NAME)
+
         manifest: dict[str, Any] = {
             "created_utc": datetime.now(UTC).isoformat(),
             "parts": {
@@ -575,6 +623,7 @@ def pack_private_data(
                 "finance": wanted.finance,
                 "food": wanted.food,
                 "config": wanted.config,
+                "spellcheck_dict": wanted.spellcheck_dict,
             },
             "api_keys_count": len(key_files),
             "fitness_img_count": len(fitness_files),
@@ -586,6 +635,8 @@ def pack_private_data(
             "food_items_count": food_items_count,
             "food_recipes_count": food_recipes_count,
             "config": wanted.config,
+            "spellcheck_dict": wanted.spellcheck_dict,
+            "spellcheck_words_count": spellcheck_words_count,
             "api_key_files": [path.name for path in key_files],
             "missing_exercise_images": missing_images,
         }
@@ -627,6 +678,8 @@ def pack_private_data(
         food_items_count=food_items_count,
         food_recipes_count=food_recipes_count,
         config_exported=wanted.config,
+        spellcheck_dict_exported=wanted.spellcheck_dict,
+        spellcheck_words_count=spellcheck_words_count,
     )
 
 
@@ -681,16 +734,25 @@ def selection_from_part_flags(
     finance: bool = False,
     food: bool = False,
     config: bool = False,
+    spellcheck_dict: bool = False,
 ) -> PrivateDataSelection:
     """Build a selection; when every flag is false, include every part."""
-    if not api_keys and not fitness and not finance and not food and not config:
-        return PrivateDataSelection(api_keys=True, fitness=True, finance=True, food=True, config=True)
+    if not api_keys and not fitness and not finance and not food and not config and not spellcheck_dict:
+        return PrivateDataSelection(
+            api_keys=True,
+            fitness=True,
+            finance=True,
+            food=True,
+            config=True,
+            spellcheck_dict=True,
+        )
     return PrivateDataSelection(
         api_keys=api_keys,
         fitness=fitness,
         finance=finance,
         food=food,
         config=config,
+        spellcheck_dict=spellcheck_dict,
     )
 
 
@@ -851,6 +913,32 @@ def _install_json_catalog(
             msg = f"Cannot write {locked_label} database (is the tracker open?): {db_path}\n{exc}"
             raise OSError(msg) from exc
         raise
+
+
+def _install_spellcheck_user_dict(stage_dict: Path, dest_dict: Path) -> int:
+    """Merge personal spellcheck words from the ZIP into the local dictionary.
+
+    Args:
+
+    - `stage_dict` (`Path`): Extracted `spellcheck_user_dict.txt` from the ZIP.
+    - `dest_dict` (`Path`): Project `config/spellcheck_user_dict.txt`.
+
+    Returns:
+
+    - `int`: Word count after merge.
+
+    """
+    if not stage_dict.is_file():
+        msg = f"ZIP is missing {ZIP_SPELLCHECK_USER_DICT_NAME}"
+        raise FileNotFoundError(msg)
+    merged = load_user_words(stage_dict) | load_user_words(dest_dict)
+    save_user_words(merged, dest_dict)
+    return len(merged)
+
+
+def _local_spellcheck_user_dict_path(project_root: Path) -> Path:
+    """Return `config/spellcheck_user_dict.txt` under `project_root`."""
+    return project_root / "config" / ZIP_SPELLCHECK_USER_DICT_NAME
 
 
 def _normalize_transfer_api_key_token(value: str) -> str:

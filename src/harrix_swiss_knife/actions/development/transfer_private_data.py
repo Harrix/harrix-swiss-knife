@@ -28,11 +28,11 @@ class OnTransferPrivateData(ActionBase):
     """Export or import personal private data for another machine.
 
     Choose **Export** or **Import**, then one dialog: data types (API keys,
-    `config.json`, exercise catalog plus `fitness_img`, finance catalog, food
-    catalog) and which `api-keys/*.txt` files. History tables are never
-    included. Import overlays images next to existing files and upserts
-    catalogs by name. Pack and install run in a background thread with a
-    progress toast.
+    `config.json`, spellcheck dictionary, exercise catalog plus `fitness_img`,
+    finance catalog, food catalog) and which `api-keys/*.txt` files. History
+    tables are never included. Import overlays images next to existing files,
+    upserts catalogs by name, and merges spellcheck words. Pack and install
+    run in a background thread with a progress toast.
 
     """
 
@@ -46,10 +46,18 @@ class OnTransferPrivateData(ActionBase):
     CHOICE_IMPORT = "Import"
     PART_API_KEYS = "API keys"
     PART_CONFIG = "config.json"
+    PART_SPELLCHECK = "Spellcheck dictionary"
     PART_FITNESS = "Exercise catalog and images"
     PART_FINANCE = "Finance catalog"
     PART_FOOD = "Food catalog"
-    _DATA_PARTS = (PART_API_KEYS, PART_CONFIG, PART_FITNESS, PART_FINANCE, PART_FOOD)
+    _DATA_PARTS = (
+        PART_API_KEYS,
+        PART_CONFIG,
+        PART_SPELLCHECK,
+        PART_FITNESS,
+        PART_FINANCE,
+        PART_FOOD,
+    )
 
     _export_job: _TransferExportJob | None = None
     _import_job: _TransferImportJob | None = None
@@ -102,6 +110,7 @@ class OnTransferPrivateData(ActionBase):
                 include_finance=bool(kwargs.get("include_finance")),
                 include_food=bool(kwargs.get("include_food")),
                 include_config=bool(kwargs.get("include_config")),
+                include_spellcheck_dict=bool(kwargs.get("include_spellcheck_dict")),
                 parts_specified=bool(kwargs.get("parts_specified")),
                 api_key_files=_kwargs_api_key_files(kwargs),
             )
@@ -123,6 +132,7 @@ class OnTransferPrivateData(ActionBase):
                 include_finance=bool(kwargs.get("include_finance")),
                 include_food=bool(kwargs.get("include_food")),
                 include_config=bool(kwargs.get("include_config")),
+                include_spellcheck_dict=bool(kwargs.get("include_spellcheck_dict")),
                 parts_specified=bool(kwargs.get("parts_specified")),
                 api_key_files=_kwargs_api_key_files(kwargs),
             )
@@ -151,6 +161,8 @@ class OnTransferPrivateData(ActionBase):
             self.add_line(f"Exported {result.api_keys_count} API key file(s): {names}")
         if selection.config and result.config_exported:
             self.add_line("Exported `config/config.json`.")
+        if selection.spellcheck_dict and result.spellcheck_dict_exported:
+            self.add_line(f"Exported spellcheck dictionary ({result.spellcheck_words_count} word(s)).")
         if selection.fitness:
             self.add_line(f"Exported {result.fitness_img_count} fitness image file(s).")
             self.add_line(f"Exported catalog: {result.exercises_count} exercise(s), {result.types_count} type(s).")
@@ -183,6 +195,8 @@ class OnTransferPrivateData(ActionBase):
             self.add_line(f"Imported {result.api_keys_count} API key file(s).")
         if selection.config and result.config_imported:
             self.add_line("Imported `config/config.json` (restart the app to reload settings).")
+        if selection.spellcheck_dict and result.spellcheck_dict_imported:
+            self.add_line(f"Imported spellcheck dictionary ({result.spellcheck_words_count} word(s) after merge).")
         if selection.fitness:
             img_dir = result.fitness_img_dir
             self.add_line(f"Imported {result.fitness_img_count} fitness image file(s) -> `{img_dir}`")
@@ -286,6 +300,8 @@ class OnTransferPrivateData(ActionBase):
             self._append_export_lines(self._pack_result, export_job.selection)
         elif self._install_result is not None and import_job is not None:
             self._append_import_lines(self._install_result, import_job.selection)
+            if import_job.selection.spellcheck_dict and self._install_result.spellcheck_dict_imported:
+                self._reload_spellcheck_user_dictionary()
         else:
             return
         self.show_toast(f"{self.title} completed")
@@ -335,10 +351,11 @@ class OnTransferPrivateData(ActionBase):
         parts, keys = selected
         want_keys = self.PART_API_KEYS in parts or bool(keys)
         want_config = self.PART_CONFIG in parts
+        want_spellcheck = self.PART_SPELLCHECK in parts
         want_fitness = self.PART_FITNESS in parts
         want_finance = self.PART_FINANCE in parts
         want_food = self.PART_FOOD in parts
-        if not want_keys and not want_config and not want_fitness and not want_finance and not want_food:
+        if not (want_keys or want_config or want_spellcheck or want_fitness or want_finance or want_food):
             self.add_line("❌ Select at least one data type or API key file.")
             self.show_result()
             return None
@@ -356,6 +373,7 @@ class OnTransferPrivateData(ActionBase):
             finance=want_finance,
             food=want_food,
             config=want_config,
+            spellcheck_dict=want_spellcheck,
             api_key_files=tuple(keys),
         )
 
@@ -404,6 +422,12 @@ class OnTransferPrivateData(ActionBase):
             selection=import_job.selection,
         )
 
+    def _reload_spellcheck_user_dictionary(self) -> None:
+        """Reload in-memory personal spellcheck words after import."""
+        from harrix_swiss_knife.spellcheck.engine import get_spell_engine  # noqa: PLC0415
+
+        get_spell_engine().reload_user_dictionary()
+
     def _reset_transfer_state(self) -> None:
         """Clear pending export/import jobs and results."""
         self._export_job = None
@@ -421,11 +445,13 @@ class OnTransferPrivateData(ActionBase):
         include_finance: bool,
         include_food: bool,
         include_config: bool,
+        include_spellcheck_dict: bool,
         parts_specified: bool,
         requested_names: tuple[str, ...],
     ) -> PrivateDataSelection | None:
         key_names = self._local_api_key_names(project_root)
         has_config = (project_root / "config" / "config.json").is_file()
+        has_spellcheck = (project_root / "config" / "spellcheck_user_dict.txt").is_file()
         if noninteractive or parts_specified:
             selection = selection_from_part_flags(
                 api_keys=include_api_keys,
@@ -433,6 +459,7 @@ class OnTransferPrivateData(ActionBase):
                 finance=include_finance,
                 food=include_food,
                 config=include_config,
+                spellcheck_dict=include_spellcheck_dict,
             )
             return self._apply_cli_api_key_files(
                 selection,
@@ -444,7 +471,11 @@ class OnTransferPrivateData(ActionBase):
             part_disabled.append(self.PART_API_KEYS)
         if not has_config:
             part_disabled.append(self.PART_CONFIG)
+        if not has_spellcheck:
+            part_disabled.append(self.PART_SPELLCHECK)
         part_defaults = [self.PART_FITNESS, self.PART_FINANCE, self.PART_FOOD]
+        if has_spellcheck:
+            part_defaults.insert(0, self.PART_SPELLCHECK)
         if has_config:
             part_defaults.insert(0, self.PART_CONFIG)
         if key_names:
@@ -468,6 +499,7 @@ class OnTransferPrivateData(ActionBase):
         include_finance: bool,
         include_food: bool,
         include_config: bool,
+        include_spellcheck_dict: bool,
         parts_specified: bool,
         requested_names: tuple[str, ...],
     ) -> PrivateDataSelection | None:
@@ -479,6 +511,7 @@ class OnTransferPrivateData(ActionBase):
                 finance=include_finance,
                 food=include_food,
                 config=include_config,
+                spellcheck_dict=include_spellcheck_dict,
             )
             if not parts_specified:
                 wanted = PrivateDataSelection(
@@ -487,6 +520,7 @@ class OnTransferPrivateData(ActionBase):
                     finance=wanted.finance and present.finance,
                     food=wanted.food and present.food,
                     config=wanted.config and present.config,
+                    spellcheck_dict=wanted.spellcheck_dict and present.spellcheck_dict,
                 )
             return self._apply_cli_api_key_files(
                 wanted,
@@ -498,6 +532,7 @@ class OnTransferPrivateData(ActionBase):
         present_by_part = {
             self.PART_API_KEYS: present.api_keys,
             self.PART_CONFIG: present.config,
+            self.PART_SPELLCHECK: present.spellcheck_dict,
             self.PART_FITNESS: present.fitness,
             self.PART_FINANCE: present.finance,
             self.PART_FOOD: present.food,
@@ -553,6 +588,7 @@ class OnTransferPrivateData(ActionBase):
         include_finance: bool,
         include_food: bool,
         include_config: bool,
+        include_spellcheck_dict: bool,
         parts_specified: bool,
         api_key_files: tuple[str, ...],
     ) -> None:
@@ -564,6 +600,7 @@ class OnTransferPrivateData(ActionBase):
             include_finance=include_finance,
             include_food=include_food,
             include_config=include_config,
+            include_spellcheck_dict=include_spellcheck_dict,
             parts_specified=parts_specified,
             requested_names=api_key_files,
         )
@@ -610,6 +647,7 @@ class OnTransferPrivateData(ActionBase):
         include_finance: bool,
         include_food: bool,
         include_config: bool,
+        include_spellcheck_dict: bool,
         parts_specified: bool,
         api_key_files: tuple[str, ...],
     ) -> None:
@@ -633,6 +671,7 @@ class OnTransferPrivateData(ActionBase):
             include_finance=include_finance,
             include_food=include_food,
             include_config=include_config,
+            include_spellcheck_dict=include_spellcheck_dict,
             parts_specified=parts_specified,
             requested_names=api_key_files,
         )
