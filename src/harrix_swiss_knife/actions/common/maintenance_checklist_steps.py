@@ -226,7 +226,7 @@ MAINTENANCE_STEP_SPECS: tuple[MaintenanceStepSpec, ...] = (
         "OnBeautifyMdAndRegenerateGMd",
         "Content",
         "file-text",
-        note="Beautify notes and regenerate `.g.md`",
+        note="Checkbox list of `paths_notes` (all on by default)",
     ),
     MaintenanceStepSpec(
         "harrix_swiss_knife.actions.site.generate_static_site",
