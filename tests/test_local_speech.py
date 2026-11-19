@@ -19,8 +19,9 @@ def test_is_ai_unreachable_error_for_bothub_and_network() -> None:
 
 
 def test_local_speech_config_defaults() -> None:
-    assert not is_local_speech_enabled({})
-    assert not is_local_speech_enabled({"ai": {}})
+    assert is_local_speech_enabled({})
+    assert is_local_speech_enabled({"ai": {}})
     assert is_local_speech_enabled({"ai": {"local_speech": {"enabled": True}}})
+    assert not is_local_speech_enabled({"ai": {"local_speech": {"enabled": False}}})
     assert local_speech_model_size({}) == "small"
     assert local_speech_model_size({"ai": {"local_speech": {"model": "base"}}}) == "base"

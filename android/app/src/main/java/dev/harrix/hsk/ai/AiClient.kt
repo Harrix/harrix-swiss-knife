@@ -504,13 +504,15 @@ class AiClient(
         call: Call,
         error: Throwable,
     ): String {
-        if (call.isCanceled() || error is CancellationException) {
+        // OkHttp callTimeout cancels the call; still report timeout/unreachable, not "cancelled".
+        val networkKind = AiNetworkErrors.networkFailureKind(error)
+        val userCancel = networkKind == null && (call.isCanceled() || error is CancellationException)
+        if (userCancel) {
             throw CancellationException("AI request cancelled", error)
         }
-        val raw = error.message ?: "Network error"
         throw AiApiException(
             AiNetworkErrors.remapBothubNetworkError(
-                raw,
+                error.message ?: "Network error",
                 error = error,
                 urlOrHost = call.request().url.host,
             ),

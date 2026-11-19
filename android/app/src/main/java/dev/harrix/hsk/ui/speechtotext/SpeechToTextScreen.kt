@@ -708,7 +708,14 @@ private fun SpeechMessageRow(
                     },
                 ) + " · " + formatElapsed(item.recognitionElapsedMs)
 
-            SpeechMessageStatus.Cancelled -> stringResource(R.string.speech_to_text_status_cancelled)
+            SpeechMessageStatus.Cancelled ->
+                if (item.errorMessage.isNotBlank()) {
+                    stringResource(R.string.speech_to_text_status_cancelled) +
+                        " · " +
+                        item.errorMessage
+                } else {
+                    stringResource(R.string.speech_to_text_status_cancelled)
+                }
 
             SpeechMessageStatus.Error ->
                 item.errorMessage.ifBlank {
@@ -963,9 +970,7 @@ private fun SpeechMessageDetail(
                             stringResource(R.string.speech_to_text_status_cancelled)
 
                         SpeechMessageStatus.Error ->
-                            item.errorMessage.ifBlank {
-                                stringResource(R.string.speech_to_text_status_error)
-                            }
+                            stringResource(R.string.speech_to_text_status_error)
 
                         else -> stringResource(R.string.speech_to_text_status_recorded)
                     }
@@ -991,6 +996,19 @@ private fun SpeechMessageDetail(
                     )
                     Spacer(modifier = Modifier.size(6.dp))
                     Text(stringResource(R.string.speech_to_text_recognize))
+                }
+                if (item.errorMessage.isNotBlank() &&
+                    (
+                        item.status == SpeechMessageStatus.Error ||
+                            item.status == SpeechMessageStatus.Cancelled
+                        )
+                ) {
+                    Text(
+                        text = item.errorMessage,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
                 OutlinedButton(onClick = onSave, modifier = Modifier.fillMaxWidth()) {
                     Icon(

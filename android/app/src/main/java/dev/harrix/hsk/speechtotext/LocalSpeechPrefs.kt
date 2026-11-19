@@ -4,7 +4,7 @@ import android.content.Context
 
 /**
  * Optional on-device speech fallback when BotHub is unreachable.
- * Off by default; cloud AI stays preferred.
+ * On by default; cloud AI stays preferred.
  */
 class LocalSpeechPrefs(
     context: Context,
@@ -13,7 +13,7 @@ class LocalSpeechPrefs(
         context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     var enabled: Boolean
-        get() = prefs.getBoolean(KEY_ENABLED, false)
+        get() = prefs.getBoolean(KEY_ENABLED, true)
         set(value) {
             prefs.edit().putBoolean(KEY_ENABLED, value).apply()
         }

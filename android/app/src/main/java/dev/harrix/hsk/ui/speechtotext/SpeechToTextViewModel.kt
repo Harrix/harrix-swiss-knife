@@ -383,6 +383,8 @@ class SpeechToTextViewModel(
         val cancelled =
             current.copy(
                 status = SpeechMessageStatus.Cancelled,
+                processingKind = SpeechProcessingKind.None,
+                errorMessage = "",
                 recognitionStartedAtMs = 0L,
                 recognitionElapsedMs = 0L,
             )

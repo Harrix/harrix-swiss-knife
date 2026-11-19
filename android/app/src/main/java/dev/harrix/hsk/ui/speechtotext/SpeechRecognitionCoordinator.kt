@@ -97,14 +97,41 @@ class SpeechRecognitionCoordinator(
                         onRecognized(done)
                     }.onFailure { error ->
                         if (error is CancellationException) {
-                            onItemChanged(
-                                processing.copy(
-                                    status = SpeechMessageStatus.Cancelled,
-                                    processingKind = SpeechProcessingKind.None,
-                                    recognitionStartedAtMs = 0L,
-                                    recognitionElapsedMs = 0L,
-                                ),
-                            )
+                            val cancelReport =
+                                error.cause
+                                    ?.let { AiNetworkErrors.networkFailureKind(it) }
+                                    ?.let {
+                                        AiNetworkErrors.remapBothubNetworkError(
+                                            error.message ?: "Network error",
+                                            error = error.cause,
+                                        )
+                                    }.orEmpty()
+                            if (cancelReport.isNotBlank()) {
+                                val failed =
+                                    processing.copy(
+                                        status = SpeechMessageStatus.Error,
+                                        processingKind = SpeechProcessingKind.None,
+                                        errorMessage = cancelReport,
+                                        recognitionStartedAtMs = 0L,
+                                        recognitionElapsedMs = 0L,
+                                    )
+                                onItemChanged(failed)
+                                if (AiNetworkErrors.isAiUnreachableError(cancelReport) &&
+                                    isLocalFallbackEnabled()
+                                ) {
+                                    onOfferLocalFallback(failed)
+                                }
+                            } else {
+                                onItemChanged(
+                                    processing.copy(
+                                        status = SpeechMessageStatus.Cancelled,
+                                        processingKind = SpeechProcessingKind.None,
+                                        errorMessage = "",
+                                        recognitionStartedAtMs = 0L,
+                                        recognitionElapsedMs = 0L,
+                                    ),
+                                )
+                            }
                         } else {
                             val message = error.message ?: error.toString()
                             val failed =

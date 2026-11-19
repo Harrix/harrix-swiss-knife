@@ -469,7 +469,7 @@
     "proxy": "",
     "speech_provider": "",
     "local_speech": {
-      "enabled": false,
+      "enabled": true,
       "model": "small"
     },
     "transfer_private_data_default_api_keys": ["bothub", "bothub.ru"]

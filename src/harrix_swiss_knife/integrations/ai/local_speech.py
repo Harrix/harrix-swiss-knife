@@ -49,9 +49,9 @@ def is_ai_unreachable_error(message: str) -> bool:
 
 
 def is_local_speech_enabled(config: dict[str, Any]) -> bool:
-    """Return whether optional local speech fallback is enabled in config."""
+    """Return whether local speech fallback is enabled (default on)."""
     section = _local_speech_section(config)
-    return bool(section.get("enabled"))
+    return bool(section.get("enabled", True))
 
 
 def local_speech_model_size(config: dict[str, Any]) -> str:

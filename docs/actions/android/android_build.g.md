@@ -220,12 +220,17 @@ class OnAndroidBuild(ActionBase):
         return value or None
 
     def _collect_install_targets(self) -> list[InstallTarget]:
-        """Return connected adb devices and installed AVDs for the tray list."""
+        """Return connected adb devices and installed AVDs for the tray list.
+
+        Authorized devices appear first. Unauthorized USB phones are still listed
+        with a clear status so the user can authorize USB debugging on the device.
+
+        """
         targets: list[OnAndroidBuild.InstallTarget] = []
         seen_avds: set[str] = set()
         adb = self._resolve_adb()
         if adb is not None:
-            authorized, _unauthorized = self._list_adb_device_states(adb)
+            authorized, unauthorized = self._list_adb_device_states(adb)
             for serial in authorized:
                 avd_name = self._emulator_avd_name(adb, serial)
                 model = self._adb_shell_getprop(adb, serial, "ro.product.model")
@@ -242,6 +247,16 @@ class OnAndroidBuild(ActionBase):
                     targets.append(
                         OnAndroidBuild.InstallTarget(kind="adb", key=serial, label=label, serial=serial),
                     )
+            for serial in unauthorized:
+                # getprop fails while unauthorized; show serial + action hint.
+                targets.append(
+                    OnAndroidBuild.InstallTarget(
+                        kind="adb",
+                        key=serial,
+                        label=f"{serial} — unauthorized (allow USB debugging on phone)",
+                        serial=serial,
+                    ),
+                )
 
         emulator = self._resolve_emulator()
         if emulator is not None:

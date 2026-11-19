@@ -50,7 +50,7 @@ def is_ai_unreachable_error(message: str) -> bool:
 def is_local_speech_enabled(config: dict[str, Any]) -> bool
 ```
 
-Return whether optional local speech fallback is enabled in config.
+Return whether local speech fallback is enabled (default on).
 
 <details>
 <summary>Code:</summary>
@@ -58,7 +58,7 @@ Return whether optional local speech fallback is enabled in config.
 ```python
 def is_local_speech_enabled(config: dict[str, Any]) -> bool:
     section = _local_speech_section(config)
-    return bool(section.get("enabled"))
+    return bool(section.get("enabled", True))
 ```
 
 </details>
