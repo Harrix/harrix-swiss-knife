@@ -144,7 +144,9 @@ class MaintenanceChecklistDialog(QDialog):
         ordered = [
             row.step
             for row in self._rows.values()
-            if row.card.isVisible() and row.step.include_in_run_all and row.step.class_name not in self._session_done
+            if self._row_is_listed(row)
+            and row.step.include_in_run_all
+            and row.step.class_name not in self._session_done
         ]
         if not ordered:
             self._progress.setText("Nothing left to run in this session")
@@ -201,7 +203,7 @@ class MaintenanceChecklistDialog(QDialog):
             return
         self._refresh_row_last_run(class_name)
         row.set_done(done=class_name in self._session_done)
-        row.run_button.setEnabled(not self._busy and row.card.isVisible())
+        row.run_button.setEnabled(not self._busy and self._row_is_listed(row))
 
     def _refresh_row_last_run(self, class_name: str) -> None:
         row = self._rows.get(class_name)
@@ -218,6 +220,17 @@ class MaintenanceChecklistDialog(QDialog):
         row.set_description(description)
         row.set_recent(recent=is_last_used_within(stamp, hours=24))
 
+    def _row_is_listed(self, row: _StepRow) -> bool:
+        """Return whether the step is shown in the checklist (not Qt visibility).
+
+        `QWidget.isVisible()` is false before the dialog is shown, so Run buttons
+        must not depend on it during construction.
+
+        """
+        if row.step.class_name == UPDATE_HSK_STEP_CLASS:
+            return self._show_update_hsk.isChecked()
+        return True
+
     def _run_step(self, step: MaintenanceStep) -> None:
         action: ActionBase = step.action_cls(output_bus=self._output_bus)
         action()
@@ -232,14 +245,14 @@ class MaintenanceChecklistDialog(QDialog):
         self._busy = busy
         self._run_all_button.setEnabled(not busy)
         for row in self._rows.values():
-            row.run_button.setEnabled(not busy and row.card.isVisible())
+            row.run_button.setEnabled(not busy and self._row_is_listed(row))
 
     def _visible_row_count(self) -> int:
-        return sum(1 for row in self._rows.values() if row.card.isVisible())
+        return sum(1 for row in self._rows.values() if self._row_is_listed(row))
 
     def _visible_session_done_count(self) -> int:
         return sum(
-            1 for class_name, row in self._rows.items() if row.card.isVisible() and class_name in self._session_done
+            1 for class_name, row in self._rows.items() if self._row_is_listed(row) and class_name in self._session_done
         )
 
 

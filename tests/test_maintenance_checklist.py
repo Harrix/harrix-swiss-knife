@@ -65,6 +65,35 @@ def test_maintenance_checklist_dialog_is_non_modal(qapp: QApplication) -> None:
         OnRunMaintenanceChecklist.clear_checklist_dialog()
 
 
+def test_maintenance_checklist_run_buttons_enabled_before_show(
+    qapp: QApplication,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Run stays enabled after construct; do not use QWidget.isVisible() for that."""
+    assert qapp is not None
+    monkeypatch.setattr(
+        "harrix_swiss_knife.actions.common.maintenance_checklist_dialog.load_show_update_hsk_step",
+        lambda: False,
+    )
+    OnRunMaintenanceChecklist.clear_checklist_dialog()
+    dialog = MaintenanceChecklistDialog()
+    try:
+        assert dialog.isVisible() is False
+        enabled = [
+            row.run_button.isEnabled()
+            for class_name, row in dialog._rows.items()
+            if class_name != UPDATE_HSK_STEP_CLASS
+        ]
+        assert enabled
+        assert all(enabled)
+        assert dialog._rows[UPDATE_HSK_STEP_CLASS].run_button.isEnabled() is False
+        assert dialog._run_all_button.isEnabled() is True
+    finally:
+        dialog.close()
+        dialog.deleteLater()
+        OnRunMaintenanceChecklist.clear_checklist_dialog()
+
+
 def test_maintenance_groups_preserve_order() -> None:
     groups = maintenance_groups()
     assert groups
