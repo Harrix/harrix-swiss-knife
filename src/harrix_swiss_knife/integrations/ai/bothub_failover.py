@@ -1,9 +1,11 @@
-"""BotHub.chat / BotHub.ru failover: site probe and API-error retry."""
+"""BotHub.chat / BotHub.ru failover: parallel API probes and API-error retry."""
 
 from __future__ import annotations
 
 import json
 import re
+import time
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from contextlib import suppress
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -19,6 +21,7 @@ from harrix_swiss_knife.integrations.ai.config import (
     get_chat_provider,
     get_preferred_chat_provider,
     get_preferred_speech_provider,
+    get_provider_settings,
     get_speech_provider,
     is_bothub_router,
     normalize_provider,
@@ -30,19 +33,30 @@ from harrix_swiss_knife.paths import get_config_path
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-BOTHUB_PROBE_URLS: dict[ProviderName, str] = {
-    "bothub": "https://bothub.chat/",
-    "bothub.ru": "https://bothub.ru/",
-}
 TEMP_ACTIVE_PROVIDER_KEY = "ai_active_provider"
 TEMP_ACTIVE_SPEECH_PROVIDER_KEY = "ai_active_speech_provider"
 _ACTIVE_PROVIDER_KEY = "active_provider"
 _ACTIVE_SPEECH_PROVIDER_KEY = "active_speech_provider"
-_PROBE_TIMEOUT_SEC = 5
+_PROBE_TIMEOUT_SEC = 4.0
+_NEGATIVE_CACHE_SEC = 60.0
 _PROBE_UA = "Harrix-Swiss-Knife/1.0 (AI router probe)"
 _HTTP_STATUS_RE = re.compile(r"HTTP\s+(\d{3})\b", re.IGNORECASE)
 # Auth / rate-limit / gateway failures often work on the other BotHub site.
 _FAILOVER_HTTP_STATUSES = frozenset({401, 403, 408, 425, 429, 500, 502, 503, 504})
+# Monotonic deadline until which a router is treated as unreachable.
+_router_down_until: dict[ProviderName, float] = {}
+
+
+def bothub_probe_url(provider: ProviderName, config: dict[str, Any] | None = None) -> str:
+    """Return the API probe URL for a BotHub router (`{base_url}/models`)."""
+    settings = get_provider_settings(config or {}, provider)
+    base_url = str(settings.get("base_url", "")).strip().rstrip("/")
+    return f"{base_url}/models"
+
+
+def clear_bothub_down_cache() -> None:
+    """Clear the in-process negative cache of unreachable BotHub routers."""
+    _router_down_until.clear()
 
 
 def is_bothub_api_failover_error(message: str) -> bool:
@@ -56,6 +70,12 @@ def is_bothub_api_failover_error(message: str) -> bool:
     if match is None:
         return True
     return int(match.group(1)) in _FAILOVER_HTTP_STATUSES
+
+
+def mark_bothub_router_down(provider: ProviderName) -> None:
+    """Remember that `provider` failed so the next request skips it for a minute."""
+    if is_bothub_router(provider):
+        _router_down_until[provider] = time.monotonic() + _NEGATIVE_CACHE_SEC
 
 
 def persist_ai_provider(
@@ -95,7 +115,9 @@ def prepare_bothub_router(
 
     Preferred `ai.provider` / `ai.speech_provider` stay in `config.json`. The
     live router is stored in `config-temp.json` and on `ai.active_provider`.
-    When the preferred site comes back, the next request fails back to it.
+    API hosts are probed in parallel (`{base_url}/models`). When the preferred
+    site is recently down, the alternate is used without waiting for another
+    preferred probe.
 
     Args:
 
@@ -120,7 +142,40 @@ def prepare_bothub_router(
     _hydrate_active_from_temp(config, path_str)
 
     check = probe or probe_bothub_site
-    if check(BOTHUB_PROBE_URLS[preferred], proxy_url):
+    alternate = other_bothub_router(preferred)
+    has_alternate = _has_usable_key(config, alternate)
+
+    if _is_router_marked_down(preferred) and has_alternate:
+        return _commit_router_if_changed(
+            config,
+            alternate,
+            for_speech=for_speech,
+            persist=persist,
+            config_path=path,
+        )
+
+    preferred_url = bothub_probe_url(preferred, config)
+    if not has_alternate:
+        if check(preferred_url, proxy_url):
+            _clear_router_down(preferred)
+            return _commit_router_if_changed(
+                config,
+                preferred,
+                for_speech=for_speech,
+                persist=persist,
+                config_path=path,
+            )
+        mark_bothub_router_down(preferred)
+        return None
+
+    preferred_up, alternate_up = _race_bothub_probes(
+        preferred_url,
+        bothub_probe_url(alternate, config),
+        proxy_url,
+        check,
+    )
+    if preferred_up:
+        _clear_router_down(preferred)
         return _commit_router_if_changed(
             config,
             preferred,
@@ -129,18 +184,16 @@ def prepare_bothub_router(
             config_path=path,
         )
 
-    alternate = other_bothub_router(preferred)
-    if not _has_usable_key(config, alternate):
-        return None
-    if not check(BOTHUB_PROBE_URLS[alternate], proxy_url):
-        return None
-    return _commit_router_if_changed(
-        config,
-        alternate,
-        for_speech=for_speech,
-        persist=persist,
-        config_path=path,
-    )
+    mark_bothub_router_down(preferred)
+    if alternate_up:
+        return _commit_router_if_changed(
+            config,
+            alternate,
+            for_speech=for_speech,
+            persist=persist,
+            config_path=path,
+        )
+    return None
 
 
 def probe_bothub_site(url: str, proxy_url: str | None = None) -> bool:
@@ -151,7 +204,7 @@ def probe_bothub_site(url: str, proxy_url: str | None = None) -> bool:
 
     Args:
 
-    - `url` (`str`): Site to probe (`https://bothub.chat/` or `https://bothub.ru/`).
+    - `url` (`str`): API probe URL (`{base_url}/models`).
     - `proxy_url` (`str | None`): Optional HTTPS proxy.
 
     Returns:
@@ -203,6 +256,7 @@ def switch_bothub_router_after_api_failure(
     alternate = other_bothub_router(current)
     if not _has_usable_key(config, alternate):
         return None
+    mark_bothub_router_down(current)
     path = config_path or get_config_path()
     return _commit_router_if_changed(
         config,
@@ -219,6 +273,10 @@ def _apply_router_in_memory(config: dict[str, Any], provider: ProviderName) -> N
     speech = str(ai.get("speech_provider", "")).strip()
     if speech and is_bothub_router(normalize_provider(speech)):
         ai[_ACTIVE_SPEECH_PROVIDER_KEY] = provider
+
+
+def _clear_router_down(provider: ProviderName) -> None:
+    _router_down_until.pop(provider, None)
 
 
 def _commit_router_if_changed(
@@ -278,6 +336,67 @@ def _hydrate_active_from_temp(config: dict[str, Any], config_path: str) -> None:
             ai[_ACTIVE_SPEECH_PROVIDER_KEY] = normalize_provider(stored)
 
 
+def _is_router_marked_down(provider: ProviderName) -> bool:
+    until = _router_down_until.get(provider)
+    if until is None:
+        return False
+    if time.monotonic() >= until:
+        _router_down_until.pop(provider, None)
+        return False
+    return True
+
+
+def _race_bothub_probes(
+    preferred_url: str,
+    alternate_url: str,
+    proxy_url: str | None,
+    probe: Callable[[str, str | None], bool],
+) -> tuple[bool, bool]:
+    """Probe both hosts in parallel; return as soon as the preferred site answers."""
+    preferred_up = False
+    alternate_up = False
+    preferred_done = False
+    alternate_done = False
+    deadline = time.monotonic() + _PROBE_TIMEOUT_SEC + 0.5
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        fut_preferred = pool.submit(probe, preferred_url, proxy_url)
+        fut_alternate = pool.submit(probe, alternate_url, proxy_url)
+        pending = {fut_preferred, fut_alternate}
+        while pending and time.monotonic() < deadline:
+            done, pending = wait(
+                pending,
+                timeout=max(0.0, deadline - time.monotonic()),
+                return_when=FIRST_COMPLETED,
+            )
+            if not done:
+                break
+            for fut in done:
+                try:
+                    result = bool(fut.result())
+                except Exception:
+                    result = False
+                if fut is fut_preferred:
+                    preferred_done = True
+                    preferred_up = result
+                    if preferred_up:
+                        return True, alternate_up
+                else:
+                    alternate_done = True
+                    alternate_up = result
+            if preferred_done and not preferred_up and alternate_done:
+                return False, alternate_up
+
+        if not preferred_done:
+            preferred_up = False
+        if not alternate_done:
+            try:
+                alternate_up = bool(fut_alternate.result(timeout=0))
+            except Exception:
+                alternate_up = False
+    return preferred_up, alternate_up
+
+
 def _read_temp_key(config_path: str, key: str) -> str:
     try:
         data = h.dev.config_load(config_path, is_temp=True, resolve_snippets=False)
@@ -310,3 +429,10 @@ def _speech_provider_after_switch(config: dict[str, Any], new_provider: Provider
     if is_bothub_router(normalize_provider(speech)):
         return new_provider
     return None
+
+
+# Homepages kept for tests/docs that mention site hosts; probes use `bothub_probe_url`.
+BOTHUB_PROBE_URLS: dict[ProviderName, str] = {
+    "bothub": bothub_probe_url("bothub"),
+    "bothub.ru": bothub_probe_url("bothub.ru"),
+}

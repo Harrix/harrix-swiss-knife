@@ -1,5 +1,6 @@
 package dev.harrix.hsk.ui.speechtotext
 
+import dev.harrix.hsk.ai.AiNetworkErrors
 import dev.harrix.hsk.speechtotext.SpeechMessageStatus
 import dev.harrix.hsk.speechtotext.SpeechProcessingKind
 import dev.harrix.hsk.speechtotext.SpeechQueueItem
@@ -24,6 +25,9 @@ class SpeechRecognitionCoordinator(
     private val onAverageChanged: (Long) -> Unit,
     private val onErrorMessage: (String) -> Unit,
     private val onRecognized: (SpeechQueueItem) -> Unit = {},
+    private val isLocalFallbackEnabled: () -> Boolean = { false },
+    private val onOfferLocalFallback: (SpeechQueueItem) -> Unit = {},
+    private val onInfoMessage: (String) -> Unit = {},
 ) {
     private val jobs = mutableMapOf<String, Job>()
 
@@ -102,15 +106,94 @@ class SpeechRecognitionCoordinator(
                                 ),
                             )
                         } else {
-                            onItemChanged(
+                            val message = error.message ?: error.toString()
+                            val failed =
                                 processing.copy(
                                     status = SpeechMessageStatus.Error,
                                     processingKind = SpeechProcessingKind.None,
-                                    errorMessage = error.message ?: error.toString(),
+                                    errorMessage = message,
                                     recognitionStartedAtMs = 0L,
                                     recognitionElapsedMs = 0L,
+                                )
+                            onItemChanged(failed)
+                            if (AiNetworkErrors.isAiUnreachableError(message) && isLocalFallbackEnabled()) {
+                                onOfferLocalFallback(failed)
+                            }
+                        }
+                    }
+                jobs.remove(item.id)
+            }
+    }
+
+    /**
+     * Apply on-device transcript for [item], then try cloud text fix when reachable.
+     */
+    fun applyDeviceTranscript(
+        item: SpeechQueueItem,
+        transcript: String,
+        fixSkippedNote: String,
+    ) {
+        val text = transcript.trim()
+        if (text.isEmpty()) {
+            return
+        }
+        jobs[item.id]?.cancel()
+        val processing =
+            item.copy(
+                status = SpeechMessageStatus.Processing,
+                processingKind = SpeechProcessingKind.Recognize,
+                text = text,
+                errorMessage = "",
+            )
+        onItemChanged(processing)
+        jobs[item.id] =
+            scope.launch {
+                val outcome =
+                    runCatching {
+                        withContext(Dispatchers.IO) {
+                            repository.fixText(text = text, cancellationKey = item.id)
+                        }
+                    }
+                outcome
+                    .onSuccess { fixed ->
+                        val done =
+                            processing.copy(
+                                status = SpeechMessageStatus.Done,
+                                processingKind = SpeechProcessingKind.None,
+                                text = fixed,
+                                errorMessage = "",
+                                markdownAnswer = false,
+                            )
+                        onItemChanged(done)
+                        onRecognized(done)
+                    }.onFailure { error ->
+                        if (error is CancellationException) {
+                            onItemChanged(
+                                processing.copy(
+                                    status = SpeechMessageStatus.Cancelled,
+                                    processingKind = SpeechProcessingKind.None,
                                 ),
                             )
+                        } else {
+                            val message = error.message ?: error.toString()
+                            val doneText =
+                                if (AiNetworkErrors.isAiUnreachableError(message)) {
+                                    onInfoMessage(fixSkippedNote)
+                                    text
+                                } else {
+                                    onErrorMessage(message)
+                                    text
+                                }
+                            val done =
+                                processing.copy(
+                                    status = SpeechMessageStatus.Done,
+                                    processingKind = SpeechProcessingKind.None,
+                                    text = doneText,
+                                    errorMessage = "",
+                                    markdownAnswer = false,
+                                )
+                            onItemChanged(done)
+                            onRecognized(done)
                         }
                     }
                 jobs.remove(item.id)

@@ -43,6 +43,10 @@ from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import (
     resolve_date_from_image_batch,
 )
 from harrix_swiss_knife.filtered_combobox import apply_smart_filtering
+from harrix_swiss_knife.integrations.ai.local_speech import (
+    LOCAL_SPEECH_FIX_SKIPPED_NOTE,
+    is_ai_unreachable_error,
+)
 from harrix_swiss_knife.integrations.bothub import (
     BothubRequestState,
     audio_bytes_and_mime,
@@ -1183,10 +1187,6 @@ class TemplateDialog(QDialog):
                 return
             text_edit.setPlainText(fixed_text)
 
-        def on_fix_error(message: str) -> None:
-            self._set_ai_buttons_enabled(True)  # noqa: FBT003
-            message_box.critical(self, "BotHub Error", message)
-
         def on_transcription_success(transcribed_text: str) -> None:
             if not transcribed_text.strip():
                 self._set_ai_buttons_enabled(True)  # noqa: FBT003
@@ -1199,6 +1199,15 @@ class TemplateDialog(QDialog):
                 self._set_ai_buttons_enabled(True)  # noqa: FBT003
                 show_bothub_prompt_build_error(self, exc)
                 return
+
+            def on_fix_error(message: str) -> None:
+                self._set_ai_buttons_enabled(True)  # noqa: FBT003
+                if is_ai_unreachable_error(message):
+                    text_edit.setPlainText(
+                        f"{transcribed_text.strip()}\n\n{LOCAL_SPEECH_FIX_SKIPPED_NOTE}",
+                    )
+                    return
+                message_box.critical(self, "BotHub Error", message)
 
             run_bothub_request(
                 self,

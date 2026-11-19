@@ -29,6 +29,9 @@ dependencies = [
     "yfinance>=0.2.65",
 ]
 
+[project.optional-dependencies]
+local-speech = ["faster-whisper>=1.0.0"]
+
 [project.scripts]
 hsk = "harrix_swiss_knife.cli:main"
 

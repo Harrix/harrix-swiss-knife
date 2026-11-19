@@ -327,6 +327,14 @@
     <string name="speech_to_text_slow_warning">Распознавание идёт дольше обычного. Можно отменить и записать заново.</string>
     <string name="speech_to_text_empty_queue">Пока нет сообщений. Начните запись ниже.</string>
     <string name="speech_to_text_recording_missing">Файл записи не найден. Запишите снова.</string>
+    <string name="speech_to_text_local_fallback">Локальная речь, если облако недоступно</string>
+    <string name="speech_to_text_local_offer_title">Облако недоступно</string>
+    <string name="speech_to_text_local_offer_message">BotHub недоступен. Произнести фразу ещё раз через распознавание на устройстве?</string>
+    <string name="speech_to_text_local_offer_confirm">Распознать на устройстве</string>
+    <string name="speech_to_text_local_offer_dismiss">Не сейчас</string>
+    <string name="speech_to_text_local_prompt">Произнесите фразу для локального распознавания</string>
+    <string name="speech_to_text_local_unavailable">Локальное распознавание речи недоступно на этом устройстве.</string>
+    <string name="speech_to_text_local_fix_skipped">Правка текста AI пропущена: облако недоступно.</string>
     <string name="photo_editor_share_label">Harrix Photo Editor</string>
     <string name="photo_editor_title">Photo Editor</string>
     <string name="photo_editor_close">Выйти из Photo Editor</string>

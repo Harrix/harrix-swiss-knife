@@ -308,6 +308,8 @@ Provider selection (same as desktop `config/config.json` → `ai.provider`):
 
 Supported providers: `bothub`, `bothub.ru`, `openai`, `openrouter`, `anthropic`, `gemini`. Optional `ai.speech_provider` (empty = same as chat). Anthropic has no STT — set speech to `openai`, `openrouter`, `gemini`, `bothub`, or `bothub.ru`.
 
+BotHub routers (`bothub` / `bothub.ru`): before each request both API hosts are probed in parallel (`{base_url}/models`, ~4s). The preferred bake-time / `ai.provider` site is used when it answers; otherwise the other embedded key is used and persisted in SharedPreferences (desktop: `config-temp.json`). A router that just failed is skipped for ~60s. Connect timeout is 8s; read timeout stays 120s. After network / 5xx / 401 / 429 the call is retried once on the other site. Optional Android on-device speech fallback is a Speech to Text screen toggle (re-listen with the system recognizer when cloud is down).
+
 API key resolution for the active provider:
 
 1. Provider env (`BOTHUB_API_KEY`, `BOTHUB_RU_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`)

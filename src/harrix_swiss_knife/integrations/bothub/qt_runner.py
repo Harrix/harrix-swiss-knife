@@ -12,11 +12,17 @@ from PySide6.QtWidgets import QApplication, QWidget
 from harrix_swiss_knife import toast_cancellable_http_notification, toast_notification_base
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.integrations.ai.config import get_provider_settings
+from harrix_swiss_knife.integrations.ai.local_speech import (
+    is_ai_unreachable_error,
+    is_local_speech_enabled,
+    local_speech_model_size,
+)
 from harrix_swiss_knife.integrations.bothub.config import (
     get_active_provider,
     get_connection_params,
     validate_api_key,
 )
+from harrix_swiss_knife.integrations.bothub.local_speech_worker import LocalSpeechWorker
 from harrix_swiss_knife.integrations.bothub.worker import BothubChatWorker
 
 if TYPE_CHECKING:
@@ -287,6 +293,14 @@ def _release_bothub_worker(worker: BothubChatWorker) -> None:
     worker.deleteLater()
 
 
+def _release_local_speech_worker(worker: LocalSpeechWorker) -> None:
+    with suppress(ValueError):
+        _active_local_speech_workers.remove(worker)
+    if worker.isRunning():
+        worker.wait(3000)
+    worker.deleteLater()
+
+
 def _resolve_toast_parent(parent: QWidget | None) -> QWidget | None:
     """Parent the cancel toast under the active modal dialog when possible.
 
@@ -388,6 +402,8 @@ def _start_bothub_request(spec: BothubRequestSpec) -> bool:
         request_finished = True
         finalize_toast()
         _release_bothub_worker(worker)
+        if _try_local_speech_fallback(spec, cloud_message=message):
+            return
         # Leave state.worker set until retry dialog closes so is_busy stays true.
         _offer_retry_or_finish(spec, cancelled=False, message=message)
 
@@ -419,5 +435,69 @@ def _track_bothub_worker(worker: BothubChatWorker) -> None:
     _active_bothub_workers.append(worker)
 
 
+def _try_local_speech_fallback(spec: BothubRequestSpec, *, cloud_message: str) -> bool:
+    """When cloud STT is unreachable, optionally transcribe with faster-whisper.
+
+    Returns `True` when a local attempt was started (caller must not show Retry yet).
+
+    """
+    audio = spec.audio
+    if audio is None:
+        return False
+    if not is_local_speech_enabled(spec.config):
+        return False
+    if not is_ai_unreachable_error(cloud_message):
+        return False
+
+    toast = None
+    if spec.show_toast:
+        toast_parent = _resolve_toast_parent(spec.parent)
+        toast = toast_cancellable_http_notification.ToastCancellableHttpNotification(
+            "Recognizing speech locally…",
+            parent=toast_parent,
+            owner_modal=spec.owner_modal,
+        )
+        toast.start_countdown(**chain_toast_start_kwargs(spec.state))
+
+    local_worker = LocalSpeechWorker(
+        audio,
+        model_size=local_speech_model_size(spec.config),
+    )
+    _active_local_speech_workers.append(local_worker)
+
+    def finalize_local_toast() -> None:
+        if toast is None:
+            return
+        remember_toast_pin(spec.state, toast)
+        toast.mark_completed()
+        toast.close()
+        if spec.state is not None and spec.state.toast is toast:
+            spec.state.toast = None
+
+    def on_local_success(text: str) -> None:
+        finalize_local_toast()
+        _release_local_speech_worker(local_worker)
+        if spec.state is not None:
+            spec.state.worker = None
+        spec.on_success(text)
+
+    def on_local_error(local_message: str) -> None:
+        finalize_local_toast()
+        _release_local_speech_worker(local_worker)
+        combined = f"{cloud_message}\n\nLocal speech: {local_message}"
+        _offer_retry_or_finish(spec, cancelled=False, message=combined)
+
+    if toast is not None:
+        toast.cancel_requested.connect(local_worker.requestInterruption)
+        if spec.state is not None:
+            spec.state.toast = toast
+
+    local_worker.finished_success.connect(on_local_success)
+    local_worker.finished_error.connect(on_local_error)
+    local_worker.start()
+    return True
+
+
 # Keep strong refs until the thread finishes; otherwise Python GC can destroy QThread early.
 _active_bothub_workers: list[BothubChatWorker] = []
+_active_local_speech_workers: list[LocalSpeechWorker] = []

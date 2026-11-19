@@ -468,6 +468,10 @@
     },
     "proxy": "",
     "speech_provider": "",
+    "local_speech": {
+      "enabled": false,
+      "model": "small"
+    },
     "transfer_private_data_default_api_keys": ["bothub", "bothub.ru"]
   },
   "ticktick_api_key": "snippet:api-keys/ticktick-api-key.txt",

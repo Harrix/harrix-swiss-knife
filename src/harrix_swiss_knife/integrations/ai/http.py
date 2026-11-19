@@ -4,14 +4,12 @@ from __future__ import annotations
 
 import http.client
 from typing import TYPE_CHECKING
-from urllib.error import HTTPError, URLError
+from urllib.error import URLError
 from urllib.parse import urlsplit
-from urllib.request import Request
 
 from harrix_swiss_knife.integrations.ai.errors import AiApiError, RequestCancelledError
 from harrix_swiss_knife.integrations.ai.network_errors import remap_bothub_network_error
 from harrix_swiss_knife.integrations.http_transport import (
-    build_https_opener,
     format_urlerror_message,
     https_ssl_context,
 )
@@ -19,62 +17,27 @@ from harrix_swiss_knife.integrations.http_transport import (
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+DEFAULT_CONNECT_TIMEOUT_SEC = 8
+DEFAULT_READ_TIMEOUT_SEC = 120
+
 
 def post_bytes(
     url: str,
     body: bytes,
     headers: dict[str, str],
     *,
-    timeout_sec: int,
+    timeout_sec: int = DEFAULT_READ_TIMEOUT_SEC,
+    connect_timeout_sec: int = DEFAULT_CONNECT_TIMEOUT_SEC,
     proxy_url: str | None = None,
     should_cancel: Callable[[], bool] | None = None,
     on_connection: Callable[[http.client.HTTPConnection], None] | None = None,
 ) -> str:
-    """POST raw body and return response text; raise AiApiError on failure."""
-    if should_cancel is not None or on_connection is not None:
-        return _post_cancellable(
-            url,
-            body,
-            headers,
-            timeout_sec=timeout_sec,
-            proxy_url=proxy_url,
-            should_cancel=should_cancel,
-            on_connection=on_connection,
-        )
+    """POST raw body and return response text; raise AiApiError on failure.
 
-    request = Request(  # noqa: S310
-        url,
-        data=body,
-        method="POST",
-        headers=headers,
-    )
-    opener = build_https_opener(proxy_url)
-    try:
-        with opener.open(request, timeout=timeout_sec) as response:
-            return response.read().decode("utf-8")
-    except HTTPError as exc:
-        detail = exc.read().decode("utf-8", errors="replace")
-        http_error = f"HTTP {exc.code}: {detail}"
-        raise AiApiError(http_error) from exc
-    except URLError as exc:
-        message = remap_bothub_network_error(
-            format_urlerror_message(exc, proxy_url=proxy_url),
-            url=url,
-            exc=exc,
-        )
-        raise AiApiError(message) from exc
+    `connect_timeout_sec` limits TCP/TLS setup; `timeout_sec` limits reading the
+    response body after the connection is open.
 
-
-def _post_cancellable(
-    url: str,
-    body: bytes,
-    headers: dict[str, str],
-    *,
-    timeout_sec: int,
-    proxy_url: str | None,
-    should_cancel: Callable[[], bool] | None,
-    on_connection: Callable[[http.client.HTTPConnection], None] | None,
-) -> str:
+    """
     if should_cancel and should_cancel():
         _raise_request_cancelled()
 
@@ -91,27 +54,28 @@ def _post_cancellable(
         path = f"{path}?{parts.query}"
 
     conn: http.client.HTTPConnection
-    if proxy_url:
-        proxy_parts = urlsplit(proxy_url)
-        proxy_host = proxy_parts.hostname
-        if proxy_host is None:
-            msg = f"Invalid proxy URL: {proxy_url}"
-            raise AiApiError(msg)
-        proxy_port = proxy_parts.port or 80
-        conn = http.client.HTTPConnection(proxy_host, proxy_port, timeout=timeout_sec)
-        conn.set_tunnel(host, port)
-    elif parts.scheme == "https":
-        conn = http.client.HTTPSConnection(
-            host,
-            port,
-            timeout=timeout_sec,
-            context=https_ssl_context(),
+    try:
+        conn = _open_connection(
+            host=host,
+            port=port,
+            scheme=parts.scheme,
+            proxy_url=proxy_url,
+            connect_timeout_sec=connect_timeout_sec,
         )
-    else:
-        conn = http.client.HTTPConnection(host, port, timeout=timeout_sec)
+    except (TimeoutError, OSError, URLError) as exc:
+        if should_cancel and should_cancel():
+            raise RequestCancelledError from exc
+        message = remap_bothub_network_error(
+            format_urlerror_message(exc, proxy_url=proxy_url) if isinstance(exc, URLError) else f"Network error: {exc}",
+            url=url,
+            exc=exc,
+        )
+        raise AiApiError(message) from exc
 
     if on_connection is not None:
         on_connection(conn)
+
+    _set_socket_timeout(conn, timeout_sec)
 
     response: http.client.HTTPResponse | None = None
     raw_bytes = b""
@@ -146,6 +110,43 @@ def _post_cancellable(
     return raw_bytes.decode("utf-8")
 
 
+def _open_connection(
+    *,
+    host: str,
+    port: int,
+    scheme: str,
+    proxy_url: str | None,
+    connect_timeout_sec: int,
+) -> http.client.HTTPConnection:
+    if proxy_url:
+        proxy_parts = urlsplit(proxy_url)
+        proxy_host = proxy_parts.hostname
+        if proxy_host is None:
+            msg = f"Invalid proxy URL: {proxy_url}"
+            raise AiApiError(msg)
+        proxy_port = proxy_parts.port or 80
+        conn: http.client.HTTPConnection = http.client.HTTPConnection(
+            proxy_host,
+            proxy_port,
+            timeout=connect_timeout_sec,
+        )
+        conn.set_tunnel(host, port)
+        conn.connect()
+        return conn
+    if scheme == "https":
+        conn = http.client.HTTPSConnection(
+            host,
+            port,
+            timeout=connect_timeout_sec,
+            context=https_ssl_context(),
+        )
+        conn.connect()
+        return conn
+    conn = http.client.HTTPConnection(host, port, timeout=connect_timeout_sec)
+    conn.connect()
+    return conn
+
+
 def _raise_request_cancelled() -> None:
     raise RequestCancelledError
 
@@ -166,3 +167,10 @@ def _read_response_bytes(
             break
         chunks.append(chunk)
     return b"".join(chunks)
+
+
+def _set_socket_timeout(conn: http.client.HTTPConnection, timeout_sec: int) -> None:
+    sock = getattr(conn, "sock", None)
+    if sock is not None:
+        sock.settimeout(timeout_sec)
+    conn.timeout = timeout_sec

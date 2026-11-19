@@ -1,9 +1,11 @@
 package dev.harrix.hsk.ui.speechtotext
 
 import android.Manifest
+import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.speech.RecognizerIntent
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -44,6 +46,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -147,6 +150,8 @@ fun SpeechToTextScreen(
     var errorMessage by viewModel.errorMessage
     var infoMessage by viewModel.infoMessage
     var hasApiKey by viewModel.hasApiKey
+    val localSpeechFallbackEnabled by viewModel.localSpeechFallbackEnabled
+    val localFallbackItemId by viewModel.localFallbackItemId
     val recordingDurationSeconds by viewModel.recordingDurationSeconds
     val averageMsPerAudioSecond by viewModel.averageMsPerAudioSecond
     val waveformBuckets = viewModel.waveformBuckets
@@ -157,11 +162,13 @@ fun SpeechToTextScreen(
     val shareFailedMessage = stringResource(R.string.speech_to_text_share_failed)
     val shareChooserTitle = stringResource(R.string.speech_to_text_share)
     val tickTickUnavailableMessage = stringResource(R.string.speech_to_text_ticktick_unavailable)
+    val localSpeechPrompt = stringResource(R.string.speech_to_text_local_prompt)
 
     var pendingMicAction by remember { mutableStateOf<MicAction?>(null) }
     var saveTargetId by remember { mutableStateOf<String?>(null) }
     var selectedItemId by remember { mutableStateOf<String?>(null) }
     var askModelItemId by remember { mutableStateOf<String?>(null) }
+    var pendingLocalSpeechItemId by remember { mutableStateOf<String?>(null) }
     val selectedItem = items.firstOrNull { it.id == selectedItemId }
 
     fun leaveUtility() {
@@ -248,6 +255,45 @@ fun SpeechToTextScreen(
             }
             saveTargetId = null
         }
+
+    val localSpeechLauncher =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.StartActivityForResult(),
+        ) { result ->
+            val id = pendingLocalSpeechItemId
+            pendingLocalSpeechItemId = null
+            if (id == null || result.resultCode != Activity.RESULT_OK) {
+                return@rememberLauncherForActivityResult
+            }
+            val matches =
+                result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS).orEmpty()
+            val transcript = matches.firstOrNull().orEmpty().trim()
+            if (transcript.isNotEmpty()) {
+                viewModel.applyDeviceTranscript(id, transcript)
+            }
+        }
+
+    fun launchDeviceSpeech(itemId: String) {
+        pendingLocalSpeechItemId = itemId
+        viewModel.dismissLocalFallbackOffer()
+        val intent =
+            Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                putExtra(
+                    RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                    RecognizerIntent.LANGUAGE_MODEL_FREE_FORM,
+                )
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ru-RU")
+                putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
+                putExtra(RecognizerIntent.EXTRA_PROMPT, localSpeechPrompt)
+            }
+        try {
+            localSpeechLauncher.launch(intent)
+        } catch (_: ActivityNotFoundException) {
+            pendingLocalSpeechItemId = null
+            viewModel.errorMessage.value =
+                context.getString(R.string.speech_to_text_local_unavailable)
+        }
+    }
 
     fun startOrRequestMic(action: MicAction = MicAction.Start) {
         val granted =
@@ -405,6 +451,23 @@ fun SpeechToTextScreen(
                     Spacer(modifier = Modifier.height(12.dp))
                 }
 
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        text = stringResource(R.string.speech_to_text_local_fallback),
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f).padding(end = 12.dp),
+                    )
+                    Switch(
+                        checked = localSpeechFallbackEnabled,
+                        onCheckedChange = { viewModel.setLocalSpeechFallbackEnabled(it) },
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+
                 Column(
                     modifier =
                     Modifier
@@ -469,6 +532,24 @@ fun SpeechToTextScreen(
             confirmButton = {
                 TextButton(onClick = { viewModel.clearError() }) {
                     Text(stringResource(R.string.speech_to_text_error_ok))
+                }
+            },
+        )
+    }
+
+    localFallbackItemId?.let { itemId ->
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissLocalFallbackOffer() },
+            title = { Text(stringResource(R.string.speech_to_text_local_offer_title)) },
+            text = { Text(stringResource(R.string.speech_to_text_local_offer_message)) },
+            confirmButton = {
+                TextButton(onClick = { launchDeviceSpeech(itemId) }) {
+                    Text(stringResource(R.string.speech_to_text_local_offer_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.dismissLocalFallbackOffer() }) {
+                    Text(stringResource(R.string.speech_to_text_local_offer_dismiss))
                 }
             },
         )

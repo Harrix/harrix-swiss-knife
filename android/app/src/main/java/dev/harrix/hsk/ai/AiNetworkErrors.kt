@@ -73,6 +73,22 @@ object AiNetworkErrors {
         }
     }
 
+    /** True when the AI host could not be reached (VPN / DNS / connect timeout). */
+    fun isAiUnreachableError(message: String): Boolean {
+        val text = message.trim()
+        if (text.isEmpty()) {
+            return false
+        }
+        if (BOTHUB_UNREACHABLE_MSG in text) {
+            return true
+        }
+        if (isConnectTimeoutMessage(text)) {
+            return true
+        }
+        val lower = text.lowercase()
+        return UNREACHABLE_MARKERS.any { it in lower }
+    }
+
     private fun isBothubContext(
         urlOrHost: String?,
         provider: String?,
@@ -96,5 +112,15 @@ object AiNetworkErrors {
             "etimedout",
             "failed to connect",
             "unable to resolve host",
+        )
+
+    private val UNREACHABLE_MARKERS =
+        listOf(
+            "cannot connect",
+            "network error",
+            "unreachable",
+            "failed to connect",
+            "unable to resolve host",
+            "unknown host",
         )
 }

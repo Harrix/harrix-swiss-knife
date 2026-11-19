@@ -327,6 +327,14 @@
     <string name="speech_to_text_slow_warning">Recognition is taking longer than usual. You can cancel and record again.</string>
     <string name="speech_to_text_empty_queue">No messages yet. Start recording below.</string>
     <string name="speech_to_text_recording_missing">Recording file is missing. Record again.</string>
+    <string name="speech_to_text_local_fallback">On-device speech if cloud is down</string>
+    <string name="speech_to_text_local_offer_title">Cloud unavailable</string>
+    <string name="speech_to_text_local_offer_message">BotHub could not be reached. Speak the phrase again using on-device recognition?</string>
+    <string name="speech_to_text_local_offer_confirm">Recognize on device</string>
+    <string name="speech_to_text_local_offer_dismiss">Not now</string>
+    <string name="speech_to_text_local_prompt">Speak again for on-device recognition</string>
+    <string name="speech_to_text_local_unavailable">On-device speech recognition is not available on this device.</string>
+    <string name="speech_to_text_local_fix_skipped">AI text fix skipped: cloud unreachable.</string>
     <string name="photo_editor_share_label">Harrix Photo Editor</string>
     <string name="photo_editor_title">Photo Editor</string>
     <string name="photo_editor_close">Wyjdź z Photo Editor</string>

@@ -38,15 +38,54 @@ class AiClient(
         cancellationKey: String? = null,
     ): String {
         val switched = BothubFailover.prepare(forSpeech)
-        val provider = if (forSpeech) AiConfig.speechProvider else AiConfig.provider
-        val apiKey = if (forSpeech) AiConfig.speechApiKey else AiConfig.apiKey
-        val baseUrl = if (forSpeech) AiConfig.speechBaseUrl else AiConfig.baseUrl
-        val resolvedModel =
+        val firstModel =
             if (switched != null) {
                 if (forSpeech) AiConfig.speechModel else AiConfig.model
             } else {
                 model
             }
+        return try {
+            dispatchChatCompletion(firstModel, text, audio, images, forSpeech, cancellationKey)
+        } catch (error: AiApiException) {
+            if (!BothubFailover.trySwitchAfterApiFailure(forSpeech, error.message.orEmpty())) {
+                throw error
+            }
+            val retryModel = if (forSpeech) AiConfig.speechModel else AiConfig.model
+            dispatchChatCompletion(retryModel, text, audio, images, forSpeech, cancellationKey)
+        }
+    }
+
+    /**
+     * Lists models from OpenAI-compatible `GET /models` (BotHub, OpenAI, OpenRouter).
+     * When [chatOnly] is true, filters to chat/text models.
+     */
+    fun listModels(
+        forSpeech: Boolean = false,
+        chatOnly: Boolean = true,
+        cancellationKey: String? = null,
+    ): List<AiModelInfo> {
+        BothubFailover.prepare(forSpeech)
+        return try {
+            dispatchListModels(forSpeech, chatOnly, cancellationKey)
+        } catch (error: AiApiException) {
+            if (!BothubFailover.trySwitchAfterApiFailure(forSpeech, error.message.orEmpty())) {
+                throw error
+            }
+            dispatchListModels(forSpeech, chatOnly, cancellationKey)
+        }
+    }
+
+    private fun dispatchChatCompletion(
+        model: String,
+        text: String,
+        audio: Pair<ByteArray, String>?,
+        images: List<Pair<ByteArray, String>>?,
+        forSpeech: Boolean,
+        cancellationKey: String?,
+    ): String {
+        val provider = if (forSpeech) AiConfig.speechProvider else AiConfig.provider
+        val apiKey = if (forSpeech) AiConfig.speechApiKey else AiConfig.apiKey
+        val baseUrl = if (forSpeech) AiConfig.speechBaseUrl else AiConfig.baseUrl
         if (!AiConfig.isUsableApiKey(apiKey)) {
             throw AiApiException(missingKeyMessage(provider))
         }
@@ -64,7 +103,7 @@ class AiClient(
                     openaiTranscribe(
                         apiKey,
                         baseUrl,
-                        resolvedModel,
+                        model,
                         text,
                         audio,
                         cancellationKey,
@@ -74,7 +113,7 @@ class AiClient(
                     openaiChat(
                         apiKey,
                         baseUrl,
-                        resolvedModel,
+                        model,
                         text,
                         audio = null,
                         images = images,
@@ -85,16 +124,16 @@ class AiClient(
                 }
 
             AiConfig.PROVIDER_ANTHROPIC ->
-                anthropicMessages(apiKey, baseUrl, resolvedModel, text, images, cancellationKey)
+                anthropicMessages(apiKey, baseUrl, model, text, images, cancellationKey)
 
             AiConfig.PROVIDER_GEMINI ->
-                geminiGenerate(apiKey, baseUrl, resolvedModel, text, audio, images, cancellationKey)
+                geminiGenerate(apiKey, baseUrl, model, text, audio, images, cancellationKey)
 
             else ->
                 openaiChat(
                     apiKey,
                     baseUrl,
-                    resolvedModel,
+                    model,
                     text,
                     audio,
                     images,
@@ -104,16 +143,11 @@ class AiClient(
         }
     }
 
-    /**
-     * Lists models from OpenAI-compatible `GET /models` (BotHub, OpenAI, OpenRouter).
-     * When [chatOnly] is true, filters to chat/text models.
-     */
-    fun listModels(
-        forSpeech: Boolean = false,
-        chatOnly: Boolean = true,
-        cancellationKey: String? = null,
+    private fun dispatchListModels(
+        forSpeech: Boolean,
+        chatOnly: Boolean,
+        cancellationKey: String?,
     ): List<AiModelInfo> {
-        BothubFailover.prepare(forSpeech)
         val provider = if (forSpeech) AiConfig.speechProvider else AiConfig.provider
         val apiKey = if (forSpeech) AiConfig.speechApiKey else AiConfig.apiKey
         val baseUrl = if (forSpeech) AiConfig.speechBaseUrl else AiConfig.baseUrl
@@ -685,14 +719,15 @@ class AiClient(
         }
 
         private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
-        private const val TIMEOUT_SEC = 120L
+        private const val CONNECT_TIMEOUT_SEC = 8L
+        private const val READ_TIMEOUT_SEC = 120L
 
         fun defaultHttpClient(): OkHttpClient = OkHttpClient
             .Builder()
-            .connectTimeout(TIMEOUT_SEC, TimeUnit.SECONDS)
-            .readTimeout(TIMEOUT_SEC, TimeUnit.SECONDS)
-            .writeTimeout(TIMEOUT_SEC, TimeUnit.SECONDS)
-            .callTimeout(TIMEOUT_SEC, TimeUnit.SECONDS)
+            .connectTimeout(CONNECT_TIMEOUT_SEC, TimeUnit.SECONDS)
+            .readTimeout(READ_TIMEOUT_SEC, TimeUnit.SECONDS)
+            .writeTimeout(READ_TIMEOUT_SEC, TimeUnit.SECONDS)
+            .callTimeout(READ_TIMEOUT_SEC, TimeUnit.SECONDS)
             .build()
 
         fun stripMarkdownFences(text: String): String {

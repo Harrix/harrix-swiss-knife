@@ -18,6 +18,7 @@ import dev.harrix.hsk.bothub.BothubConfig
 import dev.harrix.hsk.speechtotext.AudioCompress
 import dev.harrix.hsk.speechtotext.AudioRecorder
 import dev.harrix.hsk.speechtotext.AudioRecorderException
+import dev.harrix.hsk.speechtotext.LocalSpeechPrefs
 import dev.harrix.hsk.speechtotext.SpeechMessageStatus
 import dev.harrix.hsk.speechtotext.SpeechProcessingKind
 import dev.harrix.hsk.speechtotext.SpeechQueueItem
@@ -48,6 +49,7 @@ class SpeechToTextViewModel(
     private val repository = SpeechToTextRepository(application.applicationContext)
     private val queueStore = SpeechToTextQueueStore(application.applicationContext)
     private val askAiModelStore = AskAiModelStore(application.applicationContext)
+    private val localSpeechPrefs = LocalSpeechPrefs(application.applicationContext)
     private val mainHandler = Handler(Looper.getMainLooper())
     private val recognition =
         SpeechRecognitionCoordinator(
@@ -74,6 +76,9 @@ class SpeechToTextViewModel(
                     )
                 }
             },
+            isLocalFallbackEnabled = { localSpeechPrefs.enabled },
+            onOfferLocalFallback = { item -> localFallbackItemId.value = item.id },
+            onInfoMessage = { infoMessage.value = it },
         )
 
     val usesAskModelPicker: Boolean
@@ -94,6 +99,8 @@ class SpeechToTextViewModel(
     val composerBusy = mutableStateOf(false)
     val errorMessage = mutableStateOf<String?>(null)
     val infoMessage = mutableStateOf<String?>(null)
+    val localSpeechFallbackEnabled = mutableStateOf(localSpeechPrefs.enabled)
+    val localFallbackItemId = mutableStateOf<String?>(null)
     val hasApiKey = mutableStateOf(isAiConfigured())
     val recordingDurationSeconds = mutableFloatStateOf(0f)
     val waveformBuckets = mutableStateListOf<WaveformBucket>()
@@ -325,6 +332,26 @@ class SpeechToTextViewModel(
                 composerBusy.value = false
             }
         }
+    }
+
+    fun setLocalSpeechFallbackEnabled(enabled: Boolean) {
+        localSpeechPrefs.enabled = enabled
+        localSpeechFallbackEnabled.value = enabled
+    }
+
+    fun dismissLocalFallbackOffer() {
+        localFallbackItemId.value = null
+    }
+
+    fun applyDeviceTranscript(
+        id: String,
+        transcript: String,
+    ) {
+        localFallbackItemId.value = null
+        val item = items.firstOrNull { it.id == id } ?: return
+        val note =
+            getApplication<Application>().getString(R.string.speech_to_text_local_fix_skipped)
+        recognition.applyDeviceTranscript(item, transcript, note)
     }
 
     fun recognize(

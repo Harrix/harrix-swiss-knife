@@ -11,11 +11,52 @@ lang: en
 
 ## Contents
 
+- [🔧 Function `bothub_probe_url`](#-function-bothub_probe_url)
+- [🔧 Function `clear_bothub_down_cache`](#-function-clear_bothub_down_cache)
 - [🔧 Function `is_bothub_api_failover_error`](#-function-is_bothub_api_failover_error)
+- [🔧 Function `mark_bothub_router_down`](#-function-mark_bothub_router_down)
 - [🔧 Function `persist_ai_provider`](#-function-persist_ai_provider)
 - [🔧 Function `prepare_bothub_router`](#-function-prepare_bothub_router)
 - [🔧 Function `probe_bothub_site`](#-function-probe_bothub_site)
 - [🔧 Function `switch_bothub_router_after_api_failure`](#-function-switch_bothub_router_after_api_failure)
+
+</details>
+
+## 🔧 Function `bothub_probe_url`
+
+```python
+def bothub_probe_url(provider: ProviderName, config: dict[str, Any] | None = None) -> str
+```
+
+Return the API probe URL for a BotHub router (`{base_url}/models`).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def bothub_probe_url(provider: ProviderName, config: dict[str, Any] | None = None) -> str:
+    settings = get_provider_settings(config or {}, provider)
+    base_url = str(settings.get("base_url", "")).strip().rstrip("/")
+    return f"{base_url}/models"
+```
+
+</details>
+
+## 🔧 Function `clear_bothub_down_cache`
+
+```python
+def clear_bothub_down_cache() -> None
+```
+
+Clear the in-process negative cache of unreachable BotHub routers.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def clear_bothub_down_cache() -> None:
+    _router_down_until.clear()
+```
 
 </details>
 
@@ -39,6 +80,25 @@ def is_bothub_api_failover_error(message: str) -> bool:
     if match is None:
         return True
     return int(match.group(1)) in _FAILOVER_HTTP_STATUSES
+```
+
+</details>
+
+## 🔧 Function `mark_bothub_router_down`
+
+```python
+def mark_bothub_router_down(provider: ProviderName) -> None
+```
+
+Remember that `provider` failed so the next request skips it for a minute.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def mark_bothub_router_down(provider: ProviderName) -> None:
+    if is_bothub_router(provider):
+        _router_down_until[provider] = time.monotonic() + _NEGATIVE_CACHE_SEC
 ```
 
 </details>
@@ -88,11 +148,13 @@ Use the preferred BotHub site when it is up; otherwise the other site.
 
 Preferred `ai.provider` / `ai.speech_provider` stay in `config.json`. The
 live router is stored in `config-temp.json` and on `ai.active_provider`.
-When the preferred site comes back, the next request fails back to it.
+API hosts are probed in parallel (`{base_url}/models`). When the preferred
+site is recently down, the alternate is used without waiting for another
+preferred probe.
 
 Args:
 
-- [`config`](../../actions/common/base.g.md#%EF%B8%8F-method-config-property) (`dict[str, Any]`): In-memory application config (mutated on switch).
+- `config` (`dict[str, Any]`): In-memory application config (mutated on switch).
 - `for_speech` (`bool`): Use the speech provider. Defaults to `False`.
 - `proxy_url` (`str | None`): Optional HTTPS proxy for the probe.
 - `probe` (`Callable | None`): Override reachability check (tests).
@@ -125,7 +187,40 @@ def prepare_bothub_router(
     _hydrate_active_from_temp(config, path_str)
 
     check = probe or probe_bothub_site
-    if check(BOTHUB_PROBE_URLS[preferred], proxy_url):
+    alternate = other_bothub_router(preferred)
+    has_alternate = _has_usable_key(config, alternate)
+
+    if _is_router_marked_down(preferred) and has_alternate:
+        return _commit_router_if_changed(
+            config,
+            alternate,
+            for_speech=for_speech,
+            persist=persist,
+            config_path=path,
+        )
+
+    preferred_url = bothub_probe_url(preferred, config)
+    if not has_alternate:
+        if check(preferred_url, proxy_url):
+            _clear_router_down(preferred)
+            return _commit_router_if_changed(
+                config,
+                preferred,
+                for_speech=for_speech,
+                persist=persist,
+                config_path=path,
+            )
+        mark_bothub_router_down(preferred)
+        return None
+
+    preferred_up, alternate_up = _race_bothub_probes(
+        preferred_url,
+        bothub_probe_url(alternate, config),
+        proxy_url,
+        check,
+    )
+    if preferred_up:
+        _clear_router_down(preferred)
         return _commit_router_if_changed(
             config,
             preferred,
@@ -134,18 +229,16 @@ def prepare_bothub_router(
             config_path=path,
         )
 
-    alternate = other_bothub_router(preferred)
-    if not _has_usable_key(config, alternate):
-        return None
-    if not check(BOTHUB_PROBE_URLS[alternate], proxy_url):
-        return None
-    return _commit_router_if_changed(
-        config,
-        alternate,
-        for_speech=for_speech,
-        persist=persist,
-        config_path=path,
-    )
+    mark_bothub_router_down(preferred)
+    if alternate_up:
+        return _commit_router_if_changed(
+            config,
+            alternate,
+            for_speech=for_speech,
+            persist=persist,
+            config_path=path,
+        )
+    return None
 ```
 
 </details>
@@ -163,7 +256,7 @@ DNS failures, and connection errors count as unavailable.
 
 Args:
 
-- `url` (`str`): Site to probe (`https://bothub.chat/` or `https://bothub.ru/`).
+- `url` (`str`): API probe URL (`{base_url}/models`).
 - `proxy_url` (`str | None`): Optional HTTPS proxy.
 
 Returns:
@@ -204,7 +297,7 @@ its homepage still answers — use it only after the live request failed.
 
 Args:
 
-- [`config`](../../actions/common/base.g.md#%EF%B8%8F-method-config-property) (`dict[str, Any]`): In-memory config (mutated on switch).
+- `config` (`dict[str, Any]`): In-memory config (mutated on switch).
 - `for_speech` (`bool`): Use the speech provider. Defaults to `False`.
 - `persist` (`Callable | None`): Override temp writer (tests).
 - `config_path` (`Path | None`): Main config file for temp write.
@@ -230,6 +323,7 @@ def switch_bothub_router_after_api_failure(
     alternate = other_bothub_router(current)
     if not _has_usable_key(config, alternate):
         return None
+    mark_bothub_router_down(current)
     path = config_path or get_config_path()
     return _commit_router_if_changed(
         config,

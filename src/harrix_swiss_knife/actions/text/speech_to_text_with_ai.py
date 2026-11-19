@@ -21,6 +21,10 @@ from harrix_swiss_knife.actions.text.speech_to_text_pending import SpeechToTextP
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.audio_recording import format_file_size
 from harrix_swiss_knife.apps.common.dialogs.audio_source_dialog import AudioSourceDialog
+from harrix_swiss_knife.integrations.ai.local_speech import (
+    LOCAL_SPEECH_FIX_SKIPPED_NOTE,
+    is_ai_unreachable_error,
+)
 from harrix_swiss_knife.integrations.bothub import (
     BothubRequestState,
     audio_bytes_and_mime,
@@ -190,6 +194,15 @@ class OnSpeechToTextWithAI(ActionBase):
                 self._handle_process_failure(store, str(exc))
                 return
 
+            def on_fix_error(message: str) -> None:
+                if is_ai_unreachable_error(message):
+                    store.clear()
+                    self._show_speech_result(
+                        f"{transcribed_text.strip()}\n\n{LOCAL_SPEECH_FIX_SKIPPED_NOTE}",
+                    )
+                    return
+                self._handle_process_failure(store, message, show_retry_dialog=False)
+
             run_bothub_request(
                 None,
                 self.config,
@@ -198,11 +211,7 @@ class OnSpeechToTextWithAI(ActionBase):
                 toast_message="Fixing text…",
                 is_busy=lambda: bothub_state.worker is not None,
                 state=bothub_state,
-                on_error=lambda message: self._handle_process_failure(
-                    store,
-                    message,
-                    show_retry_dialog=False,
-                ),
+                on_error=on_fix_error,
                 on_cancelled=lambda: self._handle_process_failure(
                     store,
                     "Request cancelled. The unsent recording was kept.",

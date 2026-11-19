@@ -95,7 +95,8 @@ Supported `provider` values: `bothub`, `bothub.ru`, `openai`, `openrouter`, `ant
 
 - `speech_provider` empty means the same as `provider`.
 - Anthropic has no speech-to-text API: set `speech_provider` to `openai`, `openrouter`, `gemini`, `bothub`, or `bothub.ru` for voice features.
-- `bothub` and `bothub.ru` are interchangeable routers. Before each AI request the app probes the preferred site. If it is unreachable and the other key is set, the live router is stored in `config-temp.json`. Preferred `ai.provider` stays in Settings.
+- `bothub` and `bothub.ru` are interchangeable routers. Before each AI request the app probes both API hosts (`{base_url}/models`) in parallel (about 4s). Preferred site wins when it answers; otherwise the other key is used and the live router is stored in `config-temp.json`. A site that just failed is skipped for about 60s. Preferred `ai.provider` stays in Settings. Connect timeout is 8s; reading the model reply can take up to 120s. After an eligible API error the request is tried once on the other BotHub site.
+- Optional local speech fallback (desktop): set `ai.local_speech.enabled` to `true` and install `uv sync --extra local-speech` (`faster-whisper`). Cloud AI stays first; local Whisper runs only when the host is unreachable.
 - Copy the matching `*-api-key.example.txt` → `*-api-key.txt` and paste the key (one line).
 
 If `ai` is omitted, the app keeps the previous BotHub-only behavior.
