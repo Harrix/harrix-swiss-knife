@@ -44,7 +44,10 @@ class GitDiffEdit(FluentPlainTextEdit):
     def refresh_theme(self) -> None:
         """Re-apply chrome and diff colors."""
         super().refresh_theme()
-        self._highlighter.rehighlight()
+        # Theme binding runs from `FluentPlainTextEdit.__init__` before the highlighter exists.
+        highlighter = getattr(self, "_highlighter", None)
+        if highlighter is not None:
+            highlighter.rehighlight()
 ```
 
 </details>
@@ -86,7 +89,10 @@ Re-apply chrome and diff colors.
 ```python
 def refresh_theme(self) -> None:
         super().refresh_theme()
-        self._highlighter.rehighlight()
+        # Theme binding runs from `FluentPlainTextEdit.__init__` before the highlighter exists.
+        highlighter = getattr(self, "_highlighter", None)
+        if highlighter is not None:
+            highlighter.rehighlight()
 ```
 
 </details>
