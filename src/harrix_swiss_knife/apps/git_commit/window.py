@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 from PySide6.QtCore import QEvent, QObject, Qt, QThread, QTimer, Signal
-from PySide6.QtGui import QKeyEvent, QPainter
+from PySide6.QtGui import QIcon, QKeyEvent, QPainter
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QDialog,
@@ -31,11 +31,15 @@ from harrix_swiss_knife.actions.common.git_diff_text import git_diff_text_for_pa
 from harrix_swiss_knife.actions.common.git_dirty_ops import (
     ChangedFile,
     DirtyRepoStatus,
+    RepoAccess,
     commit_selected_paths,
     configured_git_roots,
+    github_repo_visibility,
     list_changed_files,
     open_github_desktop_nonblocking,
+    read_repo_access,
     refresh_repo_statuses,
+    repo_access_from_remote,
     scan_dirty_repos,
 )
 from harrix_swiss_knife.actions.common.maintenance_checklist_steps import save_git_repos_all_clean
@@ -44,7 +48,7 @@ from harrix_swiss_knife.apps.common.tracker_splitter_settings import load_splitt
 from harrix_swiss_knife.apps.git_commit.diff_view import GitDiffEdit
 from harrix_swiss_knife.fluent.app_chrome import install_fluent_app_window, prepare_fluent_app_window
 from harrix_swiss_knife.fluent.theme import palette_for
-from harrix_swiss_knife.fluent.tokens import SPACE_M, SPACE_S, SPACE_XL
+from harrix_swiss_knife.fluent.tokens import ICON_SIZE, SPACE_M, SPACE_S, SPACE_XL
 from harrix_swiss_knife.fluent.widgets import (
     FluentLineEdit,
     FluentListWidget,
@@ -56,6 +60,7 @@ from harrix_swiss_knife.fluent.widgets import (
     polish_fluent_splitter,
 )
 from harrix_swiss_knife.installer.icon_assets import apply_window_icon
+from harrix_swiss_knife.qt_lucide_icon import create_lucide_icon
 from harrix_swiss_knife.toast_notification import ToastNotification
 from harrix_swiss_knife.win11_caption import (
     OVERLAY_CAPTION_PROPERTY,
@@ -73,6 +78,15 @@ _SPLITTER_DEFAULT = (260, 340, 700)
 _REFRESH_MS = 30_000
 _SPLITTER_SAVE_DELAY_MS = 400
 _REPO_ROLE = Qt.ItemDataRole.UserRole
+_REPO_KIND_ROLE = Qt.ItemDataRole.UserRole + 1
+_REPO_SLUG_ROLE = Qt.ItemDataRole.UserRole + 2
+_REPO_REMOTE_ROLE = Qt.ItemDataRole.UserRole + 3
+_ACCESS_ICONS = {
+    "local": "hard-drive",
+    "remote": "cloud",
+    "public": "globe",
+    "private": "lock",
+}
 _FILE_PATH_ROLE = Qt.ItemDataRole.UserRole
 _FILE_STATUS_ROLE = Qt.ItemDataRole.UserRole + 1
 _SUGGESTION_MATCH_ROLE = Qt.ItemDataRole.UserRole
@@ -116,6 +130,7 @@ class DirtyReposCommitWindow(QDialog):
         self._workers: list[_FnWorker] = []
         self._win11_caption = False
         self._suppress_file_signals = False
+        self._visibility_generation = 0
 
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
@@ -271,6 +286,16 @@ class DirtyReposCommitWindow(QDialog):
         finally:
             self._applying_suggestion = False
         self._update_commit_enabled()
+
+    def _apply_repo_access(self, item: QListWidgetItem, access: RepoAccess) -> None:
+        path = item.data(_REPO_ROLE)
+        if not isinstance(path, Path):
+            return
+        item.setData(_REPO_KIND_ROLE, access.kind)
+        item.setData(_REPO_SLUG_ROLE, access.github_slug)
+        item.setData(_REPO_REMOTE_ROLE, access.remote_url)
+        item.setIcon(self._repo_icon(access.kind))
+        item.setToolTip(access.summary(path))
 
     def _apply_suggestion_filter(self) -> None:
         ordered = order_suggestions_for_filter(self._suggestion_subjects, self._suggestion_filter)
@@ -492,8 +517,8 @@ class DirtyReposCommitWindow(QDialog):
         select_row = 0
         for index, status in enumerate(self._statuses):
             item = QListWidgetItem(f"{status.path.name}  ({status.changed_count})")
-            item.setToolTip(str(status.path))
             item.setData(_REPO_ROLE, status.path)
+            self._apply_repo_access(item, read_repo_access(status.path))
             self._repo_list.addItem(item)
             if current is not None and status.path == current:
                 select_row = index
@@ -505,6 +530,7 @@ class DirtyReposCommitWindow(QDialog):
             self._clear_suggestions()
             self._diff.setPlainText("")
             self._update_commit_enabled()
+        self._resolve_repo_visibility()
 
     def _rebuild_suggestions(self) -> None:
         repo = self._current_repo()
@@ -533,6 +559,16 @@ class DirtyReposCommitWindow(QDialog):
                 self._emit_line("✅ All listed repositories are clean")
 
         self._run_worker(work, done, busy=False)
+
+    def _repo_icon(self, kind: str) -> QIcon:
+        palette = palette_for(self)
+        if kind == "local":
+            color = palette.text_secondary
+        elif kind == "private":
+            color = palette.caution
+        else:
+            color = palette.accent
+        return create_lucide_icon(_ACCESS_ICONS.get(kind, "cloud"), ICON_SIZE, color=color)
 
     def _rescan_all_repos(self) -> None:
         if self._busy:
@@ -567,6 +603,51 @@ class DirtyReposCommitWindow(QDialog):
             self._set_status_text()
 
         self._run_worker(work, done, busy=True, on_fail=failed)
+
+    def _resolve_repo_visibility(self) -> None:
+        pending: list[tuple[Path, str, str]] = []
+        for row in range(self._repo_list.count()):
+            item = self._repo_list.item(row)
+            if item is None or item.data(_REPO_KIND_ROLE) != "remote":
+                continue
+            slug = item.data(_REPO_SLUG_ROLE)
+            path = item.data(_REPO_ROLE)
+            if not isinstance(slug, str) or "/" not in slug or not isinstance(path, Path):
+                continue
+            owner, _, name = slug.partition("/")
+            if owner and name:
+                pending.append((path, owner, name))
+        self._visibility_generation += 1
+        generation = self._visibility_generation
+        if not pending:
+            return
+
+        def work() -> dict[Path, str]:
+            found: dict[Path, str] = {}
+            for path, owner, name in pending:
+                found[path] = github_repo_visibility(owner, name)
+            return found
+
+        def done(found: dict[Path, str]) -> None:
+            if generation != self._visibility_generation:
+                return
+            for row in range(self._repo_list.count()):
+                item = self._repo_list.item(row)
+                if item is None:
+                    continue
+                path = item.data(_REPO_ROLE)
+                if not isinstance(path, Path):
+                    continue
+                visibility = found.get(path)
+                if visibility not in {"public", "private"}:
+                    continue
+                remote = item.data(_REPO_REMOTE_ROLE)
+                self._apply_repo_access(
+                    item,
+                    repo_access_from_remote(str(remote or ""), visibility=visibility),
+                )
+
+        self._run_worker(work, done, busy=False)
 
     def _run_worker(
         self,

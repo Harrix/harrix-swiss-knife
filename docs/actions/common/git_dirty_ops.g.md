@@ -15,13 +15,20 @@ lang: en
 - [🏛️ Class `DirtyRepoStatus`](#%EF%B8%8F-class-dirtyrepostatus)
   - [⚙️ Method `changed_count (property)`](#%EF%B8%8F-method-changed_count-property)
   - [⚙️ Method `is_dirty (property)`](#%EF%B8%8F-method-is_dirty-property)
+- [🏛️ Class `RepoAccess`](#%EF%B8%8F-class-repoaccess)
+  - [⚙️ Method `summary`](#%EF%B8%8F-method-summary)
 - [🔧 Function `commit_selected_paths`](#-function-commit_selected_paths)
 - [🔧 Function `configured_git_roots`](#-function-configured_git_roots)
+- [🔧 Function `github_repo_visibility`](#-function-github_repo_visibility)
 - [🔧 Function `list_changed_files`](#-function-list_changed_files)
 - [🔧 Function `open_github_desktop_nonblocking`](#-function-open_github_desktop_nonblocking)
+- [🔧 Function `parse_github_slug`](#-function-parse_github_slug)
 - [🔧 Function `parse_porcelain_files`](#-function-parse_porcelain_files)
+- [🔧 Function `read_repo_access`](#-function-read_repo_access)
 - [🔧 Function `refresh_repo_statuses`](#-function-refresh_repo_statuses)
+- [🔧 Function `repo_access_from_remote`](#-function-repo_access_from_remote)
 - [🔧 Function `scan_dirty_repos`](#-function-scan_dirty_repos)
+- [🔧 Function `visibility_from_github_payload`](#-function-visibility_from_github_payload)
 
 </details>
 
@@ -111,6 +118,71 @@ def is_dirty(self) -> bool:
 
 </details>
 
+## 🏛️ Class `RepoAccess`
+
+```python
+class RepoAccess
+```
+
+Local-only checkout, or a remote with optional GitHub visibility.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class RepoAccess:
+
+    kind: str
+    remote_url: str = ""
+    github_slug: str = ""
+
+    def summary(self, path: Path) -> str:
+        """Return a tooltip: path, then local / remote / public / private."""
+        lines = [str(path)]
+        if self.kind == "local":
+            lines.append("Local repository, no remote")
+        elif self.kind == "public":
+            lines.append(f"Public GitHub repository {self.github_slug}")
+        elif self.kind == "private":
+            lines.append(f"Private GitHub repository {self.github_slug}")
+        elif self.github_slug:
+            lines.append(f"GitHub repository {self.github_slug}")
+        else:
+            lines.append(f"Remote: {self.remote_url}")
+        return "\n".join(lines)
+```
+
+</details>
+
+### ⚙️ Method `summary`
+
+```python
+def summary(self, path: Path) -> str
+```
+
+Return a tooltip: path, then local / remote / public / private.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def summary(self, path: Path) -> str:
+        lines = [str(path)]
+        if self.kind == "local":
+            lines.append("Local repository, no remote")
+        elif self.kind == "public":
+            lines.append(f"Public GitHub repository {self.github_slug}")
+        elif self.kind == "private":
+            lines.append(f"Private GitHub repository {self.github_slug}")
+        elif self.github_slug:
+            lines.append(f"GitHub repository {self.github_slug}")
+        else:
+            lines.append(f"Remote: {self.remote_url}")
+        return "\n".join(lines)
+```
+
+</details>
+
 ## 🔧 Function `commit_selected_paths`
 
 ```python
@@ -177,6 +249,35 @@ def configured_git_roots() -> list[Path]:
         seen.add(resolved)
         roots.append(resolved)
     return roots
+```
+
+</details>
+
+## 🔧 Function `github_repo_visibility`
+
+```python
+def github_repo_visibility(owner: str, repo: str) -> str
+```
+
+Return `public`, `private`, or `unknown` for a GitHub repository.
+
+Uses the configured GitHub token when one is present. A 404 is treated as
+private: without a token GitHub hides private repositories the same way.
+Successful answers are cached for this process.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def github_repo_visibility(owner: str, repo: str) -> str:
+    key = f"{owner}/{repo}".casefold()
+    cached = _visibility_cache.get(key)
+    if cached is not None:
+        return cached
+    result = _fetch_github_visibility(owner, repo)
+    if result != "unknown":
+        _visibility_cache[key] = result
+    return result
 ```
 
 </details>
@@ -253,6 +354,27 @@ def open_github_desktop_nonblocking(repo: Path) -> tuple[bool, str]:
 
 </details>
 
+## 🔧 Function `parse_github_slug`
+
+```python
+def parse_github_slug(remote_url: str) -> tuple[str, str] | None
+```
+
+Return `(owner, repo)` when `remote_url` points at GitHub.com.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def parse_github_slug(remote_url: str) -> tuple[str, str] | None:
+    match = _GITHUB_SLUG.match(remote_url.strip())
+    if match is None:
+        return None
+    return match.group("owner"), match.group("repo")
+```
+
+</details>
+
 ## 🔧 Function `parse_porcelain_files`
 
 ```python
@@ -279,6 +401,27 @@ def parse_porcelain_files(porcelain: str) -> list[ChangedFile]:
         if path:
             files.append(ChangedFile(path=path.replace("\\", "/"), status=status))
     return files
+```
+
+</details>
+
+## 🔧 Function `read_repo_access`
+
+```python
+def read_repo_access(repo: Path) -> RepoAccess
+```
+
+Classify `repo` from its remote. Visibility is used only when already cached.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def read_repo_access(repo: Path) -> RepoAccess:
+    remote_url = _origin_remote_url(repo)
+    slug = parse_github_slug(remote_url)
+    visibility = _visibility_cache.get(f"{slug[0]}/{slug[1]}".casefold()) if slug is not None else None
+    return repo_access_from_remote(remote_url, visibility=visibility)
 ```
 
 </details>
@@ -324,6 +467,33 @@ def refresh_repo_statuses(repos: list[Path], *, prefer_first: Path | None = None
 
 </details>
 
+## 🔧 Function `repo_access_from_remote`
+
+```python
+def repo_access_from_remote(remote_url: str, *, visibility: str | None = None) -> RepoAccess
+```
+
+Build a [`RepoAccess`](#%EF%B8%8F-class-repoaccess) from a remote URL and an optional visibility.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def repo_access_from_remote(remote_url: str, *, visibility: str | None = None) -> RepoAccess:
+    text = remote_url.strip()
+    if not text:
+        return RepoAccess(kind="local")
+    slug = parse_github_slug(text)
+    slug_text = f"{slug[0]}/{slug[1]}" if slug is not None else ""
+    if visibility == "public":
+        return RepoAccess(kind="public", remote_url=text, github_slug=slug_text)
+    if visibility == "private":
+        return RepoAccess(kind="private", remote_url=text, github_slug=slug_text)
+    return RepoAccess(kind="remote", remote_url=text, github_slug=slug_text)
+```
+
+</details>
+
 ## 🔧 Function `scan_dirty_repos`
 
 ```python
@@ -355,6 +525,34 @@ def scan_dirty_repos(roots: list[Path]) -> list[DirtyRepoStatus]:
         if files:
             dirty.append(DirtyRepoStatus(path=repo, files=files))
     return dirty
+```
+
+</details>
+
+## 🔧 Function `visibility_from_github_payload`
+
+```python
+def visibility_from_github_payload(payload: object, *, status: int) -> str
+```
+
+Map a GitHub repository API result to `public`, `private`, or `unknown`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def visibility_from_github_payload(payload: object, *, status: int) -> str:
+    if status == _HTTP_NOT_FOUND:
+        return "private"
+    if status != _HTTP_OK or not isinstance(payload, dict):
+        return "unknown"
+    visibility = payload.get("visibility")
+    private = payload.get("private")
+    if visibility == "public" or private is False:
+        return "public"
+    if visibility in {"private", "internal"} or private is True:
+        return "private"
+    return "unknown"
 ```
 
 </details>
