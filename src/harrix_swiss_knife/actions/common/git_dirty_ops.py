@@ -63,9 +63,14 @@ def commit_selected_paths(repo: Path, paths: list[str], subject: str) -> tuple[b
 
 
 def list_changed_files(repo: Path) -> list[ChangedFile]:
-    """Parse `git status --porcelain` into changed files."""
-    porcelain = git_porcelain(repo).strip()
-    if not porcelain:
+    """Parse `git status --porcelain` into changed files.
+
+    Do not `str.strip()` the whole status: an unstaged change starts with a space
+    (`M path`), and stripping it drops the first character of the path.
+
+    """
+    porcelain = git_porcelain(repo)
+    if not porcelain.strip():
         return []
     return parse_porcelain_files(porcelain)
 

@@ -150,13 +150,16 @@ def list_changed_files(repo: Path) -> list[ChangedFile]
 
 Parse `git status --porcelain` into changed files.
 
+Do not `str.strip()` the whole status: an unstaged change starts with a space
+(`M path`), and stripping it drops the first character of the path.
+
 <details>
 <summary>Code:</summary>
 
 ```python
 def list_changed_files(repo: Path) -> list[ChangedFile]:
-    porcelain = git_porcelain(repo).strip()
-    if not porcelain:
+    porcelain = git_porcelain(repo)
+    if not porcelain.strip():
         return []
     return parse_porcelain_files(porcelain)
 ```

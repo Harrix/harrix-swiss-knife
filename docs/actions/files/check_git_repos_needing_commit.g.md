@@ -164,10 +164,10 @@ class OnCheckGitReposNeedingCommit(ActionBase):
 
         dirty: list[DirtyRepo] = []
         for repo in sorted(repos, key=lambda path: str(path).casefold()):
-            porcelain = OnDiscardGitChanges.git_porcelain(repo).strip()
-            if not porcelain:
+            porcelain = OnDiscardGitChanges.git_porcelain(repo)
+            if not porcelain.strip():
                 continue
-            lines = tuple(porcelain.splitlines())
+            lines = tuple(line for line in porcelain.splitlines() if line.strip())
             dirty.append(
                 DirtyRepo(
                     path=repo,

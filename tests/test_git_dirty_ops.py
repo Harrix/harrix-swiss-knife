@@ -85,6 +85,14 @@ def test_parse_porcelain_files_rename_and_plain() -> None:
     assert files[2].status == "??"
 
 
+def test_parse_porcelain_keeps_leading_space_of_unstaged_path() -> None:
+    """Unstaged porcelain starts with a space; the path must stay intact."""
+    files = parse_porcelain_files(" M Prompts/Promts-Common/Promts-Common.md\n")
+    assert len(files) == 1
+    assert files[0].status == " M"
+    assert files[0].path == "Prompts/Promts-Common/Promts-Common.md"
+
+
 def test_refresh_repo_statuses_drops_clean(tmp_path: Path) -> None:
     dirty = tmp_path / "dirty"
     clean = tmp_path / "clean"
