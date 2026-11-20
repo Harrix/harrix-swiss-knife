@@ -55,6 +55,23 @@ _output_path_local = threading.local()
 # Keep strong refs until the thread finishes; otherwise Python GC can destroy QThread early.
 _active_action_workers: list[_WorkerForThread] = []
 
+# Whole-action cancel logs (casefold, emoji stripped). Per-item "commit cancelled" must not match.
+_RUN_CANCEL_LINE_MARKERS: tuple[str, ...] = (
+    "cancelled.",
+    "canceled.",
+    "canceled or no editors selected.",
+    "canceled or sync failed.",
+    "cancelled by user.",
+    "dialog was canceled.",
+    "request cancelled by user.",
+    "screenshot cancelled",
+    "screen recording cancelled or unavailable",
+    "sync cancelled.",
+    "the about window has been canceled",
+    "update cancelled.",
+    "upgrade cancelled.",
+)
+
 
 class ActionBase(ABC):
     """Base class for actions that can be executed and produce output.
@@ -105,6 +122,7 @@ class ActionBase(ABC):
         """
         self.result_lines.clear()
         self.result_folder = None
+        self.run_completed = True
         # Always re-read config.json so edits (e.g. personal_data) apply without restart.
         self.invalidate_config_cache()
         self.file = new_action_output_file_path(self._action_output_dir, type(self).__name__)
@@ -130,6 +148,8 @@ class ActionBase(ABC):
         """
         self.result_lines = []
         self.result_folder: Path | None = None
+        # True after a normal run; False when the user cancelled before useful work finished.
+        self.run_completed = True
         self._output_bus: ActionOutputBus | None = kwargs.get("output_bus")
         self._action_output_dir = get_action_output_dir()
         self._action_output_dir.mkdir(parents=True, exist_ok=True)
@@ -159,6 +179,8 @@ class ActionBase(ABC):
         - `line` (`str`): The text line to add to the output.
 
         """
+        if _line_marks_run_cancelled(line):
+            self.mark_run_cancelled()
         output_path = self._write_output_path()
         output_path.parent.mkdir(parents=True, exist_ok=True)
         with Path.open(output_path, "a", encoding="utf8") as f:
@@ -495,6 +517,14 @@ class ActionBase(ABC):
         worker = getattr(self, "_current_worker", None)
         return bool(worker is not None and getattr(worker, "should_stop", False))
 
+    def mark_run_cancelled(self) -> None:
+        """Record that the user cancelled before the action finished useful work.
+
+        Maintenance checklist uses `run_completed` so Cancel does not mark the step Done.
+
+        """
+        self.run_completed = False
+
     def raise_if_work_cancelled(self) -> None:
         """Raise DownloadCancelledError when the current worker was cancelled."""
         if self.is_work_cancelled():
@@ -648,6 +678,7 @@ class ActionBase(ABC):
             if ui_message:
                 self._close_progress_toast()
             if isinstance(result, _WorkerCancelled):
+                self.mark_run_cancelled()
                 print("❌ Request cancelled by user.")
                 return
             if isinstance(result, _WorkerFailure):
@@ -888,6 +919,18 @@ def stop_active_action_workers(*, timeout_ms: int = 3000) -> None:
             worker.wait(1000)
         with contextlib.suppress(ValueError):
             _active_action_workers.remove(worker)
+
+
+def _line_marks_run_cancelled(line: str) -> bool:
+    """Return whether `line` means the user cancelled the whole action."""
+    folded = " ".join(line.strip().casefold().split())
+    if not folded:
+        return False
+    for prefix in ("ℹ️", "❌", "⚠️", "⚪"):  # noqa: RUF001
+        if folded.startswith(prefix):
+            folded = folded.removeprefix(prefix).lstrip()
+            break
+    return any(folded == marker or folded.startswith(f"{marker} ") for marker in _RUN_CANCEL_LINE_MARKERS)
 
 
 # Fatal / programming errors that must not be swallowed by `@handle_exceptions`.

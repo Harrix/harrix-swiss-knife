@@ -76,6 +76,7 @@ class OnGenerateStaticSite(ActionBase):
         )
 
         if not selected_choice:
+            self.mark_run_cancelled()
             return
 
         choice_type, choice_data = site_map[selected_choice]
@@ -100,6 +101,7 @@ class OnGenerateStaticSite(ActionBase):
                 self.config.get("path_articles", self.config.get("path_notes", ".")),
             )
             if not self.md_folder:
+                self.mark_run_cancelled()
                 return
 
             self.html_folder = self.dialogs.get_existing_directory(
@@ -107,6 +109,7 @@ class OnGenerateStaticSite(ActionBase):
                 str(self.md_folder.parent / "build_site"),
             )
             if not self.html_folder:
+                self.mark_run_cancelled()
                 return
 
             self.theme_dir = self._resolve_theme_dir(None)
@@ -125,6 +128,7 @@ class OnGenerateStaticSite(ActionBase):
                 default_yes=False,
             )
             if not continue_without_theme:
+                self.mark_run_cancelled()
                 return
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
@@ -285,6 +289,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         )
 
         if not selected_choice:
+            self.mark_run_cancelled()
             return
 
         choice_type, choice_data = site_map[selected_choice]
@@ -309,6 +314,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
                 self.config.get("path_articles", self.config.get("path_notes", ".")),
             )
             if not self.md_folder:
+                self.mark_run_cancelled()
                 return
 
             self.html_folder = self.dialogs.get_existing_directory(
@@ -316,6 +322,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
                 str(self.md_folder.parent / "build_site"),
             )
             if not self.html_folder:
+                self.mark_run_cancelled()
                 return
 
             self.theme_dir = self._resolve_theme_dir(None)
@@ -334,6 +341,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
                 default_yes=False,
             )
             if not continue_without_theme:
+                self.mark_run_cancelled()
                 return
 
         self.start_thread(self.in_thread, self.thread_after, self.title)

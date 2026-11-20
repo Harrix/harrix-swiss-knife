@@ -114,9 +114,11 @@ class OnSyncSaveCommands(ActionBase):
         """Tray path: checkbox editors, preview, then Apply after they are closed."""
         labels = self._select_editors_interactive()
         if labels is None:
+            self.mark_run_cancelled()
             return
         plan = self._build_plan(labels, show_dialog=True)
         if plan is None:
+            self.mark_run_cancelled()
             return
         self._plan = plan
         report = format_sync_report(plan)
@@ -136,11 +138,13 @@ class OnSyncSaveCommands(ActionBase):
             ok_button_before_actions=True,
         )
         if not isinstance(shown, tuple) or shown[1] != RERUN_DIALOG_CODE:
+            self.mark_run_cancelled()
             return
         if not self._wait_until_editors_closed(labels):
             self.add_line("Sync cancelled.")
             return
         if not self._apply_plan(plan, force=False, show_dialog=True):
+            self.mark_run_cancelled()
             return
         if plan.backup_path is not None:
             self.result_folder = plan.backup_path

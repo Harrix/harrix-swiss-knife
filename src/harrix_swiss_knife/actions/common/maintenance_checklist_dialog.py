@@ -206,18 +206,26 @@ class MaintenanceChecklistDialog(QDialog):
 
         scroll_pos = self._scroll.verticalScrollBar().value()
         self._set_busy(busy=True)
+        last_step = ordered[-1]
+        cancelled = False
         try:
             for index, step in enumerate(ordered, start=1):
                 self._progress.setText(f"Running {index}/{len(ordered)}: {step.title}")
-                self._run_step(step)
+                if not self._run_step(step):
+                    cancelled = True
+                    last_step = step
+                    self._progress.setText(f"Cancelled: {step.title}")
+                    break
                 self._session_done.add(step.class_name)
                 self._refresh_row(step.class_name)
+                last_step = step
         finally:
             self._set_busy(busy=False)
-            self._progress.setText("Run all finished")
+            if not cancelled:
+                self._progress.setText("Run all finished")
             self._refresh_all_rows()
             self._scroll.verticalScrollBar().setValue(scroll_pos)
-            self._ensure_step_card_visible(ordered[-1])
+            self._ensure_step_card_visible(last_step)
 
     def _on_run_one(self, step: MaintenanceStep) -> None:
         if self._busy:
@@ -225,16 +233,21 @@ class MaintenanceChecklistDialog(QDialog):
         scroll_pos = self._scroll.verticalScrollBar().value()
         self._set_busy(busy=True)
         self._progress.setText(f"Running: {step.title}")
+        completed = False
         try:
-            self._run_step(step)
-            self._session_done.add(step.class_name)
+            completed = self._run_step(step)
+            if completed:
+                self._session_done.add(step.class_name)
         finally:
             self._set_busy(busy=False)
             self._progress.setText("")
             self._refresh_row(step.class_name)
             visible = self._visible_row_count()
             done = self._visible_session_done_count()
-            self._progress.setText(f"Done this session: {done}/{visible}")
+            if completed:
+                self._progress.setText(f"Done this session: {done}/{visible}")
+            else:
+                self._progress.setText(f"Cancelled: {step.title}")
             self._scroll.verticalScrollBar().setValue(scroll_pos)
             self._ensure_step_card_visible(step)
 
@@ -302,7 +315,8 @@ class MaintenanceChecklistDialog(QDialog):
             return self._show_update_hsk.isChecked()
         return True
 
-    def _run_step(self, step: MaintenanceStep) -> None:
+    def _run_step(self, step: MaintenanceStep) -> bool:
+        """Run one checklist action; return whether it completed (not cancelled)."""
         action: ActionBase = step.action_cls(output_bus=self._output_bus)
         action()
         worker = getattr(action, "_current_worker", None)
@@ -311,6 +325,7 @@ class MaintenanceChecklistDialog(QDialog):
             worker.finished.connect(loop.quit)
             if worker.isRunning():
                 loop.exec()
+        return bool(getattr(action, "run_completed", True))
 
     def _set_busy(self, *, busy: bool) -> None:
         if busy:

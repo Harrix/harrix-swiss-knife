@@ -41,6 +41,7 @@ lang: en
   - [⚙️ Method `handle_exceptions (staticmethod)`](#%EF%B8%8F-method-handle_exceptions-staticmethod)
   - [⚙️ Method `invalidate_config_cache`](#%EF%B8%8F-method-invalidate_config_cache)
   - [⚙️ Method `is_work_cancelled`](#%EF%B8%8F-method-is_work_cancelled)
+  - [⚙️ Method `mark_run_cancelled`](#%EF%B8%8F-method-mark_run_cancelled)
   - [⚙️ Method `raise_if_work_cancelled`](#%EF%B8%8F-method-raise_if_work_cancelled)
   - [⚙️ Method `resolve_config_value`](#%EF%B8%8F-method-resolve_config_value)
   - [⚙️ Method `resolve_description (classmethod)`](#%EF%B8%8F-method-resolve_description-classmethod)
@@ -70,14 +71,14 @@ file operations, and user interface interactions.
 
 Attributes:
 
-- [`icon`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-icon) (`str`): Emoji for Markdown/docs (README list of commands). Defaults to `""`.
+- `icon` (`str`): Emoji for Markdown/docs (README list of commands). Defaults to `""`.
 - `icon_svg` (`str`): Optional GUI icon filename under `assets/actions/`
   (with or without `.svg`). When the file exists, tray/menu/cards use it and
-  keep [`icon`](../../qt_split_menu_button.g.md#%EF%B8%8F-method-icon) for documentation. Defaults to `""`.
+  keep `icon` for documentation. Defaults to `""`.
 - `title` (`str`): Action title. May include Markdown inline code (`` `name` ``)
   for README generation; Qt UI shows it without backticks via [`display_title`](#%EF%B8%8F-method-display_title-property).
   Defaults to `""`.
-- [`description`](../../fluent/widgets/cards.g.md#%EF%B8%8F-method-description) (`str`): Short UI description for icon cards. Defaults to `""`
+- `description` (`str`): Short UI description for icon cards. Defaults to `""`
   (falls back to the first docstring line via [`resolve_description`](#%EF%B8%8F-method-resolve_description-classmethod)).
 - `cli_available` (`bool`): Whether the action is available via `hsk`. Defaults to `False`.
 - `cli_hint` (`str`): Short CLI example for menu tooltip. Defaults to `""`.
@@ -115,6 +116,7 @@ class ActionBase(ABC):
         """
         self.result_lines.clear()
         self.result_folder = None
+        self.run_completed = True
         # Always re-read config.json so edits (e.g. personal_data) apply without restart.
         self.invalidate_config_cache()
         self.file = new_action_output_file_path(self._action_output_dir, type(self).__name__)
@@ -140,6 +142,8 @@ class ActionBase(ABC):
         """
         self.result_lines = []
         self.result_folder: Path | None = None
+        # True after a normal run; False when the user cancelled before useful work finished.
+        self.run_completed = True
         self._output_bus: ActionOutputBus | None = kwargs.get("output_bus")
         self._action_output_dir = get_action_output_dir()
         self._action_output_dir.mkdir(parents=True, exist_ok=True)
@@ -169,6 +173,8 @@ class ActionBase(ABC):
         - `line` (`str`): The text line to add to the output.
 
         """
+        if _line_marks_run_cancelled(line):
+            self.mark_run_cancelled()
         output_path = self._write_output_path()
         output_path.parent.mkdir(parents=True, exist_ok=True)
         with Path.open(output_path, "a", encoding="utf8") as f:
@@ -505,6 +511,14 @@ class ActionBase(ABC):
         worker = getattr(self, "_current_worker", None)
         return bool(worker is not None and getattr(worker, "should_stop", False))
 
+    def mark_run_cancelled(self) -> None:
+        """Record that the user cancelled before the action finished useful work.
+
+        Maintenance checklist uses `run_completed` so Cancel does not mark the step Done.
+
+        """
+        self.run_completed = False
+
     def raise_if_work_cancelled(self) -> None:
         """Raise DownloadCancelledError when the current worker was cancelled."""
         if self.is_work_cancelled():
@@ -658,6 +672,7 @@ class ActionBase(ABC):
             if ui_message:
                 self._close_progress_toast()
             if isinstance(result, _WorkerCancelled):
+                self.mark_run_cancelled()
                 print("❌ Request cancelled by user.")
                 return
             if isinstance(result, _WorkerFailure):
@@ -840,6 +855,7 @@ The result returned by the execute method.
 def __call__(self, *args: Any, **kwargs: Any) -> Any:
         self.result_lines.clear()
         self.result_folder = None
+        self.run_completed = True
         # Always re-read config.json so edits (e.g. personal_data) apply without restart.
         self.invalidate_config_cache()
         self.file = new_action_output_file_path(self._action_output_dir, type(self).__name__)
@@ -877,6 +893,8 @@ Args:
 def __init__(self, **kwargs: Any) -> None:
         self.result_lines = []
         self.result_folder: Path | None = None
+        # True after a normal run; False when the user cancelled before useful work finished.
+        self.run_completed = True
         self._output_bus: ActionOutputBus | None = kwargs.get("output_bus")
         self._action_output_dir = get_action_output_dir()
         self._action_output_dir.mkdir(parents=True, exist_ok=True)
@@ -925,13 +943,15 @@ Add a line to the output file and print it to the console.
 
 Args:
 
-- [`line`](../../installer/log.g.md#%EF%B8%8F-method-line) (`str`): The text line to add to the output.
+- `line` (`str`): The text line to add to the output.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def add_line(self, line: str) -> None:
+        if _line_marks_run_cancelled(line):
+            self.mark_run_cancelled()
         output_path = self._write_output_path()
         output_path.parent.mkdir(parents=True, exist_ok=True)
         with Path.open(output_path, "a", encoding="utf8") as f:
@@ -1031,8 +1051,8 @@ Create an icon with the given emoji.
 
 Args:
 
-- [`emoji`](../../apps/common/emoji_picker_dialog.g.md#%EF%B8%8F-method-emoji) (`str`): The emoji to be used in the icon.
-- [`size`](../../apps/icons/lightbox_cache.g.md#%EF%B8%8F-method-size-property) (`int`): The size of the icon in pixels. Defaults to `64`.
+- `emoji` (`str`): The emoji to be used in the icon.
+- `size` (`int`): The size of the icon in pixels. Defaults to `64`.
 
 Returns:
 
@@ -1609,6 +1629,26 @@ def is_work_cancelled(self) -> bool:
 
 </details>
 
+### ⚙️ Method `mark_run_cancelled`
+
+```python
+def mark_run_cancelled(self) -> None
+```
+
+Record that the user cancelled before the action finished useful work.
+
+Maintenance checklist uses `run_completed` so Cancel does not mark the step Done.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def mark_run_cancelled(self) -> None:
+        self.run_completed = False
+```
+
+</details>
+
 ### ⚙️ Method `raise_if_work_cancelled`
 
 ```python
@@ -1655,7 +1695,7 @@ def resolve_config_value(self, key: Any, value: Any) -> Any:
 def resolve_description(cls) -> str
 ```
 
-Return UI description from [`description`](../../fluent/widgets/cards.g.md#%EF%B8%8F-method-description) or the first docstring line.
+Return UI description from `description` or the first docstring line.
 
 <details>
 <summary>Code:</summary>
@@ -1752,7 +1792,7 @@ def show_rename_preview(self, instructions: str, *, title: str | None = None) ->
 def show_result(self, *, display_text: str | None = None, save_button: bool = False, save_default_path: str | None = None) -> str | None
 ```
 
-Open a dialog to display result of `execute`.
+Open a dialog to display result of [`execute`](#%EF%B8%8F-method-execute-abstractmethod).
 
 When `display_text` is set, show that instead of accumulated log lines.
 
@@ -1828,7 +1868,7 @@ Args:
 
 - `message` (`str`): The text of the message.
 - `duration` (`int`): The display duration in milliseconds. Defaults to `2000`.
-- [`collapsed`](../../screenshot/shutter_button.g.md#%EF%B8%8F-method-collapsed-property) (`bool`): When `True`, show the compact bottom-right toast immediately.
+- `collapsed` (`bool`): When `True`, show the compact bottom-right toast immediately.
   Defaults to `False`.
 
 <details>
@@ -1892,6 +1932,7 @@ def start_thread(
             if ui_message:
                 self._close_progress_toast()
             if isinstance(result, _WorkerCancelled):
+                self.mark_run_cancelled()
                 print("❌ Request cancelled by user.")
                 return
             if isinstance(result, _WorkerFailure):

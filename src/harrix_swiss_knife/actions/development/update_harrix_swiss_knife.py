@@ -66,6 +66,7 @@ class OnUpdateHarrixSwissKnife(ActionBase):
         """Run updates for Harrix sibling repos (Git pull or GitHub ZIP)."""
         steps = self._collect_steps_interactive()
         if steps is None:
+            self.mark_run_cancelled()
             return
         if not steps:
             self.add_line("Nothing to update (no valid project paths).")

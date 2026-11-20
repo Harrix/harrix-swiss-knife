@@ -81,6 +81,7 @@ class OnSyncChromeYandexBookmarks(ActionBase):
             ok_button_before_actions=True,
         )
         if not isinstance(shown, tuple) or shown[1] != RERUN_DIALOG_CODE:
+            self.mark_run_cancelled()
             return
         if not self._wait_until_browsers_closed():
             self.add_line("Sync cancelled.")
@@ -191,6 +192,7 @@ def thread_after(self, result: Any) -> None:
             ok_button_before_actions=True,
         )
         if not isinstance(shown, tuple) or shown[1] != RERUN_DIALOG_CODE:
+            self.mark_run_cancelled()
             return
         if not self._wait_until_browsers_closed():
             self.add_line("Sync cancelled.")

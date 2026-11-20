@@ -59,6 +59,7 @@ class OnBeautifyMdAndRegenerateGMd(ActionBase):
             noninteractive=noninteractive,
         )
         if selected is None:
+            self.mark_run_cancelled()
             return
         if not selected:
             self.add_line("❌ No note folders selected.")

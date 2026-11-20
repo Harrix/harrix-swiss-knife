@@ -9,6 +9,7 @@ import pytest
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QWidget
 
+from harrix_swiss_knife.actions.common.base import _line_marks_run_cancelled
 from harrix_swiss_knife.actions.common.maintenance_checklist_dialog import MaintenanceChecklistDialog
 from harrix_swiss_knife.actions.common.maintenance_checklist_steps import (
     CHECK_GIT_REPOS_STEP_CLASS,
@@ -37,6 +38,30 @@ def qapp() -> QApplication:
         msg = "QApplication.instance() returned a non-QApplication object."
         raise TypeError(msg)
     return app
+
+
+def test_cancelled_run_does_not_mark_session_done(
+    qapp: QApplication,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Cancel before work finishes must not add the step to session Done."""
+    assert qapp is not None
+    monkeypatch.setattr(
+        "harrix_swiss_knife.actions.common.maintenance_checklist_dialog.load_show_update_hsk_step",
+        lambda: False,
+    )
+    OnRunMaintenanceChecklist.clear_checklist_dialog()
+    dialog = MaintenanceChecklistDialog()
+    try:
+        step = dialog._rows[CHECK_PYTHON_PROJECTS_STEP_CLASS].step
+        monkeypatch.setattr(dialog, "_run_step", lambda _step: False)
+        dialog._on_run_one(step)
+        assert step.class_name not in dialog._session_done
+        assert "Cancelled:" in dialog._progress.text()
+    finally:
+        dialog.close()
+        dialog.deleteLater()
+        OnRunMaintenanceChecklist.clear_checklist_dialog()
 
 
 def test_format_last_used_never_and_relative() -> None:
@@ -95,6 +120,15 @@ def test_is_last_used_within_last_day() -> None:
     assert is_last_used_within((now - timedelta(hours=23)).isoformat(timespec="seconds"))
     assert not is_last_used_within((now - timedelta(hours=25)).isoformat(timespec="seconds"))
     assert not is_last_used_within((now + timedelta(hours=1)).isoformat(timespec="seconds"))
+
+
+def test_line_marks_run_cancelled_detects_whole_action_cancel() -> None:
+    assert _line_marks_run_cancelled("Cancelled.")
+    assert _line_marks_run_cancelled("ℹ️ Cancelled. Node.js was not installed.")  # noqa: RUF001
+    assert _line_marks_run_cancelled("❌ Update cancelled.")
+    assert _line_marks_run_cancelled("Sync cancelled.")
+    assert not _line_marks_run_cancelled("⚪ notes: commit cancelled")
+    assert not _line_marks_run_cancelled("✅ All projects passed")
 
 
 def test_maintenance_checklist_busy_keeps_focus_out_of_scroll_list(
