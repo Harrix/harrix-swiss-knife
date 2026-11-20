@@ -16,10 +16,12 @@ lang: en
   - [⚙️ Method `changed_count (property)`](#%EF%B8%8F-method-changed_count-property)
   - [⚙️ Method `is_dirty (property)`](#%EF%B8%8F-method-is_dirty-property)
 - [🔧 Function `commit_selected_paths`](#-function-commit_selected_paths)
+- [🔧 Function `configured_git_roots`](#-function-configured_git_roots)
 - [🔧 Function `list_changed_files`](#-function-list_changed_files)
 - [🔧 Function `open_github_desktop_nonblocking`](#-function-open_github_desktop_nonblocking)
 - [🔧 Function `parse_porcelain_files`](#-function-parse_porcelain_files)
 - [🔧 Function `refresh_repo_statuses`](#-function-refresh_repo_statuses)
+- [🔧 Function `scan_dirty_repos`](#-function-scan_dirty_repos)
 
 </details>
 
@@ -138,6 +140,43 @@ def commit_selected_paths(repo: Path, paths: list[str], subject: str) -> tuple[b
     if commit_p.returncode != 0:
         return False, (commit_p.stderr or commit_p.stdout or "git commit failed").strip()
     return True, subject
+```
+
+</details>
+
+## 🔧 Function `configured_git_roots`
+
+```python
+def configured_git_roots() -> list[Path]
+```
+
+Return unique `paths_git_roots` from the current app config.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def configured_git_roots() -> list[Path]:
+    loaded = load_app_config()
+    raw = loaded.get("paths_git_roots") if isinstance(loaded, dict) else None
+    if not isinstance(raw, list):
+        return []
+    roots: list[Path] = []
+    seen: set[Path] = set()
+    for item in raw:
+        text = str(item or "").strip()
+        if not text:
+            continue
+        path = Path(text).expanduser()
+        try:
+            resolved = path.resolve()
+        except OSError:
+            resolved = path
+        if resolved in seen:
+            continue
+        seen.add(resolved)
+        roots.append(resolved)
+    return roots
 ```
 
 </details>
@@ -277,6 +316,41 @@ def refresh_repo_statuses(repos: list[Path], *, prefer_first: Path | None = None
 
     dirty: list[DirtyRepoStatus] = []
     for repo in ordered:
+        files = tuple(list_changed_files(repo))
+        if files:
+            dirty.append(DirtyRepoStatus(path=repo, files=files))
+    return dirty
+```
+
+</details>
+
+## 🔧 Function `scan_dirty_repos`
+
+```python
+def scan_dirty_repos(roots: list[Path]) -> list[DirtyRepoStatus]
+```
+
+Find dirty Git repos under `roots` (the root itself, or its immediate children).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def scan_dirty_repos(roots: list[Path]) -> list[DirtyRepoStatus]:
+    repos: list[Path] = []
+    seen: set[Path] = set()
+    for root in roots:
+        if not root.is_dir():
+            continue
+        for repo in _find_git_repos(root):
+            resolved = repo.resolve()
+            if resolved in seen:
+                continue
+            seen.add(resolved)
+            repos.append(resolved)
+
+    dirty: list[DirtyRepoStatus] = []
+    for repo in sorted(repos, key=lambda path: str(path).casefold()):
         files = tuple(list_changed_files(repo))
         if files:
             dirty.append(DirtyRepoStatus(path=repo, files=files))

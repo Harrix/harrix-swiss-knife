@@ -9,9 +9,11 @@ from unittest.mock import MagicMock
 
 from harrix_swiss_knife.actions.common.git_dirty_ops import (
     commit_selected_paths,
+    configured_git_roots,
     open_github_desktop_nonblocking,
     parse_porcelain_files,
     refresh_repo_statuses,
+    scan_dirty_repos,
 )
 from harrix_swiss_knife.apps.git_commit.diff_view import diff_line_kind
 
@@ -48,6 +50,20 @@ def test_commit_selected_paths_stages_only_checked(
     assert ("add", "--", "keep.md") in calls
     assert ("commit", "-m", "⬆️ Update keep.md") in calls
     assert not any(arg == "-A" for call in calls for arg in call)
+
+
+def test_configured_git_roots_dedupes_paths(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    root = tmp_path / "GitHub"
+    root.mkdir()
+
+    def fake_load(*_args: object, **_kwargs: object) -> dict[str, list[str]]:
+        return {"paths_git_roots": [str(root), "  ", str(root)]}
+
+    monkeypatch.setattr(
+        "harrix_swiss_knife.actions.common.git_dirty_ops.load_app_config",
+        fake_load,
+    )
+    assert configured_git_roots() == [root.resolve()]
 
 
 def test_diff_line_kind_marks_add_delete_and_hunk() -> None:
@@ -126,6 +142,19 @@ def test_refresh_repo_statuses_drops_clean(tmp_path: Path) -> None:
     assert dirty.resolve() in paths
     assert clean.resolve() not in paths
     assert statuses[0].path.resolve() == dirty.resolve()
+
+
+def test_scan_dirty_repos_finds_only_dirty_children(tmp_path: Path) -> None:
+    root = tmp_path / "roots"
+    dirty = root / "dirty"
+    clean = root / "clean"
+    (root / "notes").mkdir(parents=True)
+    _git_init(dirty)
+    _git_init(clean)
+    (dirty / "note.txt").write_text("n\n", encoding="utf-8")
+
+    found = scan_dirty_repos([root, tmp_path / "missing"])
+    assert [item.path.resolve() for item in found] == [dirty.resolve()]
 
 
 def _git_init(path: Path) -> None:

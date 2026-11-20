@@ -12,6 +12,7 @@ from typing import Any
 from urllib.parse import quote
 
 from harrix_swiss_knife.actions.common.git_cmd import git_porcelain, git_run
+from harrix_swiss_knife.config_model import load_app_config
 
 _PORCELAIN_MIN_LEN = 4
 _QUOTED_MIN_LEN = 2
@@ -61,6 +62,30 @@ def commit_selected_paths(repo: Path, paths: list[str], subject: str) -> tuple[b
     if commit_p.returncode != 0:
         return False, (commit_p.stderr or commit_p.stdout or "git commit failed").strip()
     return True, subject
+
+
+def configured_git_roots() -> list[Path]:
+    """Return unique `paths_git_roots` from the current app config."""
+    loaded = load_app_config()
+    raw = loaded.get("paths_git_roots") if isinstance(loaded, dict) else None
+    if not isinstance(raw, list):
+        return []
+    roots: list[Path] = []
+    seen: set[Path] = set()
+    for item in raw:
+        text = str(item or "").strip()
+        if not text:
+            continue
+        path = Path(text).expanduser()
+        try:
+            resolved = path.resolve()
+        except OSError:
+            resolved = path
+        if resolved in seen:
+            continue
+        seen.add(resolved)
+        roots.append(resolved)
+    return roots
 
 
 def list_changed_files(repo: Path) -> list[ChangedFile]:
@@ -158,6 +183,50 @@ def refresh_repo_statuses(repos: list[Path], *, prefer_first: Path | None = None
         if files:
             dirty.append(DirtyRepoStatus(path=repo, files=files))
     return dirty
+
+
+def scan_dirty_repos(roots: list[Path]) -> list[DirtyRepoStatus]:
+    """Find dirty Git repos under `roots` (the root itself, or its immediate children)."""
+    repos: list[Path] = []
+    seen: set[Path] = set()
+    for root in roots:
+        if not root.is_dir():
+            continue
+        for repo in _find_git_repos(root):
+            resolved = repo.resolve()
+            if resolved in seen:
+                continue
+            seen.add(resolved)
+            repos.append(resolved)
+
+    dirty: list[DirtyRepoStatus] = []
+    for repo in sorted(repos, key=lambda path: str(path).casefold()):
+        files = tuple(list_changed_files(repo))
+        if files:
+            dirty.append(DirtyRepoStatus(path=repo, files=files))
+    return dirty
+
+
+def _find_git_repos(root: Path) -> list[Path]:
+    """Return `root` when it is a repo, otherwise its immediate child repos."""
+    root = root.resolve()
+    if not root.is_dir():
+        return []
+    if _is_git_repo(root):
+        return [root]
+    try:
+        children = sorted(root.iterdir(), key=lambda path: path.name.lower())
+    except OSError:
+        return []
+    return [child for child in children if child.is_dir() and not child.name.startswith(".") and _is_git_repo(child)]
+
+
+def _is_git_repo(path: Path) -> bool:
+    """Return whether `path` is a Git work tree rooted at `path`."""
+    if not (path / ".git").exists():
+        return False
+    proc = git_run(path, "rev-parse", "--is-inside-work-tree")
+    return proc.returncode == 0 and proc.stdout.strip() == "true"
 
 
 def _spawn_detached(command: list[str], *, cwd: Path) -> None:

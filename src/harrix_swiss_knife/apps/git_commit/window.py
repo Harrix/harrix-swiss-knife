@@ -32,9 +32,11 @@ from harrix_swiss_knife.actions.common.git_dirty_ops import (
     ChangedFile,
     DirtyRepoStatus,
     commit_selected_paths,
+    configured_git_roots,
     list_changed_files,
     open_github_desktop_nonblocking,
     refresh_repo_statuses,
+    scan_dirty_repos,
 )
 from harrix_swiss_knife.actions.common.maintenance_checklist_steps import save_git_repos_all_clean
 from harrix_swiss_knife.apps.common.qt_main_window import apply_app_window_size_and_position
@@ -126,8 +128,14 @@ class DirtyReposCommitWindow(QDialog):
         body_layout.setContentsMargins(SPACE_XL, SPACE_M, SPACE_XL, SPACE_XL)
         body_layout.setSpacing(SPACE_M)
 
+        header = QHBoxLayout()
+        header.setSpacing(SPACE_S)
         self._status_label = FluentText("", body, role=TextRole.SECONDARY)
-        body_layout.addWidget(self._status_label)
+        header.addWidget(self._status_label, 1)
+        self._rescan_button = FluentPushButton("Check all repositories", body, icon="refresh-cw")
+        self._rescan_button.clicked.connect(self._rescan_all_repos)
+        header.addWidget(self._rescan_button)
+        body_layout.addLayout(header)
 
         self._splitter = FluentSplitter(Qt.Orientation.Horizontal, body)
         polish_fluent_splitter(self._splitter)
@@ -526,12 +534,47 @@ class DirtyReposCommitWindow(QDialog):
 
         self._run_worker(work, done, busy=False)
 
+    def _rescan_all_repos(self) -> None:
+        if self._busy:
+            return
+        self._status_label.setText("Checking all repositories…")
+        self._emit_line("🔵 Checking all repositories from `paths_git_roots`")
+
+        def work() -> tuple[list[Path], list[DirtyRepoStatus]]:
+            roots = configured_git_roots()
+            return roots, scan_dirty_repos(roots)
+
+        def done(payload: tuple[list[Path], list[DirtyRepoStatus]]) -> None:
+            roots, statuses = payload
+            if not roots:
+                self._toast("`paths_git_roots` is empty")
+                self._emit_line("❌ `paths_git_roots` is missing or empty in config.json.")
+                self._set_status_text()
+                return
+            self._set_statuses(statuses)
+            save_git_repos_all_clean(all_clean=not statuses)
+            self._emit_line(f"🔵 Scanned {len(roots)} root(s) from `paths_git_roots`")
+            for root in roots:
+                self._emit_line(f"  • {root}")
+            if statuses:
+                self._toast(f"{len(statuses)} repo(s) need a commit")
+                self._emit_line(f"🔶 {len(statuses)} repository(ies) need a commit")
+            else:
+                self._toast("All Git repos are clean")
+                self._emit_line("✅ No repositories need a commit")
+
+        def failed(_message: str) -> None:
+            self._set_status_text()
+
+        self._run_worker(work, done, busy=True, on_fail=failed)
+
     def _run_worker(
         self,
         fn: Callable[[], Any],
         on_done: Callable[[Any], None],
         *,
         busy: bool = True,
+        on_fail: Callable[[str], None] | None = None,
     ) -> None:
         worker = _FnWorker(fn)
         self._workers.append(worker)
@@ -554,6 +597,8 @@ class DirtyReposCommitWindow(QDialog):
             worker.deleteLater()
             self._toast(message)
             self._emit_line(f"❌ {message}")
+            if on_fail is not None:
+                on_fail(message)
 
         worker.finished_ok.connect(finished)
         worker.failed.connect(failed)
@@ -592,6 +637,7 @@ class DirtyReposCommitWindow(QDialog):
         )
         self._commit_button.setEnabled(enabled)
         self._desktop_button.setEnabled(self._current_repo() is not None and not self._busy)
+        self._rescan_button.setEnabled(not self._busy)
 
 
 class _FnWorker(QThread):
