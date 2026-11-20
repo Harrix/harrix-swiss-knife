@@ -11,12 +11,64 @@ lang: en
 
 ## Contents
 
+- [🔧 Function `build_detached_relaunch_command`](#-function-build_detached_relaunch_command)
 - [🔧 Function `build_relaunch_command`](#-function-build_relaunch_command)
 - [🔧 Function `build_uv_upgrade_cmd`](#-function-build_uv_upgrade_cmd)
 - [🔧 Function `quote_cmd_arg`](#-function-quote_cmd_arg)
 - [🔧 Function `read_python_version_pin`](#-function-read_python_version_pin)
 - [🔧 Function `resolve_upgrade_projects`](#-function-resolve_upgrade_projects)
 - [🔧 Function `write_uv_upgrade_cmd`](#-function-write_uv_upgrade_cmd)
+
+</details>
+
+## 🔧 Function `build_detached_relaunch_command`
+
+```python
+def build_detached_relaunch_command(argv: Sequence[str], *, working_directory: Path | None = None, drop_elevation: bool = False) -> str
+```
+
+Return a cmd line that starts `argv` outside the current console/job.
+
+Uses PowerShell `Start-Process` with a UTF-16LE encoded command so quoting
+stays reliable, and so the tray app is not a child of Cursor (closing the
+IDE must not terminate Harrix Swiss Knife).
+
+When `drop_elevation` is set and the upgrade script is running elevated
+(typical if Cursor was started as Administrator), HSK is started via
+`runas /trustlevel:0x20000` so it returns to medium integrity instead of
+staying tied to the elevated Cursor session.
+
+Args:
+
+- `argv` (`Sequence[str]`): Executable plus arguments.
+- `working_directory` (`Path | None`): Optional process working directory.
+- `drop_elevation` (`bool`): Drop admin rights when relaunching. Defaults to
+  `False`.
+
+Returns:
+
+- `str`: A single `powershell … -EncodedCommand …` line for `.cmd`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def build_detached_relaunch_command(
+    argv: Sequence[str],
+    *,
+    working_directory: Path | None = None,
+    drop_elevation: bool = False,
+) -> str:
+    if not argv:
+        return "echo No relaunch argv.& exit /b 1"
+    return _powershell_encoded_command(
+        _detached_start_process_script(
+            argv,
+            working_directory=working_directory,
+            drop_elevation=drop_elevation,
+        )
+    )
+```
 
 </details>
 
@@ -51,9 +103,12 @@ Optionally closes Cursor first so uv-managed Python installs are not locked.
 and is non-fatal so `uv sync --upgrade` can still run. On hard failure the
 script still relaunches after `pause`.
 
-When `reopen_cursor` is set, Cursor is started again (with `cursor_workspace`
-when provided) before HSK. When `pythonw_fix_project` is set, the HSK
-`pythonw.exe` launcher is repaired after sync so relaunch stays console-free.
+When `reopen_cursor` is set, Cursor is started again (without Administrator)
+with `cursor_workspace`. HSK is then expected to start from Cursor's
+folderOpen task (terminal child of Cursor). When Cursor is not reopened,
+HSK is started with PowerShell `Start-Process` via `pythonw` (standalone
+tray). When `pythonw_fix_project` is set, the HSK `pythonw.exe` launcher
+is repaired after sync.
 
 <details>
 <summary>Code:</summary>
@@ -75,7 +130,12 @@ def build_uv_upgrade_cmd(
 ) -> str:
     uv = str(uv_exe)
     log = str(log_path) if log_path is not None else str(Path(os.environ.get("TEMP", ".")) / _LOG_NAME)
-    relaunch = build_relaunch_command(relaunch_argv)
+    workdir = pythonw_fix_project if pythonw_fix_project is not None else cursor_workspace
+    relaunch = build_detached_relaunch_command(
+        relaunch_argv,
+        working_directory=workdir,
+        drop_elevation=True,
+    )
     lines: list[str] = [
         "@echo off",
         "setlocal EnableExtensions",
@@ -192,16 +252,27 @@ def build_uv_upgrade_cmd(
     )
     lines.extend(_pythonw_fix_lines(pythonw_fix_project))
     lines.extend(_cursor_reopen_lines(reopen_cursor=reopen_cursor, cursor_exe=cursor_exe, workspace=cursor_workspace))
-    lines.extend(
-        [
-            "echo Relaunching Harrix Swiss Knife...",
-            'echo Relaunching Harrix Swiss Knife...>> "%LOG%"',
-            f'start "" {relaunch}',
-            "endlocal",
-            "exit /b 0",
-            "",
-        ]
-    )
+    if reopen_cursor:
+        lines.extend(
+            [
+                "echo HSK will start from Cursor terminal (folderOpen task)...",
+                'echo HSK will start from Cursor terminal (folderOpen task)...>> "%LOG%"',
+                "endlocal",
+                "exit /b 0",
+                "",
+            ]
+        )
+    else:
+        lines.extend(
+            [
+                "echo Relaunching Harrix Swiss Knife (standalone pythonw)...",
+                'echo Relaunching Harrix Swiss Knife (standalone pythonw)...>> "%LOG%"',
+                relaunch,
+                "endlocal",
+                "exit /b 0",
+                "",
+            ]
+        )
     return "\r\n".join(lines)
 ```
 

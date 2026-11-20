@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import os
 import re
 from pathlib import Path
@@ -16,6 +17,46 @@ CURSOR_PROCESS_NAME = "Cursor.exe"
 _LOG_NAME = "hsk-uv-upgrade.log"
 _POST_CLOSE_SETTLE_SECONDS = 3
 _CURSOR_REOPEN_SETTLE_SECONDS = 5
+
+
+def build_detached_relaunch_command(
+    argv: Sequence[str],
+    *,
+    working_directory: Path | None = None,
+    drop_elevation: bool = False,
+) -> str:
+    """Return a cmd line that starts `argv` outside the current console/job.
+
+    Uses PowerShell `Start-Process` with a UTF-16LE encoded command so quoting
+    stays reliable, and so the tray app is not a child of Cursor (closing the
+    IDE must not terminate Harrix Swiss Knife).
+
+    When `drop_elevation` is set and the upgrade script is running elevated
+    (typical if Cursor was started as Administrator), HSK is started via
+    `runas /trustlevel:0x20000` so it returns to medium integrity instead of
+    staying tied to the elevated Cursor session.
+
+    Args:
+
+    - `argv` (`Sequence[str]`): Executable plus arguments.
+    - `working_directory` (`Path | None`): Optional process working directory.
+    - `drop_elevation` (`bool`): Drop admin rights when relaunching. Defaults to
+      `False`.
+
+    Returns:
+
+    - `str`: A single `powershell … -EncodedCommand …` line for `.cmd`.
+
+    """
+    if not argv:
+        return "echo No relaunch argv.& exit /b 1"
+    return _powershell_encoded_command(
+        _detached_start_process_script(
+            argv,
+            working_directory=working_directory,
+            drop_elevation=drop_elevation,
+        )
+    )
 
 
 def build_relaunch_command(argv: Sequence[str]) -> str:
@@ -44,14 +85,22 @@ def build_uv_upgrade_cmd(
     and is non-fatal so `uv sync --upgrade` can still run. On hard failure the
     script still relaunches after `pause`.
 
-    When `reopen_cursor` is set, Cursor is started again (with `cursor_workspace`
-    when provided) before HSK. When `pythonw_fix_project` is set, the HSK
-    `pythonw.exe` launcher is repaired after sync so relaunch stays console-free.
+    When `reopen_cursor` is set, Cursor is started again (without Administrator)
+    with `cursor_workspace`. HSK is then expected to start from Cursor's
+    folderOpen task (terminal child of Cursor). When Cursor is not reopened,
+    HSK is started with PowerShell `Start-Process` via `pythonw` (standalone
+    tray). When `pythonw_fix_project` is set, the HSK `pythonw.exe` launcher
+    is repaired after sync.
 
     """
     uv = str(uv_exe)
     log = str(log_path) if log_path is not None else str(Path(os.environ.get("TEMP", ".")) / _LOG_NAME)
-    relaunch = build_relaunch_command(relaunch_argv)
+    workdir = pythonw_fix_project if pythonw_fix_project is not None else cursor_workspace
+    relaunch = build_detached_relaunch_command(
+        relaunch_argv,
+        working_directory=workdir,
+        drop_elevation=True,
+    )
     lines: list[str] = [
         "@echo off",
         "setlocal EnableExtensions",
@@ -168,16 +217,27 @@ def build_uv_upgrade_cmd(
     )
     lines.extend(_pythonw_fix_lines(pythonw_fix_project))
     lines.extend(_cursor_reopen_lines(reopen_cursor=reopen_cursor, cursor_exe=cursor_exe, workspace=cursor_workspace))
-    lines.extend(
-        [
-            "echo Relaunching Harrix Swiss Knife...",
-            'echo Relaunching Harrix Swiss Knife...>> "%LOG%"',
-            f'start "" {relaunch}',
-            "endlocal",
-            "exit /b 0",
-            "",
-        ]
-    )
+    if reopen_cursor:
+        lines.extend(
+            [
+                "echo HSK will start from Cursor terminal (folderOpen task)...",
+                'echo HSK will start from Cursor terminal (folderOpen task)...>> "%LOG%"',
+                "endlocal",
+                "exit /b 0",
+                "",
+            ]
+        )
+    else:
+        lines.extend(
+            [
+                "echo Relaunching Harrix Swiss Knife (standalone pythonw)...",
+                'echo Relaunching Harrix Swiss Knife (standalone pythonw)...>> "%LOG%"',
+                relaunch,
+                "endlocal",
+                "exit /b 0",
+                "",
+            ]
+        )
     return "\r\n".join(lines)
 
 
@@ -281,11 +341,11 @@ def _cursor_reopen_lines(
         'echo === Reopening Cursor ===>> "%LOG%"',
     ]
     if cursor_exe is not None and cursor_exe.is_file():
-        exe = quote_cmd_arg(str(cursor_exe))
+        cursor_argv = [str(cursor_exe)]
         if workspace is not None:
-            lines.append(f'start "" {exe} {quote_cmd_arg(str(workspace))}')
-        else:
-            lines.append(f'start "" {exe}')
+            cursor_argv.append(str(workspace.resolve()))
+        # Drop elevation so Cursor comes back as a normal user process (not admin).
+        lines.append(build_detached_relaunch_command(cursor_argv, drop_elevation=True))
     else:
         lines.extend(
             [
@@ -302,6 +362,64 @@ def _cursor_reopen_lines(
         ]
     )
     return lines
+
+
+def _detached_start_process_script(
+    argv: Sequence[str],
+    *,
+    working_directory: Path | None,
+    drop_elevation: bool,
+) -> str:
+    """Return PowerShell that starts `argv`, optionally dropping admin rights."""
+    exe = _ps_single_quote(argv[0])
+    arg_items = ", ".join(_ps_single_quote(part) for part in argv[1:])
+    arg_list_expr = f"@({arg_items})" if arg_items else "@()"
+    wd_expr = _ps_single_quote(str(working_directory.resolve())) if working_directory is not None else "$null"
+    lines = [
+        f"$exe = {exe}",
+        f"$argList = {arg_list_expr}",
+        f"$wd = {wd_expr}",
+        "function Start-HskProcess([string]$FilePath, [string[]]$ArgumentList, $WorkingDirectory) {",
+        "  $params = @{ FilePath = $FilePath }",
+        "  if ($ArgumentList -and $ArgumentList.Count -gt 0) { $params.ArgumentList = $ArgumentList }",
+        "  if ($WorkingDirectory) { $params.WorkingDirectory = $WorkingDirectory }",
+        "  Start-Process @params",
+        "}",
+    ]
+    if drop_elevation:
+        runas_tokens = ", ".join(_ps_single_quote(_runas_trustlevel_token(part)) for part in argv)
+        lines.extend(
+            [
+                (
+                    "$admin = ([Security.Principal.WindowsPrincipal]"
+                    "[Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole("
+                    "[Security.Principal.WindowsBuiltInRole]::Administrator)"
+                ),
+                "if ($admin) {",
+                f"  $cmd = @({runas_tokens}) -join ' '",
+                (
+                    "  Start-HskProcess -FilePath 'runas.exe' "
+                    "-ArgumentList @('/trustlevel:0x20000', $cmd) -WorkingDirectory $wd"
+                ),
+                "} else {",
+                "  Start-HskProcess -FilePath $exe -ArgumentList $argList -WorkingDirectory $wd",
+                "}",
+            ]
+        )
+    else:
+        lines.append("Start-HskProcess -FilePath $exe -ArgumentList $argList -WorkingDirectory $wd")
+    return "\n".join(lines)
+
+
+def _powershell_encoded_command(script: str) -> str:
+    """Return `powershell -EncodedCommand …` for a UTF-16LE script body."""
+    encoded = base64.b64encode(script.encode("utf-16-le")).decode("ascii")
+    return f"powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -EncodedCommand {encoded}"
+
+
+def _ps_single_quote(value: str) -> str:
+    """Quote a string for PowerShell single-quoted literals."""
+    return "'" + value.replace("'", "''") + "'"
 
 
 def _pythonw_fix_lines(project_root: Path | None) -> list[str]:
@@ -334,3 +452,16 @@ def _pythonw_fix_lines(project_root: Path | None) -> list[str]:
         "  echo WARNING: pythonw repair failed; continuing.",
         ")",
     ]
+
+
+def _runas_trustlevel_token(value: str) -> str:
+    r"""Quote one argv token for `runas /trustlevel:0x20000 "…"`.
+
+    Paths with spaces become `"C:\Program Files\…"`.
+
+    """
+    if not value:
+        return '""'
+    if re.search(r'[\s"]', value) is None:
+        return value
+    return '"' + value.replace('"', r"\"") + '"'

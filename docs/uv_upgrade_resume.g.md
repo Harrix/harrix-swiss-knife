@@ -12,10 +12,13 @@ lang: en
 ## Contents
 
 - [🏛️ Class `UvUpgradeResume`](#%EF%B8%8F-class-uvupgraderesume)
+- [🔧 Function `clear_cursor_terminal_resume_flag`](#-function-clear_cursor_terminal_resume_flag)
 - [🔧 Function `clear_uv_upgrade_resume`](#-function-clear_uv_upgrade_resume)
+- [🔧 Function `cursor_terminal_resume_flag_path`](#-function-cursor_terminal_resume_flag_path)
 - [🔧 Function `normalize_uv_upgrade_resume`](#-function-normalize_uv_upgrade_resume)
 - [🔧 Function `pop_uv_upgrade_resume`](#-function-pop_uv_upgrade_resume)
 - [🔧 Function `save_uv_upgrade_resume`](#-function-save_uv_upgrade_resume)
+- [🔧 Function `write_cursor_terminal_resume_flag`](#-function-write_cursor_terminal_resume_flag)
 
 </details>
 
@@ -35,6 +38,25 @@ class UvUpgradeResume(TypedDict):
 
     reopen_maintenance_checklist: bool
     maintenance_session_done: list[str]
+```
+
+</details>
+
+## 🔧 Function `clear_cursor_terminal_resume_flag`
+
+```python
+def clear_cursor_terminal_resume_flag(project_root: Path | None = None) -> None
+```
+
+Remove the folderOpen flag that starts HSK inside Cursor's terminal.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def clear_cursor_terminal_resume_flag(project_root: Path | None = None) -> None:
+    path = cursor_terminal_resume_flag_path(project_root)
+    path.unlink(missing_ok=True)
 ```
 
 </details>
@@ -60,6 +82,25 @@ def clear_uv_upgrade_resume() -> None:
         return
     loaded.pop(_RESUME_KEY, None)
     h.dev.config_save(loaded, get_config_path_str(), is_temp=True)
+```
+
+</details>
+
+## 🔧 Function `cursor_terminal_resume_flag_path`
+
+```python
+def cursor_terminal_resume_flag_path(project_root: Path | None = None) -> Path
+```
+
+Return `temp/hsk-resume-after-uv-upgrade.flag` under the project root.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def cursor_terminal_resume_flag_path(project_root: Path | None = None) -> Path:
+    root = project_root if project_root is not None else get_project_root()
+    return root.resolve() / "temp" / CURSOR_TERMINAL_RESUME_FLAG_NAME
 ```
 
 </details>
@@ -148,6 +189,27 @@ def save_uv_upgrade_resume(
         "maintenance_session_done": done,
     }
     h.dev.config_update_value(_RESUME_KEY, payload, get_config_path_str(), is_temp=True)
+```
+
+</details>
+
+## 🔧 Function `write_cursor_terminal_resume_flag`
+
+```python
+def write_cursor_terminal_resume_flag(project_root: Path | None = None) -> Path
+```
+
+Create the flag that makes Cursor's folderOpen task start HSK in a terminal.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def write_cursor_terminal_resume_flag(project_root: Path | None = None) -> Path:
+    path = cursor_terminal_resume_flag_path(project_root)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("1\n", encoding="utf-8")
+    return path
 ```
 
 </details>

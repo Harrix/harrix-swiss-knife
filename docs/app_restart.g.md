@@ -12,6 +12,7 @@ lang: en
 ## Contents
 
 - [🔧 Function `gui_relaunch_argv`](#-function-gui_relaunch_argv)
+- [🔧 Function `project_gui_relaunch_argv`](#-function-project_gui_relaunch_argv)
 - [🔧 Function `restart_argv`](#-function-restart_argv)
 - [🔧 Function `restart_current_application`](#-function-restart_current_application)
 - [🔧 Function `spawn_replacement_process`](#-function-spawn_replacement_process)
@@ -47,6 +48,46 @@ def gui_relaunch_argv() -> list[str]:
         if pythonw.is_file():
             return [str(pythonw), *sys.argv]
     return restart_argv()
+```
+
+</details>
+
+## 🔧 Function `project_gui_relaunch_argv`
+
+```python
+def project_gui_relaunch_argv(project_root: Path) -> list[str]
+```
+
+Return `pythonw` + project launcher for a console-free tray restart.
+
+Prefers `.venv\Scripts\pythonw.exe` with `launch_tray.py` or
+`src/harrix_swiss_knife/main.py` (same shape as the desktop shortcut). This
+avoids reusing a Cursor-terminal `python.exe` argv after package upgrades.
+
+Args:
+
+- `project_root` (`Path`): Harrix Swiss Knife repository root.
+
+Returns:
+
+- `list[str]`: Interpreter and script paths, or `gui_relaunch_argv()` fallback.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def project_gui_relaunch_argv(project_root: Path) -> list[str]:
+    root = project_root.resolve()
+    pythonw = root / ".venv" / "Scripts" / "pythonw.exe"
+    launch_tray = root / "launch_tray.py"
+    main_py = root / "src" / "harrix_swiss_knife" / "main.py"
+    if not pythonw.is_file():
+        return gui_relaunch_argv()
+    if launch_tray.is_file():
+        return [str(pythonw), str(launch_tray)]
+    if main_py.is_file():
+        return [str(pythonw), str(main_py)]
+    return gui_relaunch_argv()
 ```
 
 </details>

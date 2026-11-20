@@ -9,6 +9,7 @@ from unittest.mock import MagicMock, patch
 
 from harrix_swiss_knife.app_restart import (
     gui_relaunch_argv,
+    project_gui_relaunch_argv,
     restart_argv,
     restart_current_application,
     spawn_replacement_process,
@@ -39,6 +40,29 @@ def test_gui_relaunch_argv_prefers_pythonw_when_running_under_python(
     monkeypatch.setattr(sys, "executable", str(python))
     monkeypatch.setattr(sys, "argv", ["main.py", "--flag"])
     assert gui_relaunch_argv() == [str(pythonw), "main.py", "--flag"]
+
+
+def test_project_gui_relaunch_argv_falls_back_to_main_py(tmp_path: Path) -> None:
+    scripts = tmp_path / ".venv" / "Scripts"
+    scripts.mkdir(parents=True)
+    pythonw = scripts / "pythonw.exe"
+    pythonw.write_bytes(b"x")
+    main_py = tmp_path / "src" / "harrix_swiss_knife" / "main.py"
+    main_py.parent.mkdir(parents=True)
+    main_py.write_text("# main\n", encoding="utf-8")
+    assert project_gui_relaunch_argv(tmp_path) == [str(pythonw), str(main_py)]
+
+
+def test_project_gui_relaunch_argv_prefers_venv_pythonw_and_launch_tray(tmp_path: Path) -> None:
+    scripts = tmp_path / ".venv" / "Scripts"
+    scripts.mkdir(parents=True)
+    pythonw = scripts / "pythonw.exe"
+    pythonw.write_bytes(b"x")
+    launch_tray = tmp_path / "launch_tray.py"
+    launch_tray.write_text("# launch\n", encoding="utf-8")
+    (tmp_path / "src" / "harrix_swiss_knife").mkdir(parents=True)
+    (tmp_path / "src" / "harrix_swiss_knife" / "main.py").write_text("# main\n", encoding="utf-8")
+    assert project_gui_relaunch_argv(tmp_path) == [str(pythonw), str(launch_tray)]
 
 
 def test_restart_argv_starts_with_current_interpreter() -> None:

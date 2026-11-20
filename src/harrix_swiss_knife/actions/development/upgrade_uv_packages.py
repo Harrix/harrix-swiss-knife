@@ -14,7 +14,7 @@ from shiboken6 import isValid
 
 from harrix_swiss_knife.actions.common.base import ActionBase
 from harrix_swiss_knife.actions.development.run_maintenance_checklist import OnRunMaintenanceChecklist
-from harrix_swiss_knife.app_restart import gui_relaunch_argv
+from harrix_swiss_knife.app_restart import project_gui_relaunch_argv
 from harrix_swiss_knife.cursor_backup.paths import cursor_running, find_cursor_exe
 from harrix_swiss_knife.paths import get_project_root
 from harrix_swiss_knife.single_instance import release_held_instance, restore_held_instance
@@ -24,7 +24,12 @@ from harrix_swiss_knife.uv_upgrade_bat import (
     resolve_upgrade_projects,
     write_uv_upgrade_cmd,
 )
-from harrix_swiss_knife.uv_upgrade_resume import clear_uv_upgrade_resume, save_uv_upgrade_resume
+from harrix_swiss_knife.uv_upgrade_resume import (
+    clear_cursor_terminal_resume_flag,
+    clear_uv_upgrade_resume,
+    save_uv_upgrade_resume,
+    write_cursor_terminal_resume_flag,
+)
 
 
 class OnUpgradeUvPackages(ActionBase):
@@ -36,8 +41,10 @@ class OnUpgradeUvPackages(ActionBase):
     runs `uv self update`, then per project `uv python upgrade` (from
     `.python-version` when present) and `uv sync --upgrade`, repairs
     `pythonw.exe` when needed, optionally reopens Cursor, then relaunches HSK
-    with a GUI interpreter. When the upgrade was started from the maintenance
-    checklist, the checklist is reopened and this step is marked Done.
+    with a GUI interpreter. If Cursor was open, it is reopened without admin and
+    HSK starts from the Cursor folderOpen terminal task (dies with Cursor). When
+    the upgrade was started from the maintenance checklist, the checklist is
+    reopened and this step is marked Done.
 
     """
 
@@ -79,14 +86,16 @@ class OnUpgradeUvPackages(ActionBase):
         project_root = get_project_root()
 
         project_lines = "\n".join(f"  • {path}" for path in projects)
-        restore_bits: list[str] = [
-            "When finished, Harrix Swiss Knife relaunches without a console window.",
-        ]
+        restore_bits: list[str] = []
         if cursor_was_running:
-            restore_bits.insert(
-                0,
-                "If Cursor is open, it will be closed first (save your work), then reopened before HSK.",
+            restore_bits.append(
+                "If Cursor is open, it will be closed first (save your work), then reopened "
+                "without Administrator. HSK starts again in Cursor's terminal "
+                "(same as `python.exe …/main.py`), so closing Cursor quits HSK."
             )
+            restore_bits.append("Cursor may ask once to allow automatic tasks for this folder — choose Allow.")
+        else:
+            restore_bits.append("When finished, Harrix Swiss Knife relaunches standalone via pythonw (tray).")
         if from_checklist:
             restore_bits.append("The maintenance checklist will reopen with this step marked Done.")
         answer = QMessageBox.question(
@@ -113,10 +122,15 @@ class OnUpgradeUvPackages(ActionBase):
         else:
             clear_uv_upgrade_resume()
 
+        if cursor_was_running:
+            write_cursor_terminal_resume_flag(project_root)
+        else:
+            clear_cursor_terminal_resume_flag(project_root)
+
         temp_dir = Path(tempfile.gettempdir())
         cmd_path = temp_dir / f"hsk-uv-upgrade-{os.getpid()}.cmd"
         log_path = temp_dir / "hsk-uv-upgrade.log"
-        relaunch = gui_relaunch_argv()
+        relaunch = project_gui_relaunch_argv(project_root)
         write_uv_upgrade_cmd(
             cmd_path,
             wait_pid=os.getpid(),
@@ -152,7 +166,7 @@ class OnUpgradeUvPackages(ActionBase):
         self.add_line(f"Upgrade script started: {cmd_path}")
         self.add_line(f"Log: {log_path}")
         if cursor_was_running:
-            self.add_line("Cursor will close for the upgrade, then reopen before HSK.")
+            self.add_line("Cursor will close for the upgrade, then reopen; HSK starts in Cursor's terminal.")
         if from_checklist:
             self.add_line("Maintenance checklist will reopen after relaunch.")
         self.add_line("Exiting so .venv files can be updated…")

@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import base64
 from pathlib import Path
 
 from harrix_swiss_knife.uv_upgrade_bat import (
     PROJECT_NAMES,
+    build_detached_relaunch_command,
     build_relaunch_command,
     build_uv_upgrade_cmd,
     quote_cmd_arg,
@@ -13,6 +15,34 @@ from harrix_swiss_knife.uv_upgrade_bat import (
     resolve_upgrade_projects,
     write_uv_upgrade_cmd,
 )
+
+
+def test_build_detached_relaunch_command_drops_elevation_when_requested(tmp_path: Path) -> None:
+    exe = tmp_path / "pythonw.exe"
+    script = tmp_path / "main.py"
+    cmd = build_detached_relaunch_command(
+        [str(exe), str(script)],
+        working_directory=tmp_path,
+        drop_elevation=True,
+    )
+    decoded = _decode_encoded_commands(cmd)
+    assert "runas.exe" in decoded
+    assert "/trustlevel:0x20000" in decoded
+    assert "Administrator" in decoded
+
+
+def test_build_detached_relaunch_command_uses_powershell_start_process(tmp_path: Path) -> None:
+    exe = tmp_path / "pythonw.exe"
+    script = tmp_path / "main.py"
+    cmd = build_detached_relaunch_command([str(exe), str(script)], working_directory=tmp_path)
+    assert "powershell" in cmd.casefold()
+    assert "-EncodedCommand" in cmd
+    assert "Start-Process" not in cmd  # body is base64-encoded
+    decoded = _decode_encoded_commands(cmd)
+    assert "Start-Process" in decoded
+    assert str(exe) in decoded
+    assert str(script) in decoded
+    assert str(tmp_path.resolve()) in decoded
 
 
 def test_build_relaunch_command_joins_quoted_argv() -> None:
@@ -54,16 +84,21 @@ def test_build_uv_upgrade_cmd_contains_wait_uv_and_projects(tmp_path: Path) -> N
     assert str(knife) in text
     assert str(pylib) in text
     assert str(pyssg) in text
-    assert "pythonw.exe" in text
-    assert "harrix_swiss_knife" in text
+    decoded = _decode_encoded_commands(text)
+    assert "pythonw.exe" in decoded
+    assert "harrix_swiss_knife" in decoded
+    assert "Start-Process" in decoded
+    assert "runas.exe" in decoded
+    assert "/trustlevel:0x20000" in decoded
     assert "pause" in text
-    assert 'start ""' in text
+    assert "EncodedCommand" in text
+    assert "standalone pythonw" in text
     assert str(log) in text
     assert "Reopening Cursor" not in text
     assert "Repair pythonw.exe launcher" not in text
 
 
-def test_build_uv_upgrade_cmd_reopens_cursor_and_repairs_pythonw(tmp_path: Path) -> None:
+def test_build_uv_upgrade_cmd_reopens_cursor_without_standalone_hsk(tmp_path: Path) -> None:
     uv = tmp_path / "uv.exe"
     uv.write_bytes(b"")
     knife = tmp_path / "harrix-swiss-knife"
@@ -85,13 +120,17 @@ def test_build_uv_upgrade_cmd_reopens_cursor_and_repairs_pythonw(tmp_path: Path)
         pythonw_fix_project=knife,
     )
     assert "Reopening Cursor" in text
-    assert str(cursor) in text
+    assert "EncodedCommand" in text
+    assert "folderOpen task" in text
+    assert "standalone pythonw" not in text
     assert str(knife) in text
     assert "Repair pythonw.exe launcher" in text
     assert "fix_pythonw_launcher" in text
-    reopen_at = text.index("Reopening Cursor")
-    relaunch_at = text.index("Relaunching Harrix Swiss Knife")
-    assert reopen_at < relaunch_at
+    decoded = _decode_encoded_commands(text)
+    assert "runas.exe" in decoded
+    assert "/trustlevel:0x20000" in decoded
+    assert str(cursor) in decoded
+    assert 'start ""' not in text
 
 
 def test_quote_cmd_arg_quotes_spaces_and_specials() -> None:
@@ -138,3 +177,22 @@ def test_write_uv_upgrade_cmd_creates_file(tmp_path: Path) -> None:
     assert content.startswith(b"@echo off")
     assert b"\r\n" in content
     assert b"set WAIT_PID=7" in content
+
+
+def _decode_encoded_commands(text: str) -> str:
+    chunks: list[str] = []
+    marker = "-EncodedCommand "
+    start = 0
+    while True:
+        index = text.find(marker, start)
+        if index < 0:
+            break
+        token = text[index + len(marker) :].splitlines()[0].strip()
+        start = index + len(marker)
+        if not token:
+            continue
+        try:
+            chunks.append(base64.b64decode(token).decode("utf-16-le"))
+        except (ValueError, UnicodeError):
+            continue
+    return "\n".join(chunks)

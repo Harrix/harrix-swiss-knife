@@ -2,14 +2,17 @@
 
 from __future__ import annotations
 
+from pathlib import Path  # noqa: TC003
 from typing import Any, TypedDict
 
 import harrix_pylib as h
 
-from harrix_swiss_knife.paths import get_config_path_str
+from harrix_swiss_knife.paths import get_config_path_str, get_project_root
 
 _RESUME_KEY = "uv_upgrade_resume"
 _UPGRADE_STEP_CLASS = "OnUpgradeUvPackages"
+# Watched by `.vscode/tasks.json` (`runOn: folderOpen`) to start HSK in Cursor's terminal.
+CURSOR_TERMINAL_RESUME_FLAG_NAME = "hsk-resume-after-uv-upgrade.flag"
 
 
 class UvUpgradeResume(TypedDict):
@@ -17,6 +20,12 @@ class UvUpgradeResume(TypedDict):
 
     reopen_maintenance_checklist: bool
     maintenance_session_done: list[str]
+
+
+def clear_cursor_terminal_resume_flag(project_root: Path | None = None) -> None:
+    """Remove the folderOpen flag that starts HSK inside Cursor's terminal."""
+    path = cursor_terminal_resume_flag_path(project_root)
+    path.unlink(missing_ok=True)
 
 
 def clear_uv_upgrade_resume() -> None:
@@ -29,6 +38,12 @@ def clear_uv_upgrade_resume() -> None:
         return
     loaded.pop(_RESUME_KEY, None)
     h.dev.config_save(loaded, get_config_path_str(), is_temp=True)
+
+
+def cursor_terminal_resume_flag_path(project_root: Path | None = None) -> Path:
+    """Return `temp/hsk-resume-after-uv-upgrade.flag` under the project root."""
+    root = project_root if project_root is not None else get_project_root()
+    return root.resolve() / "temp" / CURSOR_TERMINAL_RESUME_FLAG_NAME
 
 
 def normalize_uv_upgrade_resume(raw: object) -> UvUpgradeResume | None:
@@ -78,3 +93,11 @@ def save_uv_upgrade_resume(
         "maintenance_session_done": done,
     }
     h.dev.config_update_value(_RESUME_KEY, payload, get_config_path_str(), is_temp=True)
+
+
+def write_cursor_terminal_resume_flag(project_root: Path | None = None) -> Path:
+    """Create the flag that makes Cursor's folderOpen task start HSK in a terminal."""
+    path = cursor_terminal_resume_flag_path(project_root)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("1\n", encoding="utf-8")
+    return path

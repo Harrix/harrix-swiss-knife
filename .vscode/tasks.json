@@ -1,0 +1,34 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "HSK: resume after uv upgrade",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-Command",
+        "$flag = Join-Path '${workspaceFolder}' 'temp\\hsk-resume-after-uv-upgrade.flag'; if (-not (Test-Path -LiteralPath $flag)) { exit 0 }; Remove-Item -LiteralPath $flag -Force; $py = Join-Path '${workspaceFolder}' '.venv\\Scripts\\python.exe'; $main = Join-Path '${workspaceFolder}' 'src\\harrix_swiss_knife\\main.py'; if (-not (Test-Path -LiteralPath $py)) { Write-Error \"Missing $py\"; exit 1 }; & $py $main"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "runOptions": {
+        "runOn": "folderOpen"
+      },
+      "presentation": {
+        "reveal": "always",
+        "revealProblems": "never",
+        "panel": "dedicated",
+        "focus": true,
+        "clear": true,
+        "showReuseMessage": false,
+        "close": false
+      },
+
+      "problemMatcher": []
+    }
+  ]
+}

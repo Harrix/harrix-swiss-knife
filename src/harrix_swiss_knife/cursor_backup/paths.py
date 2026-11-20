@@ -87,8 +87,10 @@ def find_cursor_exe() -> Path | None:
     if local:
         candidates.append(Path(local) / "Programs" / "cursor" / "Cursor.exe")
     if pf:
+        candidates.append(Path(pf) / "cursor" / "Cursor.exe")
         candidates.append(Path(pf) / "Cursor" / "Cursor.exe")
     if pfx86:
+        candidates.append(Path(pfx86) / "cursor" / "Cursor.exe")
         candidates.append(Path(pfx86) / "Cursor" / "Cursor.exe")
     for path in candidates:
         if path.is_file():

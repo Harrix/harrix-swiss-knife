@@ -6,14 +6,25 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from harrix_swiss_knife.uv_upgrade_resume import (
+    clear_cursor_terminal_resume_flag,
     clear_uv_upgrade_resume,
+    cursor_terminal_resume_flag_path,
     normalize_uv_upgrade_resume,
     pop_uv_upgrade_resume,
     save_uv_upgrade_resume,
+    write_cursor_terminal_resume_flag,
 )
 
 if TYPE_CHECKING:
     import pytest
+
+
+def test_cursor_terminal_resume_flag_roundtrip(tmp_path: Path) -> None:
+    flag = write_cursor_terminal_resume_flag(tmp_path)
+    assert flag == cursor_terminal_resume_flag_path(tmp_path)
+    assert flag.is_file()
+    clear_cursor_terminal_resume_flag(tmp_path)
+    assert not flag.exists()
 
 
 def test_normalize_uv_upgrade_resume_adds_upgrade_step_when_reopening() -> None:
