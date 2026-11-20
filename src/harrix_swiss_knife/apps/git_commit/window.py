@@ -5,14 +5,17 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
-from PySide6.QtCore import QObject, Qt, QThread, QTimer, Signal
-from PySide6.QtGui import QFont, QFontDatabase
+from PySide6.QtCore import QEvent, QObject, Qt, QThread, QTimer, Signal
+from PySide6.QtGui import QKeyEvent, QPainter
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QDialog,
     QHBoxLayout,
     QListWidgetItem,
     QSizePolicy,
+    QStyle,
+    QStyledItemDelegate,
+    QStyleOptionViewItem,
     QVBoxLayout,
     QWidget,
 )
@@ -21,6 +24,7 @@ from harrix_swiss_knife.actions.common.git_commit_suggestions import (
     CommitHistoryEntry,
     load_commit_history,
     load_quick_paste_phrases,
+    order_suggestions_for_filter,
     rank_commit_subjects,
 )
 from harrix_swiss_knife.actions.common.git_diff_text import git_diff_text_for_path
@@ -35,12 +39,13 @@ from harrix_swiss_knife.actions.common.git_dirty_ops import (
 from harrix_swiss_knife.actions.common.maintenance_checklist_steps import save_git_repos_all_clean
 from harrix_swiss_knife.apps.common.qt_main_window import apply_app_window_size_and_position
 from harrix_swiss_knife.apps.common.tracker_splitter_settings import load_splitter_sizes, save_splitter_sizes
+from harrix_swiss_knife.apps.git_commit.diff_view import GitDiffEdit
 from harrix_swiss_knife.fluent.app_chrome import install_fluent_app_window, prepare_fluent_app_window
+from harrix_swiss_knife.fluent.theme import palette_for
 from harrix_swiss_knife.fluent.tokens import SPACE_M, SPACE_S, SPACE_XL
 from harrix_swiss_knife.fluent.widgets import (
     FluentLineEdit,
     FluentListWidget,
-    FluentPlainTextEdit,
     FluentPrimaryButton,
     FluentPushButton,
     FluentSplitter,
@@ -59,6 +64,8 @@ from harrix_swiss_knife.win11_caption import (
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
+    from PySide6.QtCore import QModelIndex, QPersistentModelIndex
+
 _SPLITTER_KEY = "git_dirty_repos_commit_splitter_sizes_v1"
 _SPLITTER_DEFAULT = (260, 340, 700)
 _REFRESH_MS = 30_000
@@ -66,6 +73,7 @@ _SPLITTER_SAVE_DELAY_MS = 400
 _REPO_ROLE = Qt.ItemDataRole.UserRole
 _FILE_PATH_ROLE = Qt.ItemDataRole.UserRole
 _FILE_STATUS_ROLE = Qt.ItemDataRole.UserRole + 1
+_SUGGESTION_MATCH_ROLE = Qt.ItemDataRole.UserRole
 
 _active_window: DirtyReposCommitWindow | None = None
 
@@ -99,6 +107,9 @@ class DirtyReposCommitWindow(QDialog):
         self._quick_paste: list[str] = []
         self._statuses: list[DirtyRepoStatus] = []
         self._history_by_repo: dict[Path, list[CommitHistoryEntry]] = {}
+        self._suggestion_subjects: list[str] = []
+        self._suggestion_filter = ""
+        self._applying_suggestion = False
         self._busy = False
         self._workers: list[_FnWorker] = []
         self._win11_caption = False
@@ -145,18 +156,21 @@ class DirtyReposCommitWindow(QDialog):
 
         middle_layout.addWidget(FluentText("Commit title", middle, role=TextRole.SECONDARY))
         self._subject = FluentLineEdit(middle, placeholder="Commit message")
-        self._subject.textChanged.connect(self._update_commit_enabled)
+        self._subject.textChanged.connect(self._on_subject_edited)
+        self._subject.installEventFilter(self)
         middle_layout.addWidget(self._subject)
 
         middle_layout.addWidget(FluentText("Suggestions", middle, role=TextRole.SECONDARY))
         self._suggestions = FluentListWidget(middle, compact=True)
         self._suggestions.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self._suggestions.setItemDelegate(_SuggestionFilterDelegate(self._suggestions))
         self._suggestions.itemClicked.connect(self._on_suggestion_clicked)
         middle_layout.addWidget(self._suggestions, 1)
 
         buttons = QHBoxLayout()
         buttons.setSpacing(SPACE_S)
         self._commit_button = FluentPrimaryButton("Commit", middle)
+        self._commit_button.setDefault(True)
         self._commit_button.clicked.connect(self._on_commit)
         self._desktop_button = FluentPushButton("Open in GitHub Desktop", middle)
         self._desktop_button.clicked.connect(self._on_open_desktop)
@@ -171,11 +185,7 @@ class DirtyReposCommitWindow(QDialog):
         right_layout.setContentsMargins(0, 0, 0, 0)
         right_layout.setSpacing(SPACE_S)
         right_layout.addWidget(FluentText("Diff", right, role=TextRole.SECONDARY))
-        self._diff = FluentPlainTextEdit(right)
-        self._diff.setReadOnly(True)
-        mono = QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont)
-        mono.setStyleHint(QFont.StyleHint.Monospace)
-        self._diff.setFont(mono)
+        self._diff = GitDiffEdit(right)
         self._diff.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         right_layout.addWidget(self._diff, 1)
         self._splitter.addWidget(right)
@@ -220,6 +230,17 @@ class DirtyReposCommitWindow(QDialog):
             _active_window = None
         super().closeEvent(event)
 
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
+        """Arrow keys in the commit title walk matching suggestions, like Quick paste."""
+        if watched is self._subject and event.type() == QEvent.Type.KeyPress and isinstance(event, QKeyEvent):
+            if event.key() == Qt.Key.Key_Down:
+                self._move_suggestion(1)
+                return True
+            if event.key() == Qt.Key.Key_Up:
+                self._move_suggestion(-1)
+                return True
+        return super().eventFilter(watched, event)
+
     def nativeEvent(self, event_type: Any, message: Any) -> tuple[bool, int]:  # noqa: N802
         """Keep caption drag and edge resize on Windows."""
         handled = try_handle_win11_caption_native_event(self, event_type, message)
@@ -234,6 +255,23 @@ class DirtyReposCommitWindow(QDialog):
         initial = [Path(path).resolve() for path in repos]
         self._set_statuses(refresh_repo_statuses(initial))
 
+    def _accept_suggestion(self, text: str) -> None:
+        self._applying_suggestion = True
+        try:
+            self._subject.setText(text)
+            self._subject.selectAll()
+        finally:
+            self._applying_suggestion = False
+        self._update_commit_enabled()
+
+    def _apply_suggestion_filter(self) -> None:
+        ordered = order_suggestions_for_filter(self._suggestion_subjects, self._suggestion_filter)
+        self._suggestions.clear()
+        for subject, matched in ordered:
+            item = QListWidgetItem(subject)
+            item.setData(_SUGGESTION_MATCH_ROLE, matched)
+            self._suggestions.addItem(item)
+
     def _checked_paths(self) -> list[str]:
         paths: list[str] = []
         for index in range(self._file_list.count()):
@@ -245,6 +283,10 @@ class DirtyReposCommitWindow(QDialog):
                 if isinstance(path, str) and path:
                     paths.append(path)
         return paths
+
+    def _clear_suggestions(self) -> None:
+        self._suggestion_subjects = []
+        self._suggestions.clear()
 
     def _current_repo(self) -> Path | None:
         item = self._repo_list.currentItem()
@@ -314,6 +356,33 @@ class DirtyReposCommitWindow(QDialog):
 
         self._run_worker(work, done)
 
+    def _matching_suggestion_rows(self) -> list[int]:
+        rows: list[int] = []
+        for row in range(self._suggestions.count()):
+            item = self._suggestions.item(row)
+            if item is None or item.data(_SUGGESTION_MATCH_ROLE) is False:
+                continue
+            rows.append(row)
+        return rows
+
+    def _move_suggestion(self, delta: int) -> bool:
+        rows = self._matching_suggestion_rows()
+        if not rows:
+            return False
+        current = self._suggestions.currentRow()
+        if current not in rows:
+            row = rows[0] if delta > 0 else rows[-1]
+        else:
+            index = rows.index(current) + delta
+            row = rows[max(0, min(index, len(rows) - 1))]
+        item = self._suggestions.item(row)
+        if item is None:
+            return False
+        self._suggestions.setCurrentItem(item)
+        self._suggestions.scrollToItem(item)
+        self._accept_suggestion(item.text())
+        return True
+
     def _on_commit(self) -> None:
         repo = self._current_repo()
         if repo is None or self._busy:
@@ -373,7 +442,7 @@ class DirtyReposCommitWindow(QDialog):
     ) -> None:
         if current is None:
             self._populate_files([])
-            self._suggestions.clear()
+            self._clear_suggestions()
             self._diff.setPlainText("")
             self._update_commit_enabled()
             return
@@ -381,9 +450,15 @@ class DirtyReposCommitWindow(QDialog):
         if isinstance(path, Path):
             self._load_repo_details_async(path)
 
-    def _on_suggestion_clicked(self, item: QListWidgetItem) -> None:
-        self._subject.setText(item.text())
+    def _on_subject_edited(self, text: str) -> None:
         self._update_commit_enabled()
+        if self._applying_suggestion or text == self._suggestion_filter:
+            return
+        self._suggestion_filter = text
+        self._apply_suggestion_filter()
+
+    def _on_suggestion_clicked(self, item: QListWidgetItem) -> None:
+        self._accept_suggestion(item.text())
 
     def _populate_files(self, files: list[ChangedFile] | tuple[ChangedFile, ...]) -> None:
         self._suppress_file_signals = True
@@ -419,17 +494,19 @@ class DirtyReposCommitWindow(QDialog):
             self._repo_list.setCurrentRow(min(select_row, self._repo_list.count() - 1))
         else:
             self._populate_files([])
-            self._suggestions.clear()
+            self._clear_suggestions()
             self._diff.setPlainText("")
             self._update_commit_enabled()
 
     def _rebuild_suggestions(self) -> None:
         repo = self._current_repo()
         history = self._history_by_repo.get(repo, []) if repo is not None else []
-        ranked = rank_commit_subjects(set(self._checked_paths()), history, self._quick_paste)
-        self._suggestions.clear()
-        for subject in ranked:
-            self._suggestions.addItem(subject)
+        self._suggestion_subjects = rank_commit_subjects(
+            set(self._checked_paths()),
+            history,
+            self._quick_paste,
+        )
+        self._apply_suggestion_filter()
 
     def _refresh_known_dirty(self, prefer: Path | None = None) -> None:
         if self._busy:
@@ -532,6 +609,44 @@ class _FnWorker(QThread):
             self.finished_ok.emit(self._fn())
         except Exception as exc:
             self.failed.emit(str(exc))
+
+
+class _SuggestionFilterDelegate(QStyledItemDelegate):
+    """Draw suggestion rows, dimming ones that miss the commit-title filter."""
+
+    def paint(
+        self,
+        painter: QPainter,
+        option: QStyleOptionViewItem,
+        index: QModelIndex | QPersistentModelIndex,
+    ) -> None:
+        """Paint the Fluent row, then the subject in primary or muted ink."""
+        opt = QStyleOptionViewItem(option)
+        self.initStyleOption(opt, index)
+        text = opt.text
+        opt.text = ""
+        widget = opt.widget
+        style = widget.style() if widget is not None else None
+        if style is None:
+            super().paint(painter, option, index)
+            return
+        style.drawControl(QStyle.ControlElement.CE_ItemViewItem, opt, painter, widget)
+        color = palette_for(widget).text_primary
+        if index.data(_SUGGESTION_MATCH_ROLE) is False:
+            color = palette_for(widget).text_secondary
+        rect = style.subElementRect(QStyle.SubElement.SE_ItemViewItemText, opt, widget)
+        if not rect.isValid():
+            rect = opt.rect.adjusted(8, 0, -8, 0)
+        elided = opt.fontMetrics.elidedText(text, Qt.TextElideMode.ElideRight, max(0, rect.width()))
+        painter.save()
+        painter.setPen(color)
+        painter.setFont(opt.font)
+        painter.drawText(
+            rect,
+            int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft),
+            elided,
+        )
+        painter.restore()
 
 
 def show_dirty_repos_commit_window(

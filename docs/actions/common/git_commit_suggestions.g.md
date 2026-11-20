@@ -14,6 +14,7 @@ lang: en
 - [🏛️ Class `CommitHistoryEntry`](#%EF%B8%8F-class-commithistoryentry)
 - [🔧 Function `load_commit_history`](#-function-load_commit_history)
 - [🔧 Function `load_quick_paste_phrases`](#-function-load_quick_paste_phrases)
+- [🔧 Function `order_suggestions_for_filter`](#-function-order_suggestions_for_filter)
 - [🔧 Function `parse_commit_history_log`](#-function-parse_commit_history_log)
 - [🔧 Function `rank_commit_subjects`](#-function-rank_commit_subjects)
 
@@ -100,6 +101,34 @@ def load_quick_paste_phrases(db_path: str | Path | None) -> list[str]:
             manager.close()
     except Exception:
         return []
+```
+
+</details>
+
+## 🔧 Function `order_suggestions_for_filter`
+
+```python
+def order_suggestions_for_filter(subjects: list[str], query: str) -> list[tuple[str, bool]]
+```
+
+Put Quick paste search matches first and mark the rest as dimmed.
+
+An empty query marks every subject as a match and keeps the original order.
+Matching ignores case and EN/RU keyboard-layout mistakes.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def order_suggestions_for_filter(subjects: list[str], query: str) -> list[tuple[str, bool]]:
+    matched: list[tuple[str, bool]] = []
+    dimmed: list[tuple[str, bool]] = []
+    for subject in subjects:
+        if command_matches_search(subject, query):
+            matched.append((subject, True))
+        else:
+            dimmed.append((subject, False))
+    return matched + dimmed
 ```
 
 </details>

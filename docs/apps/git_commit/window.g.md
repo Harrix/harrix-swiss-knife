@@ -14,6 +14,7 @@ lang: en
 - [🏛️ Class `DirtyReposCommitWindow`](#%EF%B8%8F-class-dirtyreposcommitwindow)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `closeEvent`](#%EF%B8%8F-method-closeevent)
+  - [⚙️ Method `eventFilter`](#%EF%B8%8F-method-eventfilter)
   - [⚙️ Method `nativeEvent`](#%EF%B8%8F-method-nativeevent)
   - [⚙️ Method `replace_repos`](#%EF%B8%8F-method-replace_repos)
 - [🔧 Function `show_dirty_repos_commit_window`](#-function-show_dirty_repos_commit_window)
@@ -60,6 +61,9 @@ class DirtyReposCommitWindow(QDialog):
         self._quick_paste: list[str] = []
         self._statuses: list[DirtyRepoStatus] = []
         self._history_by_repo: dict[Path, list[CommitHistoryEntry]] = {}
+        self._suggestion_subjects: list[str] = []
+        self._suggestion_filter = ""
+        self._applying_suggestion = False
         self._busy = False
         self._workers: list[_FnWorker] = []
         self._win11_caption = False
@@ -106,18 +110,21 @@ class DirtyReposCommitWindow(QDialog):
 
         middle_layout.addWidget(FluentText("Commit title", middle, role=TextRole.SECONDARY))
         self._subject = FluentLineEdit(middle, placeholder="Commit message")
-        self._subject.textChanged.connect(self._update_commit_enabled)
+        self._subject.textChanged.connect(self._on_subject_edited)
+        self._subject.installEventFilter(self)
         middle_layout.addWidget(self._subject)
 
         middle_layout.addWidget(FluentText("Suggestions", middle, role=TextRole.SECONDARY))
         self._suggestions = FluentListWidget(middle, compact=True)
         self._suggestions.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self._suggestions.setItemDelegate(_SuggestionFilterDelegate(self._suggestions))
         self._suggestions.itemClicked.connect(self._on_suggestion_clicked)
         middle_layout.addWidget(self._suggestions, 1)
 
         buttons = QHBoxLayout()
         buttons.setSpacing(SPACE_S)
         self._commit_button = FluentPrimaryButton("Commit", middle)
+        self._commit_button.setDefault(True)
         self._commit_button.clicked.connect(self._on_commit)
         self._desktop_button = FluentPushButton("Open in GitHub Desktop", middle)
         self._desktop_button.clicked.connect(self._on_open_desktop)
@@ -132,11 +139,7 @@ class DirtyReposCommitWindow(QDialog):
         right_layout.setContentsMargins(0, 0, 0, 0)
         right_layout.setSpacing(SPACE_S)
         right_layout.addWidget(FluentText("Diff", right, role=TextRole.SECONDARY))
-        self._diff = FluentPlainTextEdit(right)
-        self._diff.setReadOnly(True)
-        mono = QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont)
-        mono.setStyleHint(QFont.StyleHint.Monospace)
-        self._diff.setFont(mono)
+        self._diff = GitDiffEdit(right)
         self._diff.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         right_layout.addWidget(self._diff, 1)
         self._splitter.addWidget(right)
@@ -181,6 +184,17 @@ class DirtyReposCommitWindow(QDialog):
             _active_window = None
         super().closeEvent(event)
 
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
+        """Arrow keys in the commit title walk matching suggestions, like Quick paste."""
+        if watched is self._subject and event.type() == QEvent.Type.KeyPress and isinstance(event, QKeyEvent):
+            if event.key() == Qt.Key.Key_Down:
+                self._move_suggestion(1)
+                return True
+            if event.key() == Qt.Key.Key_Up:
+                self._move_suggestion(-1)
+                return True
+        return super().eventFilter(watched, event)
+
     def nativeEvent(self, event_type: Any, message: Any) -> tuple[bool, int]:  # noqa: N802
         """Keep caption drag and edge resize on Windows."""
         handled = try_handle_win11_caption_native_event(self, event_type, message)
@@ -195,6 +209,23 @@ class DirtyReposCommitWindow(QDialog):
         initial = [Path(path).resolve() for path in repos]
         self._set_statuses(refresh_repo_statuses(initial))
 
+    def _accept_suggestion(self, text: str) -> None:
+        self._applying_suggestion = True
+        try:
+            self._subject.setText(text)
+            self._subject.selectAll()
+        finally:
+            self._applying_suggestion = False
+        self._update_commit_enabled()
+
+    def _apply_suggestion_filter(self) -> None:
+        ordered = order_suggestions_for_filter(self._suggestion_subjects, self._suggestion_filter)
+        self._suggestions.clear()
+        for subject, matched in ordered:
+            item = QListWidgetItem(subject)
+            item.setData(_SUGGESTION_MATCH_ROLE, matched)
+            self._suggestions.addItem(item)
+
     def _checked_paths(self) -> list[str]:
         paths: list[str] = []
         for index in range(self._file_list.count()):
@@ -206,6 +237,10 @@ class DirtyReposCommitWindow(QDialog):
                 if isinstance(path, str) and path:
                     paths.append(path)
         return paths
+
+    def _clear_suggestions(self) -> None:
+        self._suggestion_subjects = []
+        self._suggestions.clear()
 
     def _current_repo(self) -> Path | None:
         item = self._repo_list.currentItem()
@@ -275,6 +310,33 @@ class DirtyReposCommitWindow(QDialog):
 
         self._run_worker(work, done)
 
+    def _matching_suggestion_rows(self) -> list[int]:
+        rows: list[int] = []
+        for row in range(self._suggestions.count()):
+            item = self._suggestions.item(row)
+            if item is None or item.data(_SUGGESTION_MATCH_ROLE) is False:
+                continue
+            rows.append(row)
+        return rows
+
+    def _move_suggestion(self, delta: int) -> bool:
+        rows = self._matching_suggestion_rows()
+        if not rows:
+            return False
+        current = self._suggestions.currentRow()
+        if current not in rows:
+            row = rows[0] if delta > 0 else rows[-1]
+        else:
+            index = rows.index(current) + delta
+            row = rows[max(0, min(index, len(rows) - 1))]
+        item = self._suggestions.item(row)
+        if item is None:
+            return False
+        self._suggestions.setCurrentItem(item)
+        self._suggestions.scrollToItem(item)
+        self._accept_suggestion(item.text())
+        return True
+
     def _on_commit(self) -> None:
         repo = self._current_repo()
         if repo is None or self._busy:
@@ -334,7 +396,7 @@ class DirtyReposCommitWindow(QDialog):
     ) -> None:
         if current is None:
             self._populate_files([])
-            self._suggestions.clear()
+            self._clear_suggestions()
             self._diff.setPlainText("")
             self._update_commit_enabled()
             return
@@ -342,9 +404,15 @@ class DirtyReposCommitWindow(QDialog):
         if isinstance(path, Path):
             self._load_repo_details_async(path)
 
-    def _on_suggestion_clicked(self, item: QListWidgetItem) -> None:
-        self._subject.setText(item.text())
+    def _on_subject_edited(self, text: str) -> None:
         self._update_commit_enabled()
+        if self._applying_suggestion or text == self._suggestion_filter:
+            return
+        self._suggestion_filter = text
+        self._apply_suggestion_filter()
+
+    def _on_suggestion_clicked(self, item: QListWidgetItem) -> None:
+        self._accept_suggestion(item.text())
 
     def _populate_files(self, files: list[ChangedFile] | tuple[ChangedFile, ...]) -> None:
         self._suppress_file_signals = True
@@ -380,17 +448,19 @@ class DirtyReposCommitWindow(QDialog):
             self._repo_list.setCurrentRow(min(select_row, self._repo_list.count() - 1))
         else:
             self._populate_files([])
-            self._suggestions.clear()
+            self._clear_suggestions()
             self._diff.setPlainText("")
             self._update_commit_enabled()
 
     def _rebuild_suggestions(self) -> None:
         repo = self._current_repo()
         history = self._history_by_repo.get(repo, []) if repo is not None else []
-        ranked = rank_commit_subjects(set(self._checked_paths()), history, self._quick_paste)
-        self._suggestions.clear()
-        for subject in ranked:
-            self._suggestions.addItem(subject)
+        self._suggestion_subjects = rank_commit_subjects(
+            set(self._checked_paths()),
+            history,
+            self._quick_paste,
+        )
+        self._apply_suggestion_filter()
 
     def _refresh_known_dirty(self, prefer: Path | None = None) -> None:
         if self._busy:
@@ -517,6 +587,9 @@ def __init__(
         self._quick_paste: list[str] = []
         self._statuses: list[DirtyRepoStatus] = []
         self._history_by_repo: dict[Path, list[CommitHistoryEntry]] = {}
+        self._suggestion_subjects: list[str] = []
+        self._suggestion_filter = ""
+        self._applying_suggestion = False
         self._busy = False
         self._workers: list[_FnWorker] = []
         self._win11_caption = False
@@ -563,18 +636,21 @@ def __init__(
 
         middle_layout.addWidget(FluentText("Commit title", middle, role=TextRole.SECONDARY))
         self._subject = FluentLineEdit(middle, placeholder="Commit message")
-        self._subject.textChanged.connect(self._update_commit_enabled)
+        self._subject.textChanged.connect(self._on_subject_edited)
+        self._subject.installEventFilter(self)
         middle_layout.addWidget(self._subject)
 
         middle_layout.addWidget(FluentText("Suggestions", middle, role=TextRole.SECONDARY))
         self._suggestions = FluentListWidget(middle, compact=True)
         self._suggestions.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self._suggestions.setItemDelegate(_SuggestionFilterDelegate(self._suggestions))
         self._suggestions.itemClicked.connect(self._on_suggestion_clicked)
         middle_layout.addWidget(self._suggestions, 1)
 
         buttons = QHBoxLayout()
         buttons.setSpacing(SPACE_S)
         self._commit_button = FluentPrimaryButton("Commit", middle)
+        self._commit_button.setDefault(True)
         self._commit_button.clicked.connect(self._on_commit)
         self._desktop_button = FluentPushButton("Open in GitHub Desktop", middle)
         self._desktop_button.clicked.connect(self._on_open_desktop)
@@ -589,11 +665,7 @@ def __init__(
         right_layout.setContentsMargins(0, 0, 0, 0)
         right_layout.setSpacing(SPACE_S)
         right_layout.addWidget(FluentText("Diff", right, role=TextRole.SECONDARY))
-        self._diff = FluentPlainTextEdit(right)
-        self._diff.setReadOnly(True)
-        mono = QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont)
-        mono.setStyleHint(QFont.StyleHint.Monospace)
-        self._diff.setFont(mono)
+        self._diff = GitDiffEdit(right)
         self._diff.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         right_layout.addWidget(self._diff, 1)
         self._splitter.addWidget(right)
@@ -651,6 +723,31 @@ def closeEvent(self, event: Any) -> None:  # noqa: N802
         if _active_window is self:
             _active_window = None
         super().closeEvent(event)
+```
+
+</details>
+
+### ⚙️ Method `eventFilter`
+
+```python
+def eventFilter(self, watched: QObject, event: QEvent) -> bool
+```
+
+Arrow keys in the commit title walk matching suggestions, like Quick paste.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
+        if watched is self._subject and event.type() == QEvent.Type.KeyPress and isinstance(event, QKeyEvent):
+            if event.key() == Qt.Key.Key_Down:
+                self._move_suggestion(1)
+                return True
+            if event.key() == Qt.Key.Key_Up:
+                self._move_suggestion(-1)
+                return True
+        return super().eventFilter(watched, event)
 ```
 
 </details>

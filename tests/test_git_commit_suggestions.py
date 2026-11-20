@@ -4,9 +4,29 @@ from __future__ import annotations
 
 from harrix_swiss_knife.actions.common.git_commit_suggestions import (
     CommitHistoryEntry,
+    order_suggestions_for_filter,
     parse_commit_history_log,
     rank_commit_subjects,
 )
+
+
+def test_order_suggestions_for_filter_empty_query_keeps_order() -> None:
+    assert order_suggestions_for_filter(["b", "a"], "   ") == [("b", True), ("a", True)]
+
+
+def test_order_suggestions_for_filter_ignores_keyboard_layout() -> None:
+    ordered = order_suggestions_for_filter(["Quick paste", "Other"], "зфыеу")  # ignore: HP001
+    assert ordered[0] == ("Quick paste", True)
+    assert ordered[1] == ("Other", False)
+
+
+def test_order_suggestions_for_filter_puts_matches_first() -> None:
+    ordered = order_suggestions_for_filter(
+        ["📚 Docs. Update", "🐞 Fix ruff check issues", "⬆️ Update packages"],
+        "fix",
+    )
+    assert ordered[0] == ("🐞 Fix ruff check issues", True)
+    assert [matched for _subject, matched in ordered[1:]] == [False, False]
 
 
 def test_parse_commit_history_log() -> None:

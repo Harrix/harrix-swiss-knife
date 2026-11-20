@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from harrix_swiss_knife.actions.common.git_cmd import git_run
+from harrix_swiss_knife.keyboard_layout_search import command_matches_search
 
 _DEFAULT_HISTORY_LIMIT = 100
 
@@ -56,6 +57,23 @@ def load_quick_paste_phrases(db_path: str | Path | None) -> list[str]:
             manager.close()
     except Exception:
         return []
+
+
+def order_suggestions_for_filter(subjects: list[str], query: str) -> list[tuple[str, bool]]:
+    """Put Quick paste search matches first and mark the rest as dimmed.
+
+    An empty query marks every subject as a match and keeps the original order.
+    Matching ignores case and EN/RU keyboard-layout mistakes.
+
+    """
+    matched: list[tuple[str, bool]] = []
+    dimmed: list[tuple[str, bool]] = []
+    for subject in subjects:
+        if command_matches_search(subject, query):
+            matched.append((subject, True))
+        else:
+            dimmed.append((subject, False))
+    return matched + dimmed
 
 
 def parse_commit_history_log(stdout: str) -> list[CommitHistoryEntry]:

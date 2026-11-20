@@ -13,6 +13,7 @@ from harrix_swiss_knife.actions.common.git_dirty_ops import (
     parse_porcelain_files,
     refresh_repo_statuses,
 )
+from harrix_swiss_knife.apps.git_commit.diff_view import diff_line_kind
 
 if TYPE_CHECKING:
     import pytest
@@ -47,6 +48,15 @@ def test_commit_selected_paths_stages_only_checked(
     assert ("add", "--", "keep.md") in calls
     assert ("commit", "-m", "⬆️ Update keep.md") in calls
     assert not any(arg == "-A" for call in calls for arg in call)
+
+
+def test_diff_line_kind_marks_add_delete_and_hunk() -> None:
+    assert diff_line_kind("+added") == "add"
+    assert diff_line_kind("-removed") == "delete"
+    assert diff_line_kind("@@ -1,2 +1,3 @@") == "hunk"
+    assert diff_line_kind("+++ b/file.md") == "meta"
+    assert diff_line_kind("--- a/file.md") == "meta"
+    assert diff_line_kind(" context") == "context"
 
 
 def test_open_github_desktop_nonblocking_uses_startfile(
