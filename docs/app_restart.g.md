@@ -11,9 +11,43 @@ lang: en
 
 ## Contents
 
+- [🔧 Function `gui_relaunch_argv`](#-function-gui_relaunch_argv)
 - [🔧 Function `restart_argv`](#-function-restart_argv)
 - [🔧 Function `restart_current_application`](#-function-restart_current_application)
 - [🔧 Function `spawn_replacement_process`](#-function-spawn_replacement_process)
+
+</details>
+
+## 🔧 Function `gui_relaunch_argv`
+
+```python
+def gui_relaunch_argv() -> list[str]
+```
+
+Return argv that relaunches this app without a console window on Windows.
+
+Prefers sibling `pythonw.exe` when the current interpreter is `python.exe`
+(for example a Cursor terminal launch), so the restarted tray app does not
+open a black console. Falls back to `restart_argv()` when `pythonw.exe` is
+missing or the process is already a GUI wrapper.
+
+Returns:
+
+- `list[str]`: Interpreter path followed by `sys.argv`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def gui_relaunch_argv() -> list[str]:
+    current = Path(sys.executable)
+    name = current.name.casefold()
+    if name == "python.exe":
+        pythonw = current.with_name("pythonw.exe")
+        if pythonw.is_file():
+            return [str(pythonw), *sys.argv]
+    return restart_argv()
+```
 
 </details>
 

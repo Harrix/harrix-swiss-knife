@@ -13,7 +13,9 @@ lang: en
 
 - [🏛️ Class `MaintenanceChecklistDialog`](#%EF%B8%8F-class-maintenancechecklistdialog)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `apply_restored_session_done`](#%EF%B8%8F-method-apply_restored_session_done)
   - [⚙️ Method `nativeEvent`](#%EF%B8%8F-method-nativeevent)
+  - [⚙️ Method `session_done_class_names`](#%EF%B8%8F-method-session_done_class_names)
 
 </details>
 
@@ -137,12 +139,23 @@ class MaintenanceChecklistDialog(QDialog):
         # Win11 caption is frameless; maximize uses the monitor work area (above the taskbar).
         apply_app_window_size_and_position(self)
 
+    def apply_restored_session_done(self, class_names: list[str] | tuple[str, ...]) -> None:
+        """Restore session Done marks after a post-upgrade relaunch."""
+        for name in class_names:
+            if name in self._rows:
+                self._session_done.add(name)
+        self._refresh_all_rows()
+
     def nativeEvent(self, event_type: Any, message: Any) -> tuple[bool, int]:  # noqa: N802
         """Keep caption drag, edge resize, and maximized work-area sizing on Windows."""
         handled = try_handle_win11_caption_native_event(self, event_type, message)
         if handled is not None:
             return handled
         return cast("tuple[bool, int]", super().nativeEvent(event_type, message))
+
+    def session_done_class_names(self) -> list[str]:
+        """Return action class names marked Done in this checklist session."""
+        return sorted(self._session_done)
 
     def _apply_update_hsk_visibility(self, *, visible: bool) -> None:
         row = self._rows.get(UPDATE_HSK_STEP_CLASS)
@@ -419,6 +432,27 @@ def __init__(
 
 </details>
 
+### ⚙️ Method `apply_restored_session_done`
+
+```python
+def apply_restored_session_done(self, class_names: list[str] | tuple[str, ...]) -> None
+```
+
+Restore session Done marks after a post-upgrade relaunch.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def apply_restored_session_done(self, class_names: list[str] | tuple[str, ...]) -> None:
+        for name in class_names:
+            if name in self._rows:
+                self._session_done.add(name)
+        self._refresh_all_rows()
+```
+
+</details>
+
 ### ⚙️ Method `nativeEvent`
 
 ```python
@@ -436,6 +470,24 @@ def nativeEvent(self, event_type: Any, message: Any) -> tuple[bool, int]:  # noq
         if handled is not None:
             return handled
         return cast("tuple[bool, int]", super().nativeEvent(event_type, message))
+```
+
+</details>
+
+### ⚙️ Method `session_done_class_names`
+
+```python
+def session_done_class_names(self) -> list[str]
+```
+
+Return action class names marked Done in this checklist session.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def session_done_class_names(self) -> list[str]:
+        return sorted(self._session_done)
 ```
 
 </details>

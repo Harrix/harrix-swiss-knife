@@ -15,6 +15,7 @@ WAIT_TIMEOUT_SECONDS = 120
 CURSOR_PROCESS_NAME = "Cursor.exe"
 _LOG_NAME = "hsk-uv-upgrade.log"
 _POST_CLOSE_SETTLE_SECONDS = 3
+_CURSOR_REOPEN_SETTLE_SECONDS = 5
 
 
 def build_relaunch_command(argv: Sequence[str]) -> str:
@@ -31,6 +32,10 @@ def build_uv_upgrade_cmd(
     log_path: Path | None = None,
     wait_timeout_seconds: int = WAIT_TIMEOUT_SECONDS,
     close_cursor: bool = True,
+    reopen_cursor: bool = False,
+    cursor_exe: Path | None = None,
+    cursor_workspace: Path | None = None,
+    pythonw_fix_project: Path | None = None,
 ) -> str:
     """Return the text of a `.cmd` that waits for HSK, upgrades, then relaunches.
 
@@ -38,6 +43,10 @@ def build_uv_upgrade_cmd(
     `uv python upgrade` is scoped to each project's `.python-version` when present
     and is non-fatal so `uv sync --upgrade` can still run. On hard failure the
     script still relaunches after `pause`.
+
+    When `reopen_cursor` is set, Cursor is started again (with `cursor_workspace`
+    when provided) before HSK. When `pythonw_fix_project` is set, the HSK
+    `pythonw.exe` launcher is repaired after sync so relaunch stays console-free.
 
     """
     uv = str(uv_exe)
@@ -155,6 +164,12 @@ def build_uv_upgrade_cmd(
             'echo Upgrade failed. See log: %LOG%>> "%LOG%"',
             "pause",
             ":relaunch",
+        ]
+    )
+    lines.extend(_pythonw_fix_lines(pythonw_fix_project))
+    lines.extend(_cursor_reopen_lines(reopen_cursor=reopen_cursor, cursor_exe=cursor_exe, workspace=cursor_workspace))
+    lines.extend(
+        [
             "echo Relaunching Harrix Swiss Knife...",
             'echo Relaunching Harrix Swiss Knife...>> "%LOG%"',
             f'start "" {relaunch}',
@@ -229,6 +244,10 @@ def write_uv_upgrade_cmd(
     log_path: Path | None = None,
     wait_timeout_seconds: int = WAIT_TIMEOUT_SECONDS,
     close_cursor: bool = True,
+    reopen_cursor: bool = False,
+    cursor_exe: Path | None = None,
+    cursor_workspace: Path | None = None,
+    pythonw_fix_project: Path | None = None,
 ) -> Path:
     """Write the upgrade `.cmd` to `path` and return `path`."""
     text = build_uv_upgrade_cmd(
@@ -239,6 +258,79 @@ def write_uv_upgrade_cmd(
         log_path=log_path,
         wait_timeout_seconds=wait_timeout_seconds,
         close_cursor=close_cursor,
+        reopen_cursor=reopen_cursor,
+        cursor_exe=cursor_exe,
+        cursor_workspace=cursor_workspace,
+        pythonw_fix_project=pythonw_fix_project,
     )
     path.write_text(text, encoding="utf-8", newline="")
     return path
+
+
+def _cursor_reopen_lines(
+    *,
+    reopen_cursor: bool,
+    cursor_exe: Path | None,
+    workspace: Path | None,
+) -> list[str]:
+    if not reopen_cursor:
+        return []
+    lines = [
+        "echo.",
+        "echo === Reopening Cursor ===",
+        'echo === Reopening Cursor ===>> "%LOG%"',
+    ]
+    if cursor_exe is not None and cursor_exe.is_file():
+        exe = quote_cmd_arg(str(cursor_exe))
+        if workspace is not None:
+            lines.append(f'start "" {exe} {quote_cmd_arg(str(workspace))}')
+        else:
+            lines.append(f'start "" {exe}')
+    else:
+        lines.extend(
+            [
+                "echo Cursor.exe path unknown; skipping reopen.",
+                'echo Cursor.exe path unknown; skipping reopen.>> "%LOG%"',
+                "goto cursor_reopen_done",
+            ]
+        )
+        return [*lines, ":cursor_reopen_done"]
+    lines.extend(
+        [
+            f"timeout /t {_CURSOR_REOPEN_SETTLE_SECONDS} /nobreak >nul",
+            ":cursor_reopen_done",
+        ]
+    )
+    return lines
+
+
+def _pythonw_fix_lines(project_root: Path | None) -> list[str]:
+    if project_root is None:
+        return []
+    root = project_root.resolve()
+    python_exe = root / ".venv" / "Scripts" / "python.exe"
+    src = root / "src"
+    if not python_exe.is_file():
+        return [
+            "echo.",
+            "echo === pythonw repair skipped (venv python.exe missing) ===",
+            'echo === pythonw repair skipped (venv python.exe missing) ===>> "%LOG%"',
+        ]
+    # Repair after `uv sync` so relaunch uses a GUI subsystem pythonw (uv #19226).
+    py_code = (
+        "import sys; from pathlib import Path; "
+        f"sys.path.insert(0, {str(src)!r}); "
+        "from harrix_swiss_knife.pythonw_launcher import fix_pythonw_launcher; "
+        f"r = fix_pythonw_launcher(Path({str(root)!r})); "
+        "print(r.message)"
+    )
+    return [
+        "echo.",
+        "echo === Repair pythonw.exe launcher ===",
+        'echo === Repair pythonw.exe launcher ===>> "%LOG%"',
+        f"{quote_cmd_arg(str(python_exe))} -c {quote_cmd_arg(py_code)}",
+        "if errorlevel 1 (",
+        '  echo WARNING: pythonw repair failed; continuing.>> "%LOG%"',
+        "  echo WARNING: pythonw repair failed; continuing.",
+        ")",
+    ]

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import sys
 from pathlib import Path
 from typing import Any
@@ -72,6 +73,28 @@ def discover_project_cursor_dirs(workspace_storage: Path | None = None) -> list[
         seen.add(resolved)
         found.append(cursor_dir)
     return found
+
+
+def find_cursor_exe() -> Path | None:
+    """Return the Cursor GUI executable when it can be located on this machine."""
+    if sys.platform != "win32":
+        which = shutil.which("cursor")
+        return Path(which) if which else None
+    local = os.environ.get("LOCALAPPDATA", "")
+    pf = os.environ.get("PROGRAMFILES") or os.environ.get("ProgramFiles") or ""  # noqa: SIM112
+    pfx86 = os.environ.get("PROGRAMFILES(X86)", "")
+    candidates: list[Path] = []
+    if local:
+        candidates.append(Path(local) / "Programs" / "cursor" / "Cursor.exe")
+    if pf:
+        candidates.append(Path(pf) / "Cursor" / "Cursor.exe")
+    if pfx86:
+        candidates.append(Path(pfx86) / "Cursor" / "Cursor.exe")
+    for path in candidates:
+        if path.is_file():
+            return path
+    which = shutil.which("Cursor.exe") or shutil.which("cursor")
+    return Path(which) if which else None
 
 
 def iter_dot_cursor_entries() -> list[Path]:

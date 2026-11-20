@@ -41,7 +41,7 @@ def build_relaunch_command(argv: Sequence[str]) -> str:
 ## 🔧 Function `build_uv_upgrade_cmd`
 
 ```python
-def build_uv_upgrade_cmd(*, wait_pid: int, uv_exe: Path, project_dirs: Sequence[Path], relaunch_argv: Sequence[str], log_path: Path | None = None, wait_timeout_seconds: int = WAIT_TIMEOUT_SECONDS, close_cursor: bool = True) -> str
+def build_uv_upgrade_cmd(*, wait_pid: int, uv_exe: Path, project_dirs: Sequence[Path], relaunch_argv: Sequence[str], log_path: Path | None = None, wait_timeout_seconds: int = WAIT_TIMEOUT_SECONDS, close_cursor: bool = True, reopen_cursor: bool = False, cursor_exe: Path | None = None, cursor_workspace: Path | None = None, pythonw_fix_project: Path | None = None) -> str
 ```
 
 Return the text of a `.cmd` that waits for HSK, upgrades, then relaunches.
@@ -49,7 +49,11 @@ Return the text of a `.cmd` that waits for HSK, upgrades, then relaunches.
 Optionally closes Cursor first so uv-managed Python installs are not locked.
 `uv python upgrade` is scoped to each project's `.python-version` when present
 and is non-fatal so `uv sync --upgrade` can still run. On hard failure the
-script still relaunches after [`pause`](apps/fitness/lightbox_logic.g.md#%EF%B8%8F-method-pause).
+script still relaunches after `pause`.
+
+When `reopen_cursor` is set, Cursor is started again (with `cursor_workspace`
+when provided) before HSK. When `pythonw_fix_project` is set, the HSK
+`pythonw.exe` launcher is repaired after sync so relaunch stays console-free.
 
 <details>
 <summary>Code:</summary>
@@ -64,6 +68,10 @@ def build_uv_upgrade_cmd(
     log_path: Path | None = None,
     wait_timeout_seconds: int = WAIT_TIMEOUT_SECONDS,
     close_cursor: bool = True,
+    reopen_cursor: bool = False,
+    cursor_exe: Path | None = None,
+    cursor_workspace: Path | None = None,
+    pythonw_fix_project: Path | None = None,
 ) -> str:
     uv = str(uv_exe)
     log = str(log_path) if log_path is not None else str(Path(os.environ.get("TEMP", ".")) / _LOG_NAME)
@@ -180,6 +188,12 @@ def build_uv_upgrade_cmd(
             'echo Upgrade failed. See log: %LOG%>> "%LOG%"',
             "pause",
             ":relaunch",
+        ]
+    )
+    lines.extend(_pythonw_fix_lines(pythonw_fix_project))
+    lines.extend(_cursor_reopen_lines(reopen_cursor=reopen_cursor, cursor_exe=cursor_exe, workspace=cursor_workspace))
+    lines.extend(
+        [
             "echo Relaunching Harrix Swiss Knife...",
             'echo Relaunching Harrix Swiss Knife...>> "%LOG%"',
             f'start "" {relaunch}',
@@ -286,7 +300,7 @@ def resolve_upgrade_projects(paths_python_projects: Sequence[object]) -> list[Pa
 ## 🔧 Function `write_uv_upgrade_cmd`
 
 ```python
-def write_uv_upgrade_cmd(path: Path, *, wait_pid: int, uv_exe: Path, project_dirs: Sequence[Path], relaunch_argv: Sequence[str], log_path: Path | None = None, wait_timeout_seconds: int = WAIT_TIMEOUT_SECONDS, close_cursor: bool = True) -> Path
+def write_uv_upgrade_cmd(path: Path, *, wait_pid: int, uv_exe: Path, project_dirs: Sequence[Path], relaunch_argv: Sequence[str], log_path: Path | None = None, wait_timeout_seconds: int = WAIT_TIMEOUT_SECONDS, close_cursor: bool = True, reopen_cursor: bool = False, cursor_exe: Path | None = None, cursor_workspace: Path | None = None, pythonw_fix_project: Path | None = None) -> Path
 ```
 
 Write the upgrade `.cmd` to `path` and return `path`.
@@ -305,6 +319,10 @@ def write_uv_upgrade_cmd(
     log_path: Path | None = None,
     wait_timeout_seconds: int = WAIT_TIMEOUT_SECONDS,
     close_cursor: bool = True,
+    reopen_cursor: bool = False,
+    cursor_exe: Path | None = None,
+    cursor_workspace: Path | None = None,
+    pythonw_fix_project: Path | None = None,
 ) -> Path:
     text = build_uv_upgrade_cmd(
         wait_pid=wait_pid,
@@ -314,6 +332,10 @@ def write_uv_upgrade_cmd(
         log_path=log_path,
         wait_timeout_seconds=wait_timeout_seconds,
         close_cursor=close_cursor,
+        reopen_cursor=reopen_cursor,
+        cursor_exe=cursor_exe,
+        cursor_workspace=cursor_workspace,
+        pythonw_fix_project=pythonw_fix_project,
     )
     path.write_text(text, encoding="utf-8", newline="")
     return path

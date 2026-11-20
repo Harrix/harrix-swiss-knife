@@ -230,7 +230,7 @@ MAINTENANCE_STEP_SPECS: tuple[MaintenanceStepSpec, ...] = (
         "OnUpgradeUvPackages",
         "Tools",
         "boxes",
-        note="Exits the app, upgrades project packages, then relaunches",
+        note="Exits the app, upgrades packages, relaunches (restores checklist when run from here)",
         include_in_run_all=False,
     ),
     MaintenanceStepSpec(

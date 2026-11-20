@@ -272,6 +272,7 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
             tray_icon.show_command_window()
 
         _offer_data_for_hsk_setup_if_needed(config, log)
+        _apply_uv_upgrade_resume(output_bus, log)
 
     def _offer_data_for_hsk_setup_if_needed(cfg: dict, startup_log: logging.Logger) -> None:
         remapped = relocate_sqlite_paths(cfg)

@@ -16,6 +16,7 @@ lang: en
 - [🔧 Function `cursor_running`](#-function-cursor_running)
 - [🔧 Function `cursor_user_dir`](#-function-cursor_user_dir)
 - [🔧 Function `discover_project_cursor_dirs`](#-function-discover_project_cursor_dirs)
+- [🔧 Function `find_cursor_exe`](#-function-find_cursor_exe)
 - [🔧 Function `iter_dot_cursor_entries`](#-function-iter_dot_cursor_entries)
 - [🔧 Function `json_safe`](#-function-json_safe)
 
@@ -134,6 +135,41 @@ def discover_project_cursor_dirs(workspace_storage: Path | None = None) -> list[
         seen.add(resolved)
         found.append(cursor_dir)
     return found
+```
+
+</details>
+
+## 🔧 Function `find_cursor_exe`
+
+```python
+def find_cursor_exe() -> Path | None
+```
+
+Return the Cursor GUI executable when it can be located on this machine.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def find_cursor_exe() -> Path | None:
+    if sys.platform != "win32":
+        which = shutil.which("cursor")
+        return Path(which) if which else None
+    local = os.environ.get("LOCALAPPDATA", "")
+    pf = os.environ.get("PROGRAMFILES") or os.environ.get("ProgramFiles") or ""  # noqa: SIM112
+    pfx86 = os.environ.get("PROGRAMFILES(X86)", "")
+    candidates: list[Path] = []
+    if local:
+        candidates.append(Path(local) / "Programs" / "cursor" / "Cursor.exe")
+    if pf:
+        candidates.append(Path(pf) / "Cursor" / "Cursor.exe")
+    if pfx86:
+        candidates.append(Path(pfx86) / "Cursor" / "Cursor.exe")
+    for path in candidates:
+        if path.is_file():
+            return path
+    which = shutil.which("Cursor.exe") or shutil.which("cursor")
+    return Path(which) if which else None
 ```
 
 </details>

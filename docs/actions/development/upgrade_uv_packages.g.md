@@ -28,8 +28,10 @@ Writes a temporary `.cmd`, starts it in a new console, releases the tray
 singleton, and quits so `.venv` files are not locked. The script waits for
 this PID, closes Cursor if it is running (it can lock uv-managed Python),
 runs `uv self update`, then per project `uv python upgrade` (from
-`.python-version` when present) and `uv sync --upgrade`, then relaunches
-with the same argv.
+`.python-version` when present) and `uv sync --upgrade`, repairs
+`pythonw.exe` when needed, optionally reopens Cursor, then relaunches HSK
+with a GUI interpreter. When the upgrade was started from the maintenance
+checklist, the checklist is reopened and this step is marked Done.
 
 <details>
 <summary>Code:</summary>
@@ -69,7 +71,22 @@ class OnUpgradeUvPackages(ActionBase):
             self.show_result()
             return
 
+        cursor_was_running = cursor_running()
+        cursor_exe = find_cursor_exe() if cursor_was_running else None
+        from_checklist, session_done = _maintenance_resume_snapshot()
+        project_root = get_project_root()
+
         project_lines = "\n".join(f"  • {path}" for path in projects)
+        restore_bits: list[str] = [
+            "When finished, Harrix Swiss Knife relaunches without a console window.",
+        ]
+        if cursor_was_running:
+            restore_bits.insert(
+                0,
+                "If Cursor is open, it will be closed first (save your work), then reopened before HSK.",
+            )
+        if from_checklist:
+            restore_bits.append("The maintenance checklist will reopen with this step marked Done.")
         answer = QMessageBox.question(
             None,
             "Upgrade packages (uv)",
@@ -77,10 +94,7 @@ class OnUpgradeUvPackages(ActionBase):
             "  uv self update\n"
             "  uv python upgrade\n"
             "  uv sync --upgrade\n\n"
-            f"in:\n{project_lines}\n\n"
-            "If Cursor is open, it will be closed first (save your work).\n"
-            "When finished, the same app launch will start again.\n\n"
-            "Continue?",
+            f"in:\n{project_lines}\n\n" + "\n".join(restore_bits) + "\n\nContinue?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )
@@ -89,10 +103,18 @@ class OnUpgradeUvPackages(ActionBase):
             self.show_result()
             return
 
+        if from_checklist:
+            save_uv_upgrade_resume(
+                reopen_maintenance_checklist=True,
+                maintenance_session_done=session_done,
+            )
+        else:
+            clear_uv_upgrade_resume()
+
         temp_dir = Path(tempfile.gettempdir())
         cmd_path = temp_dir / f"hsk-uv-upgrade-{os.getpid()}.cmd"
         log_path = temp_dir / "hsk-uv-upgrade.log"
-        relaunch = restart_argv()
+        relaunch = gui_relaunch_argv()
         write_uv_upgrade_cmd(
             cmd_path,
             wait_pid=os.getpid(),
@@ -100,6 +122,11 @@ class OnUpgradeUvPackages(ActionBase):
             project_dirs=projects,
             relaunch_argv=relaunch,
             log_path=log_path,
+            close_cursor=cursor_was_running,
+            reopen_cursor=cursor_was_running,
+            cursor_exe=cursor_exe,
+            cursor_workspace=project_root if cursor_was_running else None,
+            pythonw_fix_project=project_root,
         )
 
         cmd_exe = os.environ.get("COMSPEC") or str(
@@ -122,6 +149,10 @@ class OnUpgradeUvPackages(ActionBase):
         held = release_held_instance()
         self.add_line(f"Upgrade script started: {cmd_path}")
         self.add_line(f"Log: {log_path}")
+        if cursor_was_running:
+            self.add_line("Cursor will close for the upgrade, then reopen before HSK.")
+        if from_checklist:
+            self.add_line("Maintenance checklist will reopen after relaunch.")
         self.add_line("Exiting so .venv files can be updated…")
         app = QApplication.instance()
         if app is None:
@@ -173,7 +204,22 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             self.show_result()
             return
 
+        cursor_was_running = cursor_running()
+        cursor_exe = find_cursor_exe() if cursor_was_running else None
+        from_checklist, session_done = _maintenance_resume_snapshot()
+        project_root = get_project_root()
+
         project_lines = "\n".join(f"  • {path}" for path in projects)
+        restore_bits: list[str] = [
+            "When finished, Harrix Swiss Knife relaunches without a console window.",
+        ]
+        if cursor_was_running:
+            restore_bits.insert(
+                0,
+                "If Cursor is open, it will be closed first (save your work), then reopened before HSK.",
+            )
+        if from_checklist:
+            restore_bits.append("The maintenance checklist will reopen with this step marked Done.")
         answer = QMessageBox.question(
             None,
             "Upgrade packages (uv)",
@@ -181,10 +227,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             "  uv self update\n"
             "  uv python upgrade\n"
             "  uv sync --upgrade\n\n"
-            f"in:\n{project_lines}\n\n"
-            "If Cursor is open, it will be closed first (save your work).\n"
-            "When finished, the same app launch will start again.\n\n"
-            "Continue?",
+            f"in:\n{project_lines}\n\n" + "\n".join(restore_bits) + "\n\nContinue?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )
@@ -193,10 +236,18 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             self.show_result()
             return
 
+        if from_checklist:
+            save_uv_upgrade_resume(
+                reopen_maintenance_checklist=True,
+                maintenance_session_done=session_done,
+            )
+        else:
+            clear_uv_upgrade_resume()
+
         temp_dir = Path(tempfile.gettempdir())
         cmd_path = temp_dir / f"hsk-uv-upgrade-{os.getpid()}.cmd"
         log_path = temp_dir / "hsk-uv-upgrade.log"
-        relaunch = restart_argv()
+        relaunch = gui_relaunch_argv()
         write_uv_upgrade_cmd(
             cmd_path,
             wait_pid=os.getpid(),
@@ -204,6 +255,11 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             project_dirs=projects,
             relaunch_argv=relaunch,
             log_path=log_path,
+            close_cursor=cursor_was_running,
+            reopen_cursor=cursor_was_running,
+            cursor_exe=cursor_exe,
+            cursor_workspace=project_root if cursor_was_running else None,
+            pythonw_fix_project=project_root,
         )
 
         cmd_exe = os.environ.get("COMSPEC") or str(
@@ -226,6 +282,10 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         held = release_held_instance()
         self.add_line(f"Upgrade script started: {cmd_path}")
         self.add_line(f"Log: {log_path}")
+        if cursor_was_running:
+            self.add_line("Cursor will close for the upgrade, then reopen before HSK.")
+        if from_checklist:
+            self.add_line("Maintenance checklist will reopen after relaunch.")
         self.add_line("Exiting so .venv files can be updated…")
         app = QApplication.instance()
         if app is None:

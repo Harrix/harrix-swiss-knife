@@ -4,11 +4,34 @@ from __future__ import annotations
 
 import subprocess
 import sys
+from pathlib import Path
 from typing import Any
 
 from PySide6.QtWidgets import QApplication
 
 from harrix_swiss_knife.single_instance import release_held_instance, restore_held_instance
+
+
+def gui_relaunch_argv() -> list[str]:
+    """Return argv that relaunches this app without a console window on Windows.
+
+    Prefers sibling `pythonw.exe` when the current interpreter is `python.exe`
+    (for example a Cursor terminal launch), so the restarted tray app does not
+    open a black console. Falls back to `restart_argv()` when `pythonw.exe` is
+    missing or the process is already a GUI wrapper.
+
+    Returns:
+
+    - `list[str]`: Interpreter path followed by `sys.argv`.
+
+    """
+    current = Path(sys.executable)
+    name = current.name.casefold()
+    if name == "python.exe":
+        pythonw = current.with_name("pythonw.exe")
+        if pythonw.is_file():
+            return [str(pythonw), *sys.argv]
+    return restart_argv()
 
 
 def restart_argv() -> list[str]:

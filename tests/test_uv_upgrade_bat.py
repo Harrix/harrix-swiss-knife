@@ -15,24 +15,6 @@ from harrix_swiss_knife.uv_upgrade_bat import (
 )
 
 
-def test_resolve_upgrade_projects_orders_and_skips_missing(tmp_path: Path) -> None:
-    knife = tmp_path / "harrix-swiss-knife"
-    pylib = tmp_path / "harrix-pylib"
-    other = tmp_path / "other-project"
-    knife.mkdir()
-    pylib.mkdir()
-    other.mkdir()
-    resolved = resolve_upgrade_projects([str(other), str(pylib), str(knife), str(knife)])
-    assert [path.name for path in resolved] == ["harrix-swiss-knife", "harrix-pylib"]
-    assert PROJECT_NAMES[0] == "harrix-swiss-knife"
-
-
-def test_quote_cmd_arg_quotes_spaces_and_specials() -> None:
-    assert quote_cmd_arg("uv.exe") == "uv.exe"
-    assert quote_cmd_arg(r"C:\Program Files\uv\uv.exe") == r'"C:\Program Files\uv\uv.exe"'
-    assert quote_cmd_arg('say "hi"') == '"say ""hi"""'
-
-
 def test_build_relaunch_command_joins_quoted_argv() -> None:
     cmd = build_relaunch_command([r"C:\venv\Scripts\python.exe", r"D:\GitHub\app\main.py", "--flag"])
     assert cmd == r"C:\venv\Scripts\python.exe D:\GitHub\app\main.py --flag"
@@ -77,6 +59,45 @@ def test_build_uv_upgrade_cmd_contains_wait_uv_and_projects(tmp_path: Path) -> N
     assert "pause" in text
     assert 'start ""' in text
     assert str(log) in text
+    assert "Reopening Cursor" not in text
+    assert "Repair pythonw.exe launcher" not in text
+
+
+def test_build_uv_upgrade_cmd_reopens_cursor_and_repairs_pythonw(tmp_path: Path) -> None:
+    uv = tmp_path / "uv.exe"
+    uv.write_bytes(b"")
+    knife = tmp_path / "harrix-swiss-knife"
+    knife.mkdir()
+    scripts = knife / ".venv" / "Scripts"
+    scripts.mkdir(parents=True)
+    (scripts / "python.exe").write_bytes(b"x")
+    cursor = tmp_path / "Cursor.exe"
+    cursor.write_bytes(b"x")
+    text = build_uv_upgrade_cmd(
+        wait_pid=9,
+        uv_exe=uv,
+        project_dirs=[knife],
+        relaunch_argv=[str(scripts / "pythonw.exe"), str(knife / "main.py")],
+        close_cursor=True,
+        reopen_cursor=True,
+        cursor_exe=cursor,
+        cursor_workspace=knife,
+        pythonw_fix_project=knife,
+    )
+    assert "Reopening Cursor" in text
+    assert str(cursor) in text
+    assert str(knife) in text
+    assert "Repair pythonw.exe launcher" in text
+    assert "fix_pythonw_launcher" in text
+    reopen_at = text.index("Reopening Cursor")
+    relaunch_at = text.index("Relaunching Harrix Swiss Knife")
+    assert reopen_at < relaunch_at
+
+
+def test_quote_cmd_arg_quotes_spaces_and_specials() -> None:
+    assert quote_cmd_arg("uv.exe") == "uv.exe"
+    assert quote_cmd_arg(r"C:\Program Files\uv\uv.exe") == r'"C:\Program Files\uv\uv.exe"'
+    assert quote_cmd_arg('say "hi"') == '"say ""hi"""'
 
 
 def test_read_python_version_pin(tmp_path: Path) -> None:
@@ -85,6 +106,18 @@ def test_read_python_version_pin(tmp_path: Path) -> None:
     assert read_python_version_pin(project) is None
     (project / ".python-version").write_text("# comment\n3.12\n", encoding="utf-8")
     assert read_python_version_pin(project) == "3.12"
+
+
+def test_resolve_upgrade_projects_orders_and_skips_missing(tmp_path: Path) -> None:
+    knife = tmp_path / "harrix-swiss-knife"
+    pylib = tmp_path / "harrix-pylib"
+    other = tmp_path / "other-project"
+    knife.mkdir()
+    pylib.mkdir()
+    other.mkdir()
+    resolved = resolve_upgrade_projects([str(other), str(pylib), str(knife), str(knife)])
+    assert [path.name for path in resolved] == ["harrix-swiss-knife", "harrix-pylib"]
+    assert PROJECT_NAMES[0] == "harrix-swiss-knife"
 
 
 def test_write_uv_upgrade_cmd_creates_file(tmp_path: Path) -> None:

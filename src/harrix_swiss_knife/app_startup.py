@@ -54,6 +54,7 @@ from harrix_swiss_knife.screenshot.capture import (
 from harrix_swiss_knife.screenshot.window_visibility import defer_until_popups_close
 from harrix_swiss_knife.single_instance import acquire_tray_instance
 from harrix_swiss_knife.tray_icon import TrayIcon
+from harrix_swiss_knife.uv_upgrade_resume import pop_uv_upgrade_resume
 from harrix_swiss_knife.win11_backdrop import ensure_windows_app_user_model_id
 
 if TYPE_CHECKING:
@@ -275,6 +276,7 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
             tray_icon.show_command_window()
 
         _offer_data_for_hsk_setup_if_needed(config, log)
+        _apply_uv_upgrade_resume(output_bus, log)
 
     def _offer_data_for_hsk_setup_if_needed(cfg: dict, startup_log: logging.Logger) -> None:
         remapped = relocate_sqlite_paths(cfg)
@@ -418,6 +420,22 @@ def show_fatal_error_dialog(text: str) -> None:
         QMessageBox.critical(None, "Harrix Swiss Knife - Error", text)
     except Exception:
         logging.getLogger(__name__).debug("Failed to show Qt error dialog.", exc_info=True)
+
+
+def _apply_uv_upgrade_resume(output_bus: ActionOutputBus, log: logging.Logger) -> None:
+    """Reopen the maintenance checklist after a detached uv package upgrade."""
+    resume = pop_uv_upgrade_resume()
+    if resume is None or not resume["reopen_maintenance_checklist"]:
+        return
+    from harrix_swiss_knife.actions.development.run_maintenance_checklist import (  # noqa: PLC0415
+        OnRunMaintenanceChecklist,
+    )
+
+    log.info("Restoring maintenance checklist after uv package upgrade")
+    OnRunMaintenanceChecklist(output_bus=output_bus)()
+    dialog = OnRunMaintenanceChecklist.checklist_dialog
+    if dialog is not None:
+        dialog.apply_restored_session_done(resume["maintenance_session_done"])
 
 
 def _dispose_overlay_singletons() -> None:
