@@ -8,6 +8,7 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 from urllib.parse import quote
 
 from harrix_swiss_knife.actions.common.git_cmd import git_porcelain, git_run
@@ -76,7 +77,12 @@ def list_changed_files(repo: Path) -> list[ChangedFile]:
 
 
 def open_github_desktop_nonblocking(repo: Path) -> tuple[bool, str]:
-    """Open `repo` in GitHub Desktop without waiting for the app to exit."""
+    """Open `repo` in GitHub Desktop without waiting for the app to exit.
+
+    The process is detached from this console. `os.startfile` would let GitHub
+    Desktop inherit it and print Chromium logs into the app terminal.
+
+    """
     repo = repo.resolve()
     if not repo.is_dir():
         return False, f"Folder not found: {repo}"
@@ -87,36 +93,21 @@ def open_github_desktop_nonblocking(repo: Path) -> tuple[bool, str]:
         exe = Path(local) / "GitHubDesktop" / "GitHubDesktop.exe"
         bat = Path(local) / "GitHubDesktop" / "bin" / "github.bat"
         try:
-            os.startfile(url)  # noqa: S606
+            _spawn_detached(["cmd", "/c", "start", "", url], cwd=repo)
         except OSError:
             pass
         else:
             return True, url
         if bat.is_file():
-            subprocess.Popen(
-                ["cmd", "/c", "start", "", str(bat), str(repo)],  # noqa: S607
-                cwd=str(repo),
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
+            _spawn_detached(["cmd", "/c", "start", "", str(bat), str(repo)], cwd=repo)
             return True, str(bat)
         if exe.is_file():
-            subprocess.Popen(
-                [str(exe), str(repo)],
-                cwd=str(repo),
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
+            _spawn_detached([str(exe), str(repo)], cwd=repo)
             return True, str(exe)
 
     github_cli = shutil.which("github")
     if github_cli:
-        subprocess.Popen(
-            [github_cli, str(repo)],
-            cwd=str(repo),
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
+        _spawn_detached([github_cli, str(repo)], cwd=repo)
         return True, github_cli
 
     return False, "GitHub Desktop not found (install it or add `github` to PATH)"
@@ -167,3 +158,19 @@ def refresh_repo_statuses(repos: list[Path], *, prefer_first: Path | None = None
         if files:
             dirty.append(DirtyRepoStatus(path=repo, files=files))
     return dirty
+
+
+def _spawn_detached(command: list[str], *, cwd: Path) -> None:
+    """Start `command` and return immediately, without this process's console."""
+    kwargs: dict[str, Any] = {
+        "cwd": str(cwd),
+        "stdin": subprocess.DEVNULL,
+        "stdout": subprocess.DEVNULL,
+        "stderr": subprocess.DEVNULL,
+        "close_fds": True,
+    }
+    if sys.platform == "win32":
+        kwargs["creationflags"] = subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
+    else:
+        kwargs["start_new_session"] = True
+    subprocess.Popen(command, **kwargs)

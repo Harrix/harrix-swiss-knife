@@ -174,6 +174,9 @@ def open_github_desktop_nonblocking(repo: Path) -> tuple[bool, str]
 
 Open `repo` in GitHub Desktop without waiting for the app to exit.
 
+The process is detached from this console. `os.startfile` would let GitHub
+Desktop inherit it and print Chromium logs into the app terminal.
+
 <details>
 <summary>Code:</summary>
 
@@ -189,36 +192,21 @@ def open_github_desktop_nonblocking(repo: Path) -> tuple[bool, str]:
         exe = Path(local) / "GitHubDesktop" / "GitHubDesktop.exe"
         bat = Path(local) / "GitHubDesktop" / "bin" / "github.bat"
         try:
-            os.startfile(url)  # noqa: S606
+            _spawn_detached(["cmd", "/c", "start", "", url], cwd=repo)
         except OSError:
             pass
         else:
             return True, url
         if bat.is_file():
-            subprocess.Popen(
-                ["cmd", "/c", "start", "", str(bat), str(repo)],  # noqa: S607
-                cwd=str(repo),
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
+            _spawn_detached(["cmd", "/c", "start", "", str(bat), str(repo)], cwd=repo)
             return True, str(bat)
         if exe.is_file():
-            subprocess.Popen(
-                [str(exe), str(repo)],
-                cwd=str(repo),
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
+            _spawn_detached([str(exe), str(repo)], cwd=repo)
             return True, str(exe)
 
     github_cli = shutil.which("github")
     if github_cli:
-        subprocess.Popen(
-            [github_cli, str(repo)],
-            cwd=str(repo),
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
+        _spawn_detached([github_cli, str(repo)], cwd=repo)
         return True, github_cli
 
     return False, "GitHub Desktop not found (install it or add `github` to PATH)"

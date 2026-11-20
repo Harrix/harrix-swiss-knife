@@ -59,21 +59,25 @@ def test_diff_line_kind_marks_add_delete_and_hunk() -> None:
     assert diff_line_kind(" context") == "context"
 
 
-def test_open_github_desktop_nonblocking_uses_startfile(
+def test_open_github_desktop_nonblocking_detaches_from_console(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     repo = tmp_path / "repo"
     repo.mkdir()
-    started: list[str] = []
+    calls: list[tuple[list[str], dict[str, object]]] = []
+
+    def fake_popen(command: list[str], **kwargs: object) -> MagicMock:
+        calls.append((list(command), kwargs))
+        return MagicMock()
 
     monkeypatch.setattr(
         "harrix_swiss_knife.actions.common.git_dirty_ops.sys.platform",
         "win32",
     )
     monkeypatch.setattr(
-        "harrix_swiss_knife.actions.common.git_dirty_ops.os.startfile",
-        started.append,
+        "harrix_swiss_knife.actions.common.git_dirty_ops.subprocess.Popen",
+        fake_popen,
     )
     monkeypatch.setattr(
         "harrix_swiss_knife.actions.common.git_dirty_ops.subprocess.run",
@@ -82,8 +86,15 @@ def test_open_github_desktop_nonblocking_uses_startfile(
 
     ok, detail = open_github_desktop_nonblocking(repo)
     assert ok is True
-    assert started
-    assert started[0].startswith("x-github-client://openLocalRepo/")
+    assert calls
+    command, kwargs = calls[0]
+    assert command[:4] == ["cmd", "/c", "start", ""]
+    assert command[-1].startswith("x-github-client://openLocalRepo/")
+    flags = kwargs["creationflags"]
+    assert isinstance(flags, int)
+    assert flags & subprocess.DETACHED_PROCESS
+    assert kwargs["stdout"] is subprocess.DEVNULL
+    assert kwargs["stderr"] is subprocess.DEVNULL
     assert "blocking" not in detail
 
 
