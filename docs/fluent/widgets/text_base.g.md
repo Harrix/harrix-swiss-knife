@@ -70,6 +70,7 @@ class FluentText(QLabel):
             TextRole.TERTIARY: palette.text_tertiary,
             TextRole.ACCENT: palette.accent_text,
             TextRole.DISABLED: palette.text_disabled,
+            TextRole.CRITICAL: palette.critical,
         }
         # Flatten token alphas onto the window so Accent links stay readable.
         ink = mix(palette.window_bg, colors[self._role])
@@ -110,8 +111,8 @@ Args:
 
 - `text` (`str`): Label text.
 - `parent` (`QWidget | None`): Optional parent.
-- `style` ([`TextStyle`](enums.g.md#%EF%B8%8F-class-textstyle)): Type ramp entry. Defaults to `BODY`.
-- `role` ([`TextRole`](enums.g.md#%EF%B8%8F-class-textrole)): Color role. Defaults to `PRIMARY`.
+- `style` (`TextStyle`): Type ramp entry. Defaults to `BODY`.
+- `role` (`TextRole`): Color role. Defaults to `PRIMARY`.
 - `word_wrap` (`bool`): Wrap long text. Defaults to `False`.
 
 <details>
@@ -157,6 +158,7 @@ def refresh_theme(self) -> None:
             TextRole.TERTIARY: palette.text_tertiary,
             TextRole.ACCENT: palette.accent_text,
             TextRole.DISABLED: palette.text_disabled,
+            TextRole.CRITICAL: palette.critical,
         }
         # Flatten token alphas onto the window so Accent links stay readable.
         ink = mix(palette.window_bg, colors[self._role])

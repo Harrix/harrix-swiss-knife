@@ -9,12 +9,14 @@ from PySide6.QtWidgets import QDialog, QHBoxLayout, QVBoxLayout, QWidget
 
 from harrix_swiss_knife.actions.common.maintenance_checklist_steps import (
     CHECK_GIT_REPOS_STEP_CLASS,
+    CHECK_PYTHON_PROJECTS_STEP_CLASS,
     UPDATE_HSK_STEP_CLASS,
     MaintenanceStep,
     format_last_used,
     is_last_used_within,
     last_used_for_class,
     load_git_repos_all_clean,
+    load_py_check_all_passed,
     load_show_update_hsk_step,
     maintenance_groups,
     save_show_update_hsk_step,
@@ -93,7 +95,7 @@ class MaintenanceChecklistDialog(QDialog):
             FluentText(
                 "Run update, sync, and check actions. Last run comes from action usage; "
                 "green cards ran in the last 24 hours "
-                "(Git check stays green when all repos are clean); "
+                "(Git / Full PY checks stay green on last success, red on failure); "
                 "Done marks steps finished in this session.",
                 body,
                 role=TextRole.SECONDARY,
@@ -275,12 +277,19 @@ class MaintenanceChecklistDialog(QDialog):
                 note = "All configured repos are clean"
             elif git_clean is False:
                 note = "Git: dirty repos under `paths_git_roots`"
+        elif class_name == CHECK_PYTHON_PROJECTS_STEP_CLASS:
+            py_ok = load_py_check_all_passed()
+            if py_ok is True:
+                note = "All configured projects passed"
+            elif py_ok is False:
+                note = "Full PY check failed for one or more projects"
         if note:
             description = f"{description} · {note}"
         if not row.step.include_in_run_all:
             description = f"{description} · Not in Run all"
         row.set_description(description)
-        row.set_recent(recent=self._step_success_tint(class_name, stamp=stamp))
+        success, danger = self._step_status_tints(class_name, stamp=stamp)
+        row.set_status_tints(success=success, danger=danger)
 
     def _row_is_listed(self, row: _StepRow) -> bool:
         """Return whether the step is shown in the checklist (not Qt visibility).
@@ -314,11 +323,15 @@ class MaintenanceChecklistDialog(QDialog):
         for row in self._rows.values():
             row.run_button.setEnabled(not busy and self._row_is_listed(row))
 
-    def _step_success_tint(self, class_name: str, *, stamp: str) -> bool:
-        """Return whether the card should use the green success tint."""
+    def _step_status_tints(self, class_name: str, *, stamp: str) -> tuple[bool, bool]:
+        """Return `(success, danger)` card tints for a checklist step."""
         if class_name == CHECK_GIT_REPOS_STEP_CLASS:
-            return load_git_repos_all_clean() is True
-        return is_last_used_within(stamp, hours=24)
+            clean = load_git_repos_all_clean()
+            return clean is True, clean is False
+        if class_name == CHECK_PYTHON_PROJECTS_STEP_CLASS:
+            passed = load_py_check_all_passed()
+            return passed is True, passed is False
+        return is_last_used_within(stamp, hours=24), False
 
     def _visible_row_count(self) -> int:
         return sum(1 for row in self._rows.values() if self._row_is_listed(row))
@@ -354,6 +367,8 @@ class _StepRow:
         """Show or hide the session Done tag."""
         self._done_tag.setVisible(done)
 
-    def set_recent(self, *, recent: bool) -> None:
-        """Tint the card green when the step ran within the last 24 hours."""
-        self.card.set_success_tint(enabled=recent)
+    def set_status_tints(self, *, success: bool, danger: bool) -> None:
+        """Tint the card green on success or red on failure; title goes critical when failed."""
+        self.card.set_success_tint(enabled=success)
+        self.card.set_danger_tint(enabled=danger)
+        self.card.set_title_role(TextRole.CRITICAL if danger else TextRole.PRIMARY)

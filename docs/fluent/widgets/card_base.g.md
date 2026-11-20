@@ -14,6 +14,7 @@ lang: en
 - [🏛️ Class `FluentCard`](#%EF%B8%8F-class-fluentcard)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `paintEvent`](#%EF%B8%8F-method-paintevent)
+  - [⚙️ Method `set_danger_tint`](#%EF%B8%8F-method-set_danger_tint)
   - [⚙️ Method `set_success_tint`](#%EF%B8%8F-method-set_success_tint)
 - [🏛️ Class `FluentInteractiveCard`](#%EF%B8%8F-class-fluentinteractivecard)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
@@ -48,6 +49,7 @@ class FluentCard(QWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
         """Create an empty card; add content through `layout()` or your own layout."""
         super().__init__(parent)
+        self._danger_tint = False
         self._success_tint = False
         bind_theme(self, self.update)
 
@@ -58,17 +60,31 @@ class FluentCard(QWidget):
         if self._success_tint:
             fill = palette.success_bg
             stroke = with_alpha(palette.success, 140)
+        elif self._danger_tint:
+            fill = palette.critical_bg
+            stroke = with_alpha(palette.critical, 140)
         else:
             fill = palette.card_bg
             stroke = palette.card_stroke
         paint_surface(painter, self.rect(), fill, stroke, RADIUS_CARD)
         painter.end()
 
+    def set_danger_tint(self, *, enabled: bool) -> None:
+        """Use the critical surface colors (soft red) when `enabled` is true."""
+        if self._danger_tint == enabled and (not enabled or not self._success_tint):
+            return
+        self._danger_tint = enabled
+        if enabled:
+            self._success_tint = False
+        self.update()
+
     def set_success_tint(self, *, enabled: bool) -> None:
         """Use the success surface colors (soft green) when `enabled` is true."""
-        if self._success_tint == enabled:
+        if self._success_tint == enabled and (not enabled or not self._danger_tint):
             return
         self._success_tint = enabled
+        if enabled:
+            self._danger_tint = False
         self.update()
 ```
 
@@ -88,6 +104,7 @@ Create an empty card; add content through `layout()` or your own layout.
 ```python
 def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
+        self._danger_tint = False
         self._success_tint = False
         bind_theme(self, self.update)
 ```
@@ -112,11 +129,37 @@ def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
         if self._success_tint:
             fill = palette.success_bg
             stroke = with_alpha(palette.success, 140)
+        elif self._danger_tint:
+            fill = palette.critical_bg
+            stroke = with_alpha(palette.critical, 140)
         else:
             fill = palette.card_bg
             stroke = palette.card_stroke
         paint_surface(painter, self.rect(), fill, stroke, RADIUS_CARD)
         painter.end()
+```
+
+</details>
+
+### ⚙️ Method `set_danger_tint`
+
+```python
+def set_danger_tint(self, *, enabled: bool) -> None
+```
+
+Use the critical surface colors (soft red) when `enabled` is true.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_danger_tint(self, *, enabled: bool) -> None:
+        if self._danger_tint == enabled and (not enabled or not self._success_tint):
+            return
+        self._danger_tint = enabled
+        if enabled:
+            self._success_tint = False
+        self.update()
 ```
 
 </details>
@@ -134,9 +177,11 @@ Use the success surface colors (soft green) when `enabled` is true.
 
 ```python
 def set_success_tint(self, *, enabled: bool) -> None:
-        if self._success_tint == enabled:
+        if self._success_tint == enabled and (not enabled or not self._danger_tint):
             return
         self._success_tint = enabled
+        if enabled:
+            self._danger_tint = False
         self.update()
 ```
 

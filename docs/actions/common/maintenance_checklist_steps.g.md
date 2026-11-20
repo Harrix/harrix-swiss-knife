@@ -19,10 +19,12 @@ lang: en
 - [🔧 Function `is_last_used_within`](#-function-is_last_used_within)
 - [🔧 Function `last_used_for_class`](#-function-last_used_for_class)
 - [🔧 Function `load_git_repos_all_clean`](#-function-load_git_repos_all_clean)
+- [🔧 Function `load_py_check_all_passed`](#-function-load_py_check_all_passed)
 - [🔧 Function `load_show_update_hsk_step`](#-function-load_show_update_hsk_step)
 - [🔧 Function `maintenance_groups`](#-function-maintenance_groups)
 - [🔧 Function `maintenance_steps`](#-function-maintenance_steps)
 - [🔧 Function `save_git_repos_all_clean`](#-function-save_git_repos_all_clean)
+- [🔧 Function `save_py_check_all_passed`](#-function-save_py_check_all_passed)
 - [🔧 Function `save_show_update_hsk_step`](#-function-save_show_update_hsk_step)
 
 </details>
@@ -223,14 +225,25 @@ Return last Git-check result for the checklist tint, or `None` if unknown.
 
 ```python
 def load_git_repos_all_clean() -> bool | None:
-    try:
-        loaded: dict[str, Any] = h.dev.config_load(get_config_path_str(), is_temp=True)
-    except Exception:
-        return None
-    if _GIT_REPOS_ALL_CLEAN_KEY not in loaded:
-        return None
-    value = loaded.get(_GIT_REPOS_ALL_CLEAN_KEY)
-    return value if isinstance(value, bool) else None
+    return _load_temp_bool(_GIT_REPOS_ALL_CLEAN_KEY)
+```
+
+</details>
+
+## 🔧 Function `load_py_check_all_passed`
+
+```python
+def load_py_check_all_passed() -> bool | None
+```
+
+Return last Full PY check result for the checklist tint, or `None` if unknown.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def load_py_check_all_passed() -> bool | None:
+    return _load_temp_bool(_PY_CHECK_ALL_PASSED_KEY)
 ```
 
 </details>
@@ -317,6 +330,24 @@ Persist whether the last Git-repos check found every repo committed.
 ```python
 def save_git_repos_all_clean(*, all_clean: bool) -> None:
     h.dev.config_update_value(_GIT_REPOS_ALL_CLEAN_KEY, bool(all_clean), get_config_path_str(), is_temp=True)
+```
+
+</details>
+
+## 🔧 Function `save_py_check_all_passed`
+
+```python
+def save_py_check_all_passed(*, all_passed: bool) -> None
+```
+
+Persist whether the last Full PY check passed for every configured project.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def save_py_check_all_passed(*, all_passed: bool) -> None:
+    h.dev.config_update_value(_PY_CHECK_ALL_PASSED_KEY, bool(all_passed), get_config_path_str(), is_temp=True)
 ```
 
 </details>

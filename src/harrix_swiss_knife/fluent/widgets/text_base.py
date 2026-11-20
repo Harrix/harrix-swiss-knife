@@ -48,6 +48,7 @@ class FluentText(QLabel):
             TextRole.TERTIARY: palette.text_tertiary,
             TextRole.ACCENT: palette.accent_text,
             TextRole.DISABLED: palette.text_disabled,
+            TextRole.CRITICAL: palette.critical,
         }
         # Flatten token alphas onto the window so Accent links stay readable.
         ink = mix(palette.window_bg, colors[self._role])

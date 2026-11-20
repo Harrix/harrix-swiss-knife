@@ -26,9 +26,11 @@ if TYPE_CHECKING:
 # Optional Tools row: hidden unless the checklist footer checkbox is on.
 UPDATE_HSK_STEP_CLASS = "OnUpdateHarrixSwissKnife"
 _SHOW_UPDATE_HSK_KEY = "maintenance_checklist_show_update_hsk"
-# Checks row: green tint follows last scan result (all clean), not only last-run age.
+# Checks rows: green/red tint follows last scan result, not only last-run age.
 CHECK_GIT_REPOS_STEP_CLASS = "OnCheckGitReposNeedingCommit"
+CHECK_PYTHON_PROJECTS_STEP_CLASS = "OnCheckPythonProjects"
 _GIT_REPOS_ALL_CLEAN_KEY = "maintenance_checklist_git_repos_all_clean"
+_PY_CHECK_ALL_PASSED_KEY = "maintenance_checklist_py_check_all_passed"
 
 
 @dataclass(frozen=True, slots=True)
@@ -114,14 +116,12 @@ def last_used_for_class(class_name: str) -> str:
 
 def load_git_repos_all_clean() -> bool | None:
     """Return last Git-check result for the checklist tint, or `None` if unknown."""
-    try:
-        loaded: dict[str, Any] = h.dev.config_load(get_config_path_str(), is_temp=True)
-    except Exception:
-        return None
-    if _GIT_REPOS_ALL_CLEAN_KEY not in loaded:
-        return None
-    value = loaded.get(_GIT_REPOS_ALL_CLEAN_KEY)
-    return value if isinstance(value, bool) else None
+    return _load_temp_bool(_GIT_REPOS_ALL_CLEAN_KEY)
+
+
+def load_py_check_all_passed() -> bool | None:
+    """Return last Full PY check result for the checklist tint, or `None` if unknown."""
+    return _load_temp_bool(_PY_CHECK_ALL_PASSED_KEY)
 
 
 def load_show_update_hsk_step() -> bool:
@@ -159,9 +159,25 @@ def save_git_repos_all_clean(*, all_clean: bool) -> None:
     h.dev.config_update_value(_GIT_REPOS_ALL_CLEAN_KEY, bool(all_clean), get_config_path_str(), is_temp=True)
 
 
+def save_py_check_all_passed(*, all_passed: bool) -> None:
+    """Persist whether the last Full PY check passed for every configured project."""
+    h.dev.config_update_value(_PY_CHECK_ALL_PASSED_KEY, bool(all_passed), get_config_path_str(), is_temp=True)
+
+
 def save_show_update_hsk_step(*, enabled: bool) -> None:
     """Persist whether the Update HSK checklist row is visible (`config-temp.json`)."""
     h.dev.config_update_value(_SHOW_UPDATE_HSK_KEY, bool(enabled), get_config_path_str(), is_temp=True)
+
+
+def _load_temp_bool(key: str) -> bool | None:
+    try:
+        loaded: dict[str, Any] = h.dev.config_load(get_config_path_str(), is_temp=True)
+    except Exception:
+        return None
+    if key not in loaded:
+        return None
+    value = loaded.get(key)
+    return value if isinstance(value, bool) else None
 
 
 def _parse_last_used(iso_stamp: str | None) -> datetime | None:

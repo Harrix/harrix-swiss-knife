@@ -12,6 +12,7 @@ from PySide6.QtWidgets import QApplication, QWidget
 from harrix_swiss_knife.actions.common.maintenance_checklist_dialog import MaintenanceChecklistDialog
 from harrix_swiss_knife.actions.common.maintenance_checklist_steps import (
     CHECK_GIT_REPOS_STEP_CLASS,
+    CHECK_PYTHON_PROJECTS_STEP_CLASS,
     MAINTENANCE_STEP_SPECS,
     UPDATE_HSK_STEP_CLASS,
     format_last_used,
@@ -23,6 +24,7 @@ from harrix_swiss_knife.actions.common.maintenance_checklist_steps import (
 from harrix_swiss_knife.actions.development.run_maintenance_checklist import OnRunMaintenanceChecklist
 from harrix_swiss_knife.actions.development.update_harrix_swiss_knife import OnUpdateHarrixSwissKnife
 from harrix_swiss_knife.actions.development.upgrade_uv_packages import OnUpgradeUvPackages
+from harrix_swiss_knife.fluent.widgets import TextRole
 from harrix_swiss_knife.win11_caption import OVERLAY_CAPTION_PROPERTY
 
 
@@ -48,7 +50,7 @@ def test_git_repos_step_tint_follows_all_clean_status(
     qapp: QApplication,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Git check card is green only when the last scan reported every repo clean."""
+    """Git check card is green when clean and red when the last scan found dirty repos."""
     assert qapp is not None
     monkeypatch.setattr(
         "harrix_swiss_knife.actions.common.maintenance_checklist_dialog.load_show_update_hsk_step",
@@ -58,11 +60,17 @@ def test_git_repos_step_tint_follows_all_clean_status(
         "harrix_swiss_knife.actions.common.maintenance_checklist_dialog.load_git_repos_all_clean",
         lambda: True,
     )
+    monkeypatch.setattr(
+        "harrix_swiss_knife.actions.common.maintenance_checklist_dialog.load_py_check_all_passed",
+        lambda: None,
+    )
     OnRunMaintenanceChecklist.clear_checklist_dialog()
     dialog = MaintenanceChecklistDialog()
     try:
         row = dialog._rows[CHECK_GIT_REPOS_STEP_CLASS]
         assert row.card._success_tint is True
+        assert row.card._danger_tint is False
+        assert row.card._title_label._role is TextRole.PRIMARY
         assert "All configured repos are clean" in row.card._description_label.text()
         monkeypatch.setattr(
             "harrix_swiss_knife.actions.common.maintenance_checklist_dialog.load_git_repos_all_clean",
@@ -70,6 +78,8 @@ def test_git_repos_step_tint_follows_all_clean_status(
         )
         dialog._refresh_row(CHECK_GIT_REPOS_STEP_CLASS)
         assert row.card._success_tint is False
+        assert row.card._danger_tint is True
+        assert row.card._title_label._role is TextRole.CRITICAL
         assert "Git: dirty repos" in row.card._description_label.text()
     finally:
         dialog.close()
@@ -203,6 +213,47 @@ def test_noninteractive_lists_steps() -> None:
     text = "\n".join(action.result_lines)
     assert "step" in text.lower()
     assert any("uv" in line.lower() for line in action.result_lines)
+
+
+def test_py_check_step_tint_follows_all_passed_status(
+    qapp: QApplication,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Full PY check card is green when all passed and red when the last run failed."""
+    assert qapp is not None
+    monkeypatch.setattr(
+        "harrix_swiss_knife.actions.common.maintenance_checklist_dialog.load_show_update_hsk_step",
+        lambda: False,
+    )
+    monkeypatch.setattr(
+        "harrix_swiss_knife.actions.common.maintenance_checklist_dialog.load_git_repos_all_clean",
+        lambda: None,
+    )
+    monkeypatch.setattr(
+        "harrix_swiss_knife.actions.common.maintenance_checklist_dialog.load_py_check_all_passed",
+        lambda: True,
+    )
+    OnRunMaintenanceChecklist.clear_checklist_dialog()
+    dialog = MaintenanceChecklistDialog()
+    try:
+        row = dialog._rows[CHECK_PYTHON_PROJECTS_STEP_CLASS]
+        assert row.card._success_tint is True
+        assert row.card._danger_tint is False
+        assert row.card._title_label._role is TextRole.PRIMARY
+        assert "All configured projects passed" in row.card._description_label.text()
+        monkeypatch.setattr(
+            "harrix_swiss_knife.actions.common.maintenance_checklist_dialog.load_py_check_all_passed",
+            lambda: False,
+        )
+        dialog._refresh_row(CHECK_PYTHON_PROJECTS_STEP_CLASS)
+        assert row.card._success_tint is False
+        assert row.card._danger_tint is True
+        assert row.card._title_label._role is TextRole.CRITICAL
+        assert "Full PY check failed" in row.card._description_label.text()
+    finally:
+        dialog.close()
+        dialog.deleteLater()
+        OnRunMaintenanceChecklist.clear_checklist_dialog()
 
 
 def test_show_update_hsk_pref_defaults_off(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -713,7 +713,8 @@ class FluentSettingEditorCard(FluentCard):
             header.addWidget(_IconView(icon, self), 0, Qt.AlignmentFlag.AlignVCenter)
         text_column = QVBoxLayout()
         text_column.setSpacing(2)
-        text_column.addWidget(FluentText(title, self, style=TextStyle.BODY_STRONG))
+        self._title_label = FluentText(title, self, style=TextStyle.BODY_STRONG)
+        text_column.addWidget(self._title_label)
         self._description_label = FluentText(
             description,
             self,
@@ -740,6 +741,10 @@ class FluentSettingEditorCard(FluentCard):
         cleaned = text.strip()
         self._description_label.setText(cleaned)
         self._description_label.setVisible(bool(cleaned))
+
+    def set_title_role(self, role: TextRole) -> None:
+        """Switch the title label color role (for example critical on failed checks)."""
+        self._title_label.set_role(role)
 
 
 class FluentSettingHyperlinkCard(FluentSettingCard):

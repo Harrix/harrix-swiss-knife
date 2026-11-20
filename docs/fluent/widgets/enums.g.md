@@ -27,7 +27,7 @@ lang: en
 class MatchMode(Enum)
 ```
 
-How [`FluentAutoComplete`](inputs.g.md#%EF%B8%8F-class-fluentautocomplete) matches suggestions.
+How `FluentAutoComplete` matches suggestions.
 
 <details>
 <summary>Code:</summary>
@@ -98,7 +98,7 @@ class Severity(Enum):
 class SkeletonShape(Enum)
 ```
 
-Placeholder shape for [`FluentSkeleton`](display.g.md#%EF%B8%8F-class-fluentskeleton).
+Placeholder shape for `FluentSkeleton`.
 
 <details>
 <summary>Code:</summary>
@@ -132,6 +132,7 @@ class TextRole(Enum):
     TERTIARY = "tertiary"
     ACCENT = "accent"
     DISABLED = "disabled"
+    CRITICAL = "critical"
 ```
 
 </details>

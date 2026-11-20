@@ -55,6 +55,7 @@ lang: en
 - [🏛️ Class `FluentSettingEditorCard`](#%EF%B8%8F-class-fluentsettingeditorcard)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-8)
   - [⚙️ Method `set_description`](#%EF%B8%8F-method-set_description)
+  - [⚙️ Method `set_title_role`](#%EF%B8%8F-method-set_title_role)
 - [🏛️ Class `FluentSettingHyperlinkCard`](#%EF%B8%8F-class-fluentsettinghyperlinkcard)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-9)
 - [🔧 Function `elide_lines`](#-function-elide_lines)
@@ -1845,7 +1846,8 @@ class FluentSettingEditorCard(FluentCard):
             header.addWidget(_IconView(icon, self), 0, Qt.AlignmentFlag.AlignVCenter)
         text_column = QVBoxLayout()
         text_column.setSpacing(2)
-        text_column.addWidget(FluentText(title, self, style=TextStyle.BODY_STRONG))
+        self._title_label = FluentText(title, self, style=TextStyle.BODY_STRONG)
+        text_column.addWidget(self._title_label)
         self._description_label = FluentText(
             description,
             self,
@@ -1872,6 +1874,10 @@ class FluentSettingEditorCard(FluentCard):
         cleaned = text.strip()
         self._description_label.setText(cleaned)
         self._description_label.setVisible(bool(cleaned))
+
+    def set_title_role(self, role: TextRole) -> None:
+        """Switch the title label color role (for example critical on failed checks)."""
+        self._title_label.set_role(role)
 ```
 
 </details>
@@ -1915,7 +1921,8 @@ def __init__(
             header.addWidget(_IconView(icon, self), 0, Qt.AlignmentFlag.AlignVCenter)
         text_column = QVBoxLayout()
         text_column.setSpacing(2)
-        text_column.addWidget(FluentText(title, self, style=TextStyle.BODY_STRONG))
+        self._title_label = FluentText(title, self, style=TextStyle.BODY_STRONG)
+        text_column.addWidget(self._title_label)
         self._description_label = FluentText(
             description,
             self,
@@ -1956,6 +1963,24 @@ def set_description(self, text: str) -> None:
         cleaned = text.strip()
         self._description_label.setText(cleaned)
         self._description_label.setVisible(bool(cleaned))
+```
+
+</details>
+
+### ⚙️ Method `set_title_role`
+
+```python
+def set_title_role(self, role: TextRole) -> None
+```
+
+Switch the title label color role (for example critical on failed checks).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_title_role(self, role: TextRole) -> None:
+        self._title_label.set_role(role)
 ```
 
 </details>

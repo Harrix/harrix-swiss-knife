@@ -65,6 +65,7 @@ class TextRole(Enum):
     TERTIARY = "tertiary"
     ACCENT = "accent"
     DISABLED = "disabled"
+    CRITICAL = "critical"
 
 
 class TextStyle(Enum):

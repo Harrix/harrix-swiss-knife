@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from harrix_swiss_knife.actions.common.base import ActionBase
+from harrix_swiss_knife.actions.common.maintenance_checklist_steps import save_py_check_all_passed
 from harrix_swiss_knife.actions.common.python_project_checks import PythonProjectChecksMixin
 
 
@@ -17,12 +18,18 @@ class OnCheckPythonProjects(PythonProjectChecksMixin):
     cli_available = True
     cli_hint = "py check-all"
 
-    def check_all_python_projects_common(self) -> None:
-        """Run ty, ruff, pytest, and Harrix Python/Markdown checks for each configured project."""
+    def check_all_python_projects_common(self) -> bool:
+        """Run ty, ruff, pytest, and Harrix Python/Markdown checks for each configured project.
+
+        Returns whether every configured project passed. Persists the result for the
+        maintenance checklist tint.
+
+        """
         raw = self.config.get("paths_python_projects")
         if not isinstance(raw, list):
             self.add_line('❌ config "paths_python_projects" must be a list.')
-            return
+            save_py_check_all_passed(all_passed=False)
+            return False
 
         project_paths: list[Path] = []
         for entry in raw:
@@ -39,7 +46,8 @@ class OnCheckPythonProjects(PythonProjectChecksMixin):
 
         if not project_paths:
             self.add_line("❌ No valid project paths in paths_python_projects.")
-            return
+            save_py_check_all_passed(all_passed=False)
+            return False
 
         failed_projects: dict[str, list[str]] = {}
 
@@ -51,13 +59,16 @@ class OnCheckPythonProjects(PythonProjectChecksMixin):
 
         passed_count = len(project_paths) - len(failed_projects)
         total_count = len(project_paths)
-        if not failed_projects:
+        all_passed = not failed_projects
+        save_py_check_all_passed(all_passed=all_passed)
+        if all_passed:
             self.add_line(f"\n✅ All projects passed all checks ({passed_count}/{total_count}).")
-            return
+            return True
 
         self.add_line(f"\n❌ Checks failed in {len(failed_projects)} project(s):")
         for name, failures in failed_projects.items():
             self.add_line(f"- {name}: {', '.join(failures)}")
+        return False
 
     @ActionBase.handle_exceptions("checking all Python projects")
     def execute(self, *_args: Any, noninteractive: bool = False, **_kwargs: Any) -> None:
