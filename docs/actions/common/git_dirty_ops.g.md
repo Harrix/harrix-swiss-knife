@@ -12,6 +12,8 @@ lang: en
 ## Contents
 
 - [🏛️ Class `ChangedFile`](#%EF%B8%8F-class-changedfile)
+- [🏛️ Class `CommitDaySummary`](#%EF%B8%8F-class-commitdaysummary)
+- [🏛️ Class `DayCommitCounts`](#%EF%B8%8F-class-daycommitcounts)
 - [🏛️ Class `DirtyRepoStatus`](#%EF%B8%8F-class-dirtyrepostatus)
   - [⚙️ Method `changed_count (property)`](#%EF%B8%8F-method-changed_count-property)
   - [⚙️ Method `is_dirty (property)`](#%EF%B8%8F-method-is_dirty-property)
@@ -25,6 +27,7 @@ lang: en
 - [🔧 Function `attention_status`](#-function-attention_status)
 - [🔧 Function `commit_selected_paths`](#-function-commit_selected_paths)
 - [🔧 Function `configured_git_roots`](#-function-configured_git_roots)
+- [🔧 Function `count_recent_commits`](#-function-count_recent_commits)
 - [🔧 Function `discover_git_repos`](#-function-discover_git_repos)
 - [🔧 Function `github_repo_visibility`](#-function-github_repo_visibility)
 - [🔧 Function `list_changed_files`](#-function-list_changed_files)
@@ -57,6 +60,52 @@ class ChangedFile:
 
     path: str
     status: str
+```
+
+</details>
+
+## 🏛️ Class `CommitDaySummary`
+
+```python
+class CommitDaySummary
+```
+
+Commit totals for the local today and yesterday.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class CommitDaySummary:
+
+    today: DayCommitCounts
+    yesterday: DayCommitCounts
+```
+
+</details>
+
+## 🏛️ Class `DayCommitCounts`
+
+```python
+class DayCommitCounts
+```
+
+How many commits were created on one local calendar day.
+
+`total` includes every bucket. `public` and `private` are GitHub
+repositories. `local` has no remote. `other` is any remaining remote.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class DayCommitCounts:
+
+    total: int = 0
+    public: int = 0
+    private: int = 0
+    local: int = 0
+    other: int = 0
 ```
 
 </details>
@@ -446,6 +495,49 @@ def configured_git_roots() -> list[Path]:
 
 </details>
 
+## 🔧 Function `count_recent_commits`
+
+```python
+def count_recent_commits(roots: list[Path]) -> CommitDaySummary
+```
+
+Count commits created today and yesterday under `roots`.
+
+Today and yesterday are local calendar days. The count uses the committer
+date of commits reachable from local branches. Public and private are
+GitHub repositories. A repository with no remote is local. Anything else
+is other and still included in the total. GitHub is asked only for a
+repository that has a commit in this window.
+
+Args:
+
+- `roots` (`list[Path]`): Folders from `paths_git_roots`. A folder that is
+  itself a repository is counted alone; otherwise its immediate child
+  repositories are counted.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def count_recent_commits(roots: list[Path]) -> CommitDaySummary:
+    yesterday, today = _recent_days()
+    today_buckets = _empty_commit_buckets()
+    yesterday_buckets = _empty_commit_buckets()
+    for repo in _unique_git_repos(roots):
+        today_count, yesterday_count = _commits_on_recent_days(repo, yesterday, today)
+        if today_count == 0 and yesterday_count == 0:
+            continue
+        bucket = _commit_visibility_bucket(repo)
+        today_buckets[bucket] += today_count
+        yesterday_buckets[bucket] += yesterday_count
+    return CommitDaySummary(
+        today=_counts_from_buckets(today_buckets),
+        yesterday=_counts_from_buckets(yesterday_buckets),
+    )
+```
+
+</details>
+
 ## 🔧 Function `discover_git_repos`
 
 ```python
@@ -758,20 +850,8 @@ only when they have uncommitted files.
 
 ```python
 def scan_dirty_repos(roots: list[Path]) -> list[DirtyRepoStatus]:
-    repos: list[Path] = []
-    seen: set[Path] = set()
-    for root in roots:
-        if not root.is_dir():
-            continue
-        for repo in _find_git_repos(root):
-            resolved = repo.resolve()
-            if resolved in seen:
-                continue
-            seen.add(resolved)
-            repos.append(resolved)
-
     dirty: list[DirtyRepoStatus] = []
-    for repo in sorted(repos, key=lambda path: str(path).casefold()):
+    for repo in _unique_git_repos(roots):
         status = attention_status(repo)
         if status is not None:
             dirty.append(status)

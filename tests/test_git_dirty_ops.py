@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
@@ -13,6 +15,7 @@ from harrix_swiss_knife.actions.common.git_dirty_ops import (
     add_git_root,
     commit_selected_paths,
     configured_git_roots,
+    count_recent_commits,
     discover_git_repos,
     github_repo_visibility,
     open_github_desktop_nonblocking,
@@ -105,6 +108,61 @@ def test_configured_git_roots_dedupes_paths(tmp_path: Path, monkeypatch: pytest.
         fake_load,
     )
     assert configured_git_roots() == [root.resolve()]
+
+
+def test_count_recent_commits_splits_public_private_and_skips_old(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Today and yesterday are split by GitHub visibility. Older commits are ignored."""
+    root = tmp_path / "repos"
+    public = root / "public-repo"
+    private = root / "private-repo"
+    local = root / "local-repo"
+    other = root / "other-repo"
+    old = root / "old-repo"
+    for path in (public, private, local, other, old):
+        _git_init(path)
+    _github_remote(public, "public-repo")
+    _github_remote(private, "private-repo")
+    subprocess.run(
+        ["git", "remote", "add", "origin", "https://gitlab.com/me/other-repo.git"],  # noqa: S607
+        cwd=other,
+        check=True,
+        capture_output=True,
+    )
+    _commit_file_at(public, "yesterday.txt", _local_iso(days_ago=1))
+    _recommit_at(old, _local_iso(days_ago=10))
+
+    seen: list[str] = []
+
+    def fake_visibility(_owner: str, repo: str) -> str:
+        seen.append(repo)
+        if repo == "public-repo":
+            return "public"
+        if repo == "private-repo":
+            return "private"
+        return "unknown"
+
+    git_dirty_ops._visibility_cache.clear()
+    monkeypatch.setattr(git_dirty_ops, "github_repo_visibility", fake_visibility)
+
+    summary = count_recent_commits([root])
+    assert summary.today.total == 4
+    assert summary.today.public == 1
+    assert summary.today.private == 1
+    assert summary.today.local == 1
+    assert summary.today.other == 1
+    assert summary.yesterday.total == 1
+    assert summary.yesterday.public == 1
+    assert summary.yesterday.private == 0
+    assert "old-repo" not in seen
+    assert "public-repo" in seen
+    assert "private-repo" in seen
+
+    missing = count_recent_commits([tmp_path / "missing"])
+    assert missing.today.total == 0
+    assert missing.yesterday.total == 0
 
 
 def test_diff_line_kind_marks_add_delete_and_hunk() -> None:
@@ -353,6 +411,25 @@ def test_visibility_from_github_payload() -> None:
     assert visibility_from_github_payload(None, status=403) == "unknown"
 
 
+def _commit_file_at(repo: Path, name: str, when: str) -> None:
+    (repo / name).write_text(name + "\n", encoding="utf-8")
+    subprocess.run(["git", "add", name], cwd=repo, check=True, capture_output=True)  # noqa: S607
+    subprocess.run(
+        ["git", "commit", "-m", name],  # noqa: S607
+        cwd=repo,
+        check=True,
+        capture_output=True,
+        env=_git_date_env(when),
+    )
+
+
+def _git_date_env(when: str) -> dict[str, str]:
+    env = os.environ.copy()
+    env["GIT_AUTHOR_DATE"] = when
+    env["GIT_COMMITTER_DATE"] = when
+    return env
+
+
 def _git_init(path: Path) -> None:
     path.mkdir(parents=True, exist_ok=True)
     subprocess.run(["git", "init"], cwd=path, check=True, capture_output=True)  # noqa: S607
@@ -408,4 +485,28 @@ def _git_with_unpushed_commit(path: Path, slug: str) -> None:
         cwd=path,
         check=True,
         capture_output=True,
+    )
+
+
+def _github_remote(repo: Path, slug: str) -> None:
+    subprocess.run(
+        ["git", "remote", "add", "origin", f"https://github.com/me/{slug}.git"],  # noqa: S607
+        cwd=repo,
+        check=True,
+        capture_output=True,
+    )
+
+
+def _local_iso(*, days_ago: int) -> str:
+    moment = datetime.now().astimezone() - timedelta(days=days_ago)
+    return moment.replace(hour=15, minute=0, second=0, microsecond=0).isoformat(timespec="seconds")
+
+
+def _recommit_at(repo: Path, when: str) -> None:
+    subprocess.run(
+        ["git", "commit", "--amend", "--no-edit"],  # noqa: S607
+        cwd=repo,
+        check=True,
+        capture_output=True,
+        env=_git_date_env(when),
     )

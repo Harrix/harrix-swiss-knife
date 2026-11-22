@@ -1,4 +1,4 @@
-"""Shared type roles for Finance / Fitness / Food day summaries in column 1.
+"""Shared type roles for Finance / Fitness / Food / Git day summaries in column 1.
 
 Uses the Fluent type ramp (`TYPE_*` relative to the app body font) so sizes
 track DPI and the user scale. Values stay plain labels or rich text; chrome
@@ -31,6 +31,35 @@ _TODAY_VALUE_SCALE = TYPE_TITLE
 _YESTERDAY_VALUE_SCALE = TYPE_SUBTITLE
 _TODAY_SECONDARY_SCALE = TYPE_BODY_LARGE
 _YESTERDAY_SECONDARY_SCALE = TYPE_BODY
+
+
+def apply_commit_day_summary_label(
+    label: QLabel,
+    total: int,
+    public: int,
+    private: int,
+    *,
+    today: bool,
+    local: int = 0,
+    other: int = 0,
+) -> None:
+    """Paint a large day total, then public and private counts on quieter lines."""
+    label.setTextFormat(Qt.TextFormat.RichText)
+    label.setWordWrap(True)
+    label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop)
+    label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+    apply_day_summary_value(label, today=today)
+    label.setText(
+        format_commit_day_summary_html(
+            label,
+            total,
+            public,
+            private,
+            today=today,
+            local=local,
+            other=other,
+        ),
+    )
 
 
 def apply_day_summary_caption(label: QLabel) -> None:
@@ -68,6 +97,48 @@ def apply_food_day_summary_label(
     # Font/min-height from the value role; HTML colors and sizes carry the hierarchy.
     apply_day_summary_value(label, today=today)
     label.setText(format_food_day_summary_html(label, calories, drinks_weight, today=today))
+
+
+def format_commit_day_summary_html(
+    widget: QWidget,
+    total: int,
+    public: int,
+    private: int,
+    *,
+    today: bool,
+    local: int = 0,
+    other: int = 0,
+) -> str:
+    """Return rich text: large total, then public and private counts.
+
+    Local and other counts are extra lines when they are not zero, so the
+    total still adds up. A zero day is only the total.
+
+    """
+    base = _summary_base_font(widget)
+    value_font = fluent_font(
+        base,
+        _TODAY_VALUE_SCALE if today else _YESTERDAY_VALUE_SCALE,
+        weight=QFont.Weight.DemiBold,
+    )
+    detail_font = fluent_font(
+        base,
+        _TODAY_SECONDARY_SCALE if today else _YESTERDAY_SECONDARY_SCALE,
+        weight=QFont.Weight.DemiBold,
+    )
+    palette = palette_for(widget)
+    primary = css(mix(palette.window_bg, palette.text_primary))
+    secondary = css(mix(palette.window_bg, palette.text_secondary))
+    lines = [_summary_html_line(str(total), value_font, primary, first=True)]
+    if total <= 0:
+        return "".join(lines)
+    details = [f"{public}&nbsp;public", f"{private}&nbsp;private"]
+    if local:
+        details.append(f"{local}&nbsp;local")
+    if other:
+        details.append(f"{other}&nbsp;other")
+    lines.extend(_summary_html_line(text, detail_font, secondary, first=False) for text in details)
+    return "".join(lines)
 
 
 def format_food_day_summary_html(
@@ -118,3 +189,11 @@ def _summary_base_font(widget: QWidget) -> QFont:
     if isinstance(app, QApplication):
         return QFont(app.font())
     return QFont(widget.font())
+
+
+def _summary_html_line(text: str, font: QFont, color: str, *, first: bool) -> str:
+    margin = "" if first else " margin-top:2px;"
+    return (
+        f'<div style="text-align:right; color:{color}; font-size:{_font_size_css(font)}; '
+        f'font-weight:600;{margin}">{text}</div>'
+    )

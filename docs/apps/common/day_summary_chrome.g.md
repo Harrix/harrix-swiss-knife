@@ -11,10 +11,54 @@ lang: en
 
 ## Contents
 
+- [🔧 Function `apply_commit_day_summary_label`](#-function-apply_commit_day_summary_label)
 - [🔧 Function `apply_day_summary_caption`](#-function-apply_day_summary_caption)
 - [🔧 Function `apply_day_summary_value`](#-function-apply_day_summary_value)
 - [🔧 Function `apply_food_day_summary_label`](#-function-apply_food_day_summary_label)
+- [🔧 Function `format_commit_day_summary_html`](#-function-format_commit_day_summary_html)
 - [🔧 Function `format_food_day_summary_html`](#-function-format_food_day_summary_html)
+
+</details>
+
+## 🔧 Function `apply_commit_day_summary_label`
+
+```python
+def apply_commit_day_summary_label(label: QLabel, total: int, public: int, private: int, *, today: bool, local: int = 0, other: int = 0) -> None
+```
+
+Paint a large day total, then public and private counts on quieter lines.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def apply_commit_day_summary_label(
+    label: QLabel,
+    total: int,
+    public: int,
+    private: int,
+    *,
+    today: bool,
+    local: int = 0,
+    other: int = 0,
+) -> None:
+    label.setTextFormat(Qt.TextFormat.RichText)
+    label.setWordWrap(True)
+    label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop)
+    label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+    apply_day_summary_value(label, today=today)
+    label.setText(
+        format_commit_day_summary_html(
+            label,
+            total,
+            public,
+            private,
+            today=today,
+            local=local,
+            other=other,
+        ),
+    )
+```
 
 </details>
 
@@ -90,6 +134,59 @@ def apply_food_day_summary_label(
     # Font/min-height from the value role; HTML colors and sizes carry the hierarchy.
     apply_day_summary_value(label, today=today)
     label.setText(format_food_day_summary_html(label, calories, drinks_weight, today=today))
+```
+
+</details>
+
+## 🔧 Function `format_commit_day_summary_html`
+
+```python
+def format_commit_day_summary_html(widget: QWidget, total: int, public: int, private: int, *, today: bool, local: int = 0, other: int = 0) -> str
+```
+
+Return rich text: large total, then public and private counts.
+
+Local and other counts are extra lines when they are not zero, so the
+total still adds up. A zero day is only the total.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def format_commit_day_summary_html(
+    widget: QWidget,
+    total: int,
+    public: int,
+    private: int,
+    *,
+    today: bool,
+    local: int = 0,
+    other: int = 0,
+) -> str:
+    base = _summary_base_font(widget)
+    value_font = fluent_font(
+        base,
+        _TODAY_VALUE_SCALE if today else _YESTERDAY_VALUE_SCALE,
+        weight=QFont.Weight.DemiBold,
+    )
+    detail_font = fluent_font(
+        base,
+        _TODAY_SECONDARY_SCALE if today else _YESTERDAY_SECONDARY_SCALE,
+        weight=QFont.Weight.DemiBold,
+    )
+    palette = palette_for(widget)
+    primary = css(mix(palette.window_bg, palette.text_primary))
+    secondary = css(mix(palette.window_bg, palette.text_secondary))
+    lines = [_summary_html_line(str(total), value_font, primary, first=True)]
+    if total <= 0:
+        return "".join(lines)
+    details = [f"{public}&nbsp;public", f"{private}&nbsp;private"]
+    if local:
+        details.append(f"{local}&nbsp;local")
+    if other:
+        details.append(f"{other}&nbsp;other")
+    lines.extend(_summary_html_line(text, detail_font, secondary, first=False) for text in details)
+    return "".join(lines)
 ```
 
 </details>

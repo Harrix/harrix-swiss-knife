@@ -12,7 +12,10 @@ from PySide6.QtWidgets import (
     QAbstractItemView,
     QDialog,
     QFileDialog,
+    QGridLayout,
+    QGroupBox,
     QHBoxLayout,
+    QLabel,
     QListWidgetItem,
     QSizePolicy,
     QStyle,
@@ -32,6 +35,8 @@ from harrix_swiss_knife.actions.common.git_commit_suggestions import (
 from harrix_swiss_knife.actions.common.git_diff_text import git_diff_text_for_path
 from harrix_swiss_knife.actions.common.git_dirty_ops import (
     ChangedFile,
+    CommitDaySummary,
+    DayCommitCounts,
     DirtyRepoStatus,
     FoundGitRepo,
     GitRootAdd,
@@ -39,6 +44,7 @@ from harrix_swiss_knife.actions.common.git_dirty_ops import (
     add_git_root,
     commit_selected_paths,
     configured_git_roots,
+    count_recent_commits,
     discover_git_repos,
     github_repo_visibility,
     list_changed_files,
@@ -51,13 +57,17 @@ from harrix_swiss_knife.actions.common.git_dirty_ops import (
     unpushed_commit_count,
 )
 from harrix_swiss_knife.actions.common.maintenance_checklist_steps import save_git_repos_all_clean
+from harrix_swiss_knife.apps.common.day_summary_chrome import (
+    apply_commit_day_summary_label,
+    apply_day_summary_caption,
+)
 from harrix_swiss_knife.apps.common.qt_main_window import apply_app_window_size_and_position
-from harrix_swiss_knife.apps.common.tracker_layout_chrome import show_splitter_hairlines
+from harrix_swiss_knife.apps.common.tracker_layout_chrome import quiet_group_box, show_splitter_hairlines
 from harrix_swiss_knife.apps.common.tracker_splitter_settings import load_splitter_sizes, save_splitter_sizes
 from harrix_swiss_knife.apps.git_commit.diff_view import GitDiffEdit
 from harrix_swiss_knife.fluent.app_chrome import install_fluent_app_window, prepare_fluent_app_window
-from harrix_swiss_knife.fluent.theme import palette_for
-from harrix_swiss_knife.fluent.tokens import ICON_SIZE, SPACE_M, SPACE_S, SPACE_XL, FluentPalette
+from harrix_swiss_knife.fluent.theme import bind_theme, palette_for
+from harrix_swiss_knife.fluent.tokens import ICON_SIZE, SPACE_M, SPACE_S, SPACE_XL, SPACE_XS, FluentPalette
 from harrix_swiss_knife.fluent.widgets import (
     FluentHyperlinkButton,
     FluentLineEdit,
@@ -142,6 +152,9 @@ class DirtyReposCommitWindow(QDialog):
         self._win11_caption = False
         self._suppress_file_signals = False
         self._visibility_generation = 0
+        self._commit_summary = CommitDaySummary(today=DayCommitCounts(), yesterday=DayCommitCounts())
+        self._commit_summary_running = False
+        self._commit_summary_pending = False
 
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
@@ -179,6 +192,7 @@ class DirtyReposCommitWindow(QDialog):
         self._repo_list.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self._repo_list.currentItemChanged.connect(self._on_repo_changed)
         left_layout.addWidget(self._repo_list, 1)
+        left_layout.addWidget(self._build_commit_summary(left))
         self._splitter.addWidget(left)
 
         middle = QWidget(self._splitter)
@@ -274,6 +288,7 @@ class DirtyReposCommitWindow(QDialog):
         initial = [Path(path).resolve() for path in repos]
         self._set_statuses(refresh_repo_statuses(initial))
         self._load_quick_paste_async()
+        self._refresh_commit_summary()
         self._refresh_timer.start()
         apply_app_window_size_and_position(self)
         self._update_commit_enabled()
@@ -376,6 +391,38 @@ class DirtyReposCommitWindow(QDialog):
             self._show_unpushed_note(current)
         self._set_status_text()
         self._update_commit_enabled()
+
+    def _build_commit_summary(self, parent: QWidget) -> QGroupBox:
+        """Build the Today / Yesterday commit totals for the repository column."""
+        group = QGroupBox(parent)
+        group.setObjectName("groupBox_commits")
+        group.setTitle("Commits")
+        group.setToolTip(
+            "Commits created today and yesterday on local branches. Public and private are GitHub repositories.",
+        )
+        grid = QGridLayout(group)
+        grid.setContentsMargins(0, SPACE_XS, 0, 0)
+        grid.setHorizontalSpacing(SPACE_M)
+        grid.setVerticalSpacing(SPACE_S)
+        grid.setColumnStretch(1, 1)
+
+        self.label_commit_today_caption = QLabel("Today", group)
+        self.label_commit_today_caption.setObjectName("label_commit_today_caption")
+        self.label_today_commits = QLabel(group)
+        self.label_today_commits.setObjectName("label_today_commits")
+        self.label_commit_yesterday_caption = QLabel("Yesterday", group)
+        self.label_commit_yesterday_caption.setObjectName("label_commit_yesterday_caption")
+        self.label_yesterday_commits = QLabel(group)
+        self.label_yesterday_commits.setObjectName("label_yesterday_commits")
+
+        top = Qt.AlignmentFlag.AlignTop
+        grid.addWidget(self.label_commit_today_caption, 0, 0, alignment=top)
+        grid.addWidget(self.label_today_commits, 0, 1, alignment=top)
+        grid.addWidget(self.label_commit_yesterday_caption, 1, 0, alignment=top)
+        grid.addWidget(self.label_yesterday_commits, 1, 1, alignment=top)
+        self.groupBox_commits = group
+        bind_theme(group, self._polish_commit_summary)
+        return group
 
     def _checked_paths(self) -> list[str]:
         paths: list[str] = []
@@ -548,6 +595,7 @@ class DirtyReposCommitWindow(QDialog):
                 self._emit_line(f"⚪ {result.path} is already in `paths_git_roots`")
             self._emit_line(f"🔵 Found {len(repos)} repository(ies), {len(attention)} need a commit or push")
             self._merge_found_repos(repos)
+            self._refresh_commit_summary()
             _FoundReposDialog(result, repos, self).exec()
 
         def failed(_message: str) -> None:
@@ -574,6 +622,7 @@ class DirtyReposCommitWindow(QDialog):
                 self._emit_line(f"✅ {repo.name}: committed — {detail}")
                 self._subject.clear()
                 self._refresh_known_dirty(prefer=repo)
+                self._refresh_commit_summary()
             else:
                 self._toast(detail)
                 self._emit_line(f"❌ {repo.name}: {detail}")
@@ -653,6 +702,39 @@ class DirtyReposCommitWindow(QDialog):
     def _on_suggestion_clicked(self, item: QListWidgetItem) -> None:
         self._accept_suggestion(item.text())
 
+    def _paint_commit_summary(self) -> None:
+        """Fill the Today and Yesterday labels from the latest counts."""
+        summary = self._commit_summary
+        apply_commit_day_summary_label(
+            self.label_today_commits,
+            summary.today.total,
+            summary.today.public,
+            summary.today.private,
+            today=True,
+            local=summary.today.local,
+            other=summary.today.other,
+        )
+        apply_commit_day_summary_label(
+            self.label_yesterday_commits,
+            summary.yesterday.total,
+            summary.yesterday.public,
+            summary.yesterday.private,
+            today=False,
+            local=summary.yesterday.local,
+            other=summary.yesterday.other,
+        )
+
+    def _polish_commit_summary(self) -> None:
+        """Restyle the commit summary when the theme changes."""
+        quiet_group_box(self.groupBox_commits)
+        for name in ("label_commit_today_caption", "label_commit_yesterday_caption"):
+            label = getattr(self, name)
+            if isinstance(label, QLabel):
+                apply_day_summary_caption(label)
+                label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+                label.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Preferred)
+        self._paint_commit_summary()
+
     def _populate_files(self, files: list[ChangedFile] | tuple[ChangedFile, ...]) -> None:
         self._suppress_file_signals = True
         self._file_list.clear()
@@ -717,6 +799,32 @@ class DirtyReposCommitWindow(QDialog):
         )
         self._apply_suggestion_filter()
 
+    def _refresh_commit_summary(self) -> None:
+        """Recount today's and yesterday's commits across configured repositories."""
+        if self._commit_summary_running:
+            self._commit_summary_pending = True
+            return
+        self._commit_summary_running = True
+
+        def work() -> CommitDaySummary:
+            return count_recent_commits(configured_git_roots())
+
+        def done(summary: CommitDaySummary) -> None:
+            self._commit_summary_running = False
+            self._commit_summary = summary
+            self._paint_commit_summary()
+            if self._commit_summary_pending:
+                self._commit_summary_pending = False
+                self._refresh_commit_summary()
+
+        def failed(_message: str) -> None:
+            self._commit_summary_running = False
+            if self._commit_summary_pending:
+                self._commit_summary_pending = False
+                self._refresh_commit_summary()
+
+        self._run_worker(work, done, busy=False, on_fail=failed)
+
     def _refresh_known_dirty(self, prefer: Path | None = None) -> None:
         if self._busy:
             return
@@ -773,6 +881,7 @@ class DirtyReposCommitWindow(QDialog):
             else:
                 self._toast("All Git repos are committed and pushed")
                 self._emit_line("✅ No repositories need a commit or push")
+            self._refresh_commit_summary()
 
         def failed(_message: str) -> None:
             self._set_status_text()

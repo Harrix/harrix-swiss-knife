@@ -9,6 +9,7 @@ import shutil
 import subprocess
 import sys
 from dataclasses import dataclass
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError, URLError
@@ -48,6 +49,30 @@ class ChangedFile:
 
     path: str
     status: str
+
+
+@dataclass(frozen=True, slots=True)
+class CommitDaySummary:
+    """Commit totals for the local today and yesterday."""
+
+    today: DayCommitCounts
+    yesterday: DayCommitCounts
+
+
+@dataclass(frozen=True, slots=True)
+class DayCommitCounts:
+    """How many commits were created on one local calendar day.
+
+    `total` includes every bucket. `public` and `private` are GitHub
+    repositories. `local` has no remote. `other` is any remaining remote.
+
+    """
+
+    total: int = 0
+    public: int = 0
+    private: int = 0
+    local: int = 0
+    other: int = 0
 
 
 @dataclass(frozen=True, slots=True)
@@ -233,6 +258,38 @@ def configured_git_roots() -> list[Path]:
     return roots
 
 
+def count_recent_commits(roots: list[Path]) -> CommitDaySummary:
+    """Count commits created today and yesterday under `roots`.
+
+    Today and yesterday are local calendar days. The count uses the committer
+    date of commits reachable from local branches. Public and private are
+    GitHub repositories. A repository with no remote is local. Anything else
+    is other and still included in the total. GitHub is asked only for a
+    repository that has a commit in this window.
+
+    Args:
+
+    - `roots` (`list[Path]`): Folders from `paths_git_roots`. A folder that is
+      itself a repository is counted alone; otherwise its immediate child
+      repositories are counted.
+
+    """
+    yesterday, today = _recent_days()
+    today_buckets = _empty_commit_buckets()
+    yesterday_buckets = _empty_commit_buckets()
+    for repo in _unique_git_repos(roots):
+        today_count, yesterday_count = _commits_on_recent_days(repo, yesterday, today)
+        if today_count == 0 and yesterday_count == 0:
+            continue
+        bucket = _commit_visibility_bucket(repo)
+        today_buckets[bucket] += today_count
+        yesterday_buckets[bucket] += yesterday_count
+    return CommitDaySummary(
+        today=_counts_from_buckets(today_buckets),
+        yesterday=_counts_from_buckets(yesterday_buckets),
+    )
+
+
 def discover_git_repos(root: Path) -> list[FoundGitRepo]:
     """Return Git repositories under `root`, with status when they need attention.
 
@@ -416,20 +473,8 @@ def scan_dirty_repos(roots: list[Path]) -> list[DirtyRepoStatus]:
     only when they have uncommitted files.
 
     """
-    repos: list[Path] = []
-    seen: set[Path] = set()
-    for root in roots:
-        if not root.is_dir():
-            continue
-        for repo in _find_git_repos(root):
-            resolved = repo.resolve()
-            if resolved in seen:
-                continue
-            seen.add(resolved)
-            repos.append(resolved)
-
     dirty: list[DirtyRepoStatus] = []
-    for repo in sorted(repos, key=lambda path: str(path).casefold()):
+    for repo in _unique_git_repos(roots):
         status = attention_status(repo)
         if status is not None:
             dirty.append(status)
@@ -475,6 +520,60 @@ def _anonymous_github_headers() -> dict[str, str]:
         "Accept": "application/vnd.github+json",
         "User-Agent": GITHUB_USER_AGENT,
     }
+
+
+def _commit_visibility_bucket(repo: Path) -> str:
+    """Return `public`, `private`, `local`, or `other` for recent-commit totals."""
+    access = read_repo_access(repo)
+    if access.kind == "remote" and access.github_slug:
+        owner, _, name = access.github_slug.partition("/")
+        if owner and name:
+            access = repo_access_from_remote(
+                access.remote_url,
+                visibility=github_repo_visibility(owner, name),
+            )
+    if access.kind in {"public", "private", "local"}:
+        return access.kind
+    return "other"
+
+
+def _commits_on_recent_days(repo: Path, yesterday: date, today: date) -> tuple[int, int]:
+    """Return `(today, yesterday)` commit counts for local branches in `repo`."""
+    since = _midnight_iso(yesterday)
+    until = _midnight_iso(today + timedelta(days=1))
+    proc = git_run(
+        repo,
+        "log",
+        "--branches",
+        f"--since={since}",
+        f"--until={until}",
+        "--pretty=format:%cI",
+    )
+    if proc.returncode != 0:
+        return 0, 0
+    today_count = 0
+    yesterday_count = 0
+    for line in proc.stdout.splitlines():
+        day = _local_calendar_date(line)
+        if day == today:
+            today_count += 1
+        elif day == yesterday:
+            yesterday_count += 1
+    return today_count, yesterday_count
+
+
+def _counts_from_buckets(buckets: dict[str, int]) -> DayCommitCounts:
+    return DayCommitCounts(
+        total=sum(buckets.values()),
+        public=buckets["public"],
+        private=buckets["private"],
+        local=buckets["local"],
+        other=buckets["other"],
+    )
+
+
+def _empty_commit_buckets() -> dict[str, int]:
+    return {"public": 0, "private": 0, "local": 0, "other": 0}
 
 
 def _fetch_github_visibility(owner: str, repo: str) -> str:
@@ -533,6 +632,25 @@ def _is_git_repo(path: Path) -> bool:
     return proc.returncode == 0 and proc.stdout.strip() == "true"
 
 
+def _local_calendar_date(text: str) -> date | None:
+    raw = text.strip()
+    if not raw:
+        return None
+    try:
+        moment = datetime.fromisoformat(raw)
+    except ValueError:
+        return None
+    if moment.tzinfo is None:
+        return moment.date()
+    return moment.astimezone().date()
+
+
+def _midnight_iso(day: date) -> str:
+    """Return local midnight of `day` as an ISO timestamp Git can parse."""
+    tz = datetime.now().astimezone().tzinfo
+    return datetime(day.year, day.month, day.day, tzinfo=tz).isoformat(timespec="seconds")
+
+
 def _origin_remote_url(repo: Path) -> str:
     """Return the origin URL, or the first remote URL, or an empty string."""
     origin = git_run(repo, "remote", "get-url", "origin")
@@ -549,6 +667,12 @@ def _origin_remote_url(repo: Path) -> str:
         if url.returncode == 0 and url.stdout.strip():
             return url.stdout.strip()
     return ""
+
+
+def _recent_days() -> tuple[date, date]:
+    """Return `(yesterday, today)` in the local calendar."""
+    today = datetime.now().astimezone().date()
+    return today - timedelta(days=1), today
 
 
 def _same_folder(left: Path, right: Path) -> bool:
@@ -578,3 +702,23 @@ def _spawn_detached(command: list[str], *, cwd: Path) -> None:
     else:
         kwargs["start_new_session"] = True
     subprocess.Popen(command, **kwargs)
+
+
+def _unique_git_repos(roots: list[Path]) -> list[Path]:
+    """Return each repository under `roots` once, ordered by path."""
+    repos: list[Path] = []
+    seen: set[Path] = set()
+    for root in roots:
+        if not root.is_dir():
+            continue
+        for repo in _find_git_repos(root):
+            try:
+                resolved = repo.resolve()
+            except OSError:
+                resolved = repo
+            if resolved in seen:
+                continue
+            seen.add(resolved)
+            repos.append(resolved)
+    repos.sort(key=lambda path: str(path).casefold())
+    return repos
