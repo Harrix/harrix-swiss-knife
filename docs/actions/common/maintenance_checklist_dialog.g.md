@@ -268,7 +268,7 @@ class MaintenanceChecklistDialog(QDialog):
             if git_clean is True:
                 note = "All configured repos are clean"
             elif git_clean is False:
-                note = "Git: dirty repos under `paths_git_roots`"
+                note = "Uncommitted changes or unpushed public repos"
         elif class_name == CHECK_PYTHON_PROJECTS_STEP_CLASS:
             py_ok = load_py_check_all_passed()
             if py_ok is True:

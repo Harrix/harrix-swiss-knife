@@ -283,7 +283,7 @@ MAINTENANCE_STEP_SPECS: tuple[MaintenanceStepSpec, ...] = (
         "OnCheckGitReposNeedingCommit",
         "Checks",
         "git-branch",
-        note="Git: dirty repos under `paths_git_roots`",
+        note="Uncommitted changes or unpushed public repos",
     ),
     MaintenanceStepSpec(
         "harrix_swiss_knife.actions.files.sync_chrome_yandex_bookmarks",

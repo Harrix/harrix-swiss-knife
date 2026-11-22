@@ -15,19 +15,28 @@ lang: en
 - [🏛️ Class `DirtyRepoStatus`](#%EF%B8%8F-class-dirtyrepostatus)
   - [⚙️ Method `changed_count (property)`](#%EF%B8%8F-method-changed_count-property)
   - [⚙️ Method `is_dirty (property)`](#%EF%B8%8F-method-is_dirty-property)
+  - [⚙️ Method `list_label`](#%EF%B8%8F-method-list_label)
+- [🏛️ Class `FoundGitRepo`](#%EF%B8%8F-class-foundgitrepo)
+  - [⚙️ Method `needs_attention (property)`](#%EF%B8%8F-method-needs_attention-property)
+- [🏛️ Class `GitRootAdd`](#%EF%B8%8F-class-gitrootadd)
 - [🏛️ Class `RepoAccess`](#%EF%B8%8F-class-repoaccess)
   - [⚙️ Method `summary`](#%EF%B8%8F-method-summary)
+- [🔧 Function `add_git_root`](#-function-add_git_root)
+- [🔧 Function `attention_status`](#-function-attention_status)
 - [🔧 Function `commit_selected_paths`](#-function-commit_selected_paths)
 - [🔧 Function `configured_git_roots`](#-function-configured_git_roots)
+- [🔧 Function `discover_git_repos`](#-function-discover_git_repos)
 - [🔧 Function `github_repo_visibility`](#-function-github_repo_visibility)
 - [🔧 Function `list_changed_files`](#-function-list_changed_files)
 - [🔧 Function `open_github_desktop_nonblocking`](#-function-open_github_desktop_nonblocking)
 - [🔧 Function `parse_github_slug`](#-function-parse_github_slug)
 - [🔧 Function `parse_porcelain_files`](#-function-parse_porcelain_files)
+- [🔧 Function `push_current_branch`](#-function-push_current_branch)
 - [🔧 Function `read_repo_access`](#-function-read_repo_access)
 - [🔧 Function `refresh_repo_statuses`](#-function-refresh_repo_statuses)
 - [🔧 Function `repo_access_from_remote`](#-function-repo_access_from_remote)
 - [🔧 Function `scan_dirty_repos`](#-function-scan_dirty_repos)
+- [🔧 Function `unpushed_commit_count`](#-function-unpushed_commit_count)
 - [🔧 Function `visibility_from_github_payload`](#-function-visibility_from_github_payload)
 
 </details>
@@ -58,7 +67,11 @@ class ChangedFile:
 class DirtyRepoStatus
 ```
 
-Current dirty state for one repository.
+One repository that needs a commit, a push, or both.
+
+`unpushed` is the number of commits on `HEAD` that are not on any
+remote-tracking branch. It stays `0` for local repositories and for
+anything that is not a public GitHub repository.
 
 <details>
 <summary>Code:</summary>
@@ -68,6 +81,8 @@ class DirtyRepoStatus:
 
     path: Path
     files: tuple[ChangedFile, ...]
+    unpushed: int = 0
+    access_kind: str = ""
 
     @property
     def changed_count(self) -> int:
@@ -78,6 +93,17 @@ class DirtyRepoStatus:
     def is_dirty(self) -> bool:
         """Return whether the repo still has uncommitted changes."""
         return bool(self.files)
+
+    def list_label(self) -> str:
+        """Return the repository row caption, including change and unpushed counts."""
+        parts: list[str] = []
+        if self.changed_count:
+            parts.append(str(self.changed_count))
+        if self.unpushed:
+            parts.append(f"↑{self.unpushed}")
+        if not parts:
+            return self.path.name
+        return f"{self.path.name}  ({', '.join(parts)})"
 ```
 
 </details>
@@ -114,6 +140,95 @@ Return whether the repo still has uncommitted changes.
 ```python
 def is_dirty(self) -> bool:
         return bool(self.files)
+```
+
+</details>
+
+### ⚙️ Method `list_label`
+
+```python
+def list_label(self) -> str
+```
+
+Return the repository row caption, including change and unpushed counts.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def list_label(self) -> str:
+        parts: list[str] = []
+        if self.changed_count:
+            parts.append(str(self.changed_count))
+        if self.unpushed:
+            parts.append(f"↑{self.unpushed}")
+        if not parts:
+            return self.path.name
+        return f"{self.path.name}  ({', '.join(parts)})"
+```
+
+</details>
+
+## 🏛️ Class `FoundGitRepo`
+
+```python
+class FoundGitRepo
+```
+
+One Git repository discovered under a folder added to `paths_git_roots`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class FoundGitRepo:
+
+    path: Path
+    status: DirtyRepoStatus | None = None
+
+    @property
+    def needs_attention(self) -> bool:
+        """Return whether this repository belongs in the commit window."""
+        return self.status is not None
+```
+
+</details>
+
+### ⚙️ Method `needs_attention (property)`
+
+```python
+def needs_attention(self) -> bool
+```
+
+Return whether this repository belongs in the commit window.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def needs_attention(self) -> bool:
+        return self.status is not None
+```
+
+</details>
+
+## 🏛️ Class `GitRootAdd`
+
+```python
+class GitRootAdd
+```
+
+Result of appending one folder to `paths_git_roots`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class GitRootAdd:
+
+    path: Path
+    added: bool
+    message: str
 ```
 
 </details>
@@ -179,6 +294,84 @@ def summary(self, path: Path) -> str:
         else:
             lines.append(f"Remote: {self.remote_url}")
         return "\n".join(lines)
+```
+
+</details>
+
+## 🔧 Function `add_git_root`
+
+```python
+def add_git_root(folder: Path, *, config_path: str | None = None) -> GitRootAdd
+```
+
+Append `folder` to `paths_git_roots` in `config.json`.
+
+A folder that is already listed is left unchanged. The stored path uses
+forward slashes, matching the existing config entries.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def add_git_root(folder: Path, *, config_path: str | None = None) -> GitRootAdd:
+    try:
+        resolved = folder.expanduser().resolve()
+    except OSError:
+        resolved = folder
+    if not resolved.is_dir():
+        return GitRootAdd(path=resolved, added=False, message=f"Folder not found: {resolved}")
+
+    path_str = config_path or get_config_path_str()
+    loaded = load_app_config(path_str)
+    raw = loaded.get("paths_git_roots") if isinstance(loaded, dict) else None
+    items = [str(item).strip() for item in raw if str(item or "").strip()] if isinstance(raw, list) else []
+    if any(_same_folder(Path(item), resolved) for item in items):
+        return GitRootAdd(path=resolved, added=False, message="Already in `paths_git_roots`")
+
+    items.append(resolved.as_posix())
+    h.dev.config_update_value("paths_git_roots", items, path_str)
+    return GitRootAdd(path=resolved, added=True, message=resolved.as_posix())
+```
+
+</details>
+
+## 🔧 Function `attention_status`
+
+```python
+def attention_status(repo: Path, *, resolve_visibility: bool = True) -> DirtyRepoStatus | None
+```
+
+Return a status when `repo` has uncommitted files or public unpushed commits.
+
+Local repositories are judged only by the working tree. A clean public
+GitHub repository is included when `HEAD` has commits that are not on a
+remote-tracking branch. Private and unknown remotes are not listed for
+push alone.
+
+`resolve_visibility` asks GitHub when the cached visibility is missing.
+Refresh on the UI thread should pass `False` and reuse the cache.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def attention_status(repo: Path, *, resolve_visibility: bool = True) -> DirtyRepoStatus | None:
+    repo = repo.resolve()
+    files = tuple(list_changed_files(repo))
+    access = read_repo_access(repo)
+    unpushed = 0 if access.kind == "local" else unpushed_commit_count(repo)
+    if unpushed and access.kind == "remote" and access.github_slug and resolve_visibility:
+        owner, _, name = access.github_slug.partition("/")
+        if owner and name:
+            access = repo_access_from_remote(
+                access.remote_url,
+                visibility=github_repo_visibility(owner, name),
+            )
+    if access.kind != "public":
+        unpushed = 0
+    if not files and unpushed <= 0:
+        return None
+    return DirtyRepoStatus(path=repo, files=files, unpushed=unpushed, access_kind=access.kind)
 ```
 
 </details>
@@ -249,6 +442,31 @@ def configured_git_roots() -> list[Path]:
         seen.add(resolved)
         roots.append(resolved)
     return roots
+```
+
+</details>
+
+## 🔧 Function `discover_git_repos`
+
+```python
+def discover_git_repos(root: Path) -> list[FoundGitRepo]
+```
+
+Return Git repositories under `root`, with status when they need attention.
+
+When `root` itself is a repository, only that repository is returned.
+Otherwise the immediate child repositories are returned.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def discover_git_repos(root: Path) -> list[FoundGitRepo]:
+    if not root.is_dir():
+        return []
+    found = [FoundGitRepo(path=repo.resolve(), status=attention_status(repo)) for repo in _find_git_repos(root)]
+    found.sort(key=lambda item: str(item.path).casefold())
+    return found
 ```
 
 </details>
@@ -405,6 +623,34 @@ def parse_porcelain_files(porcelain: str) -> list[ChangedFile]:
 
 </details>
 
+## 🔧 Function `push_current_branch`
+
+```python
+def push_current_branch(repo: Path) -> tuple[bool, str]
+```
+
+Push `HEAD` to its upstream, or to `origin` when no upstream is set.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def push_current_branch(repo: Path) -> tuple[bool, str]:
+    repo = repo.resolve()
+    if not _origin_remote_url(repo):
+        return False, "No remote"
+    upstream = git_run(repo, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}")
+    if upstream.returncode == 0 and upstream.stdout.strip():
+        proc = git_run(repo, "push")
+    else:
+        proc = git_run(repo, "push", "-u", "origin", "HEAD")
+    if proc.returncode != 0:
+        return False, _git_last_line(proc) or "git push failed"
+    return True, _git_last_line(proc) or "Pushed"
+```
+
+</details>
+
 ## 🔧 Function `read_repo_access`
 
 ```python
@@ -432,9 +678,10 @@ def read_repo_access(repo: Path) -> RepoAccess:
 def refresh_repo_statuses(repos: list[Path], *, prefer_first: Path | None = None) -> list[DirtyRepoStatus]
 ```
 
-Re-status known dirty repos; return only those still dirty.
+Re-status known repos; keep those that still need a commit or a public push.
 
-Checks `prefer_first` before the rest when it is in `repos`.
+Checks `prefer_first` before the rest when it is in `repos`. Visibility is
+read from the cache so this can run on a timer without calling GitHub.
 
 <details>
 <summary>Code:</summary>
@@ -459,9 +706,9 @@ def refresh_repo_statuses(repos: list[Path], *, prefer_first: Path | None = None
 
     dirty: list[DirtyRepoStatus] = []
     for repo in ordered:
-        files = tuple(list_changed_files(repo))
-        if files:
-            dirty.append(DirtyRepoStatus(path=repo, files=files))
+        status = attention_status(repo, resolve_visibility=False)
+        if status is not None:
+            dirty.append(status)
     return dirty
 ```
 
@@ -500,7 +747,11 @@ def repo_access_from_remote(remote_url: str, *, visibility: str | None = None) -
 def scan_dirty_repos(roots: list[Path]) -> list[DirtyRepoStatus]
 ```
 
-Find dirty Git repos under `roots` (the root itself, or its immediate children).
+Find repos under `roots` that need a commit or a public push.
+
+A root is checked itself when it is a Git repository, otherwise its
+immediate child repositories are checked. Local repositories are included
+only when they have uncommitted files.
 
 <details>
 <summary>Code:</summary>
@@ -521,10 +772,40 @@ def scan_dirty_repos(roots: list[Path]) -> list[DirtyRepoStatus]:
 
     dirty: list[DirtyRepoStatus] = []
     for repo in sorted(repos, key=lambda path: str(path).casefold()):
-        files = tuple(list_changed_files(repo))
-        if files:
-            dirty.append(DirtyRepoStatus(path=repo, files=files))
+        status = attention_status(repo)
+        if status is not None:
+            dirty.append(status)
     return dirty
+```
+
+</details>
+
+## 🔧 Function `unpushed_commit_count`
+
+```python
+def unpushed_commit_count(repo: Path) -> int
+```
+
+Return how many commits on `HEAD` are missing from every remote-tracking ref.
+
+A repository with no remote returns `0`. The count uses local remote-tracking
+refs and does not contact the server.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def unpushed_commit_count(repo: Path) -> int:
+    names = git_run(repo, "remote")
+    if names.returncode != 0 or not names.stdout.strip():
+        return 0
+    proc = git_run(repo, "rev-list", "--count", "HEAD", "--not", "--remotes")
+    if proc.returncode != 0:
+        return 0
+    try:
+        return max(0, int(proc.stdout.strip() or "0"))
+    except ValueError:
+        return 0
 ```
 
 </details>

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import subprocess
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -9,22 +10,56 @@ from unittest.mock import MagicMock
 
 from harrix_swiss_knife.actions.common import git_dirty_ops
 from harrix_swiss_knife.actions.common.git_dirty_ops import (
+    add_git_root,
     commit_selected_paths,
     configured_git_roots,
+    discover_git_repos,
     github_repo_visibility,
     open_github_desktop_nonblocking,
     parse_github_slug,
     parse_porcelain_files,
+    push_current_branch,
     read_repo_access,
     refresh_repo_statuses,
     repo_access_from_remote,
     scan_dirty_repos,
+    unpushed_commit_count,
     visibility_from_github_payload,
 )
 from harrix_swiss_knife.apps.git_commit.diff_view import diff_line_kind
 
 if TYPE_CHECKING:
     import pytest
+
+
+def test_add_git_root_appends_once(tmp_path: Path) -> None:
+    """A new folder is stored once in `paths_git_roots` with forward slashes."""
+    config = tmp_path / "config.json"
+    existing = tmp_path / "existing"
+    existing.mkdir()
+    config.write_text(json.dumps({"paths_git_roots": [str(existing)]}), encoding="utf-8")
+    new_folder = tmp_path / "new-folder"
+    new_folder.mkdir()
+
+    added = add_git_root(new_folder, config_path=str(config))
+    assert added.added is True
+    assert added.path == new_folder.resolve()
+
+    again = add_git_root(Path(str(new_folder)), config_path=str(config))
+    assert again.added is False
+    loaded = json.loads(config.read_text(encoding="utf-8"))
+    assert loaded["paths_git_roots"] == [str(existing), new_folder.resolve().as_posix()]
+
+
+def test_add_git_root_rejects_missing_folder(tmp_path: Path) -> None:
+    """A missing folder is not written to config."""
+    config = tmp_path / "config.json"
+    config.write_text("{}", encoding="utf-8")
+    missing = tmp_path / "missing"
+    result = add_git_root(missing, config_path=str(config))
+    assert result.added is False
+    assert "not found" in result.message.casefold()
+    assert json.loads(config.read_text(encoding="utf-8")) == {}
 
 
 def test_commit_selected_paths_stages_only_checked(
@@ -79,6 +114,25 @@ def test_diff_line_kind_marks_add_delete_and_hunk() -> None:
     assert diff_line_kind("+++ b/file.md") == "meta"
     assert diff_line_kind("--- a/file.md") == "meta"
     assert diff_line_kind(" context") == "context"
+
+
+def test_discover_git_repos_marks_only_repos_that_need_attention(tmp_path: Path) -> None:
+    """A parent folder lists child repos; a repository folder lists only itself."""
+    root = tmp_path / "folder"
+    dirty = root / "dirty"
+    clean = root / "clean"
+    _git_init(dirty)
+    _git_init(clean)
+    (dirty / "note.txt").write_text("n\n", encoding="utf-8")
+
+    found = {item.path.name: item for item in discover_git_repos(root)}
+    assert set(found) == {"clean", "dirty"}
+    assert found["dirty"].needs_attention is True
+    assert found["clean"].status is None
+
+    solo = discover_git_repos(clean)
+    assert [item.path.resolve() for item in solo] == [clean.resolve()]
+    assert solo[0].needs_attention is False
 
 
 def test_github_repo_visibility_retries_without_rejected_token(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -165,6 +219,29 @@ def test_parse_porcelain_keeps_leading_space_of_unstaged_path() -> None:
     assert files[0].path == "Prompts/Promts-Common/Promts-Common.md"
 
 
+def test_push_current_branch_publishes_ahead_commit(tmp_path: Path) -> None:
+    """Push sends commits that are not on the remote-tracking branch."""
+    repo = tmp_path / "repo"
+    _git_with_local_remote(repo, pushed=True)
+    (repo / "extra.md").write_text("more\n", encoding="utf-8")
+    subprocess.run(["git", "add", "extra.md"], cwd=repo, check=True, capture_output=True)  # noqa: S607
+    subprocess.run(["git", "commit", "-m", "Second"], cwd=repo, check=True, capture_output=True)  # noqa: S607
+    assert unpushed_commit_count(repo) == 1
+    ok, _detail = push_current_branch(repo)
+    assert ok
+    assert unpushed_commit_count(repo) == 0
+
+
+def test_push_current_branch_sets_upstream_when_missing(tmp_path: Path) -> None:
+    """A branch with no upstream is pushed to origin."""
+    repo = tmp_path / "repo"
+    _git_with_local_remote(repo, pushed=False)
+    assert unpushed_commit_count(repo) >= 1
+    ok, _detail = push_current_branch(repo)
+    assert ok
+    assert unpushed_commit_count(repo) == 0
+
+
 def test_read_repo_access_local_and_github_remote(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
     _git_init(repo)
@@ -178,6 +255,17 @@ def test_read_repo_access_local_and_github_remote(tmp_path: Path) -> None:
     access = read_repo_access(repo)
     assert access.kind == "remote"
     assert access.github_slug == "harrix/notes"
+
+
+def test_refresh_keeps_cached_public_unpushed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A timer refresh keeps a public unpushed repo using the visibility cache."""
+    repo = tmp_path / "public-repo"
+    _git_with_unpushed_commit(repo, "harrix/public-repo")
+    monkeypatch.setitem(git_dirty_ops._visibility_cache, "harrix/public-repo", "public")
+    statuses = refresh_repo_statuses([repo])
+    assert len(statuses) == 1
+    assert statuses[0].unpushed == 1
+    assert statuses[0].access_kind == "public"
 
 
 def test_refresh_repo_statuses_drops_clean(tmp_path: Path) -> None:
@@ -219,6 +307,44 @@ def test_scan_dirty_repos_finds_only_dirty_children(tmp_path: Path) -> None:
     assert [item.path.resolve() for item in found] == [dirty.resolve()]
 
 
+def test_scan_includes_public_unpushed_and_skips_private_and_local(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Clean public repos with unpushed commits are listed; local and private are not."""
+    root = tmp_path / "roots"
+    public = root / "public-repo"
+    private = root / "private-repo"
+    local = root / "local-repo"
+    _git_with_unpushed_commit(public, "harrix/public-repo")
+    _git_with_unpushed_commit(private, "harrix/private-repo")
+    _git_init(local)
+    (local / "again.md").write_text("local only\n", encoding="utf-8")
+    subprocess.run(["git", "add", "again.md"], cwd=local, check=True, capture_output=True)  # noqa: S607
+    subprocess.run(["git", "commit", "-m", "Local only"], cwd=local, check=True, capture_output=True)  # noqa: S607
+
+    def visibility(_owner: str, repo: str) -> str:
+        if repo == "public-repo":
+            return "public"
+        if repo == "private-repo":
+            return "private"
+        return "unknown"
+
+    monkeypatch.setattr(git_dirty_ops, "github_repo_visibility", visibility)
+    found = {item.path.name: item for item in scan_dirty_repos([root])}
+    assert set(found) == {"public-repo"}
+    assert found["public-repo"].unpushed == 1
+    assert found["public-repo"].files == ()
+    assert found["public-repo"].access_kind == "public"
+
+
+def test_unpushed_commit_count_ignores_repos_without_remote(tmp_path: Path) -> None:
+    """Local repositories are not treated as unpushed."""
+    repo = tmp_path / "local"
+    _git_init(repo)
+    assert unpushed_commit_count(repo) == 0
+
+
 def test_visibility_from_github_payload() -> None:
     assert visibility_from_github_payload({"private": False}, status=200) == "public"
     assert visibility_from_github_payload({"visibility": "private"}, status=200) == "private"
@@ -246,6 +372,39 @@ def _git_init(path: Path) -> None:
     subprocess.run(["git", "add", "README.md"], cwd=path, check=True, capture_output=True)  # noqa: S607
     subprocess.run(
         ["git", "commit", "-m", "Initial commit"],  # noqa: S607
+        cwd=path,
+        check=True,
+        capture_output=True,
+    )
+
+
+def _git_with_local_remote(path: Path, *, pushed: bool) -> None:
+    origin = path.parent / f"{path.name}-origin.git"
+    subprocess.run(["git", "init", "--bare", str(origin)], check=True, capture_output=True)  # noqa: S607
+    _git_init(path)
+    subprocess.run(
+        ["git", "remote", "add", "origin", str(origin)],  # noqa: S607
+        cwd=path,
+        check=True,
+        capture_output=True,
+    )
+    if not pushed:
+        return
+    subprocess.run(
+        ["git", "push", "-u", "origin", "HEAD"],  # noqa: S607
+        cwd=path,
+        check=True,
+        capture_output=True,
+    )
+
+
+def _git_with_unpushed_commit(path: Path, slug: str) -> None:
+    _git_with_local_remote(path, pushed=True)
+    (path / "extra.md").write_text("more\n", encoding="utf-8")
+    subprocess.run(["git", "add", "extra.md"], cwd=path, check=True, capture_output=True)  # noqa: S607
+    subprocess.run(["git", "commit", "-m", "Second"], cwd=path, check=True, capture_output=True)  # noqa: S607
+    subprocess.run(
+        ["git", "remote", "set-url", "origin", f"https://github.com/{slug}.git"],  # noqa: S607
         cwd=path,
         check=True,
         capture_output=True,

@@ -6,6 +6,7 @@ import subprocess
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from harrix_swiss_knife.actions.common.git_dirty_ops import DirtyRepoStatus
 from harrix_swiss_knife.actions.files.check_git_repos_needing_commit import OnCheckGitReposNeedingCommit
 
 if TYPE_CHECKING:
@@ -54,6 +55,31 @@ def test_noninteractive_reports_dirty_repos(tmp_path: Path, monkeypatch: pytest.
 
     assert any("1 repository(ies) need a commit" in line for line in action.result_lines)
     assert any(str(repo.resolve()) in line or "project" in line for line in action.result_lines)
+    assert saved == [False]
+
+
+def test_noninteractive_reports_unpushed_public_repo(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A clean public repository with unpushed commits marks the checklist failed."""
+    root = tmp_path / "GitHub"
+    root.mkdir()
+    repo = root / "public-repo"
+    status = DirtyRepoStatus(path=repo, files=(), unpushed=2, access_kind="public")
+
+    action = OnCheckGitReposNeedingCommit()
+    monkeypatch.setattr(action, "_configured_roots", lambda: [root.resolve()])
+    monkeypatch.setattr(
+        "harrix_swiss_knife.actions.files.check_git_repos_needing_commit.scan_dirty_repos",
+        lambda _roots: [status],
+    )
+    saved: list[bool] = []
+    monkeypatch.setattr(
+        "harrix_swiss_knife.actions.files.check_git_repos_needing_commit.save_git_repos_all_clean",
+        lambda *, all_clean: saved.append(all_clean),
+    )
+    action.execute(noninteractive=True)
+
+    assert any("public repository(ies) need a push" in line for line in action.result_lines)
+    assert any("2 unpushed" in line for line in action.result_lines)
     assert saved == [False]
 
 

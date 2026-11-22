@@ -1,4 +1,4 @@
-"""Find Git repos under configured roots that need a commit."""
+"""Find Git repos under configured roots that need a commit or a public push."""
 
 from __future__ import annotations
 
@@ -7,30 +7,32 @@ from pathlib import Path
 from typing import Any
 
 from harrix_swiss_knife.actions.common.base import ActionBase
+from harrix_swiss_knife.actions.common.git_dirty_ops import scan_dirty_repos
 from harrix_swiss_knife.actions.common.maintenance_checklist_steps import save_git_repos_all_clean
-from harrix_swiss_knife.actions.files.discard_git_changes import OnDiscardGitChanges
 
 
 @dataclass(frozen=True, slots=True)
 class DirtyRepo:
-    """One repository with a non-empty working tree."""
+    """One repository with uncommitted files or unpushed public commits."""
 
     path: Path
     changed_count: int
     sample_lines: tuple[str, ...]
+    unpushed: int = 0
 
 
 class OnCheckGitReposNeedingCommit(ActionBase):
-    """Git: scan `paths_git_roots` for repositories with uncommitted changes.
+    """Git: scan `paths_git_roots` for uncommitted changes and unpushed public repos.
 
-    Opens a Fluent window to review diffs, pick files, and commit with subject
-    suggestions (history + Quick Paste). GitHub Desktop opens without blocking.
+    Opens a Fluent window to review diffs, pick files, commit, and push.
+    GitHub Desktop opens without blocking. Local repositories are not checked
+    for unpushed commits.
 
     """
 
     icon = "📌"
     title = "Git repos needing commit…"
-    description = "Git: list dirty repos under paths_git_roots; open GitHub Desktop or commit."
+    description = "Git: list dirty repos and unpushed public repos under paths_git_roots."
     cli_available = True
     cli_hint = "file check-git-repos-needing-commit"
     bold_title = True
@@ -42,7 +44,7 @@ class OnCheckGitReposNeedingCommit(ActionBase):
         noninteractive: bool = False,
         **_kwargs: Any,
     ) -> None:
-        """Scan configured roots and open the commit window when dirty repos exist."""
+        """Scan configured roots and open the commit window when repos need attention."""
         roots = self._configured_roots()
         if not roots:
             self.add_line("❌ `paths_git_roots` is missing or empty in config.json.")
@@ -69,11 +71,11 @@ class OnCheckGitReposNeedingCommit(ActionBase):
         roots = self._configured_roots()
         self._report_scan(roots, dirty)
         if not dirty:
-            self.show_toast("All Git repos are clean")
+            self.show_toast("All Git repos are committed and pushed")
             self.show_result()
             return
 
-        self.show_toast(f"{len(dirty)} repo(s) need a commit")
+        self.show_toast(f"{len(dirty)} repo(s) need a commit or push")
         # Lazy import: window pulls snippets DB helpers; avoid cycle via actions.files.
         from harrix_swiss_knife.apps.git_commit.window import (  # noqa: PLC0415
             show_dirty_repos_commit_window,
@@ -113,37 +115,37 @@ class OnCheckGitReposNeedingCommit(ActionBase):
         for root in roots:
             self.add_line(f"  • {root}")
         if not dirty:
-            self.add_line("✅ No repositories need a commit")
+            self.add_line("✅ No repositories need a commit or push")
             return
-        self.add_line(f"🔶 {len(dirty)} repository(ies) need a commit:")
+        commit_count = sum(1 for repo in dirty if repo.changed_count)
+        push_count = sum(1 for repo in dirty if repo.unpushed)
+        if commit_count and not push_count:
+            self.add_line(f"🔶 {len(dirty)} repository(ies) need a commit:")
+        elif push_count and not commit_count:
+            self.add_line(f"🔶 {len(dirty)} public repository(ies) need a push:")
+        else:
+            self.add_line(f"🔶 {len(dirty)} repository(ies) need a commit or push:")
         for repo in dirty:
-            self.add_line(f"  • {repo.path} ({repo.changed_count} change(s))")
+            parts: list[str] = []
+            if repo.changed_count:
+                parts.append(f"{repo.changed_count} change(s)")
+            if repo.unpushed:
+                parts.append(f"{repo.unpushed} unpushed")
+            self.add_line(f"  • {repo.path} ({', '.join(parts)})")
 
     def _scan_dirty_repos(self, roots: list[Path]) -> list[DirtyRepo]:
-        repos: list[Path] = []
-        seen: set[Path] = set()
         for root in roots:
             if not root.is_dir():
                 self.add_line(f"⚪ Skip missing root: {root}")
-                continue
-            for repo in OnDiscardGitChanges.find_git_repos(root):
-                resolved = repo.resolve()
-                if resolved in seen:
-                    continue
-                seen.add(resolved)
-                repos.append(resolved)
-
-        dirty: list[DirtyRepo] = []
-        for repo in sorted(repos, key=lambda path: str(path).casefold()):
-            porcelain = OnDiscardGitChanges.git_porcelain(repo)
-            if not porcelain.strip():
-                continue
-            lines = tuple(line for line in porcelain.splitlines() if line.strip())
-            dirty.append(
+        found: list[DirtyRepo] = []
+        for status in scan_dirty_repos(roots):
+            samples = tuple(f"{item.status} {item.path}" for item in status.files[:5])
+            found.append(
                 DirtyRepo(
-                    path=repo,
-                    changed_count=len(lines),
-                    sample_lines=lines[:5],
-                )
+                    path=status.path,
+                    changed_count=status.changed_count,
+                    sample_lines=samples,
+                    unpushed=status.unpushed,
+                ),
             )
-        return dirty
+        return found

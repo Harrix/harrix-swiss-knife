@@ -75,7 +75,7 @@ def test_git_repos_step_tint_follows_all_clean_status(
     qapp: QApplication,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Git check card is green when clean and red when the last scan found dirty repos."""
+    """Git check card is green when clean and red when repos need a commit or a public push."""
     assert qapp is not None
     monkeypatch.setattr(
         "harrix_swiss_knife.actions.common.maintenance_checklist_dialog.load_show_update_hsk_step",
@@ -105,7 +105,7 @@ def test_git_repos_step_tint_follows_all_clean_status(
         assert row.card._success_tint is False
         assert row.card._danger_tint is True
         assert row.card._title_label._role is TextRole.CRITICAL
-        assert "Git: dirty repos" in row.card._description_label.text()
+        assert "Uncommitted changes or unpushed public repos" in row.card._description_label.text()
     finally:
         dialog.close()
         dialog.deleteLater()
