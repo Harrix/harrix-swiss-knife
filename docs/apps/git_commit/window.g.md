@@ -153,6 +153,22 @@ class DirtyReposCommitWindow(QDialog):
         right_layout.setContentsMargins(SPACE_S, 0, 0, 0)
         right_layout.setSpacing(SPACE_S)
         right_layout.addWidget(FluentText("Diff", right, role=TextRole.SECONDARY))
+        self._unpushed_note = QWidget(right)
+        note_layout = QVBoxLayout(self._unpushed_note)
+        note_layout.setContentsMargins(0, 0, 0, 0)
+        note_layout.setSpacing(SPACE_S)
+        self._unpushed_label = FluentText("", self._unpushed_note, word_wrap=True)
+        self._unpushed_push = FluentHyperlinkButton("Push these commits", "", self._unpushed_note)
+        self._unpushed_push.clicked.connect(self._on_push)
+        note_layout.addWidget(self._unpushed_label)
+        note_row = QHBoxLayout()
+        note_row.setSpacing(SPACE_S)
+        note_row.addWidget(self._unpushed_push)
+        note_row.addStretch(1)
+        note_layout.addLayout(note_row)
+        note_layout.addStretch(1)
+        self._unpushed_note.hide()
+        right_layout.addWidget(self._unpushed_note, 1)
         self._diff = GitDiffEdit(right)
         self._diff.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         right_layout.addWidget(self._diff, 1)
@@ -338,14 +354,16 @@ class DirtyReposCommitWindow(QDialog):
         repo = self._current_repo()
         focused = self._focused_file()
         if repo is None or focused is None:
-            self._diff.setPlainText("")
+            self._show_diff_text("")
             return
         path, status = focused
 
         def work() -> str:
             return git_diff_text_for_path(repo, path, status=status)
 
-        self._run_worker(work, self._diff.setPlainText, busy=False)
+        self._unpushed_note.hide()
+        self._diff.show()
+        self._run_worker(work, self._show_diff_text, busy=False)
 
     def _load_quick_paste_async(self) -> None:
         db = self._quick_paste_db
@@ -545,7 +563,7 @@ class DirtyReposCommitWindow(QDialog):
         if current is None:
             self._populate_files([])
             self._clear_suggestions()
-            self._diff.setPlainText("")
+            self._show_diff_text("")
             self._update_commit_enabled()
             return
         path = current.data(_REPO_ROLE)
@@ -599,7 +617,7 @@ class DirtyReposCommitWindow(QDialog):
         else:
             self._populate_files([])
             self._clear_suggestions()
-            self._diff.setPlainText("")
+            self._show_diff_text("")
             self._update_commit_enabled()
         self._resolve_repo_visibility()
 
@@ -800,12 +818,22 @@ class DirtyReposCommitWindow(QDialog):
         self._populate_repos()
         self._set_status_text()
 
+    def _show_diff_text(self, text: str) -> None:
+        """Show a textual diff and hide the clean-tree push note."""
+        self._unpushed_note.hide()
+        self._diff.show()
+        self._diff.setPlainText(text)
+
     def _show_unpushed_note(self, status: DirtyRepoStatus) -> None:
-        """Explain a clean public repository that still has commits to push."""
+        """Explain a clean public repository and offer to push its commits."""
         noun = "commit" if status.unpushed == 1 else "commits"
-        self._diff.setPlainText(
-            f"{status.unpushed} {noun} on this public repository are not on the remote.\nThe working tree is clean.",
+        self._unpushed_label.setText(
+            f"{status.unpushed} {noun} on this public repository are not on the remote. The working tree is clean.",
         )
+        self._unpushed_push.setText(f"Push {status.unpushed} {noun}")
+        self._diff.hide()
+        self._unpushed_note.show()
+        self._update_commit_enabled()
 
     def _toast(self, message: str) -> None:
         ToastNotification(message, duration=2000, parent=self)
@@ -822,6 +850,7 @@ class DirtyReposCommitWindow(QDialog):
         can_push = not self._busy and status is not None and status.access_kind == "public" and status.unpushed > 0
         self._push_button.setEnabled(can_push)
         self._push_button.setToolTip(self._push_tooltip(status))
+        self._unpushed_push.setEnabled(can_push)
         self._desktop_button.setEnabled(self._current_repo() is not None and not self._busy)
         self._rescan_button.setEnabled(not self._busy)
         self._add_button.setEnabled(not self._busy)
@@ -958,6 +987,22 @@ def __init__(
         right_layout.setContentsMargins(SPACE_S, 0, 0, 0)
         right_layout.setSpacing(SPACE_S)
         right_layout.addWidget(FluentText("Diff", right, role=TextRole.SECONDARY))
+        self._unpushed_note = QWidget(right)
+        note_layout = QVBoxLayout(self._unpushed_note)
+        note_layout.setContentsMargins(0, 0, 0, 0)
+        note_layout.setSpacing(SPACE_S)
+        self._unpushed_label = FluentText("", self._unpushed_note, word_wrap=True)
+        self._unpushed_push = FluentHyperlinkButton("Push these commits", "", self._unpushed_note)
+        self._unpushed_push.clicked.connect(self._on_push)
+        note_layout.addWidget(self._unpushed_label)
+        note_row = QHBoxLayout()
+        note_row.setSpacing(SPACE_S)
+        note_row.addWidget(self._unpushed_push)
+        note_row.addStretch(1)
+        note_layout.addLayout(note_row)
+        note_layout.addStretch(1)
+        self._unpushed_note.hide()
+        right_layout.addWidget(self._unpushed_note, 1)
         self._diff = GitDiffEdit(right)
         self._diff.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         right_layout.addWidget(self._diff, 1)
