@@ -83,8 +83,8 @@ if TYPE_CHECKING:
 
     from PySide6.QtCore import QAbstractItemModel, QModelIndex, QPersistentModelIndex
 
-_SPLITTER_KEY = "git_dirty_repos_commit_splitter_sizes_v2"
-_SPLITTER_DEFAULT = (240, 620, 440)
+_SPLITTER_KEY = "git_dirty_repos_commit_splitter_sizes_v3"
+_SPLITTER_DEFAULT = (240, 500, 800)
 _REFRESH_MS = 30_000
 _SPLITTER_SAVE_DELAY_MS = 400
 _REPO_ROLE = Qt.ItemDataRole.UserRole
@@ -231,8 +231,8 @@ class DirtyReposCommitWindow(QDialog):
         self._splitter.addWidget(right)
 
         self._splitter.setStretchFactor(0, 0)
-        self._splitter.setStretchFactor(1, 1)
-        self._splitter.setStretchFactor(2, 0)
+        self._splitter.setStretchFactor(1, 0)
+        self._splitter.setStretchFactor(2, 1)
         self._splitter.setCollapsible(0, False)  # noqa: FBT003
         self._splitter.setCollapsible(1, False)  # noqa: FBT003
         self._splitter.setCollapsible(2, False)  # noqa: FBT003

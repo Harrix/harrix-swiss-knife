@@ -159,8 +159,8 @@ class DirtyReposCommitWindow(QDialog):
         self._splitter.addWidget(right)
 
         self._splitter.setStretchFactor(0, 0)
-        self._splitter.setStretchFactor(1, 1)
-        self._splitter.setStretchFactor(2, 0)
+        self._splitter.setStretchFactor(1, 0)
+        self._splitter.setStretchFactor(2, 1)
         self._splitter.setCollapsible(0, False)  # noqa: FBT003
         self._splitter.setCollapsible(1, False)  # noqa: FBT003
         self._splitter.setCollapsible(2, False)  # noqa: FBT003
@@ -964,8 +964,8 @@ def __init__(
         self._splitter.addWidget(right)
 
         self._splitter.setStretchFactor(0, 0)
-        self._splitter.setStretchFactor(1, 1)
-        self._splitter.setStretchFactor(2, 0)
+        self._splitter.setStretchFactor(1, 0)
+        self._splitter.setStretchFactor(2, 1)
         self._splitter.setCollapsible(0, False)  # noqa: FBT003
         self._splitter.setCollapsible(1, False)  # noqa: FBT003
         self._splitter.setCollapsible(2, False)  # noqa: FBT003
