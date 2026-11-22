@@ -95,7 +95,7 @@ class DirtyReposCommitWindow(QDialog):
 
         left = QWidget(self._splitter)
         left_layout = QVBoxLayout(left)
-        left_layout.setContentsMargins(0, 0, 0, 0)
+        left_layout.setContentsMargins(0, 0, SPACE_S, 0)
         left_layout.setSpacing(SPACE_S)
         left_layout.addWidget(FluentText("Repositories", left, role=TextRole.SECONDARY))
         self._repo_list = FluentListWidget(left, compact=True)
@@ -106,10 +106,10 @@ class DirtyReposCommitWindow(QDialog):
 
         middle = QWidget(self._splitter)
         middle_layout = QVBoxLayout(middle)
-        middle_layout.setContentsMargins(0, 0, 0, 0)
+        middle_layout.setContentsMargins(SPACE_S, 0, SPACE_S, 0)
         middle_layout.setSpacing(SPACE_S)
         middle_layout.addWidget(FluentText("Changed files", middle, role=TextRole.SECONDARY))
-        self._file_list = FluentListWidget(middle, compact=True)
+        self._file_list = _CheckableFileList(middle)
         self._file_list.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self._file_list.itemChanged.connect(self._on_file_item_changed)
         self._file_list.currentItemChanged.connect(self._on_file_focus_changed)
@@ -143,7 +143,7 @@ class DirtyReposCommitWindow(QDialog):
 
         right = QWidget(self._splitter)
         right_layout = QVBoxLayout(right)
-        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setContentsMargins(SPACE_S, 0, 0, 0)
         right_layout.setSpacing(SPACE_S)
         right_layout.addWidget(FluentText("Diff", right, role=TextRole.SECONDARY))
         self._diff = GitDiffEdit(right)
@@ -152,11 +152,12 @@ class DirtyReposCommitWindow(QDialog):
         self._splitter.addWidget(right)
 
         self._splitter.setStretchFactor(0, 0)
-        self._splitter.setStretchFactor(1, 0)
-        self._splitter.setStretchFactor(2, 1)
+        self._splitter.setStretchFactor(1, 1)
+        self._splitter.setStretchFactor(2, 0)
         self._splitter.setCollapsible(0, False)  # noqa: FBT003
         self._splitter.setCollapsible(1, False)  # noqa: FBT003
         self._splitter.setCollapsible(2, False)  # noqa: FBT003
+        show_splitter_hairlines((self._splitter,))
         sizes = load_splitter_sizes(_SPLITTER_KEY, _SPLITTER_DEFAULT)
         self._splitter.setSizes(sizes)
         self._splitter.splitterMoved.connect(self._schedule_splitter_save)
@@ -435,7 +436,9 @@ class DirtyReposCommitWindow(QDialog):
         self._suppress_file_signals = True
         self._file_list.clear()
         for changed in files:
-            item = QListWidgetItem(f"{changed.status}  {changed.path}")
+            item = QListWidgetItem(changed.path)
+            caption = _file_status_glyph(changed.status)[2]
+            item.setToolTip(f"{caption}: {changed.path}")
             item.setFlags(
                 Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsUserCheckable,
             )
@@ -506,7 +509,7 @@ class DirtyReposCommitWindow(QDialog):
             color = palette.caution
         else:
             color = palette.accent
-        return create_lucide_icon(_ACCESS_ICONS.get(kind, "cloud"), ICON_SIZE, color=color)
+        return create_lucide_icon(_ACCESS_ICONS.get(kind, "folder-git"), ICON_SIZE, color=color)
 
     def _rescan_all_repos(self) -> None:
         if self._busy:
@@ -732,7 +735,7 @@ def __init__(
 
         left = QWidget(self._splitter)
         left_layout = QVBoxLayout(left)
-        left_layout.setContentsMargins(0, 0, 0, 0)
+        left_layout.setContentsMargins(0, 0, SPACE_S, 0)
         left_layout.setSpacing(SPACE_S)
         left_layout.addWidget(FluentText("Repositories", left, role=TextRole.SECONDARY))
         self._repo_list = FluentListWidget(left, compact=True)
@@ -743,10 +746,10 @@ def __init__(
 
         middle = QWidget(self._splitter)
         middle_layout = QVBoxLayout(middle)
-        middle_layout.setContentsMargins(0, 0, 0, 0)
+        middle_layout.setContentsMargins(SPACE_S, 0, SPACE_S, 0)
         middle_layout.setSpacing(SPACE_S)
         middle_layout.addWidget(FluentText("Changed files", middle, role=TextRole.SECONDARY))
-        self._file_list = FluentListWidget(middle, compact=True)
+        self._file_list = _CheckableFileList(middle)
         self._file_list.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self._file_list.itemChanged.connect(self._on_file_item_changed)
         self._file_list.currentItemChanged.connect(self._on_file_focus_changed)
@@ -780,7 +783,7 @@ def __init__(
 
         right = QWidget(self._splitter)
         right_layout = QVBoxLayout(right)
-        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setContentsMargins(SPACE_S, 0, 0, 0)
         right_layout.setSpacing(SPACE_S)
         right_layout.addWidget(FluentText("Diff", right, role=TextRole.SECONDARY))
         self._diff = GitDiffEdit(right)
@@ -789,11 +792,12 @@ def __init__(
         self._splitter.addWidget(right)
 
         self._splitter.setStretchFactor(0, 0)
-        self._splitter.setStretchFactor(1, 0)
-        self._splitter.setStretchFactor(2, 1)
+        self._splitter.setStretchFactor(1, 1)
+        self._splitter.setStretchFactor(2, 0)
         self._splitter.setCollapsible(0, False)  # noqa: FBT003
         self._splitter.setCollapsible(1, False)  # noqa: FBT003
         self._splitter.setCollapsible(2, False)  # noqa: FBT003
+        show_splitter_hairlines((self._splitter,))
         sizes = load_splitter_sizes(_SPLITTER_KEY, _SPLITTER_DEFAULT)
         self._splitter.setSizes(sizes)
         self._splitter.splitterMoved.connect(self._schedule_splitter_save)

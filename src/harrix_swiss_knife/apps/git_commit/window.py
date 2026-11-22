@@ -5,8 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
-from PySide6.QtCore import QEvent, QObject, Qt, QThread, QTimer, Signal
-from PySide6.QtGui import QIcon, QKeyEvent, QPainter
+from PySide6.QtCore import QEvent, QObject, QRect, QSize, Qt, QThread, QTimer, Signal
+from PySide6.QtGui import QColor, QIcon, QKeyEvent, QMouseEvent, QPainter
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QDialog,
@@ -44,11 +44,12 @@ from harrix_swiss_knife.actions.common.git_dirty_ops import (
 )
 from harrix_swiss_knife.actions.common.maintenance_checklist_steps import save_git_repos_all_clean
 from harrix_swiss_knife.apps.common.qt_main_window import apply_app_window_size_and_position
+from harrix_swiss_knife.apps.common.tracker_layout_chrome import show_splitter_hairlines
 from harrix_swiss_knife.apps.common.tracker_splitter_settings import load_splitter_sizes, save_splitter_sizes
 from harrix_swiss_knife.apps.git_commit.diff_view import GitDiffEdit
 from harrix_swiss_knife.fluent.app_chrome import install_fluent_app_window, prepare_fluent_app_window
 from harrix_swiss_knife.fluent.theme import palette_for
-from harrix_swiss_knife.fluent.tokens import ICON_SIZE, SPACE_M, SPACE_S, SPACE_XL
+from harrix_swiss_knife.fluent.tokens import ICON_SIZE, SPACE_M, SPACE_S, SPACE_XL, FluentPalette
 from harrix_swiss_knife.fluent.widgets import (
     FluentLineEdit,
     FluentListWidget,
@@ -60,6 +61,7 @@ from harrix_swiss_knife.fluent.widgets import (
     polish_fluent_splitter,
 )
 from harrix_swiss_knife.installer.icon_assets import apply_window_icon
+from harrix_swiss_knife.qt_lucide_checkbox import CHECKBOX_INDICATOR_PX, indicator_colors, paint_lucide_checkbox
 from harrix_swiss_knife.qt_lucide_icon import create_lucide_icon
 from harrix_swiss_knife.toast_notification import ToastNotification
 from harrix_swiss_knife.win11_caption import (
@@ -71,10 +73,10 @@ from harrix_swiss_knife.win11_caption import (
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from PySide6.QtCore import QModelIndex, QPersistentModelIndex
+    from PySide6.QtCore import QAbstractItemModel, QModelIndex, QPersistentModelIndex
 
-_SPLITTER_KEY = "git_dirty_repos_commit_splitter_sizes_v1"
-_SPLITTER_DEFAULT = (260, 340, 700)
+_SPLITTER_KEY = "git_dirty_repos_commit_splitter_sizes_v2"
+_SPLITTER_DEFAULT = (240, 620, 440)
 _REFRESH_MS = 30_000
 _SPLITTER_SAVE_DELAY_MS = 400
 _REPO_ROLE = Qt.ItemDataRole.UserRole
@@ -82,10 +84,10 @@ _REPO_KIND_ROLE = Qt.ItemDataRole.UserRole + 1
 _REPO_SLUG_ROLE = Qt.ItemDataRole.UserRole + 2
 _REPO_REMOTE_ROLE = Qt.ItemDataRole.UserRole + 3
 _ACCESS_ICONS = {
-    "local": "hard-drive",
-    "remote": "cloud",
-    "public": "globe",
-    "private": "lock",
+    "local": "folder-git",
+    "remote": "folder-symlink",
+    "public": "cloud",
+    "private": "folder-lock",
 }
 _FILE_PATH_ROLE = Qt.ItemDataRole.UserRole
 _FILE_STATUS_ROLE = Qt.ItemDataRole.UserRole + 1
@@ -157,7 +159,7 @@ class DirtyReposCommitWindow(QDialog):
 
         left = QWidget(self._splitter)
         left_layout = QVBoxLayout(left)
-        left_layout.setContentsMargins(0, 0, 0, 0)
+        left_layout.setContentsMargins(0, 0, SPACE_S, 0)
         left_layout.setSpacing(SPACE_S)
         left_layout.addWidget(FluentText("Repositories", left, role=TextRole.SECONDARY))
         self._repo_list = FluentListWidget(left, compact=True)
@@ -168,10 +170,10 @@ class DirtyReposCommitWindow(QDialog):
 
         middle = QWidget(self._splitter)
         middle_layout = QVBoxLayout(middle)
-        middle_layout.setContentsMargins(0, 0, 0, 0)
+        middle_layout.setContentsMargins(SPACE_S, 0, SPACE_S, 0)
         middle_layout.setSpacing(SPACE_S)
         middle_layout.addWidget(FluentText("Changed files", middle, role=TextRole.SECONDARY))
-        self._file_list = FluentListWidget(middle, compact=True)
+        self._file_list = _CheckableFileList(middle)
         self._file_list.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self._file_list.itemChanged.connect(self._on_file_item_changed)
         self._file_list.currentItemChanged.connect(self._on_file_focus_changed)
@@ -205,7 +207,7 @@ class DirtyReposCommitWindow(QDialog):
 
         right = QWidget(self._splitter)
         right_layout = QVBoxLayout(right)
-        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setContentsMargins(SPACE_S, 0, 0, 0)
         right_layout.setSpacing(SPACE_S)
         right_layout.addWidget(FluentText("Diff", right, role=TextRole.SECONDARY))
         self._diff = GitDiffEdit(right)
@@ -214,11 +216,12 @@ class DirtyReposCommitWindow(QDialog):
         self._splitter.addWidget(right)
 
         self._splitter.setStretchFactor(0, 0)
-        self._splitter.setStretchFactor(1, 0)
-        self._splitter.setStretchFactor(2, 1)
+        self._splitter.setStretchFactor(1, 1)
+        self._splitter.setStretchFactor(2, 0)
         self._splitter.setCollapsible(0, False)  # noqa: FBT003
         self._splitter.setCollapsible(1, False)  # noqa: FBT003
         self._splitter.setCollapsible(2, False)  # noqa: FBT003
+        show_splitter_hairlines((self._splitter,))
         sizes = load_splitter_sizes(_SPLITTER_KEY, _SPLITTER_DEFAULT)
         self._splitter.setSizes(sizes)
         self._splitter.splitterMoved.connect(self._schedule_splitter_save)
@@ -497,7 +500,9 @@ class DirtyReposCommitWindow(QDialog):
         self._suppress_file_signals = True
         self._file_list.clear()
         for changed in files:
-            item = QListWidgetItem(f"{changed.status}  {changed.path}")
+            item = QListWidgetItem(changed.path)
+            caption = _file_status_glyph(changed.status)[2]
+            item.setToolTip(f"{caption}: {changed.path}")
             item.setFlags(
                 Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsUserCheckable,
             )
@@ -568,7 +573,7 @@ class DirtyReposCommitWindow(QDialog):
             color = palette.caution
         else:
             color = palette.accent
-        return create_lucide_icon(_ACCESS_ICONS.get(kind, "cloud"), ICON_SIZE, color=color)
+        return create_lucide_icon(_ACCESS_ICONS.get(kind, "folder-git"), ICON_SIZE, color=color)
 
     def _rescan_all_repos(self) -> None:
         if self._busy:
@@ -721,6 +726,114 @@ class DirtyReposCommitWindow(QDialog):
         self._rescan_button.setEnabled(not self._busy)
 
 
+class _CheckableFileList(FluentListWidget):
+    """Changed-file list: Fluent checkbox delegate, no stylesheet check glyph."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        """Create a compact file list that paints its own checkboxes."""
+        super().__init__(parent, compact=True)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.setItemDelegate(_FileCheckDelegate(self))
+
+    def refresh_theme(self) -> None:
+        """Re-apply list chrome and collapse the native indicator."""
+        super().refresh_theme()
+        self.setStyleSheet(self.styleSheet() + "\nQListWidget::indicator { width: 0px; height: 0px; }\n")
+
+
+class _FileCheckDelegate(QStyledItemDelegate):
+    """Paint a Fluent checkbox and a Lucide status icon beside each path."""
+
+    def editorEvent(  # noqa: N802
+        self,
+        event: QEvent,
+        model: QAbstractItemModel,
+        option: QStyleOptionViewItem,
+        index: QModelIndex | QPersistentModelIndex,
+    ) -> bool:
+        """Toggle the row when the click lands on the checkbox."""
+        if (
+            event.type() in {QEvent.Type.MouseButtonRelease, QEvent.Type.MouseButtonDblClick}
+            and isinstance(event, QMouseEvent)
+            and event.button() == Qt.MouseButton.LeftButton
+        ):
+            if not _file_check_rect(option.rect).contains(event.position().toPoint()):
+                return False
+            if event.type() == QEvent.Type.MouseButtonRelease:
+                _toggle_check_state(model, index)
+            return True
+        return super().editorEvent(event, model, option, index)
+
+    def paint(
+        self,
+        painter: QPainter,
+        option: QStyleOptionViewItem,
+        index: QModelIndex | QPersistentModelIndex,
+    ) -> None:
+        """Draw the row fill, a Lucide checkbox, the status icon, then the path."""
+        opt = QStyleOptionViewItem(option)
+        self.initStyleOption(opt, index)
+        checked = opt.checkState == Qt.CheckState.Checked
+        text = opt.text
+        opt.text = ""
+        opt.checkState = Qt.CheckState.Unchecked
+        opt.features = opt.features & ~QStyleOptionViewItem.ViewItemFeature.HasCheckIndicator
+        widget = opt.widget
+        style = widget.style() if widget is not None else None
+        if style is None:
+            super().paint(painter, option, index)
+            return
+        style.drawControl(QStyle.ControlElement.CE_ItemViewItem, opt, painter, widget)
+        box = _file_check_rect(option.rect)
+        paint_lucide_checkbox(
+            painter,
+            box,
+            checked=checked,
+            enabled=bool(opt.state & QStyle.StateFlag.State_Enabled),
+            size=CHECKBOX_INDICATOR_PX,
+            colors=indicator_colors(widget),
+        )
+        status = index.data(_FILE_STATUS_ROLE)
+        icon_name, color_role, _ = _file_status_glyph(status if isinstance(status, str) else "")
+        palette = palette_for(widget)
+        icon_rect = QRect(
+            box.right() + SPACE_S,
+            option.rect.top() + max(0, (option.rect.height() - ICON_SIZE) // 2),
+            ICON_SIZE,
+            ICON_SIZE,
+        )
+        create_lucide_icon(icon_name, ICON_SIZE, color=_status_palette_color(palette, color_role)).paint(
+            painter,
+            icon_rect,
+        )
+        path_left = icon_rect.right() + SPACE_S
+        limit = option.rect.right() - SPACE_S
+        if widget is not None:
+            limit = min(limit, widget.viewport().width() - SPACE_S)
+        path_rect = QRect(path_left, option.rect.top(), max(0, limit - path_left), option.rect.height())
+        painter.save()
+        painter.setFont(opt.font)
+        elided = opt.fontMetrics.elidedText(text, Qt.TextElideMode.ElideRight, path_rect.width())
+        painter.setPen(palette.text_primary)
+        painter.drawText(
+            path_rect,
+            int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft),
+            elided,
+        )
+        painter.restore()
+
+    def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex) -> QSize:  # noqa: N802
+        """Keep the row tall enough for the checkbox."""
+        hint = super().sizeHint(option, index)
+        hint.setHeight(max(hint.height(), CHECKBOX_INDICATOR_PX + SPACE_S))
+        widget = option.widget
+        if widget is not None:
+            width = widget.viewport().width()
+            if width > 0:
+                hint.setWidth(width)
+        return hint
+
+
 class _FnWorker(QThread):
     """Run a callable off the UI thread."""
 
@@ -805,3 +918,62 @@ def show_dirty_repos_commit_window(
     window.raise_()
     window.activateWindow()
     return window
+
+
+def _file_check_rect(item_rect: QRect) -> QRect:
+    """Return the checkbox rect, inset past the selection pill."""
+    return QRect(
+        item_rect.x() + SPACE_M,
+        item_rect.y() + max(0, (item_rect.height() - CHECKBOX_INDICATOR_PX) // 2),
+        CHECKBOX_INDICATOR_PX,
+        CHECKBOX_INDICATOR_PX,
+    )
+
+
+def _file_status_glyph(status: str) -> tuple[str, str, str]:
+    """Return a Lucide name, palette role, and caption for a porcelain status.
+
+    New and added paths use `square-plus`. Modified paths use `square-letter-m`.
+    Deleted paths use `square-minus`.
+
+    """
+    code = _porcelain_code(status)
+    if code in {"?", "A"}:
+        caption = "Untracked" if code == "?" else "Added"
+        return "square-plus", "success", caption
+    if code == "D":
+        return "square-minus", "critical", "Deleted"
+    return "square-letter-m", "caution", "Modified"
+
+
+def _porcelain_code(status: str) -> str:
+    """Return the work-tree porcelain code, or the index code when the work tree is clean."""
+    text = status.ljust(2)
+    work = text[1]
+    if work not in {" ", "?"}:
+        return work
+    index = text[0]
+    return index if index != " " else work
+
+
+def _status_palette_color(palette: FluentPalette, role: str) -> QColor:
+    """Return `success`, `critical`, or `caution` from `palette`."""
+    if role == "success":
+        return palette.success
+    if role == "critical":
+        return palette.critical
+    return palette.caution
+
+
+def _toggle_check_state(model: QAbstractItemModel, index: QModelIndex | QPersistentModelIndex) -> None:
+    """Flip `CheckStateRole` on `index`."""
+    current = index.data(Qt.ItemDataRole.CheckStateRole)
+    # QListWidget stores CheckStateRole as int 0/2; the enum does not compare equal to that int.
+    if isinstance(current, Qt.CheckState):
+        checked = current == Qt.CheckState.Checked
+    elif isinstance(current, int):
+        checked = current == Qt.CheckState.Checked.value
+    else:
+        checked = False
+    nxt = Qt.CheckState.Unchecked if checked else Qt.CheckState.Checked
+    model.setData(index, nxt, Qt.ItemDataRole.CheckStateRole)
