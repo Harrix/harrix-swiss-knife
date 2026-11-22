@@ -10,6 +10,7 @@ from harrix_swiss_knife.actions.common.ai_markdown_html import (
     markdown_to_article_html,
     normalize_ai_latex_delimiters,
     resolve_html_template_dist,
+    strip_local_font_preloads,
 )
 
 
@@ -43,6 +44,26 @@ def test_build_ai_answer_html_injects_content(tmp_path: Path) -> None:
     assert "demo" not in page
     assert 'data-expr="x=1"' in page
     assert "Hello" in page
+
+
+def test_build_ai_answer_html_strips_font_preloads(tmp_path: Path) -> None:
+    blank = """<!doctype html>
+<html><head><title>Old</title>
+<link rel="preload" href="fonts/Roboto.woff2" as="font" type="font/woff2" crossorigin />
+<link href="css/app.css" rel="stylesheet" />
+</head><body><main><article>
+<!-- h-ssg:content-start -->
+<p>demo</p>
+<!-- h-ssg:content-end -->
+</article></main></body></html>
+"""
+    (tmp_path / "blank.html").write_text(blank, encoding="utf-8")
+    (tmp_path / "css").mkdir()
+    (tmp_path / "css" / "app.css").write_text("body{}", encoding="utf-8")
+    page = build_ai_answer_html("Hi\n", dist_dir=tmp_path, title="Ask AI answer")
+    assert "Roboto" not in page
+    assert 'href="css/app.css"' in page
+    assert "<title>Ask AI answer</title>" in page
 
 
 def test_markdown_to_article_html_renders_fence() -> None:
@@ -85,3 +106,18 @@ def test_resolve_html_template_dist_requires_blank(tmp_path: Path) -> None:
     (tmp_path / "css").mkdir()
     (tmp_path / "css" / "app.css").write_text("body{}", encoding="utf-8")
     assert resolve_html_template_dist({"path_html_template_dist": str(tmp_path)}) == tmp_path.resolve()
+
+
+def test_strip_local_font_preloads_keeps_other_links() -> None:
+    page = """<head>
+    <link rel="preload" href="fonts/Roboto.woff2" as="font" type="font/woff2" crossorigin />
+    <link as="font" rel="preload" href="fonts/JetBrainsMono-Regular.woff2" crossorigin="anonymous">
+    <link href="css/app.css" rel="stylesheet" />
+    <link rel="preload" href="js/early.js" as="script" />
+</head>
+"""
+    out = strip_local_font_preloads(page)
+    assert "woff2" not in out
+    assert "crossorigin" not in out
+    assert 'href="css/app.css"' in out
+    assert 'as="script"' in out

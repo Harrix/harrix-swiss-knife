@@ -26,6 +26,9 @@ _MATH_BLOCK_RE = re.compile(
 _LATEX_BLOCK_RE = re.compile(r"\\\[(.*?)\\\]", re.DOTALL)
 _LATEX_INLINE_RE = re.compile(r"\\\((.*?)\\\)", re.DOTALL)
 _FENCED_CODE_RE = re.compile(r"(```.*?```|~~~.*?~~~)", re.DOTALL)
+_LINK_LINE_RE = re.compile(r"^[ \t]*<link\b[^>\n]*>[ \t]*\r?\n?", re.IGNORECASE | re.MULTILINE)
+_REL_PRELOAD_RE = re.compile(r"""\brel\s*=\s*["']preload["']""", re.IGNORECASE)
+_AS_FONT_RE = re.compile(r"""\bas\s*=\s*["']font["']""", re.IGNORECASE)
 
 _CONTENT_SHELL = """<!-- h-ssg:content-start -->
 <div class="section">
@@ -56,7 +59,13 @@ def adapt_math_for_harrix_katex(content_html: str) -> str:
 
 
 def build_ai_answer_html(markdown: str, *, dist_dir: Path, title: str = "Ask AI answer") -> str:
-    """Fill `blank.html` with rendered Markdown for WebView display."""
+    """Fill `blank.html` with rendered Markdown for WebView display.
+
+    Font preloads are removed. Qt WebEngine loads this page from a `file://`
+    base URL, and Chromium will not apply a `crossorigin` font preload to those
+    fetches.
+
+    """
     blank = (dist_dir / "blank.html").read_text(encoding="utf-8")
     body = adapt_math_for_harrix_katex(markdown_to_article_html(markdown))
     indented = "\n".join(f"        {line}" if line else "" for line in body.splitlines())
@@ -67,7 +76,8 @@ def build_ai_answer_html(markdown: str, *, dist_dir: Path, title: str = "Ask AI 
     # Replacement must be a callable: body HTML may contain LaTeX backslashes.
     page = _CONTENT_BLOCK_RE.sub(lambda _match: content_block, blank, count=1)
     safe_title = html.escape(title, quote=False)
-    return _TITLE_RE.sub(rf"\1{safe_title}\3", page, count=1)
+    page = _TITLE_RE.sub(rf"\1{safe_title}\3", page, count=1)
+    return strip_local_font_preloads(page)
 
 
 def markdown_to_article_html(markdown: str) -> str:
@@ -126,3 +136,23 @@ def resolve_html_template_dist(config: dict | None) -> Path | None:
     if not (dist / "css" / "app.css").is_file():
         return None
     return dist
+
+
+def strip_local_font_preloads(page: str) -> str:
+    """Remove font preloads that Qt WebEngine cannot use from `file://`.
+
+    Chromium fetches `file://` fonts without CORS. A preload with `crossorigin`
+    uses another credentials mode, so the preload is ignored and Qt logs a
+    warning, then a second warning that the preload was unused. `@font-face`
+    in the template CSS still loads Roboto and JetBrains Mono. The published
+    site keeps these preloads; only the local WebView copy is rewritten.
+
+    """
+
+    def _keep(match: re.Match[str]) -> str:
+        tag = match.group(0)
+        if _REL_PRELOAD_RE.search(tag) and _AS_FONT_RE.search(tag):
+            return ""
+        return tag
+
+    return _LINK_LINE_RE.sub(_keep, page)

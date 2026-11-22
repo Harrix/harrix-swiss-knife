@@ -16,6 +16,7 @@ lang: en
 - [🔧 Function `markdown_to_article_html`](#-function-markdown_to_article_html)
 - [🔧 Function `normalize_ai_latex_delimiters`](#-function-normalize_ai_latex_delimiters)
 - [🔧 Function `resolve_html_template_dist`](#-function-resolve_html_template_dist)
+- [🔧 Function `strip_local_font_preloads`](#-function-strip_local_font_preloads)
 
 </details>
 
@@ -55,6 +56,10 @@ def build_ai_answer_html(markdown: str, *, dist_dir: Path, title: str = 'Ask AI 
 
 Fill `blank.html` with rendered Markdown for WebView display.
 
+Font preloads are removed. Qt WebEngine loads this page from a `file://`
+base URL, and Chromium will not apply a `crossorigin` font preload to those
+fetches.
+
 <details>
 <summary>Code:</summary>
 
@@ -70,7 +75,8 @@ def build_ai_answer_html(markdown: str, *, dist_dir: Path, title: str = "Ask AI 
     # Replacement must be a callable: body HTML may contain LaTeX backslashes.
     page = _CONTENT_BLOCK_RE.sub(lambda _match: content_block, blank, count=1)
     safe_title = html.escape(title, quote=False)
-    return _TITLE_RE.sub(rf"\1{safe_title}\3", page, count=1)
+    page = _TITLE_RE.sub(rf"\1{safe_title}\3", page, count=1)
+    return strip_local_font_preloads(page)
 ```
 
 </details>
@@ -166,6 +172,37 @@ def resolve_html_template_dist(config: dict | None) -> Path | None:
     if not (dist / "css" / "app.css").is_file():
         return None
     return dist
+```
+
+</details>
+
+## 🔧 Function `strip_local_font_preloads`
+
+```python
+def strip_local_font_preloads(page: str) -> str
+```
+
+Remove font preloads that Qt WebEngine cannot use from `file://`.
+
+Chromium fetches `file://` fonts without CORS. A preload with `crossorigin`
+uses another credentials mode, so the preload is ignored and Qt logs a
+warning, then a second warning that the preload was unused. `@font-face`
+in the template CSS still loads Roboto and JetBrains Mono. The published
+site keeps these preloads; only the local WebView copy is rewritten.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def strip_local_font_preloads(page: str) -> str:
+
+    def _keep(match: re.Match[str]) -> str:
+        tag = match.group(0)
+        if _REL_PRELOAD_RE.search(tag) and _AS_FONT_RE.search(tag):
+            return ""
+        return tag
+
+    return _LINK_LINE_RE.sub(_keep, page)
 ```
 
 </details>
