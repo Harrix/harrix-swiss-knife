@@ -8,17 +8,18 @@ alwaysApply: false
 
 When any changes are made under `vscode/` in this repo (`harrix-swiss-knife`):
 
-1. At the end of the response, explicitly remind that a matching commit is also needed in `D:\GitHub\harrix-notes-explorer`.
-2. Suggest a commit message for **that** repo (not only for `harrix-swiss-knife`), using the same commit-prefix style as usual.
-3. Do not run git commands in `harrix-notes-explorer` unless the user explicitly asks.
+1. Commit locally in `harrix-swiss-knife` as usual per `# Git style` (agent-touched files only; never push).
+2. At the end of the response, explicitly remind that a matching commit is also needed in `D:\GitHub\harrix-notes-explorer`.
+3. Suggest a commit message for **that** repo using the same commit-prefix style as usual.
+4. Do not run git commands in `harrix-notes-explorer` unless the user explicitly asks.
 
 ## Reminder format
 
-End with both commit suggestions. Labels as plain text above; **only the commit message** in inline backticks. Example:
+End with the local commit result for this repo, then the reminder and suggested title for the other repo. Labels as plain text above; **only the commit message** in inline backticks. Example:
 
 Commit (harrix-swiss-knife):
 
-`🔧 Modify preview-copy styles in vscode extension`
+`a1b2c3d 🔧 Modify preview-copy styles in vscode extension`
 
 Also commit in D:\GitHub\harrix-notes-explorer:
 
