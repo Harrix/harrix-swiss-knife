@@ -421,6 +421,7 @@
       "site_blocking_check": "snippet:config/prompts/site-blocking-check.md",
       "speech_transcription": "snippet:config/prompts/speech-transcription.md",
       "speech_answer": "snippet:config/prompts/speech-answer.md",
+      "russian_word_forms": "snippet:config/prompts/russian-word-forms.md",
       "text_fix_ru": "snippet:config/prompts/text-fix-ru.md",
       "text_fix_ru_clipboard": "snippet:config/prompts/text-fix-ru-clipboard.md",
       "text_rewrite_ru": "snippet:config/prompts/text-rewrite-ru.md",

@@ -12,6 +12,7 @@ lang: en
 ## Contents
 
 - [🔧 Function `add_user_word`](#-function-add_user_word)
+- [🔧 Function `add_user_words`](#-function-add_user_words)
 - [🔧 Function `load_user_words`](#-function-load_user_words)
 - [🔧 Function `save_user_words`](#-function-save_user_words)
 
@@ -32,14 +33,36 @@ Empty or whitespace-only words are ignored.
 
 ```python
 def add_user_word(word: str, path: Path | None = None) -> set[str]:
-    cleaned = word.strip()
+    return add_user_words([word], path)
+```
+
+</details>
+
+## 🔧 Function `add_user_words`
+
+```python
+def add_user_words(words_to_add: list[str] | set[str] | tuple[str, ...], path: Path | None = None) -> set[str]
+```
+
+Add many words to the user dictionary in one write and return the set.
+
+Empty or whitespace-only entries are ignored. Existing words stay unchanged.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def add_user_words(words_to_add: list[str] | set[str] | tuple[str, ...], path: Path | None = None) -> set[str]:
     words = load_user_words(path)
-    if not cleaned:
-        return words
-    if cleaned in words:
-        return words
-    words.add(cleaned)
-    save_user_words(words, path)
+    changed = False
+    for word in words_to_add:
+        cleaned = word.strip()
+        if not cleaned or cleaned in words:
+            continue
+        words.add(cleaned)
+        changed = True
+    if changed:
+        save_user_words(words, path)
     return words
 ```
 

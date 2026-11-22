@@ -174,6 +174,7 @@ _Figure 1: Screenshot_
   - ⬇️ Pull site submodules ꟲᴸᴵ
   - ✂️ Slice HTML template… ꟲᴸᴵ
 - **Text**
+  - 📖 Add Russian word forms with AI…
   - 🤖 Fix text with AI from clipboard
   - 🤖 Fix text with AI… ꟲᴸᴵ
   - ✍️ Rewrite text with AI…

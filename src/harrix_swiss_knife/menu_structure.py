@@ -128,6 +128,7 @@ from harrix_swiss_knife.actions.site import (
     OnPullSiteSubmodules,
     OnSliceHtmlTemplate,
 )
+from harrix_swiss_knife.actions.text.add_russian_word_forms_with_ai import OnAddRussianWordFormsWithAI
 from harrix_swiss_knife.actions.text.fix_text_with_ai import OnFixTextWithAI
 from harrix_swiss_knife.actions.text.fix_text_with_ai_from_clipboard import OnFixTextWithAIFromClipboard
 from harrix_swiss_knife.actions.text.rewrite_text_with_ai import OnRewriteTextWithAI
@@ -303,6 +304,7 @@ def get_menu_structure() -> list[Any]:
                 OnRewriteTextWithAI,
                 OnSpeechToTextWithAI,
                 OnFixTextWithAIFromClipboard,
+                OnAddRussianWordFormsWithAI,
             ],
         ),
         (

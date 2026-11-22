@@ -178,6 +178,7 @@ def get_menu_structure() -> list[Any]:
                 OnRewriteTextWithAI,
                 OnSpeechToTextWithAI,
                 OnFixTextWithAIFromClipboard,
+                OnAddRussianWordFormsWithAI,
             ],
         ),
         (

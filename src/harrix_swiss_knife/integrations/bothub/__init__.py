@@ -47,6 +47,11 @@ from harrix_swiss_knife.integrations.bothub.qt_runner import (
     run_bothub_request,
     run_bothub_request_blocking,
 )
+from harrix_swiss_knife.integrations.bothub.russian_word_forms import (
+    build_russian_word_forms_prompt,
+    get_russian_word_forms_prompt_template,
+    parse_russian_word_forms,
+)
 from harrix_swiss_knife.integrations.bothub.speech import (
     audio_bytes_and_mime,
     audio_format_from_suffix,
@@ -93,6 +98,7 @@ __all__ = [
     "build_image_ocr_translate_prompt",
     "build_image_table_prompt",
     "build_prompt",
+    "build_russian_word_forms_prompt",
     "build_speech_answer_prompt",
     "build_text_fix_from_clipboard_prompt",
     "build_text_fix_prompt",
@@ -109,6 +115,7 @@ __all__ = [
     "get_image_table_prompt_template",
     "get_max_image_side",
     "get_prompt_template",
+    "get_russian_word_forms_prompt_template",
     "get_speech_answer_prompt_template",
     "get_speech_model",
     "get_text_fix_from_clipboard_prompt_template",
@@ -117,6 +124,7 @@ __all__ = [
     "get_text_translate_prompt_template",
     "image_bytes_and_mime",
     "image_mime_from_suffix",
+    "parse_russian_word_forms",
     "qimage_bytes_and_mime",
     "qnetwork_proxy_to_url",
     "resolve_bothub_proxy_url",
