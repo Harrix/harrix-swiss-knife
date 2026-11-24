@@ -1,5 +1,6 @@
 {
   "OnAboutDialog": "2025-07-09T23:03:57+03:00",
+  "OnAddRussianWordFormsWithAI": "2026-11-22T23:39:14+03:00",
   "OnAddSiteContentSubmodule": "2026-08-04T12:35:22+03:00",
   "OnAddToAutostart": "2026-08-09T01:48:32+03:00",
   "OnAllFilesToParentFolder": "2025-03-30T00:03:19+03:00",
@@ -101,6 +102,7 @@
   "OnSettingsEditor": "2026-08-13T23:14:45+03:00",
   "OnSetupDataForHsk": "2026-08-22T20:50:55+03:00",
   "OnShowActionUsageStats": "2026-08-04T01:22:13+03:00",
+  "OnShrinkPdfBottomMargin": "2026-11-24T13:08:27+03:00",
   "OnSliceHtmlTemplate": "2026-08-10T11:54:25+03:00",
   "OnSnippets": "2026-08-25T17:18:06+03:00",
   "OnSortRuffFmtDocsPythonCode": "2026-05-11T12:22:17+03:00",
