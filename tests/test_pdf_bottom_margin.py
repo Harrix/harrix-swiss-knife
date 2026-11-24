@@ -22,10 +22,12 @@ def test_bottom_margin_target_rect_leaves_requested_band() -> None:
     height = 842.0
     margin = cm_to_pt(DEFAULT_BOTTOM_MARGIN_CM)
     rect = bottom_margin_target_rect(width, height)
-    assert rect.y0 == pytest.approx(margin)
-    assert rect.y1 == pytest.approx(height)
+    assert rect.y0 == pytest.approx(0.0)
+    assert rect.y1 == pytest.approx(height - margin)
+    assert rect.height == pytest.approx(height - margin)
     assert rect.width == pytest.approx(width * ((height - margin) / height))
     assert rect.x0 == pytest.approx((width - rect.width) / 2)
+    assert height - rect.y1 == pytest.approx(margin)
 
 
 def test_bottom_margin_target_rect_rejects_short_page() -> None:

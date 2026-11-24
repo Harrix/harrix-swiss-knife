@@ -49,8 +49,9 @@ def bottom_margin_target_rect(
     scale = (page_height - margin_pt) / page_height
     new_width = page_width * scale
     new_height = page_height * scale
+    # PyMuPDF page coords: (0, 0) is top-left, y grows downward.
     x0 = (page_width - new_width) / 2
-    y0 = margin_pt
+    y0 = 0.0
     return pymupdf.Rect(x0, y0, x0 + new_width, y0 + new_height)
 
 
