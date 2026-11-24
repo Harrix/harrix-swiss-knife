@@ -15,11 +15,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -830,11 +834,19 @@ private fun LocalFolderPickerScreen(
                 else -> onDismiss()
             }
         }
-        Surface(modifier = Modifier.fillMaxSize(), color = hskScaffoldContainerColor()) {
+        Surface(
+            modifier =
+            Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .imePadding(),
+            color = hskScaffoldContainerColor(),
+        ) {
             Scaffold(
                 modifier = Modifier.fillMaxSize(),
                 containerColor = hskScaffoldContainerColor(),
-                contentWindowInsets = hskScaffoldContentWindowInsets(),
+                contentWindowInsets = WindowInsets(0, 0, 0, 0),
                 topBar = {
                     TopAppBar(
                         title = {
@@ -874,7 +886,7 @@ private fun LocalFolderPickerScreen(
                             }
                         },
                         colors = hskTopAppBarColors(),
-                        windowInsets = hskTopAppBarWindowInsets(),
+                        windowInsets = WindowInsets(0, 0, 0, 0),
                         expandedHeight = HskTopAppBarHeight,
                     )
                 },
@@ -1016,11 +1028,19 @@ private fun DropboxRemotePickerScreen(
                 onDismiss()
             }
         }
-        Surface(modifier = Modifier.fillMaxSize(), color = hskScaffoldContainerColor()) {
+        Surface(
+            modifier =
+            Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .imePadding(),
+            color = hskScaffoldContainerColor(),
+        ) {
             Scaffold(
                 modifier = Modifier.fillMaxSize(),
                 containerColor = hskScaffoldContainerColor(),
-                contentWindowInsets = hskScaffoldContentWindowInsets(),
+                contentWindowInsets = WindowInsets(0, 0, 0, 0),
                 topBar = {
                     TopAppBar(
                         title = {
@@ -1055,7 +1075,7 @@ private fun DropboxRemotePickerScreen(
                             }
                         },
                         colors = hskTopAppBarColors(),
-                        windowInsets = hskTopAppBarWindowInsets(),
+                        windowInsets = WindowInsets(0, 0, 0, 0),
                         expandedHeight = HskTopAppBarHeight,
                     )
                 },
