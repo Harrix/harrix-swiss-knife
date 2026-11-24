@@ -74,7 +74,6 @@ from harrix_swiss_knife.fluent.style import accent_button_qss, push_button_qss, 
 from harrix_swiss_knife.fluent.theme import bind_theme, palette_for
 from harrix_swiss_knife.fluent.tokens import ICON_SIZE, SPACE_M, SPACE_S, SPACE_XL, SPACE_XS, FluentPalette
 from harrix_swiss_knife.fluent.widgets import (
-    FluentHyperlinkButton,
     FluentLineEdit,
     FluentListWidget,
     FluentMessageDialog,
@@ -271,7 +270,8 @@ class DirtyReposCommitWindow(QDialog):
         note_layout.setContentsMargins(0, 0, 0, 0)
         note_layout.setSpacing(SPACE_S)
         self._unpushed_label = FluentText("", self._unpushed_note, word_wrap=True)
-        self._unpushed_push = FluentHyperlinkButton("Push these commits", "", self._unpushed_note)
+        # Accent primary: this note only appears when the tree is clean and push remains.
+        self._unpushed_push = FluentPrimaryButton("Push these commits", self._unpushed_note, icon="upload")
         self._unpushed_push.clicked.connect(self._on_push)
         note_layout.addWidget(self._unpushed_label)
         note_row = QHBoxLayout()
