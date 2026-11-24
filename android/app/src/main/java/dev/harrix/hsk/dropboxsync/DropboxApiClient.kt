@@ -429,7 +429,7 @@ class DropboxApiClient(
                     }
                     if (!response.isSuccessful) {
                         val payload = response.body?.string().orEmpty()
-                        throw IOException("Dropbox API ${response.code}: $payload")
+                        throw IOException(formatApiError(response.code, payload))
                     }
                     return block(response)
                 }
@@ -472,6 +472,21 @@ class DropboxApiClient(
                 return ""
             }
             return if (trimmed.startsWith("/")) trimmed else "/$trimmed"
+        }
+
+        fun formatApiError(
+            code: Int,
+            payload: String,
+        ): String {
+            val lower = payload.lowercase()
+            if (lower.contains("required scope") || lower.contains("not permitted to access")) {
+                return "Dropbox permission missing. In App Console → Permissions enable " +
+                    "files.metadata.read/write and files.content.read/write, Submit, " +
+                    "then Disconnect and Connect Dropbox again."
+            }
+            val compact = payload.replace('\n', ' ').trim()
+            val short = if (compact.length > 280) compact.take(277) + "…" else compact
+            return "Dropbox API $code: $short"
         }
 
         private fun parseDropboxTime(value: String?): Long {

@@ -59,6 +59,7 @@ class DropboxAuthManager(
             .appendQueryParameter("response_type", "code")
             .appendQueryParameter("token_access_type", "offline")
             .appendQueryParameter("redirect_uri", DropboxSyncPreferences.REDIRECT_URI)
+            .appendQueryParameter("scope", REQUIRED_SCOPES)
             .appendQueryParameter("code_challenge", challenge)
             .appendQueryParameter("code_challenge_method", "S256")
             .build()
@@ -182,5 +183,12 @@ class DropboxAuthManager(
     private fun createCodeChallenge(verifier: String): String {
         val digest = MessageDigest.getInstance("SHA-256").digest(verifier.toByteArray(Charsets.US_ASCII))
         return Base64.encodeToString(digest, Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING)
+    }
+
+    companion object {
+        /** Scopes required for browse/sync; must also be enabled in Dropbox App Console → Permissions. */
+        const val REQUIRED_SCOPES =
+            "account_info.read files.metadata.read files.metadata.write " +
+                "files.content.read files.content.write"
     }
 }
