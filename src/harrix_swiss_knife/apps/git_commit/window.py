@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QListWidgetItem,
     QSizePolicy,
+    QStackedWidget,
     QStyle,
     QStyledItemDelegate,
     QStyleOptionViewItem,
@@ -224,7 +225,12 @@ class DirtyReposCommitWindow(QDialog):
         self._file_list.currentItemChanged.connect(self._on_file_focus_changed)
         self._file_list.copy_path_clicked.connect(self._on_copy_file_path_clicked)
         self._file_list.customContextMenuRequested.connect(self._on_file_context_menu)
-        middle_layout.addWidget(self._file_list, 1)
+        self._files_stack, self._files_empty = _empty_stack(
+            self._file_list,
+            "No changed files.\nWorking tree is clean.",
+            middle,
+        )
+        middle_layout.addWidget(self._files_stack, 1)
 
         middle_layout.addWidget(FluentText("Commit title", middle, role=TextRole.SECONDARY))
         self._subject = FluentLineEdit(middle, placeholder="Commit message")
@@ -237,7 +243,12 @@ class DirtyReposCommitWindow(QDialog):
         self._suggestions.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self._suggestions.setItemDelegate(_SuggestionFilterDelegate(self._suggestions))
         self._suggestions.itemClicked.connect(self._on_suggestion_clicked)
-        middle_layout.addWidget(self._suggestions, 1)
+        self._suggestions_stack, self._suggestions_empty = _empty_stack(
+            self._suggestions,
+            "No suggestions — working tree is clean.",
+            middle,
+        )
+        middle_layout.addWidget(self._suggestions_stack, 1)
 
         buttons = QHBoxLayout()
         buttons.setSpacing(SPACE_S)
@@ -265,26 +276,40 @@ class DirtyReposCommitWindow(QDialog):
         right_layout.setContentsMargins(SPACE_S, 0, 0, 0)
         right_layout.setSpacing(SPACE_S)
         right_layout.addWidget(FluentText("Diff", right, role=TextRole.SECONDARY))
-        self._unpushed_note = QWidget(right)
+        self._right_stack = QStackedWidget(right)
+        self._diff = GitDiffEdit(self._right_stack)
+        self._diff.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self._diff_empty = _empty_hint(
+            self._right_stack,
+            "No diff to show.\nSelect a changed file to view its diff.",
+        )
+        self._unpushed_note = QWidget(self._right_stack)
         note_layout = QVBoxLayout(self._unpushed_note)
-        note_layout.setContentsMargins(0, 0, 0, 0)
-        note_layout.setSpacing(SPACE_S)
+        note_layout.setContentsMargins(SPACE_M, SPACE_M, SPACE_M, SPACE_M)
+        note_layout.setSpacing(SPACE_M)
         self._unpushed_label = FluentText("", self._unpushed_note, word_wrap=True)
+        self._unpushed_hint = FluentText(
+            "Nothing to commit in this repository.",
+            self._unpushed_note,
+            role=TextRole.SECONDARY,
+            word_wrap=True,
+        )
         # Accent primary: this note only appears when the tree is clean and push remains.
         self._unpushed_push = FluentPrimaryButton("Push these commits", self._unpushed_note, icon="upload")
         self._unpushed_push.clicked.connect(self._on_push)
         note_layout.addWidget(self._unpushed_label)
+        note_layout.addWidget(self._unpushed_hint)
         note_row = QHBoxLayout()
         note_row.setSpacing(SPACE_S)
         note_row.addWidget(self._unpushed_push)
         note_row.addStretch(1)
         note_layout.addLayout(note_row)
         note_layout.addStretch(1)
-        self._unpushed_note.hide()
-        right_layout.addWidget(self._unpushed_note, 1)
-        self._diff = GitDiffEdit(right)
-        self._diff.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        right_layout.addWidget(self._diff, 1)
+        self._right_stack.addWidget(self._diff)
+        self._right_stack.addWidget(self._diff_empty)
+        self._right_stack.addWidget(self._unpushed_note)
+        self._right_stack.setCurrentWidget(self._diff_empty)
+        right_layout.addWidget(self._right_stack, 1)
         self._splitter.addWidget(right)
 
         self._splitter.setStretchFactor(0, 0)
@@ -397,6 +422,7 @@ class DirtyReposCommitWindow(QDialog):
             item = QListWidgetItem(subject)
             item.setData(_SUGGESTION_MATCH_ROLE, matched)
             self._suggestions.addItem(item)
+        self._sync_suggestions_empty()
 
     def _apply_visibility_statuses(self, found: dict[Path, tuple[str, int]]) -> None:
         """Store public unpushed counts discovered while resolving visibility."""
@@ -482,6 +508,7 @@ class DirtyReposCommitWindow(QDialog):
     def _clear_suggestions(self) -> None:
         self._suggestion_subjects = []
         self._suggestions.clear()
+        self._sync_suggestions_empty()
 
     def _commit_push_tooltip(self, status: DirtyRepoStatus | None, *, can_commit: bool) -> str:
         """Explain why Commit & push is enabled or inactive."""
@@ -558,8 +585,7 @@ class DirtyReposCommitWindow(QDialog):
         def work() -> str:
             return git_diff_text_for_path(repo, path, status=status)
 
-        self._unpushed_note.hide()
-        self._diff.show()
+        self._right_stack.setCurrentWidget(self._diff)
         self._run_worker(work, self._show_diff_text, busy=False)
 
     def _load_quick_paste_async(self) -> None:
@@ -924,7 +950,10 @@ class DirtyReposCommitWindow(QDialog):
             self._file_list.addItem(item)
         self._suppress_file_signals = False
         if self._file_list.count():
+            self._files_stack.setCurrentWidget(self._file_list)
             self._file_list.setCurrentRow(0)
+        else:
+            self._files_stack.setCurrentWidget(self._files_empty)
         self._update_commit_enabled()
 
     def _populate_repos(self) -> None:
@@ -1186,10 +1215,18 @@ class DirtyReposCommitWindow(QDialog):
         self._set_status_text()
 
     def _show_diff_text(self, text: str) -> None:
-        """Show a textual diff and hide the clean-tree push note."""
-        self._unpushed_note.hide()
-        self._diff.show()
-        self._diff.setPlainText(text)
+        """Show a textual diff, or an empty hint when there is nothing to display."""
+        if text.strip():
+            self._diff.setPlainText(text)
+            self._right_stack.setCurrentWidget(self._diff)
+            return
+        if self._current_repo() is None:
+            self._diff_empty.setText("Select a repository to review changes.")
+        elif self._file_list.count() == 0:
+            self._diff_empty.setText("No diff to show.\nWorking tree is clean.")
+        else:
+            self._diff_empty.setText("No diff to show.\nSelect a changed file to view its diff.")
+        self._right_stack.setCurrentWidget(self._diff_empty)
 
     def _show_unpushed_note(self, status: DirtyRepoStatus) -> None:
         """Explain a clean public repository and offer to push its commits."""
@@ -1198,8 +1235,7 @@ class DirtyReposCommitWindow(QDialog):
             f"{status.unpushed} {noun} on this public repository are not on the remote. The working tree is clean.",
         )
         self._unpushed_push.setText(f"Push {status.unpushed} {noun}")
-        self._diff.hide()
-        self._unpushed_note.show()
+        self._right_stack.setCurrentWidget(self._unpushed_note)
         self._update_commit_enabled()
 
     def _style_push_button(self) -> None:
@@ -1213,6 +1249,19 @@ class DirtyReposCommitWindow(QDialog):
             button.setStyleSheet(push_button_qss(palette))
             button.setIcon(themed_icon("upload", palette))
         button.setIconSize(QSize(ICON_SIZE, ICON_SIZE))
+
+    def _sync_suggestions_empty(self) -> None:
+        """Show a hint when the suggestions list has no rows."""
+        if self._suggestions.count():
+            self._suggestions_stack.setCurrentWidget(self._suggestions)
+            return
+        if self._file_list.count() == 0:
+            self._suggestions_empty.setText("No suggestions — working tree is clean.")
+        elif self._suggestion_filter.strip():
+            self._suggestions_empty.setText("No suggestions match the commit title.")
+        else:
+            self._suggestions_empty.setText("No suggestions for the selected files.")
+        self._suggestions_stack.setCurrentWidget(self._suggestions_empty)
 
     def _toast(self, message: str) -> None:
         ToastNotification(message, duration=2000, parent=self)
@@ -1485,6 +1534,24 @@ def show_dirty_repos_commit_window(
     window.raise_()
     window.activateWindow()
     return window
+
+
+def _empty_hint(parent: QWidget, text: str) -> FluentText:
+    """Return a centered secondary label for an empty pane."""
+    label = FluentText(text, parent, role=TextRole.SECONDARY, word_wrap=True)
+    label.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter)
+    label.setContentsMargins(SPACE_M, SPACE_M, SPACE_M, SPACE_M)
+    return label
+
+
+def _empty_stack(content: QWidget, empty_text: str, parent: QWidget) -> tuple[QStackedWidget, FluentText]:
+    """Wrap `content` with a stack that can show a centered empty hint."""
+    stack = QStackedWidget(parent)
+    empty = _empty_hint(stack, empty_text)
+    stack.addWidget(content)
+    stack.addWidget(empty)
+    stack.setCurrentWidget(empty)
+    return stack, empty
 
 
 def _file_check_rect(item_rect: QRect) -> QRect:
