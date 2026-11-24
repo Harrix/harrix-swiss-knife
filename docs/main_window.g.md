@@ -169,8 +169,8 @@ class MainWindow(QMainWindow):
             item.setIcon(action.icon())
         self.list_widget.addItem(item)
 
-    def _add_list_section_header(self, title: str) -> None:
-        item = QListWidgetItem(title)
+    def _add_list_section_header(self, title: str, *, count: int) -> None:
+        item = QListWidgetItem(self._section_heading(title, count))
         font = item.font()
         font.setBold(True)
         item.setFont(font)
@@ -198,6 +198,7 @@ class MainWindow(QMainWindow):
         query = self._search_edit.text().strip()
         self._apply_list_search(query)
         self._apply_card_search(query)
+        self._update_action_count_label(query)
 
     def _apply_list_search(self, query: str) -> None:
         if not query and not self._is_newest_sort():
@@ -205,11 +206,17 @@ class MainWindow(QMainWindow):
             return
 
         self.list_widget.clear()
+        actions = self._ordered_catalog_actions(query)
+        section_counts: dict[str, int] = {}
+        for action in actions:
+            section = self._action_sections.get(action, "")
+            if section:
+                section_counts[section] = section_counts.get(section, 0) + 1
         last_section = ""
-        for action in self._ordered_catalog_actions(query):
+        for action in actions:
             section = self._action_sections.get(action, "")
             if section and section != last_section:
-                self._add_list_section_header(section)
+                self._add_list_section_header(section, count=section_counts.get(section, 0))
                 last_section = section
             self._add_list_action_item(action, indent_level=1 if section else 0)
 
@@ -299,6 +306,10 @@ class MainWindow(QMainWindow):
         list_layout = QVBoxLayout(list_pane)
         list_layout.setContentsMargins(SPACE_XS, SPACE_XS, 0, SPACE_M)
         list_layout.setSpacing(SPACE_S)
+
+        self._action_count_label = CaptionLabel("", list_pane)
+        self._action_count_label.setObjectName("commandActionCountLabel")
+        list_layout.addWidget(self._action_count_label)
 
         self.list_widget = FluentListWidget(list_pane, compact=True)
         self.list_widget.itemClicked.connect(self.on_item_clicked)
@@ -399,7 +410,7 @@ class MainWindow(QMainWindow):
         section_layout = QVBoxLayout(section_widget)
         section_layout.setContentsMargins(0, 0, 0, 0)
         section_layout.setSpacing(SPACE_M)
-        label = SubtitleLabel(title, section_widget)
+        label = SubtitleLabel(self._section_heading(title, len(actions)), section_widget)
         section_layout.addWidget(label)
 
         grid = FluentCardGrid(section_widget)
@@ -492,7 +503,7 @@ class MainWindow(QMainWindow):
         for section in self._sections:
             if not section.show_in_list or not section.actions:
                 continue
-            self._add_list_section_header(section.title)
+            self._add_list_section_header(section.title, count=len(section.actions))
             for action in section.actions:
                 self._add_list_action_item(action, indent_level=1)
 
@@ -525,6 +536,8 @@ class MainWindow(QMainWindow):
         actions = self._recent_gui_actions()
         if section.widget is not None:
             section.widget.setVisible(bool(actions))
+        if section.label is not None:
+            section.label.setText(self._section_heading(section.title, len(actions)))
         if section.actions == actions and section.grid.count() == len(actions):
             return
         section.actions = actions
@@ -583,6 +596,10 @@ class MainWindow(QMainWindow):
         if target is not None:
             self._scroll_cards_to_widget(target)
 
+    def _section_heading(self, title: str, count: int) -> str:
+        """Return `Title (N)` for section labels and list headers."""
+        return f"{title} ({count})"
+
     def _setup_window_size_and_position(self) -> None:
         """Set window size and position based on screen resolution and characteristics."""
         apply_app_window_size_and_position(self)
@@ -607,6 +624,15 @@ class MainWindow(QMainWindow):
         self._newest_checkbox.blockSignals(True)  # noqa: FBT003
         self._newest_checkbox.setChecked(self._is_newest_sort())
         self._newest_checkbox.blockSignals(False)  # noqa: FBT003
+
+    def _update_action_count_label(self, query: str = "") -> None:
+        """Show total catalog size, or filtered size when searching."""
+        total = len(self._all_actions)
+        if query:
+            visible = len(self._ordered_catalog_actions(query))
+            self._action_count_label.setText(f"{visible} of {total} commands")
+            return
+        self._action_count_label.setText(f"{total} commands")
 ```
 
 </details>

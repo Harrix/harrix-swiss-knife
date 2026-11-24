@@ -135,6 +135,13 @@ def test_section_header_stores_title_and_is_not_selectable(qapp: QApplication) -
         assert "Files" in titles
         assert "Images" in titles
         assert "Main" in titles
+        files_header = _section_header(window, "Files")
+        assert files_header is not None
+        assert files_header.text() == "Files (4)"
+        images_section = next(section for section in window._sections if section.title == "Images")
+        assert images_section.label is not None
+        assert images_section.label.text() == "Images (4)"
+        assert window._action_count_label.text() == "9 commands"
     finally:
         window.close()
         window.deleteLater()
