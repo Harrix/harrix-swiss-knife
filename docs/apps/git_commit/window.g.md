@@ -40,10 +40,16 @@ class DirtyReposCommitWindow(QDialog):
         repos: Sequence[Path],
         parent: QWidget | None = None,
         *,
+        initial_statuses: Sequence[DirtyRepoStatus] | None = None,
         quick_paste_db: str | Path | None = None,
         on_line: Callable[[str], None] | None = None,
     ) -> None:
-        """Build the window with an initial dirty-repo path list."""
+        """Build the window with an initial dirty-repo path list.
+
+        Pass `initial_statuses` from the action scan to skip a second full
+        Git pass on the UI thread before the first paint.
+
+        """
         super().__init__(parent)
         self.setObjectName("dirtyReposCommitWindow")
         self.setWindowTitle("Git repos needing commit")
@@ -218,10 +224,14 @@ class DirtyReposCommitWindow(QDialog):
         self._refresh_timer.setInterval(_REFRESH_MS)
         self._refresh_timer.timeout.connect(self._refresh_known_dirty)
 
-        initial = [Path(path).resolve() for path in repos]
-        self._set_statuses(refresh_repo_statuses(initial))
+        if initial_statuses is not None:
+            self._set_statuses(list(initial_statuses))
+        else:
+            initial = [Path(path).resolve() for path in repos]
+            self._set_statuses(refresh_repo_statuses(initial))
         self._load_quick_paste_async()
-        self._refresh_commit_summary()
+        # Defer the today/yesterday strip so the window can paint first.
+        QTimer.singleShot(0, self._refresh_commit_summary)
         self._refresh_timer.start()
         apply_app_window_size_and_position(self)
         self._update_commit_enabled()
@@ -254,10 +264,19 @@ class DirtyReposCommitWindow(QDialog):
             return handled
         return cast("tuple[bool, int]", super().nativeEvent(event_type, message))
 
-    def replace_repos(self, repos: Sequence[Path], *, on_line: Callable[[str], None] | None = None) -> None:
+    def replace_repos(
+        self,
+        repos: Sequence[Path],
+        *,
+        initial_statuses: Sequence[DirtyRepoStatus] | None = None,
+        on_line: Callable[[str], None] | None = None,
+    ) -> None:
         """Replace the dirty-repo list (used when the action rescans while open)."""
         if on_line is not None:
             self._on_line = on_line
+        if initial_statuses is not None:
+            self._set_statuses(list(initial_statuses))
+            return
         initial = [Path(path).resolve() for path in repos]
         self._set_statuses(refresh_repo_statuses(initial))
 
@@ -1136,10 +1155,13 @@ class DirtyReposCommitWindow(QDialog):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, repos: Sequence[Path], parent: QWidget | None = None, *, quick_paste_db: str | Path | None = None, on_line: Callable[[str], None] | None = None) -> None
+def __init__(self, repos: Sequence[Path], parent: QWidget | None = None, *, initial_statuses: Sequence[DirtyRepoStatus] | None = None, quick_paste_db: str | Path | None = None, on_line: Callable[[str], None] | None = None) -> None
 ```
 
 Build the window with an initial dirty-repo path list.
+
+Pass `initial_statuses` from the action scan to skip a second full
+Git pass on the UI thread before the first paint.
 
 <details>
 <summary>Code:</summary>
@@ -1150,6 +1172,7 @@ def __init__(
         repos: Sequence[Path],
         parent: QWidget | None = None,
         *,
+        initial_statuses: Sequence[DirtyRepoStatus] | None = None,
         quick_paste_db: str | Path | None = None,
         on_line: Callable[[str], None] | None = None,
     ) -> None:
@@ -1327,10 +1350,14 @@ def __init__(
         self._refresh_timer.setInterval(_REFRESH_MS)
         self._refresh_timer.timeout.connect(self._refresh_known_dirty)
 
-        initial = [Path(path).resolve() for path in repos]
-        self._set_statuses(refresh_repo_statuses(initial))
+        if initial_statuses is not None:
+            self._set_statuses(list(initial_statuses))
+        else:
+            initial = [Path(path).resolve() for path in repos]
+            self._set_statuses(refresh_repo_statuses(initial))
         self._load_quick_paste_async()
-        self._refresh_commit_summary()
+        # Defer the today/yesterday strip so the window can paint first.
+        QTimer.singleShot(0, self._refresh_commit_summary)
         self._refresh_timer.start()
         apply_app_window_size_and_position(self)
         self._update_commit_enabled()
@@ -1411,7 +1438,7 @@ def nativeEvent(self, event_type: Any, message: Any) -> tuple[bool, int]:  # noq
 ### ⚙️ Method `replace_repos`
 
 ```python
-def replace_repos(self, repos: Sequence[Path], *, on_line: Callable[[str], None] | None = None) -> None
+def replace_repos(self, repos: Sequence[Path], *, initial_statuses: Sequence[DirtyRepoStatus] | None = None, on_line: Callable[[str], None] | None = None) -> None
 ```
 
 Replace the dirty-repo list (used when the action rescans while open).
@@ -1420,9 +1447,18 @@ Replace the dirty-repo list (used when the action rescans while open).
 <summary>Code:</summary>
 
 ```python
-def replace_repos(self, repos: Sequence[Path], *, on_line: Callable[[str], None] | None = None) -> None:
+def replace_repos(
+        self,
+        repos: Sequence[Path],
+        *,
+        initial_statuses: Sequence[DirtyRepoStatus] | None = None,
+        on_line: Callable[[str], None] | None = None,
+    ) -> None:
         if on_line is not None:
             self._on_line = on_line
+        if initial_statuses is not None:
+            self._set_statuses(list(initial_statuses))
+            return
         initial = [Path(path).resolve() for path in repos]
         self._set_statuses(refresh_repo_statuses(initial))
 ```
@@ -1432,10 +1468,13 @@ def replace_repos(self, repos: Sequence[Path], *, on_line: Callable[[str], None]
 ## 🔧 Function `show_dirty_repos_commit_window`
 
 ```python
-def show_dirty_repos_commit_window(repos: Sequence[Path], parent: QWidget | None = None, *, quick_paste_db: str | Path | None = None, on_line: Callable[[str], None] | None = None) -> DirtyReposCommitWindow
+def show_dirty_repos_commit_window(repos: Sequence[Path], parent: QWidget | None = None, *, initial_statuses: Sequence[DirtyRepoStatus] | None = None, quick_paste_db: str | Path | None = None, on_line: Callable[[str], None] | None = None) -> DirtyReposCommitWindow
 ```
 
 Show or raise the singleton dirty-repos commit window.
+
+When `initial_statuses` comes from the same scan that produced `repos`,
+the window skips a duplicate Git refresh before the first paint.
 
 <details>
 <summary>Code:</summary>
@@ -1445,6 +1484,7 @@ def show_dirty_repos_commit_window(
     repos: Sequence[Path],
     parent: QWidget | None = None,
     *,
+    initial_statuses: Sequence[DirtyRepoStatus] | None = None,
     quick_paste_db: str | Path | None = None,
     on_line: Callable[[str], None] | None = None,
 ) -> DirtyReposCommitWindow:
@@ -1452,7 +1492,11 @@ def show_dirty_repos_commit_window(
     if _active_window is not None:
         try:
             if _active_window.isVisible():
-                _active_window.replace_repos(repos, on_line=on_line)
+                _active_window.replace_repos(
+                    repos,
+                    initial_statuses=initial_statuses,
+                    on_line=on_line,
+                )
                 _active_window.raise_()
                 _active_window.activateWindow()
                 return _active_window
@@ -1461,6 +1505,7 @@ def show_dirty_repos_commit_window(
     window = DirtyReposCommitWindow(
         repos,
         parent,
+        initial_statuses=initial_statuses,
         quick_paste_db=quick_paste_db,
         on_line=on_line,
     )

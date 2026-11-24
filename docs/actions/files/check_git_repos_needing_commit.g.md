@@ -89,14 +89,16 @@ class OnCheckGitReposNeedingCommit(ActionBase):
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
     @ActionBase.handle_exceptions("checking git repos needing commit thread")
-    def in_thread(self) -> list[DirtyRepo]:
+    def in_thread(self) -> list[DirtyRepoStatus]:
         """Scan roots on a worker thread."""
-        return self._scan_dirty_repos(self._configured_roots())
+        return self._scan_dirty_statuses(self._configured_roots())
 
     @ActionBase.handle_exceptions("checking git repos needing commit thread completion")
     def thread_after(self, result: Any) -> None:
         """Open the Fluent commit window, or show a clean result."""
-        dirty = result if isinstance(result, list) else []
+        raw = result if isinstance(result, list) else []
+        statuses = [item for item in raw if isinstance(item, DirtyRepoStatus)]
+        dirty = self._statuses_to_dirty(statuses)
         roots = self._configured_roots()
         self._report_scan(roots, dirty)
         if not dirty:
@@ -113,6 +115,7 @@ class OnCheckGitReposNeedingCommit(ActionBase):
         quick_paste_db = self.config.get("sqlite_snippets")
         show_dirty_repos_commit_window(
             [repo.path for repo in dirty],
+            initial_statuses=statuses,
             quick_paste_db=str(quick_paste_db) if quick_paste_db else None,
             on_line=self.add_line,
         )
@@ -163,11 +166,19 @@ class OnCheckGitReposNeedingCommit(ActionBase):
             self.add_line(f"  • {repo.path} ({', '.join(parts)})")
 
     def _scan_dirty_repos(self, roots: list[Path]) -> list[DirtyRepo]:
+        return self._statuses_to_dirty(self._scan_dirty_statuses(roots))
+
+    def _scan_dirty_statuses(self, roots: list[Path]) -> list[DirtyRepoStatus]:
         for root in roots:
             if not root.is_dir():
                 self.add_line(f"⚪ Skip missing root: {root}")
+        return scan_dirty_repos(roots)
+
+    def _statuses_to_dirty(self, statuses: list[DirtyRepoStatus]) -> list[DirtyRepo]:
         found: list[DirtyRepo] = []
-        for status in scan_dirty_repos(roots):
+        for status in statuses:
+            if not isinstance(status, DirtyRepoStatus):
+                continue
             samples = tuple(f"{item.status} {item.path}" for item in status.files[:5])
             found.append(
                 DirtyRepo(
@@ -220,7 +231,7 @@ def execute(
 ### ⚙️ Method `in_thread`
 
 ```python
-def in_thread(self) -> list[DirtyRepo]
+def in_thread(self) -> list[DirtyRepoStatus]
 ```
 
 Scan roots on a worker thread.
@@ -229,8 +240,8 @@ Scan roots on a worker thread.
 <summary>Code:</summary>
 
 ```python
-def in_thread(self) -> list[DirtyRepo]:
-        return self._scan_dirty_repos(self._configured_roots())
+def in_thread(self) -> list[DirtyRepoStatus]:
+        return self._scan_dirty_statuses(self._configured_roots())
 ```
 
 </details>
@@ -248,7 +259,9 @@ Open the Fluent commit window, or show a clean result.
 
 ```python
 def thread_after(self, result: Any) -> None:
-        dirty = result if isinstance(result, list) else []
+        raw = result if isinstance(result, list) else []
+        statuses = [item for item in raw if isinstance(item, DirtyRepoStatus)]
+        dirty = self._statuses_to_dirty(statuses)
         roots = self._configured_roots()
         self._report_scan(roots, dirty)
         if not dirty:
@@ -265,6 +278,7 @@ def thread_after(self, result: Any) -> None:
         quick_paste_db = self.config.get("sqlite_snippets")
         show_dirty_repos_commit_window(
             [repo.path for repo in dirty],
+            initial_statuses=statuses,
             quick_paste_db=str(quick_paste_db) if quick_paste_db else None,
             on_line=self.add_line,
         )

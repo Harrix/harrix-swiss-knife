@@ -27,6 +27,7 @@ lang: en
 - [🔧 Function `add_git_root`](#-function-add_git_root)
 - [🔧 Function `attention_status`](#-function-attention_status)
 - [🔧 Function `clear_commit_day_cache`](#-function-clear_commit_day_cache)
+- [🔧 Function `clear_unpushed_cache`](#-function-clear_unpushed_cache)
 - [🔧 Function `commit_selected_paths`](#-function-commit_selected_paths)
 - [🔧 Function `configured_git_roots`](#-function-configured_git_roots)
 - [🔧 Function `count_commits_by_day`](#-function-count_commits_by_day)
@@ -35,6 +36,7 @@ lang: en
 - [🔧 Function `discover_git_repos`](#-function-discover_git_repos)
 - [🔧 Function `ensure_commit_day_cache`](#-function-ensure_commit_day_cache)
 - [🔧 Function `github_repo_visibility`](#-function-github_repo_visibility)
+- [🔧 Function `invalidate_unpushed_cache`](#-function-invalidate_unpushed_cache)
 - [🔧 Function `list_changed_files`](#-function-list_changed_files)
 - [🔧 Function `list_commit_years`](#-function-list_commit_years)
 - [🔧 Function `load_repo_commit_day_cache`](#-function-load_repo_commit_day_cache)
@@ -415,7 +417,7 @@ def add_git_root(folder: Path, *, config_path: str | None = None) -> GitRootAdd:
 ## 🔧 Function `attention_status`
 
 ```python
-def attention_status(repo: Path, *, resolve_visibility: bool = True) -> DirtyRepoStatus | None
+def attention_status(repo: Path, *, resolve_visibility: bool = True, fresh_unpushed: bool = False) -> DirtyRepoStatus | None
 ```
 
 Return a status when `repo` has uncommitted files or public unpushed commits.
@@ -427,25 +429,34 @@ push alone.
 
 `resolve_visibility` asks GitHub when the cached visibility is missing.
 Refresh on the UI thread should pass `False` and reuse the cache.
+Cached private repositories skip the unpushed `rev-list` entirely.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def attention_status(repo: Path, *, resolve_visibility: bool = True) -> DirtyRepoStatus | None:
+def attention_status(
+    repo: Path,
+    *,
+    resolve_visibility: bool = True,
+    fresh_unpushed: bool = False,
+) -> DirtyRepoStatus | None:
     repo = repo.resolve()
     files = tuple(list_changed_files(repo))
     access = read_repo_access(repo)
-    unpushed = 0 if access.kind == "local" else unpushed_commit_count(repo)
-    if unpushed and access.kind == "remote" and access.github_slug and resolve_visibility:
-        owner, _, name = access.github_slug.partition("/")
-        if owner and name:
-            access = repo_access_from_remote(
-                access.remote_url,
-                visibility=github_repo_visibility(owner, name),
-            )
-    if access.kind != "public":
+    if access.kind in {"local", "private"}:
         unpushed = 0
+    else:
+        unpushed = unpushed_commit_count(repo, fresh=fresh_unpushed)
+        if unpushed and access.kind == "remote" and access.github_slug and resolve_visibility:
+            owner, _, name = access.github_slug.partition("/")
+            if owner and name:
+                access = repo_access_from_remote(
+                    access.remote_url,
+                    visibility=github_repo_visibility(owner, name),
+                )
+        if access.kind != "public":
+            unpushed = 0
     if not files and unpushed <= 0:
         return None
     return DirtyRepoStatus(path=repo, files=files, unpushed=unpushed, access_kind=access.kind)
@@ -468,6 +479,25 @@ Drop the in-memory per-repository commit-day cache.
 def clear_commit_day_cache() -> None:
     with _commit_day_cache_lock:
         _commit_day_cache.clear()
+```
+
+</details>
+
+## 🔧 Function `clear_unpushed_cache`
+
+```python
+def clear_unpushed_cache() -> None
+```
+
+Drop the in-memory unpushed-commit count cache.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def clear_unpushed_cache() -> None:
+    with _unpushed_cache_lock:
+        _unpushed_cache.clear()
 ```
 
 </details>
@@ -500,6 +530,7 @@ def commit_selected_paths(repo: Path, paths: list[str], subject: str) -> tuple[b
     commit_p = git_run(repo, "commit", "-m", subject)
     if commit_p.returncode != 0:
         return False, (commit_p.stderr or commit_p.stdout or "git commit failed").strip()
+    invalidate_unpushed_cache(repo)
     return True, subject
 ```
 
@@ -613,13 +644,27 @@ def count_recent_commits(roots: list[Path]) -> CommitDaySummary:
     yesterday, today = _recent_days()
     today_buckets = _empty_commit_buckets()
     yesterday_buckets = _empty_commit_buckets()
-    for repo in _unique_git_repos(roots):
+    repos = list(_unique_git_repos(roots))
+    if not repos:
+        return CommitDaySummary(
+            today=_counts_from_buckets(today_buckets),
+            yesterday=_counts_from_buckets(yesterday_buckets),
+        )
+
+    def _one(repo: Path) -> tuple[int, int, str] | None:
         today_count, yesterday_count = _commits_on_recent_days(repo, yesterday, today)
         if today_count == 0 and yesterday_count == 0:
-            continue
-        bucket = _commit_visibility_bucket(repo)
-        today_buckets[bucket] += today_count
-        yesterday_buckets[bucket] += yesterday_count
+            return None
+        return today_count, yesterday_count, _commit_visibility_bucket(repo)
+
+    workers = min(_SCAN_WORKERS, len(repos))
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        for result in pool.map(_one, repos):
+            if result is None:
+                continue
+            today_count, yesterday_count, bucket = result
+            today_buckets[bucket] += today_count
+            yesterday_buckets[bucket] += yesterday_count
     return CommitDaySummary(
         today=_counts_from_buckets(today_buckets),
         yesterday=_counts_from_buckets(yesterday_buckets),
@@ -688,6 +733,7 @@ def discard_changed_paths(repo: Path, paths: list[str]) -> tuple[bool, str]:
         discarded += len(untracked)
 
     noun = "path" if discarded == 1 else "paths"
+    invalidate_unpushed_cache(repo)
     return True, f"Discarded {discarded} {noun}"
 ```
 
@@ -762,6 +808,32 @@ def github_repo_visibility(owner: str, repo: str) -> str:
     if result != "unknown":
         _visibility_cache[key] = result
     return result
+```
+
+</details>
+
+## 🔧 Function `invalidate_unpushed_cache`
+
+```python
+def invalidate_unpushed_cache(repo: Path | None = None) -> None
+```
+
+Drop cached unpushed counts for `repo`, or for every repository.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def invalidate_unpushed_cache(repo: Path | None = None) -> None:
+    with _unpushed_cache_lock:
+        if repo is None:
+            _unpushed_cache.clear()
+            return
+        try:
+            key = str(repo.resolve())
+        except OSError:
+            key = str(repo)
+        _unpushed_cache.pop(key, None)
 ```
 
 </details>
@@ -982,6 +1054,7 @@ def push_current_branch(repo: Path) -> tuple[bool, str]:
         proc = git_run(repo, "push", "-u", "origin", "HEAD")
     if proc.returncode != 0:
         return False, _git_last_line(proc) or "git push failed"
+    invalidate_unpushed_cache(repo)
     return True, _git_last_line(proc) or "Pushed"
 ```
 
@@ -1018,6 +1091,7 @@ Re-status known repos; keep those that still need a commit or a public push.
 
 Checks `prefer_first` before the rest when it is in `repos`. Visibility is
 read from the cache so this can run on a timer without calling GitHub.
+Unpushed counts are refreshed in parallel and skip the process cache.
 
 <details>
 <summary>Code:</summary>
@@ -1040,12 +1114,21 @@ def refresh_repo_statuses(repos: list[Path], *, prefer_first: Path | None = None
         seen.add(resolved)
         ordered.append(resolved)
 
-    dirty: list[DirtyRepoStatus] = []
-    for repo in ordered:
-        status = attention_status(repo, resolve_visibility=False)
-        if status is not None:
-            dirty.append(status)
-    return dirty
+    if not ordered:
+        return []
+
+    def _one(repo: Path) -> DirtyRepoStatus | None:
+        return attention_status(repo, resolve_visibility=False, fresh_unpushed=True)
+
+    workers = min(_SCAN_WORKERS, len(ordered))
+    by_path: dict[Path, DirtyRepoStatus] = {}
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        futures = {pool.submit(_one, repo): repo for repo in ordered}
+        for future in as_completed(futures):
+            status = future.result()
+            if status is not None:
+                by_path[status.path] = status
+    return [by_path[repo] for repo in ordered if repo in by_path]
 ```
 
 </details>
@@ -1087,19 +1170,38 @@ Find repos under `roots` that need a commit or a public push.
 
 A root is checked itself when it is a Git repository, otherwise its
 immediate child repositories are checked. Local repositories are included
-only when they have uncommitted files.
+only when they have uncommitted files. Repositories are checked in parallel.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def scan_dirty_repos(roots: list[Path]) -> list[DirtyRepoStatus]:
-    dirty: list[DirtyRepoStatus] = []
-    for repo in _unique_git_repos(roots):
-        status = attention_status(repo)
+    repos = list(_unique_git_repos(roots))
+    if not repos:
+        return []
+
+    def _one(repo: Path) -> DirtyRepoStatus | None:
+        return attention_status(repo)
+
+    workers = min(_SCAN_WORKERS, len(repos))
+    by_path: dict[Path, DirtyRepoStatus] = {}
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        futures = {pool.submit(_one, repo): repo for repo in repos}
+        for future in as_completed(futures):
+            status = future.result()
+            if status is not None:
+                by_path[status.path] = status
+    ordered: list[DirtyRepoStatus] = []
+    for repo in repos:
+        try:
+            key = repo.resolve()
+        except OSError:
+            key = repo
+        status = by_path.get(key)
         if status is not None:
-            dirty.append(status)
-    return dirty
+            ordered.append(status)
+    return ordered
 ```
 
 </details>
@@ -1107,29 +1209,44 @@ def scan_dirty_repos(roots: list[Path]) -> list[DirtyRepoStatus]:
 ## 🔧 Function `unpushed_commit_count`
 
 ```python
-def unpushed_commit_count(repo: Path) -> int
+def unpushed_commit_count(repo: Path, *, fresh: bool = False) -> int
 ```
 
 Return how many commits on `HEAD` are missing from every remote-tracking ref.
 
 A repository with no remote returns `0`. The count uses local remote-tracking
-refs and does not contact the server.
+refs and does not contact the server. Results are cached for this process
+unless `fresh` is set; commit/push/discard invalidate the entry.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def unpushed_commit_count(repo: Path) -> int:
+def unpushed_commit_count(repo: Path, *, fresh: bool = False) -> int:
+    try:
+        key = str(repo.resolve())
+    except OSError:
+        key = str(repo)
+    if not fresh:
+        with _unpushed_cache_lock:
+            cached = _unpushed_cache.get(key)
+            if cached is not None:
+                return cached
     names = git_run(repo, "remote")
     if names.returncode != 0 or not names.stdout.strip():
-        return 0
-    proc = git_run(repo, "rev-list", "--count", "HEAD", "--not", "--remotes")
-    if proc.returncode != 0:
-        return 0
-    try:
-        return max(0, int(proc.stdout.strip() or "0"))
-    except ValueError:
-        return 0
+        count = 0
+    else:
+        proc = git_run(repo, "rev-list", "--count", "HEAD", "--not", "--remotes")
+        if proc.returncode != 0:
+            count = 0
+        else:
+            try:
+                count = max(0, int(proc.stdout.strip() or "0"))
+            except ValueError:
+                count = 0
+    with _unpushed_cache_lock:
+        _unpushed_cache[key] = count
+    return count
 ```
 
 </details>
