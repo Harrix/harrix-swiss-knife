@@ -71,7 +71,6 @@ import dev.harrix.hsk.dropboxsync.SyncAction
 import dev.harrix.hsk.dropboxsync.SyncMode
 import dev.harrix.hsk.dropboxsync.SyncPhase
 import dev.harrix.hsk.dropboxsync.SyncStorageAdapter
-import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.HskDropdownMenuItem
 import dev.harrix.hsk.ui.HubUtilityIcons
 import dev.harrix.hsk.ui.UtilityTopBarTitle
