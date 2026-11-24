@@ -3,6 +3,7 @@ package dev.harrix.hsk.ui.dropboxsync
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import android.os.Environment
 import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
@@ -110,6 +111,9 @@ fun DropboxSyncScreen(
     var logsPairId by remember { mutableStateOf<Long?>(null) }
     var showRemotePicker by remember { mutableStateOf(false) }
     var remotePickTarget by remember { mutableStateOf<((String) -> Unit)?>(null) }
+    var showLocalPicker by remember { mutableStateOf(false) }
+    var localPickTarget by remember { mutableStateOf<((String) -> Unit)?>(null) }
+    var localPickInitial by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(message) {
         val text = message ?: return@LaunchedEffect
@@ -238,11 +242,35 @@ fun DropboxSyncScreen(
                 viewModel.savePair(pair)
                 showEditor = false
             },
+            onPickLocal = { current, onPicked ->
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
+                    !Environment.isExternalStorageManager()
+                ) {
+                    Toast
+                        .makeText(context, R.string.dropbox_sync_need_all_files, Toast.LENGTH_LONG)
+                        .show()
+                } else {
+                    localPickInitial = current
+                    localPickTarget = onPicked
+                    showLocalPicker = true
+                }
+            },
             onPickRemote = { onPicked ->
                 remotePickTarget = onPicked
                 viewModel.loadRemoteFolder("")
                 showRemotePicker = true
             },
+        )
+    }
+
+    if (showLocalPicker) {
+        LocalFolderPickerScreen(
+            initialPath = localPickInitial,
+            onSelect = { path ->
+                localPickTarget?.invoke(path)
+                showLocalPicker = false
+            },
+            onDismiss = { showLocalPicker = false },
         )
     }
 
@@ -447,6 +475,7 @@ private fun FolderPairEditorDialog(
     initial: FolderPair?,
     onDismiss: () -> Unit,
     onSave: (FolderPair) -> Unit,
+    onPickLocal: (currentPath: String, onPicked: (String) -> Unit) -> Unit,
     onPickRemote: ((String) -> Unit) -> Unit,
 ) {
     val context = LocalContext.current
@@ -486,7 +515,7 @@ private fun FolderPairEditorDialog(
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                androidx.compose.material3.OutlinedTextField(
+                OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
                     label = { Text(stringResource(R.string.dropbox_sync_pair_name)) },
@@ -495,6 +524,19 @@ private fun FolderPairEditorDialog(
                 Text(stringResource(R.string.dropbox_sync_local_folder), style = MaterialTheme.typography.labelLarge)
                 AutoFitText(text = localPath.ifBlank { stringResource(R.string.dropbox_sync_no_local_folder) }, maxLines = 2)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(
+                        onClick = {
+                            onPickLocal(localPath) { picked ->
+                                localPath = picked
+                                storageType = StorageType.Direct
+                                if (name.isBlank()) {
+                                    name = File(picked).name.ifBlank { "Pair" }
+                                }
+                            }
+                        },
+                    ) {
+                        Text(stringResource(R.string.dropbox_sync_pick_local))
+                    }
                     OutlinedButton(
                         onClick = {
                             val root = SyncStorageAdapter.defaultInternalRoot()
@@ -506,9 +548,9 @@ private fun FolderPairEditorDialog(
                     ) {
                         Text(stringResource(R.string.dropbox_sync_use_internal))
                     }
-                    OutlinedButton(onClick = { treeLauncher.launch(null) }) {
-                        Text(stringResource(R.string.dropbox_sync_use_saf))
-                    }
+                }
+                TextButton(onClick = { treeLauncher.launch(null) }) {
+                    Text(stringResource(R.string.dropbox_sync_use_saf))
                 }
                 Text(stringResource(R.string.dropbox_sync_remote_folder), style = MaterialTheme.typography.labelLarge)
                 AutoFitText(text = remotePath.ifBlank { "/" }, maxLines = 2)
@@ -573,6 +615,235 @@ private fun FolderPairEditorDialog(
             }
         },
     )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LocalFolderPickerScreen(
+    initialPath: String?,
+    onSelect: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val context = LocalContext.current
+    val roots = remember { SyncStorageAdapter.listStorageRoots(context) }
+    val rootPaths = remember(roots) { roots.map { it.absolutePath }.toSet() }
+    var showingRoots by remember { mutableStateOf(false) }
+    var currentDir by remember {
+        val start =
+            initialPath
+                ?.takeIf { it.isNotBlank() && !it.startsWith("content:", ignoreCase = true) }
+                ?.let { File(it) }
+                ?.let { file ->
+                    when {
+                        file.isDirectory -> file
+                        file.parentFile?.isDirectory == true -> file.parentFile
+                        else -> null
+                    }
+                }
+                ?: roots.firstOrNull()
+                ?: SyncStorageAdapter.defaultInternalRoot()
+        mutableStateOf(start)
+    }
+    var children by remember { mutableStateOf<List<File>>(emptyList()) }
+    var newFolder by remember { mutableStateOf("") }
+    var message by remember { mutableStateOf<String?>(null) }
+
+    fun refreshChildren() {
+        children = SyncStorageAdapter.listChildDirectories(currentDir)
+    }
+
+    LaunchedEffect(currentDir, showingRoots) {
+        if (!showingRoots) {
+            refreshChildren()
+        }
+    }
+
+    LaunchedEffect(message) {
+        val text = message ?: return@LaunchedEffect
+        Toast.makeText(context, text, Toast.LENGTH_SHORT).show()
+        message = null
+    }
+
+    val titlePath =
+        if (showingRoots) {
+            stringResource(R.string.dropbox_sync_storage_roots)
+        } else {
+            currentDir.absolutePath
+        }
+    val canGoUp =
+        if (showingRoots) {
+            false
+        } else {
+            currentDir.absolutePath in rootPaths || currentDir.parentFile != null
+        }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties =
+        DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false,
+            dismissOnBackPress = true,
+            dismissOnClickOutside = false,
+        ),
+    ) {
+        BackHandler {
+            when {
+                showingRoots -> onDismiss()
+                currentDir.absolutePath in rootPaths -> showingRoots = true
+                currentDir.parentFile != null -> currentDir = currentDir.parentFile!!
+                else -> onDismiss()
+            }
+        }
+        Surface(modifier = Modifier.fillMaxSize(), color = hskScaffoldContainerColor()) {
+            Scaffold(
+                modifier = Modifier.fillMaxSize(),
+                containerColor = hskScaffoldContainerColor(),
+                contentWindowInsets = hskScaffoldContentWindowInsets(),
+                topBar = {
+                    TopAppBar(
+                        title = {
+                            Column {
+                                Text(
+                                    text = stringResource(R.string.dropbox_sync_pick_local),
+                                    style = MaterialTheme.typography.titleMedium,
+                                )
+                                Text(
+                                    text = titlePath,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        },
+                        navigationIcon = {
+                            IconButton(
+                                onClick = {
+                                    when {
+                                        showingRoots -> onDismiss()
+
+                                        currentDir.absolutePath in rootPaths -> showingRoots = true
+
+                                        currentDir.parentFile != null ->
+                                            currentDir = currentDir.parentFile!!
+
+                                        else -> onDismiss()
+                                    }
+                                },
+                            ) {
+                                Icon(
+                                    LucideIcons.ArrowBack,
+                                    contentDescription = stringResource(R.string.about_back),
+                                )
+                            }
+                        },
+                        colors = hskTopAppBarColors(),
+                        windowInsets = hskTopAppBarWindowInsets(),
+                        expandedHeight = HskTopAppBarHeight,
+                    )
+                },
+                bottomBar = {
+                    if (!showingRoots) {
+                        Surface(tonalElevation = 2.dp) {
+                            Column(
+                                modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    OutlinedTextField(
+                                        value = newFolder,
+                                        onValueChange = { newFolder = it },
+                                        label = {
+                                            Text(stringResource(R.string.dropbox_sync_new_remote_folder))
+                                        },
+                                        singleLine = true,
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    TextButton(
+                                        onClick = {
+                                            val folderName = newFolder.trim()
+                                            if (folderName.isEmpty()) return@TextButton
+                                            val created = File(currentDir, folderName)
+                                            if (created.mkdirs() || created.isDirectory) {
+                                                newFolder = ""
+                                                refreshChildren()
+                                                currentDir = created
+                                            } else {
+                                                message =
+                                                    context.getString(
+                                                        R.string.dropbox_sync_create_folder_failed,
+                                                    )
+                                            }
+                                        },
+                                    ) {
+                                        Text(stringResource(R.string.dropbox_sync_create_folder))
+                                    }
+                                }
+                                Button(
+                                    onClick = { onSelect(currentDir.absolutePath) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Text(stringResource(R.string.dropbox_sync_use_this_folder))
+                                }
+                            }
+                        }
+                    }
+                },
+            ) { padding ->
+                LazyColumn(
+                    modifier =
+                    Modifier
+                        .padding(padding)
+                        .fillMaxSize(),
+                    contentPadding = PaddingValues(vertical = 4.dp),
+                ) {
+                    if (showingRoots) {
+                        items(roots, key = { it.absolutePath }) { root ->
+                            FolderRow(
+                                name = root.absolutePath,
+                                onClick = {
+                                    currentDir = root
+                                    showingRoots = false
+                                },
+                            )
+                            HorizontalDivider()
+                        }
+                    } else {
+                        if (canGoUp) {
+                            item(key = "__parent__") {
+                                FolderRow(
+                                    name = "..",
+                                    onClick = {
+                                        if (currentDir.absolutePath in rootPaths) {
+                                            showingRoots = true
+                                        } else {
+                                            currentDir.parentFile?.let { currentDir = it }
+                                        }
+                                    },
+                                )
+                                HorizontalDivider()
+                            }
+                        }
+                        items(children, key = { it.absolutePath }) { child ->
+                            FolderRow(
+                                name = child.name,
+                                onClick = { currentDir = child },
+                            )
+                            HorizontalDivider()
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -704,7 +975,7 @@ private fun DropboxRemotePickerScreen(
                 ) {
                     if (canGoUp) {
                         item(key = "__parent__") {
-                            RemoteFolderRow(
+                            FolderRow(
                                 name = "..",
                                 onClick = { onNavigate(parentPath) },
                             )
@@ -712,7 +983,7 @@ private fun DropboxRemotePickerScreen(
                         }
                     }
                     items(folders, key = { it.pathLower }) { item ->
-                        RemoteFolderRow(
+                        FolderRow(
                             name = item.name,
                             onClick = { onNavigate(item.pathDisplay) },
                         )
@@ -725,7 +996,7 @@ private fun DropboxRemotePickerScreen(
 }
 
 @Composable
-private fun RemoteFolderRow(
+private fun FolderRow(
     name: String,
     onClick: () -> Unit,
 ) {

@@ -521,8 +521,12 @@
     <string name="dropbox_sync_remote_folder">Dropbox folder</string>
     <string name="dropbox_sync_no_local_folder">No local folder selected</string>
     <string name="dropbox_sync_use_internal">Use internal folder</string>
-    <string name="dropbox_sync_use_saf">Choose folder (SAF / microSD)</string>
+    <string name="dropbox_sync_pick_local">Browse folders</string>
+    <string name="dropbox_sync_use_saf">System picker (SAF)</string>
     <string name="dropbox_sync_pick_remote">Browse Dropbox</string>
+    <string name="dropbox_sync_storage_roots">Storage</string>
+    <string name="dropbox_sync_create_folder_failed">Could not create folder</string>
+    <string name="dropbox_sync_need_all_files">Grant All files access first</string>
     <string name="dropbox_sync_confirm_local_changes">Ask before replacing or deleting locally changed files</string>
     <string name="dropbox_sync_pair_incomplete">Name, local folder, and Dropbox path are required</string>
     <string name="dropbox_sync_save">Save</string>

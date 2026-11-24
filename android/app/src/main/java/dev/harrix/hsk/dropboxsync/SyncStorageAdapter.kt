@@ -53,6 +53,30 @@ interface SyncStorageAdapter {
         }
 
         fun defaultInternalRoot(): File = Environment.getExternalStorageDirectory()
+
+        /** Internal storage and removable volumes (microSD) when All files access is granted. */
+        fun listStorageRoots(context: Context): List<File> {
+            val roots = linkedMapOf<String, File>()
+            defaultInternalRoot().takeIf { it.exists() }?.let { roots[it.absolutePath] = it }
+            context.getExternalFilesDirs(null)?.forEach { filesDir ->
+                if (filesDir == null) return@forEach
+                val absolute = filesDir.absolutePath.replace('\\', '/')
+                val marker = "/Android/data/"
+                val idx = absolute.indexOf(marker)
+                if (idx <= 0) return@forEach
+                val root = File(absolute.substring(0, idx))
+                if (root.exists() && root.canRead()) {
+                    roots.putIfAbsent(root.absolutePath, root)
+                }
+            }
+            return roots.values.toList()
+        }
+
+        fun listChildDirectories(dir: File): List<File> = dir
+            .listFiles()
+            ?.filter { it.isDirectory && !it.isHidden }
+            ?.sortedBy { it.name.lowercase() }
+            .orEmpty()
     }
 }
 
