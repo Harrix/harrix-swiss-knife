@@ -59,6 +59,7 @@ _Figure 1: Screenshot_
 ## 📋 List of commands
 
 - **Android**
+  - 🎮 ★ Beat Saber saves… ꟲᴸᴵ
   - 📱 ★ Build Android APK in … ꟲᴸᴵ
   - 🔬 Check Android code in … ꟲᴸᴵ
   - ✨ Format Android code in … ꟲᴸᴵ
@@ -405,6 +406,11 @@ Folder arguments are optional (default: current directory) for commands that tak
 | 📱   | `hsk android build release`                  | Build release APK in `.` (debug-signed for sideload)                                                       |
 | 📱   | `hsk android build --all`                    | Build/install all `paths_android_projects` sequentially                                                    |
 | 📱   | `hsk android build --all release`            | Same with explicit variant                                                                                 |
+| 🎮   | `hsk android beat-saber-saves export pc`     | Export PC Beat Saber LocalLow saves to `{path_backups}/BeatSaber/`                                         |
+| 🎮   | `hsk android beat-saber-saves export quest`  | Export Quest Beat Saber saves via adb                                                                      |
+| 🎮   | `hsk android beat-saber-saves import pc`     | Import Beat Saber ZIP into PC LocalLow (requires `--zip`)                                                  |
+| 🎮   | `hsk android beat-saber-saves import quest`  | Import Beat Saber ZIP onto Quest via adb (requires `--zip`)                                                |
+| 🎮   | `hsk android beat-saber-saves … --zip PATH`  | Override ZIP path for export or import                                                                     |
 
 ### `hsk vscode`
 

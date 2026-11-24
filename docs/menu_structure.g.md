@@ -57,6 +57,7 @@ def get_menu_structure() -> list[Any]:
                 OnAndroidFormat,
                 OnAndroidCheck,
                 OnAndroidBuild,
+                OnBeatSaberSaves,
             ],
         ),
         (

@@ -12,6 +12,7 @@ lang: en
 ## Contents
 
 - [🔧 Function `backup_subdir`](#-function-backup_subdir)
+- [🔧 Function `beat_saber_backup_root`](#-function-beat_saber_backup_root)
 - [🔧 Function `browser_bookmarks_backup_root`](#-function-browser_bookmarks_backup_root)
 - [🔧 Function `cursor_backup_root`](#-function-cursor_backup_root)
 - [🔧 Function `habits_backup_root`](#-function-habits_backup_root)
@@ -38,6 +39,24 @@ def backup_subdir(name: str, config: dict[str, Any] | None = None, *, config_pat
     path = resolve_backup_dir(config, config_path=config_path) / name
     path.mkdir(parents=True, exist_ok=True)
     return path
+```
+
+</details>
+
+## 🔧 Function `beat_saber_backup_root`
+
+```python
+def beat_saber_backup_root(config: dict[str, Any] | None = None, *, config_path: str | None = None) -> Path
+```
+
+Return the folder for Beat Saber save ZIP backups.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def beat_saber_backup_root(config: dict[str, Any] | None = None, *, config_path: str | None = None) -> Path:
+    return backup_subdir(_SUBDIR_BEAT_SABER, config, config_path=config_path)
 ```
 
 </details>

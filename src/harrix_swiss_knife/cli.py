@@ -11,7 +11,13 @@ import click
 from PySide6.QtWidgets import QApplication
 
 from harrix_swiss_knife.action_added_at import generate_action_added_at, load_action_added_at
-from harrix_swiss_knife.actions.android import OnAndroidBuild, OnAndroidCheck, OnAndroidFormat, OnAndroidSetupSdk
+from harrix_swiss_knife.actions.android import (
+    OnAndroidBuild,
+    OnAndroidCheck,
+    OnAndroidFormat,
+    OnAndroidSetupSdk,
+    OnBeatSaberSaves,
+)
 from harrix_swiss_knife.actions.apps import OnGitCommit
 from harrix_swiss_knife.actions.common.quick_launcher_registry import iter_menu_structure
 from harrix_swiss_knife.actions.development import (
@@ -66,7 +72,24 @@ def cli() -> None:
 
 @cli.group("android")
 def android_group() -> None:
-    """Android project build, format, quality checks, and SDK setup."""
+    """Android project build, format, quality checks, SDK setup, and Beat Saber saves."""
+
+
+@android_group.command("beat-saber-saves")
+@click.argument("mode", type=click.Choice(["export", "import"], case_sensitive=False))
+@click.argument("source", type=click.Choice(["pc", "quest"], case_sensitive=False))
+@click.option(
+    "--zip",
+    "zip_path",
+    type=click.Path(path_type=Path),
+    default=None,
+    help="ZIP path (required for import; default timestamped file under path_backups/BeatSaber for export).",
+)
+def android_beat_saber_saves(mode: str, source: str, zip_path: Path | None) -> None:
+    """Export or import Beat Saber local saves (PC LocalLow or Quest via adb)."""
+    action = OnBeatSaberSaves()
+    action(mode=mode.lower(), source=source.lower(), zip_path=zip_path, noninteractive=True)
+    _finish_timed_action(action)
 
 
 @android_group.command("build")

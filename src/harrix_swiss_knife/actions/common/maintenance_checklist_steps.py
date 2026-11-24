@@ -307,6 +307,14 @@ MAINTENANCE_STEP_SPECS: tuple[MaintenanceStepSpec, ...] = (
         note="ZIP Cursor settings / chats / `.cursor`",
     ),
     MaintenanceStepSpec(
+        "harrix_swiss_knife.actions.android.beat_saber_saves",
+        "OnBeatSaberSaves",
+        "Sync",
+        "gamepad-2",
+        note="Export / import Beat Saber local saves (PC or Quest)",
+        include_in_run_all=False,
+    ),
+    MaintenanceStepSpec(
         "harrix_swiss_knife.actions.apps.habits",
         "OnHabits",
         "Sync",

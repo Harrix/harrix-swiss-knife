@@ -14,6 +14,11 @@ from PySide6.QtWidgets import QApplication
 
 from harrix_swiss_knife import toast_notification
 from harrix_swiss_knife.action_title import strip_md_inline_code_markers
+from harrix_swiss_knife.actions.common.adb import (
+    adb_shell_getprop,
+    list_adb_device_states,
+    resolve_adb,
+)
 from harrix_swiss_knife.actions.common.android_gradle import (
     ANDROID_SDK_SETUP_HINT,
     GRADLE_DAEMON_CONNECT_HINT,
@@ -203,18 +208,7 @@ class OnAndroidBuild(ActionBase):
 
     def _adb_shell_getprop(self, adb: Path, serial: str, prop: str) -> str | None:
         """Return a trimmed `getprop` value from a device, or `None`."""
-        process = subprocess.run(
-            [str(adb), "-s", serial, "shell", "getprop", prop],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            check=False,
-        )
-        if process.returncode != 0:
-            return None
-        value = (process.stdout or "").strip()
-        return value or None
+        return adb_shell_getprop(adb, serial, prop)
 
     def _collect_install_targets(self) -> list[InstallTarget]:
         """Return connected adb devices and installed AVDs for the tray list.
@@ -244,16 +238,15 @@ class OnAndroidBuild(ActionBase):
                     targets.append(
                         OnAndroidBuild.InstallTarget(kind="adb", key=serial, label=label, serial=serial),
                     )
-            for serial in unauthorized:
-                # getprop fails while unauthorized; show serial + action hint.
-                targets.append(
-                    OnAndroidBuild.InstallTarget(
-                        kind="adb",
-                        key=serial,
-                        label=f"{serial} — unauthorized (allow USB debugging on phone)",
-                        serial=serial,
-                    ),
+            targets.extend(
+                OnAndroidBuild.InstallTarget(
+                    kind="adb",
+                    key=serial,
+                    label=f"{serial} — unauthorized (allow USB debugging on phone)",
+                    serial=serial,
                 )
+                for serial in unauthorized
+            )
 
         emulator = self._resolve_emulator()
         if emulator is not None:
@@ -341,8 +334,7 @@ class OnAndroidBuild(ActionBase):
             if serial in authorized:
                 return serial
             if serial in unauthorized:
-                waited = self._wait_for_specific_adb_device(adb, serial, unauthorized_hint=True)
-                return waited
+                return self._wait_for_specific_adb_device(adb, serial, unauthorized_hint=True)
             self.add_line(f"❌ Selected adb device not connected: {serial}")
             return None
 
@@ -404,35 +396,9 @@ class OnAndroidBuild(ActionBase):
 
     def _list_adb_device_states(self, adb: Path) -> tuple[list[str], list[str]]:
         """Return ``(authorized, unauthorized)`` serials from ``adb devices``."""
-        process = subprocess.run(
-            [str(adb), "devices"],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            check=False,
-        )
-        if process.returncode != 0:
-            output = "\n".join(part for part in (process.stdout.strip(), process.stderr.strip()) if part)
-            if output:
-                self.add_line(output)
-            return [], []
-
-        authorized: list[str] = []
-        unauthorized: list[str] = []
-        min_device_columns = 2
-        for raw_line in (process.stdout or "").splitlines():
-            stripped = raw_line.strip()
-            if not stripped or stripped.startswith("List of devices"):
-                continue
-            parts = stripped.split()
-            if len(parts) < min_device_columns:
-                continue
-            serial, state = parts[0], parts[1]
-            if state == "device":
-                authorized.append(serial)
-            elif state == "unauthorized":
-                unauthorized.append(serial)
+        authorized, unauthorized, output = list_adb_device_states(adb)
+        if output:
+            self.add_line(output)
         return authorized, unauthorized
 
     def _list_avd_names(self, emulator: Path) -> list[str]:
@@ -451,18 +417,7 @@ class OnAndroidBuild(ActionBase):
 
     def _resolve_adb(self) -> Path | None:
         """Resolve ``adb.exe`` from Android SDK or PATH."""
-        android_home = resolve_android_home()
-        if android_home:
-            candidate = Path(android_home) / "platform-tools" / "adb.exe"
-            if candidate.is_file():
-                return candidate
-
-        which = h.dev.run_command("where adb", is_shell=True)
-        for line in (which or "").splitlines():
-            path = Path(line.strip().strip('"'))
-            if path.is_file():
-                return path
-        return None
+        return resolve_adb()
 
     def _resolve_emulator(self) -> Path | None:
         """Resolve ``emulator.exe`` from Android SDK or PATH."""
@@ -595,7 +550,7 @@ class OnAndroidBuild(ActionBase):
         if sys.platform == "win32":
             creationflags = subprocess.CREATE_NO_WINDOW | subprocess.DETACHED_PROCESS  # type: ignore[attr-defined]
         try:
-            subprocess.Popen(  # noqa: S603
+            subprocess.Popen(
                 cmd,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,

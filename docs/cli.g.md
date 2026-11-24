@@ -13,6 +13,7 @@ lang: en
 
 - [🔧 Function `cli`](#-function-cli)
 - [🔧 Function `android_group`](#-function-android_group)
+- [🔧 Function `android_beat_saber_saves`](#-function-android_beat_saber_saves)
 - [🔧 Function `android_build`](#-function-android_build)
 - [🔧 Function `android_check`](#-function-android_check)
 - [🔧 Function `android_format`](#-function-android_format)
@@ -95,13 +96,33 @@ def cli() -> None:
 def android_group() -> None
 ```
 
-Android project build, format, quality checks, and SDK setup.
+Android project build, format, quality checks, SDK setup, and Beat Saber saves.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def android_group() -> None:
+```
+
+</details>
+
+## 🔧 Function `android_beat_saber_saves`
+
+```python
+def android_beat_saber_saves(mode: str, source: str, zip_path: Path | None) -> None
+```
+
+Export or import Beat Saber local saves (PC LocalLow or Quest via adb).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def android_beat_saber_saves(mode: str, source: str, zip_path: Path | None) -> None:
+    action = OnBeatSaberSaves()
+    action(mode=mode.lower(), source=source.lower(), zip_path=zip_path, noninteractive=True)
+    _finish_timed_action(action)
 ```
 
 </details>

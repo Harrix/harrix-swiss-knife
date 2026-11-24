@@ -1,7 +1,7 @@
 """Shared backup root from `config.json` (`path_backups`).
 
-All backup writers (MusicBee, Cursor, bookmarks, Saved Commands, Habits) should
-use this folder so Dropbox / external drives stay in one place.
+All backup writers (MusicBee, Cursor, bookmarks, Saved Commands, Habits,
+Beat Saber) should use this folder so Dropbox / external drives stay in one place.
 
 Resolution order:
 
@@ -25,6 +25,7 @@ import harrix_pylib as h
 from harrix_swiss_knife.paths import get_config_path_str, get_temp_config_path
 
 PATH_BACKUPS_KEY = "path_backups"
+_SUBDIR_BEAT_SABER = "BeatSaber"
 _SUBDIR_BROWSER_BOOKMARKS = "browser_bookmarks"
 _SUBDIR_CURSOR = "Cursor"
 _SUBDIR_HABITS = "Habits"
@@ -38,6 +39,11 @@ def backup_subdir(name: str, config: dict[str, Any] | None = None, *, config_pat
     path = resolve_backup_dir(config, config_path=config_path) / name
     path.mkdir(parents=True, exist_ok=True)
     return path
+
+
+def beat_saber_backup_root(config: dict[str, Any] | None = None, *, config_path: str | None = None) -> Path:
+    """Return the folder for Beat Saber save ZIP backups."""
+    return backup_subdir(_SUBDIR_BEAT_SABER, config, config_path=config_path)
 
 
 def browser_bookmarks_backup_root(config: dict[str, Any] | None = None, *, config_path: str | None = None) -> Path:
