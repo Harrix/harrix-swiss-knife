@@ -13,6 +13,7 @@ from unittest.mock import MagicMock
 from harrix_swiss_knife.actions.common import git_dirty_ops
 from harrix_swiss_knife.actions.common.git_dirty_ops import (
     add_git_root,
+    clear_commit_day_cache,
     commit_selected_paths,
     configured_git_roots,
     count_commits_by_day,
@@ -122,6 +123,7 @@ def test_count_commits_by_day_filters_local_scope(tmp_path: Path) -> None:
     subprocess.run(["git", "add", "extra.md"], cwd=local, check=True, capture_output=True)  # noqa: S607
     subprocess.run(["git", "commit", "-m", "Second"], cwd=local, check=True, capture_output=True)  # noqa: S607
 
+    clear_commit_day_cache()
     today = datetime.now().astimezone().date()
     all_counts = count_commits_by_day([root], today - timedelta(days=7), today, scope="all")
     local_counts = count_commits_by_day([root], today - timedelta(days=7), today, scope="local")
@@ -129,6 +131,41 @@ def test_count_commits_by_day_filters_local_scope(tmp_path: Path) -> None:
     assert sum(all_counts.values()) >= 1
     assert sum(local_counts.values()) >= 1
     assert sum(public_counts.values()) == 0
+
+
+def test_count_commits_by_day_reuses_cache(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Changing scope after the first scan must not run another full Git log."""
+    root = tmp_path / "repos"
+    local = root / "local-repo"
+    _git_init(local)
+    clear_commit_day_cache()
+    today = datetime.now().astimezone().date()
+    log_calls = 0
+    real_run = git_dirty_ops.git_run
+
+    def fake_run(cwd: Path, *args: str):  # noqa: ANN202
+        nonlocal log_calls
+        if args and args[0] == "log":
+            log_calls += 1
+        return real_run(cwd, *args)
+
+    monkeypatch.setattr(git_dirty_ops, "git_run", fake_run)
+    count_commits_by_day([root], today - timedelta(days=30), today, scope="all")
+    first_logs = log_calls
+    assert first_logs >= 1
+    count_commits_by_day([root], today - timedelta(days=30), today, scope="local")
+    assert log_calls == first_logs
+    count_commits_by_day(
+        [root],
+        today - timedelta(days=30),
+        today,
+        scope="all",
+        force_refresh=True,
+    )
+    assert log_calls > first_logs
 
 
 def test_count_recent_commits_splits_public_private_and_skips_old(

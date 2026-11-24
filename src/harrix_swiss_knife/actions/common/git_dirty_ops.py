@@ -8,6 +8,7 @@ import re
 import shutil
 import subprocess
 import sys
+import threading
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -41,6 +42,8 @@ _GITHUB_SLUG = re.compile(
     re.IGNORECASE,
 )
 _visibility_cache: dict[str, str] = {}
+_commit_day_cache: dict[str, RepoCommitDayCache] = {}
+_commit_day_cache_lock = threading.Lock()
 
 CommitScope = Literal["all", "private", "public", "cloud", "local"]
 COMMIT_SCOPE_LABELS: tuple[tuple[CommitScope, str], ...] = (
@@ -167,6 +170,15 @@ class RepoAccess:
         return "\n".join(lines)
 
 
+@dataclass(frozen=True, slots=True)
+class RepoCommitDayCache:
+    """Cached per-day commit counts and visibility for one repository."""
+
+    path: Path
+    bucket: str
+    counts: dict[date, int]
+
+
 def add_git_root(folder: Path, *, config_path: str | None = None) -> GitRootAdd:
     """Append `folder` to `paths_git_roots` in `config.json`.
 
@@ -223,6 +235,12 @@ def attention_status(repo: Path, *, resolve_visibility: bool = True) -> DirtyRep
     return DirtyRepoStatus(path=repo, files=files, unpushed=unpushed, access_kind=access.kind)
 
 
+def clear_commit_day_cache() -> None:
+    """Drop the in-memory per-repository commit-day cache."""
+    with _commit_day_cache_lock:
+        _commit_day_cache.clear()
+
+
 def commit_selected_paths(repo: Path, paths: list[str], subject: str) -> tuple[bool, str]:
     """Stage `paths` and create a commit with `subject`. Return `(ok, detail)`."""
     repo = repo.resolve()
@@ -273,6 +291,7 @@ def count_commits_by_day(
     end: date,
     *,
     scope: CommitScope = "all",
+    force_refresh: bool = False,
 ) -> dict[date, int]:
     """Sum commits per local calendar day under `roots` for `scope`.
 
@@ -280,31 +299,21 @@ def count_commits_by_day(
     Days with no commits are omitted. `cloud` keeps GitHub public and private
     repositories and drops local checkouts.
 
+    Each repository is scanned once and cached. Later calls with a different
+    `scope` or date window reuse that cache unless `force_refresh` is set.
+
     """
     if end < start:
         return {}
+    ensure_commit_day_cache(roots, force=force_refresh)
     counts: dict[date, int] = {}
-    since = _midnight_iso(start)
-    until = _midnight_iso(end + timedelta(days=1))
-    for repo in _unique_git_repos(roots):
-        bucket = _commit_visibility_bucket(repo)
-        if not _scope_includes(scope, bucket):
+    for entry in _cached_repo_entries(roots):
+        if not _scope_includes(scope, entry.bucket):
             continue
-        proc = git_run(
-            repo,
-            "log",
-            "--branches",
-            f"--since={since}",
-            f"--until={until}",
-            "--pretty=format:%cI",
-        )
-        if proc.returncode != 0:
-            continue
-        for line in proc.stdout.splitlines():
-            day = _local_calendar_date(line)
-            if day is None or day < start or day > end:
+        for day, value in entry.counts.items():
+            if day < start or day > end:
                 continue
-            counts[day] = counts.get(day, 0) + 1
+            counts[day] = counts.get(day, 0) + value
     return counts
 
 
@@ -408,6 +417,12 @@ def discover_git_repos(root: Path) -> list[FoundGitRepo]:
     return found
 
 
+def ensure_commit_day_cache(roots: list[Path], *, force: bool = False) -> None:
+    """Load (or refresh) per-repository commit-day caches under `roots`."""
+    for repo in _unique_git_repos(roots):
+        load_repo_commit_day_cache(repo, force=force)
+
+
 def github_repo_visibility(owner: str, repo: str) -> str:
     """Return `public`, `private`, or `unknown` for a GitHub repository.
 
@@ -437,6 +452,50 @@ def list_changed_files(repo: Path) -> list[ChangedFile]:
     if not porcelain.strip():
         return []
     return parse_porcelain_files(porcelain)
+
+
+def list_commit_years(
+    roots: list[Path],
+    *,
+    scope: CommitScope = "all",
+    force_refresh: bool = False,
+) -> list[int]:
+    """Return calendar years that have commits for `scope`, newest first."""
+    ensure_commit_day_cache(roots, force=force_refresh)
+    years: set[int] = set()
+    for entry in _cached_repo_entries(roots):
+        if not _scope_includes(scope, entry.bucket):
+            continue
+        years.update(day.year for day in entry.counts)
+    return sorted(years, reverse=True)
+
+
+def load_repo_commit_day_cache(repo: Path, *, force: bool = False) -> RepoCommitDayCache:
+    """Return cached day counts for `repo`, scanning Git when missing or forced."""
+    try:
+        resolved = repo.resolve()
+    except OSError:
+        resolved = repo
+    key = str(resolved)
+    if not force:
+        with _commit_day_cache_lock:
+            cached = _commit_day_cache.get(key)
+        if cached is not None:
+            return cached
+
+    bucket = _commit_visibility_bucket(resolved)
+    counts: dict[date, int] = {}
+    proc = git_run(resolved, "log", "--branches", "--pretty=format:%cI")
+    if proc.returncode == 0:
+        for line in proc.stdout.splitlines():
+            day = _local_calendar_date(line)
+            if day is None:
+                continue
+            counts[day] = counts.get(day, 0) + 1
+    entry = RepoCommitDayCache(path=resolved, bucket=bucket, counts=counts)
+    with _commit_day_cache_lock:
+        _commit_day_cache[key] = entry
+    return entry
 
 
 def open_github_desktop_nonblocking(repo: Path) -> tuple[bool, str]:
@@ -624,6 +683,21 @@ def _anonymous_github_headers() -> dict[str, str]:
         "Accept": "application/vnd.github+json",
         "User-Agent": GITHUB_USER_AGENT,
     }
+
+
+def _cached_repo_entries(roots: list[Path]) -> list[RepoCommitDayCache]:
+    """Return cache entries for repositories under `roots` (skips unloaded ones)."""
+    entries: list[RepoCommitDayCache] = []
+    with _commit_day_cache_lock:
+        for repo in _unique_git_repos(roots):
+            try:
+                key = str(repo.resolve())
+            except OSError:
+                key = str(repo)
+            entry = _commit_day_cache.get(key)
+            if entry is not None:
+                entries.append(entry)
+    return entries
 
 
 def _commit_visibility_bucket(repo: Path) -> str:

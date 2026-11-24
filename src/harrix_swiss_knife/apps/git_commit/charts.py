@@ -19,12 +19,15 @@ from harrix_swiss_knife.actions.common.git_dirty_ops import (
     CommitScope,
     configured_git_roots,
     count_commits_by_day,
+    list_commit_years,
 )
+from harrix_swiss_knife.apps.common.calendar_heatmap import heatmap_year_bands
 from harrix_swiss_knife.apps.common.chart_format import fmt_number
 from harrix_swiss_knife.apps.common.chart_hover import create_chart_canvas, install_chart_hover
 from harrix_swiss_knife.apps.common.chart_page_chrome import MetricStrip, build_chart_type_radios
 from harrix_swiss_knife.apps.common.chart_timeline import bar_at_x, build_timeline_figure
-from harrix_swiss_knife.apps.common.year_heatmap import YearHeatmap
+from harrix_swiss_knife.apps.common.chart_widgets import ALL_YEARS_KEY, LAST_365_KEY, YearNavigator
+from harrix_swiss_knife.apps.common.year_heatmap import YearHeatmap, YearHeatmapStack
 from harrix_swiss_knife.apps.habits.habit_process_charts import (
     habit_calendar_model,
     habit_legend_colors,
@@ -43,6 +46,7 @@ if TYPE_CHECKING:
 
 _CHART_PERIOD_DAYS = 365
 _SIDEBAR_WIDTH = 220
+_EARLIEST = date(1970, 1, 1)
 
 
 class GitCommitChartsPage(QWidget):
@@ -54,12 +58,12 @@ class GitCommitChartsPage(QWidget):
         self.setObjectName("gitCommitChartsPage")
         self._scope: CommitScope = "all"
         self._recorded: dict[date, int] = {}
-        self._start: date | None = None
-        self._end: date | None = None
+        self._cache_ready = False
         self._busy = False
         self._worker: _CommitsChartWorker | None = None
         self._timeline_bars: list[Any] = []
         self._timeline_canvas: FigureCanvas | None = None
+        self._updating_period = False
 
         root = QHBoxLayout(self)
         root.setContentsMargins(SPACE_XL, SPACE_M, SPACE_XL, SPACE_XL)
@@ -89,10 +93,12 @@ class GitCommitChartsPage(QWidget):
 
         toolbar = QHBoxLayout()
         toolbar.setSpacing(SPACE_S)
-        self._period_label = FluentText("Last 365 days", body, role=TextRole.SECONDARY)
-        toolbar.addWidget(self._period_label, 1)
+        toolbar.addWidget(FluentText("Period", body, role=TextRole.SECONDARY))
+        self._period_nav = YearNavigator(body)
+        self._period_nav.changed.connect(self._on_period_changed)
+        toolbar.addWidget(self._period_nav, 1)
         self._refresh_button = FluentPushButton("Refresh", body, icon="refresh-cw")
-        self._refresh_button.clicked.connect(self.refresh)
+        self._refresh_button.clicked.connect(lambda: self.refresh(force=True))
         toolbar.addWidget(self._refresh_button)
         body_layout.addLayout(toolbar)
 
@@ -101,10 +107,16 @@ class GitCommitChartsPage(QWidget):
 
         self._title = QLabel("Commits", body)
         self._title.setObjectName("gitCommitChartsTitle")
+        title_font = self._title.font()
+        title_font.setBold(True)
+        self._title.setFont(title_font)
         body_layout.addWidget(self._title)
 
         self._heatmap = YearHeatmap(body)
         body_layout.addWidget(self._heatmap)
+        self._year_stack = YearHeatmapStack(body)
+        self._year_stack.hide()
+        body_layout.addWidget(self._year_stack, 1)
 
         self._time_host = QWidget(body)
         self._time_host.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
@@ -117,21 +129,18 @@ class GitCommitChartsPage(QWidget):
         body_layout.addWidget(self._status)
         root.addWidget(body, 1)
 
-    def refresh(self) -> None:
-        """Reload commit counts for the current scope on a worker thread."""
+    def refresh(self, *, force: bool = False) -> None:
+        """Load commit counts. Cached after the first scan unless `force`."""
         if self._busy:
             return
-        today = datetime.now(UTC).astimezone().date()
-        end = today
-        start = end - timedelta(days=_CHART_PERIOD_DAYS - 1)
-        self._start = start
-        self._end = end
-        self._period_label.setText(f"Last {_CHART_PERIOD_DAYS} days")
+        if self._cache_ready and not force:
+            self._present_from_cache()
+            return
         self._status.setText("Loading commits…")
         self._set_busy(busy=True)
         roots = configured_git_roots()
         scope = self._scope
-        worker = _CommitsChartWorker(roots, start, end, scope, self)
+        worker = _CommitsChartWorker(roots, scope, force=force, parent=self)
         worker.finished_ok.connect(self._on_loaded)
         worker.failed.connect(self._on_failed)
         self._worker = worker
@@ -140,7 +149,7 @@ class GitCommitChartsPage(QWidget):
     def showEvent(self, event: Any) -> None:  # noqa: N802
         """Load charts the first time the tab becomes visible."""
         super().showEvent(event)
-        if self._start is None and not self._busy:
+        if not self._cache_ready and not self._busy:
             self.refresh()
 
     def _clear_timeline(self) -> None:
@@ -157,26 +166,110 @@ class GitCommitChartsPage(QWidget):
         self._status.setText(message)
         ToastNotification(message, duration=2500, parent=self)
 
-    def _on_loaded(self, recorded: object) -> None:
+    def _on_loaded(self, payload: object) -> None:
         self._set_busy(busy=False)
-        if not isinstance(recorded, dict):
+        try:
+            recorded, years = cast("tuple[object, object]", payload)
+        except (TypeError, ValueError):
+            self._status.setText("Could not load commits")
+            return
+        if not isinstance(recorded, dict) or not isinstance(years, list):
             self._status.setText("Could not load commits")
             return
         self._recorded = {day: int(value) for day, value in recorded.items() if isinstance(day, date)}
+        self._cache_ready = True
+        self._updating_period = True
+        self._period_nav.set_years([int(year) for year in years if isinstance(year, int)])
+        self._updating_period = False
+        self._present()
+
+    def _on_period_changed(self) -> None:
+        if self._updating_period or not self._cache_ready:
+            return
         self._present()
 
     def _on_scope_toggled(self, scope: str, *, checked: bool) -> None:
         if not checked:
             return
         self._scope = cast("CommitScope", scope)
-        self.refresh()
+        if self._cache_ready:
+            self._present_from_cache()
+        else:
+            self.refresh()
+
+    def _period_bounds(self, today: date) -> tuple[date, date] | None:
+        """Return `(start, end)` for Last 365 / year, or `None` for All years."""
+        key = self._period_nav.selection()
+        if key == ALL_YEARS_KEY:
+            return None
+        if key == LAST_365_KEY:
+            return today - timedelta(days=_CHART_PERIOD_DAYS - 1), today
+        year = self._period_nav.year()
+        if year is None:
+            return today - timedelta(days=_CHART_PERIOD_DAYS - 1), today
+        return date(year, 1, 1), date(year, 12, 31)
 
     def _present(self) -> None:
-        start = self._start
-        end = self._end
-        if start is None or end is None:
-            return
         today = datetime.now(UTC).astimezone().date()
+        bounds = self._period_bounds(today)
+        label = next((text for key, text in COMMIT_SCOPE_LABELS if key == self._scope), "Commits")
+        self._title.setText(label)
+        if bounds is None:
+            self._present_all_years(today)
+            return
+        start, end = bounds
+        recorded = {day: value for day, value in self._recorded.items() if start <= day <= end}
+        first_day = min(recorded) if recorded else None
+        tokens, marks, legend, bin_count = habit_calendar_model(
+            recorded,
+            start,
+            end,
+            is_bool=False,
+            activity_start=first_day,
+            today=today,
+        )
+        colors = {day: habit_token_color(state, bin_count=bin_count) for day, state in tokens.items()}
+        tips = {day: _commit_cell_tip(day, recorded.get(day, 0)) for day in tokens}
+        self._heatmap.set_calendar(
+            start,
+            end,
+            colors,
+            legend=habit_legend_colors(legend, bin_count=bin_count),
+            marks=marks,
+            tooltips=tips,
+        )
+        self._heatmap.show()
+        self._year_stack.hide()
+        self._time_host.show()
+        stats = habit_period_stats(recorded, start, end, is_bool=False, today=today)
+        self._metrics.set_metrics(
+            [
+                ("Total", fmt_number(stats.total, decimals=0)),
+                ("Active days", fmt_number(stats.completed, decimals=0)),
+                ("Current streak", fmt_number(stats.current_streak, decimals=0)),
+                ("Longest streak", fmt_number(stats.longest_streak, decimals=0)),
+            ],
+        )
+        bars, _percent = habit_timeline_bars(recorded, start, end, is_bool=False, today=today)
+        self._timeline_bars = bars
+        self._show_timeline(bars)
+        total = stats.total
+        noun = "commit" if total == 1 else "commits"
+        self._status.setText(f"{fmt_number(total, decimals=0)} {noun} in the selected period")
+
+    def _present_all_years(self, today: date) -> None:
+        years = sorted({day.year for day in self._recorded if day.year <= today.year}, reverse=True)
+        bands = heatmap_year_bands(years, today=today)
+        if not bands:
+            self._heatmap.hide()
+            self._year_stack.hide()
+            self._time_host.hide()
+            self._clear_timeline()
+            self._metrics.set_metrics([])
+            self._status.setText("No commits in the selected repositories")
+            return
+        start = bands[-1][1]
+        end = bands[0][2]
         first_day = min(self._recorded) if self._recorded else None
         tokens, marks, legend, bin_count = habit_calendar_model(
             self._recorded,
@@ -188,14 +281,17 @@ class GitCommitChartsPage(QWidget):
         )
         colors = {day: habit_token_color(state, bin_count=bin_count) for day, state in tokens.items()}
         tips = {day: _commit_cell_tip(day, self._recorded.get(day, 0)) for day in tokens}
-        self._heatmap.set_calendar(
-            start,
-            end,
+        self._year_stack.set_years(
+            bands,
             colors,
             legend=habit_legend_colors(legend, bin_count=bin_count),
             marks=marks,
             tooltips=tips,
         )
+        self._heatmap.hide()
+        self._year_stack.show()
+        self._time_host.hide()
+        self._clear_timeline()
         stats = habit_period_stats(self._recorded, start, end, is_bool=False, today=today)
         self._metrics.set_metrics(
             [
@@ -205,18 +301,25 @@ class GitCommitChartsPage(QWidget):
                 ("Longest streak", fmt_number(stats.longest_streak, decimals=0)),
             ],
         )
-        label = next((text for key, text in COMMIT_SCOPE_LABELS if key == self._scope), "Commits")
-        self._title.setText(label)
-        bars, _percent = habit_timeline_bars(self._recorded, start, end, is_bool=False, today=today)
-        self._timeline_bars = bars
-        self._show_timeline(bars)
         total = stats.total
         noun = "commit" if total == 1 else "commits"
-        self._status.setText(f"{fmt_number(total, decimals=0)} {noun} in the selected period")
+        self._status.setText(f"{fmt_number(total, decimals=0)} {noun} across all years")
+
+    def _present_from_cache(self) -> None:
+        """Re-filter the warm cache for the current scope without scanning Git."""
+        roots = configured_git_roots()
+        today = datetime.now(UTC).astimezone().date()
+        self._recorded = count_commits_by_day(roots, _EARLIEST, today, scope=self._scope)
+        years = list_commit_years(roots, scope=self._scope)
+        self._updating_period = True
+        self._period_nav.set_years(years)
+        self._updating_period = False
+        self._present()
 
     def _set_busy(self, *, busy: bool) -> None:
         self._busy = busy
         self._refresh_button.setEnabled(not busy)
+        self._period_nav.setEnabled(not busy)
         for radio in self._scope_radios.values():
             radio.setEnabled(not busy)
 
@@ -251,7 +354,7 @@ class GitCommitChartsPage(QWidget):
 
 
 class _CommitsChartWorker(QThread):
-    """Load per-day commit counts off the UI thread."""
+    """Warm the commit-day cache and return counts for the current scope."""
 
     finished_ok = Signal(object)
     failed = Signal(str)
@@ -259,22 +362,28 @@ class _CommitsChartWorker(QThread):
     def __init__(
         self,
         roots: list[Path],
-        start: date,
-        end: date,
         scope: CommitScope,
+        *,
+        force: bool,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
         self._roots = roots
-        self._start = start
-        self._end = end
         self._scope = scope
+        self._force = force
 
     def run(self) -> None:
         try:
-            self.finished_ok.emit(
-                count_commits_by_day(self._roots, self._start, self._end, scope=self._scope),
+            today = datetime.now(UTC).astimezone().date()
+            recorded = count_commits_by_day(
+                self._roots,
+                _EARLIEST,
+                today,
+                scope=self._scope,
+                force_refresh=self._force,
             )
+            years = list_commit_years(self._roots, scope=self._scope)
+            self.finished_ok.emit((recorded, years))
         except Exception as exc:
             self.failed.emit(str(exc))
 

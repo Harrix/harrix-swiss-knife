@@ -23,16 +23,21 @@ lang: en
 - [🏛️ Class `GitRootAdd`](#%EF%B8%8F-class-gitrootadd)
 - [🏛️ Class `RepoAccess`](#%EF%B8%8F-class-repoaccess)
   - [⚙️ Method `summary`](#%EF%B8%8F-method-summary)
+- [🏛️ Class `RepoCommitDayCache`](#%EF%B8%8F-class-repocommitdaycache)
 - [🔧 Function `add_git_root`](#-function-add_git_root)
 - [🔧 Function `attention_status`](#-function-attention_status)
+- [🔧 Function `clear_commit_day_cache`](#-function-clear_commit_day_cache)
 - [🔧 Function `commit_selected_paths`](#-function-commit_selected_paths)
 - [🔧 Function `configured_git_roots`](#-function-configured_git_roots)
 - [🔧 Function `count_commits_by_day`](#-function-count_commits_by_day)
 - [🔧 Function `count_recent_commits`](#-function-count_recent_commits)
 - [🔧 Function `discard_changed_paths`](#-function-discard_changed_paths)
 - [🔧 Function `discover_git_repos`](#-function-discover_git_repos)
+- [🔧 Function `ensure_commit_day_cache`](#-function-ensure_commit_day_cache)
 - [🔧 Function `github_repo_visibility`](#-function-github_repo_visibility)
 - [🔧 Function `list_changed_files`](#-function-list_changed_files)
+- [🔧 Function `list_commit_years`](#-function-list_commit_years)
+- [🔧 Function `load_repo_commit_day_cache`](#-function-load_repo_commit_day_cache)
 - [🔧 Function `open_github_desktop_nonblocking`](#-function-open_github_desktop_nonblocking)
 - [🔧 Function `parse_github_slug`](#-function-parse_github_slug)
 - [🔧 Function `parse_porcelain_files`](#-function-parse_porcelain_files)
@@ -349,6 +354,27 @@ def summary(self, path: Path) -> str:
 
 </details>
 
+## 🏛️ Class `RepoCommitDayCache`
+
+```python
+class RepoCommitDayCache
+```
+
+Cached per-day commit counts and visibility for one repository.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class RepoCommitDayCache:
+
+    path: Path
+    bucket: str
+    counts: dict[date, int]
+```
+
+</details>
+
 ## 🔧 Function `add_git_root`
 
 ```python
@@ -427,6 +453,25 @@ def attention_status(repo: Path, *, resolve_visibility: bool = True) -> DirtyRep
 
 </details>
 
+## 🔧 Function `clear_commit_day_cache`
+
+```python
+def clear_commit_day_cache() -> None
+```
+
+Drop the in-memory per-repository commit-day cache.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def clear_commit_day_cache() -> None:
+    with _commit_day_cache_lock:
+        _commit_day_cache.clear()
+```
+
+</details>
+
 ## 🔧 Function `commit_selected_paths`
 
 ```python
@@ -500,7 +545,7 @@ def configured_git_roots() -> list[Path]:
 ## 🔧 Function `count_commits_by_day`
 
 ```python
-def count_commits_by_day(roots: list[Path], start: date, end: date, *, scope: CommitScope = 'all') -> dict[date, int]
+def count_commits_by_day(roots: list[Path], start: date, end: date, *, scope: CommitScope = 'all', force_refresh: bool = False) -> dict[date, int]
 ```
 
 Sum commits per local calendar day under `roots` for `scope`.
@@ -508,6 +553,9 @@ Sum commits per local calendar day under `roots` for `scope`.
 Counts use the committer date of commits reachable from local branches.
 Days with no commits are omitted. `cloud` keeps GitHub public and private
 repositories and drops local checkouts.
+
+Each repository is scanned once and cached. Later calls with a different
+`scope` or date window reuse that cache unless `force_refresh` is set.
 
 <details>
 <summary>Code:</summary>
@@ -519,31 +567,19 @@ def count_commits_by_day(
     end: date,
     *,
     scope: CommitScope = "all",
+    force_refresh: bool = False,
 ) -> dict[date, int]:
     if end < start:
         return {}
+    ensure_commit_day_cache(roots, force=force_refresh)
     counts: dict[date, int] = {}
-    since = _midnight_iso(start)
-    until = _midnight_iso(end + timedelta(days=1))
-    for repo in _unique_git_repos(roots):
-        bucket = _commit_visibility_bucket(repo)
-        if not _scope_includes(scope, bucket):
+    for entry in _cached_repo_entries(roots):
+        if not _scope_includes(scope, entry.bucket):
             continue
-        proc = git_run(
-            repo,
-            "log",
-            "--branches",
-            f"--since={since}",
-            f"--until={until}",
-            "--pretty=format:%cI",
-        )
-        if proc.returncode != 0:
-            continue
-        for line in proc.stdout.splitlines():
-            day = _local_calendar_date(line)
-            if day is None or day < start or day > end:
+        for day, value in entry.counts.items():
+            if day < start or day > end:
                 continue
-            counts[day] = counts.get(day, 0) + 1
+            counts[day] = counts.get(day, 0) + value
     return counts
 ```
 
@@ -682,6 +718,25 @@ def discover_git_repos(root: Path) -> list[FoundGitRepo]:
 
 </details>
 
+## 🔧 Function `ensure_commit_day_cache`
+
+```python
+def ensure_commit_day_cache(roots: list[Path], *, force: bool = False) -> None
+```
+
+Load (or refresh) per-repository commit-day caches under `roots`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def ensure_commit_day_cache(roots: list[Path], *, force: bool = False) -> None:
+    for repo in _unique_git_repos(roots):
+        load_repo_commit_day_cache(repo, force=force)
+```
+
+</details>
+
 ## 🔧 Function `github_repo_visibility`
 
 ```python
@@ -731,6 +786,76 @@ def list_changed_files(repo: Path) -> list[ChangedFile]:
     if not porcelain.strip():
         return []
     return parse_porcelain_files(porcelain)
+```
+
+</details>
+
+## 🔧 Function `list_commit_years`
+
+```python
+def list_commit_years(roots: list[Path], *, scope: CommitScope = 'all', force_refresh: bool = False) -> list[int]
+```
+
+Return calendar years that have commits for `scope`, newest first.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def list_commit_years(
+    roots: list[Path],
+    *,
+    scope: CommitScope = "all",
+    force_refresh: bool = False,
+) -> list[int]:
+    ensure_commit_day_cache(roots, force=force_refresh)
+    years: set[int] = set()
+    for entry in _cached_repo_entries(roots):
+        if not _scope_includes(scope, entry.bucket):
+            continue
+        years.update(day.year for day in entry.counts)
+    return sorted(years, reverse=True)
+```
+
+</details>
+
+## 🔧 Function `load_repo_commit_day_cache`
+
+```python
+def load_repo_commit_day_cache(repo: Path, *, force: bool = False) -> RepoCommitDayCache
+```
+
+Return cached day counts for `repo`, scanning Git when missing or forced.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def load_repo_commit_day_cache(repo: Path, *, force: bool = False) -> RepoCommitDayCache:
+    try:
+        resolved = repo.resolve()
+    except OSError:
+        resolved = repo
+    key = str(resolved)
+    if not force:
+        with _commit_day_cache_lock:
+            cached = _commit_day_cache.get(key)
+        if cached is not None:
+            return cached
+
+    bucket = _commit_visibility_bucket(resolved)
+    counts: dict[date, int] = {}
+    proc = git_run(resolved, "log", "--branches", "--pretty=format:%cI")
+    if proc.returncode == 0:
+        for line in proc.stdout.splitlines():
+            day = _local_calendar_date(line)
+            if day is None:
+                continue
+            counts[day] = counts.get(day, 0) + 1
+    entry = RepoCommitDayCache(path=resolved, bucket=bucket, counts=counts)
+    with _commit_day_cache_lock:
+        _commit_day_cache[key] = entry
+    return entry
 ```
 
 </details>
