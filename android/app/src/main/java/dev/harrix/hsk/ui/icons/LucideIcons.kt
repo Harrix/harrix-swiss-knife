@@ -115,6 +115,13 @@ object LucideIcons {
         )
     }
 
+    val Cloud: ImageVector by lazy {
+        lucide(
+            "cloud",
+            "M17.5 19h-8.5a7 7 0 1 1 6.71 -9h1.79a4.5 4.5 0 1 1 0 9z",
+        )
+    }
+
     val ContentCopy: ImageVector by lazy {
         lucide(
             "clipboard-copy",
@@ -274,6 +281,14 @@ object LucideIcons {
             "M5.343 21.485a2 2 0 1 0 2.829 -2.828l1.767 1.768a2 2 0 1 0 2.829 -2.829l-6.364 -6.364a2 2 0 1 0 -2.8" +
                 "29 2.829l1.768 1.767a2 2 0 0 0 -2.828 2.829z",
             "M9.6 14.4l4.8 -4.8",
+        )
+    }
+
+    val Folder: ImageVector by lazy {
+        lucide(
+            "folder",
+            "M20 20a2 2 0 0 0 2 -2v-10a2 2 0 0 0 -2 -2h-7.9a2 2 0 0 1 -1.69 -0.9l-0.81 -1.2A2 2 0 0 0 7.93 3h-3" +
+                ".93a2 2 0 0 0 -2 2v13a2 2 0 0 0 2 2z",
         )
     }
 

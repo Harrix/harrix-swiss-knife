@@ -54,6 +54,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -528,9 +529,9 @@ private fun FolderPairEditorDialog(
                     modifier = Modifier.fillMaxWidth(),
                 )
 
-                Text(
+                SectionTitleWithIcon(
+                    icon = LucideIcons.Folder,
                     text = stringResource(R.string.dropbox_sync_local_folder),
-                    style = MaterialTheme.typography.titleSmall,
                 )
                 Text(
                     text = localPath.ifBlank { stringResource(R.string.dropbox_sync_no_local_folder) },
@@ -579,9 +580,9 @@ private fun FolderPairEditorDialog(
                     Text(stringResource(R.string.dropbox_sync_use_saf))
                 }
 
-                Text(
+                SectionTitleWithIcon(
+                    icon = LucideIcons.Cloud,
                     text = stringResource(R.string.dropbox_sync_remote_folder),
-                    style = MaterialTheme.typography.titleSmall,
                 )
                 Text(
                     text = remotePath.ifBlank { "/" },
@@ -663,6 +664,25 @@ private fun FolderPairEditorDialog(
             }
         },
     )
+}
+
+@Composable
+private fun SectionTitleWithIcon(
+    icon: ImageVector,
+    text: String,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(18.dp),
+            tint = MaterialTheme.colorScheme.primary,
+        )
+        Text(text = text, style = MaterialTheme.typography.titleSmall)
+    }
 }
 
 @Composable
