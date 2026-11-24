@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import sys
 from datetime import UTC, datetime, timedelta
+from typing import TYPE_CHECKING
 
 import pytest
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QWidget
 
-from harrix_swiss_knife.actions.common.base import _line_marks_run_cancelled
+from harrix_swiss_knife.actions.common.base import ActionBase, _line_marks_run_cancelled
 from harrix_swiss_knife.actions.common.maintenance_checklist_dialog import MaintenanceChecklistDialog
 from harrix_swiss_knife.actions.common.maintenance_checklist_steps import (
     CHECK_GIT_REPOS_STEP_CLASS,
@@ -28,6 +29,9 @@ from harrix_swiss_knife.actions.development.upgrade_uv_packages import OnUpgrade
 from harrix_swiss_knife.fluent.widgets import TextRole
 from harrix_swiss_knife.win11_caption import OVERLAY_CAPTION_PROPERTY
 
+if TYPE_CHECKING:
+    from pathlib import Path
+
 
 @pytest.fixture
 def qapp() -> QApplication:
@@ -38,6 +42,49 @@ def qapp() -> QApplication:
         msg = "QApplication.instance() returned a non-QApplication object."
         raise TypeError(msg)
     return app
+
+
+def test_action_call_skips_usage_when_cancelled(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Cancelled runs must not refresh last_used (checklist green tint)."""
+    recorded: list[str] = []
+
+    def _record(class_name: str, *, via_cli: bool) -> None:
+        del via_cli
+        recorded.append(class_name)
+
+    monkeypatch.setattr(
+        "harrix_swiss_knife.actions.common.base.record_action_usage",
+        _record,
+    )
+    monkeypatch.setattr(
+        "harrix_swiss_knife.actions.common.base.new_action_output_file_path",
+        lambda *_a, **_k: tmp_path / "out.txt",
+    )
+    monkeypatch.setattr(
+        "harrix_swiss_knife.actions.common.base.get_action_output_dir",
+        lambda: tmp_path,
+    )
+
+    class _CancelAction(ActionBase):
+        def execute(self, *_a: object, **_k: object) -> None:
+            self.add_line("Upgrade cancelled.")
+
+    class _OkAction(ActionBase):
+        def execute(self, *_a: object, **_k: object) -> None:
+            self.add_line("Done.")
+
+    cancelled = _CancelAction()
+    cancelled()
+    assert cancelled.run_completed is False
+    assert recorded == []
+
+    ok = _OkAction()
+    ok()
+    assert ok.run_completed is True
+    assert recorded == ["_OkAction"]
 
 
 def test_cancelled_run_does_not_mark_session_done(
@@ -126,6 +173,7 @@ def test_line_marks_run_cancelled_detects_whole_action_cancel() -> None:
     assert _line_marks_run_cancelled("Cancelled.")
     assert _line_marks_run_cancelled("ℹ️ Cancelled. Node.js was not installed.")  # noqa: RUF001
     assert _line_marks_run_cancelled("❌ Update cancelled.")
+    assert _line_marks_run_cancelled("Upgrade cancelled.")
     assert _line_marks_run_cancelled("Sync cancelled.")
     assert not _line_marks_run_cancelled("⚪ notes: commit cancelled")
     assert not _line_marks_run_cancelled("✅ All projects passed")

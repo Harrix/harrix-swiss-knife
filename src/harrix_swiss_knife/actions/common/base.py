@@ -136,7 +136,10 @@ class ActionBase(ABC):
         finally:
             if getattr(_output_path_local, "file", None) is self.file:
                 delattr(_output_path_local, "file")
-            record_action_usage(type(self).__name__, via_cli=bool(kwargs.get("noninteractive")))
+            # Cancelled runs must not refresh last_used — maintenance checklist
+            # tints cards green from that stamp (Done tag already uses run_completed).
+            if self.run_completed:
+                record_action_usage(type(self).__name__, via_cli=bool(kwargs.get("noninteractive")))
 
     def __init__(self, **kwargs: Any) -> None:
         """Initialize the action with a temporary output file.
