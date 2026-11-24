@@ -44,6 +44,7 @@ lang: en
   - [⚙️ Method `show_extracted_tables`](#%EF%B8%8F-method-show_extracted_tables)
   - [⚙️ Method `show_git_commit_offer`](#%EF%B8%8F-method-show_git_commit_offer)
   - [⚙️ Method `show_instructions`](#%EF%B8%8F-method-show_instructions)
+  - [⚙️ Method `show_lucide_icon_thumbnails`](#%EF%B8%8F-method-show_lucide_icon_thumbnails)
   - [⚙️ Method `show_text_diff_side_by_side`](#%EF%B8%8F-method-show_text_diff_side_by_side)
   - [⚙️ Method `show_text_multiline`](#%EF%B8%8F-method-show_text_multiline)
 - [🏛️ Class `AndroidBuildDialogResult`](#%EF%B8%8F-class-androidbuilddialogresult)
@@ -1659,6 +1660,54 @@ class ActionDialogService:
 
         result, _dialog = self._exec_standard_dialog(title, _build, stretch_row=0)
         return instructions if result == QDialog.DialogCode.Accepted else None
+
+    def show_lucide_icon_thumbnails(
+        self,
+        title: str,
+        label: str,
+        sections: list[tuple[str, list[str]]],
+        *,
+        icon_size: int = 48,
+    ) -> None:
+        """Show a read-only grid of Lucide SVG thumbnails grouped by section."""
+        filled = [(section_title, names) for section_title, names in sections if names]
+        if not filled:
+            return
+
+        def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
+            layout.addWidget(QLabel(label))
+            for section_title, names in filled:
+                lw = QListWidget()
+                lw.setViewMode(QListWidget.ViewMode.IconMode)
+                lw.setResizeMode(QListWidget.ResizeMode.Adjust)
+                lw.setMovement(QListWidget.Movement.Static)
+                lw.setSpacing(8)
+                lw.setIconSize(QSize(icon_size, icon_size))
+                lw.setGridSize(QSize(icon_size + 56, icon_size + 40))
+                lw.setWordWrap(True)
+                lw.setSelectionMode(QListWidget.SelectionMode.NoSelection)
+                lw.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+                style_transparent_icon_grid(lw)
+                for name in names:
+                    item = QListWidgetItem(create_lucide_icon(name, icon_size), name)
+                    item.setToolTip(name)
+                    item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
+                    lw.addItem(item)
+                fit_widget_height(
+                    lw,
+                    icon_grid_content_height(lw),
+                    maximum=max(180, (self._default_size.height() - 160) // max(1, len(filled))),
+                )
+                section, _, section_layout = create_command_section(title=section_title)
+                section_layout.addWidget(lw)
+                layout.addWidget(section)
+
+            buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok)
+            self._apply_lucide_dialog_buttons(buttons)
+            buttons.accepted.connect(dialog.accept)
+            layout.addWidget(buttons)
+
+        self._exec_standard_dialog(title, _build, stretch_row=1)
 
     def show_text_diff_side_by_side(
         self,
@@ -4057,6 +4106,68 @@ def show_instructions(self, instructions: str, title: str = "Instructions") -> s
 
         result, _dialog = self._exec_standard_dialog(title, _build, stretch_row=0)
         return instructions if result == QDialog.DialogCode.Accepted else None
+```
+
+</details>
+
+### ⚙️ Method `show_lucide_icon_thumbnails`
+
+```python
+def show_lucide_icon_thumbnails(self, title: str, label: str, sections: list[tuple[str, list[str]]], *, icon_size: int = 48) -> None
+```
+
+Show a read-only grid of Lucide SVG thumbnails grouped by section.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def show_lucide_icon_thumbnails(
+        self,
+        title: str,
+        label: str,
+        sections: list[tuple[str, list[str]]],
+        *,
+        icon_size: int = 48,
+    ) -> None:
+        filled = [(section_title, names) for section_title, names in sections if names]
+        if not filled:
+            return
+
+        def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
+            layout.addWidget(QLabel(label))
+            for section_title, names in filled:
+                lw = QListWidget()
+                lw.setViewMode(QListWidget.ViewMode.IconMode)
+                lw.setResizeMode(QListWidget.ResizeMode.Adjust)
+                lw.setMovement(QListWidget.Movement.Static)
+                lw.setSpacing(8)
+                lw.setIconSize(QSize(icon_size, icon_size))
+                lw.setGridSize(QSize(icon_size + 56, icon_size + 40))
+                lw.setWordWrap(True)
+                lw.setSelectionMode(QListWidget.SelectionMode.NoSelection)
+                lw.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+                style_transparent_icon_grid(lw)
+                for name in names:
+                    item = QListWidgetItem(create_lucide_icon(name, icon_size), name)
+                    item.setToolTip(name)
+                    item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
+                    lw.addItem(item)
+                fit_widget_height(
+                    lw,
+                    icon_grid_content_height(lw),
+                    maximum=max(180, (self._default_size.height() - 160) // max(1, len(filled))),
+                )
+                section, _, section_layout = create_command_section(title=section_title)
+                section_layout.addWidget(lw)
+                layout.addWidget(section)
+
+            buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok)
+            self._apply_lucide_dialog_buttons(buttons)
+            buttons.accepted.connect(dialog.accept)
+            layout.addWidget(buttons)
+
+        self._exec_standard_dialog(title, _build, stretch_row=1)
 ```
 
 </details>
