@@ -585,10 +585,13 @@ class ActionBase(ABC):
         display_text: str | None = None,
         save_button: bool = False,
         save_default_path: str | None = None,
+        lucide_sections: list[tuple[str, list[str]]] | None = None,
+        lucide_caption: str = "",
     ) -> str | None:
         """Open a dialog to display result of `execute`.
 
         When `display_text` is set, show that instead of accumulated log lines.
+        When `lucide_sections` is set, show Lucide SVG thumbnails beside the text.
 
         Returns:
 
@@ -596,7 +599,7 @@ class ActionBase(ABC):
 
         """
         text = display_text.strip() if display_text is not None else "\n".join(self.result_lines).strip()
-        if not text:
+        if not text and not lucide_sections:
             return None
 
         title = "Result"
@@ -609,6 +612,8 @@ class ActionBase(ABC):
             open_folder_path=self.result_folder,
             save_button=save_button,
             save_default_path=save_default_path,
+            lucide_sections=lucide_sections,
+            lucide_caption=lucide_caption,
         )
         if isinstance(result, tuple):
             return result[0]

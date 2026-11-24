@@ -1670,44 +1670,18 @@ class ActionDialogService:
         icon_size: int = 48,
     ) -> None:
         """Show a read-only grid of Lucide SVG thumbnails grouped by section."""
-        filled = [(section_title, names) for section_title, names in sections if names]
-        if not filled:
+        panel = self._lucide_thumbnail_panel(sections, caption=label, icon_size=icon_size)
+        if panel is None:
             return
 
         def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
-            layout.addWidget(QLabel(label))
-            for section_title, names in filled:
-                lw = QListWidget()
-                lw.setViewMode(QListWidget.ViewMode.IconMode)
-                lw.setResizeMode(QListWidget.ResizeMode.Adjust)
-                lw.setMovement(QListWidget.Movement.Static)
-                lw.setSpacing(8)
-                lw.setIconSize(QSize(icon_size, icon_size))
-                lw.setGridSize(QSize(icon_size + 56, icon_size + 40))
-                lw.setWordWrap(True)
-                lw.setSelectionMode(QListWidget.SelectionMode.NoSelection)
-                lw.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-                style_transparent_icon_grid(lw)
-                for name in names:
-                    item = QListWidgetItem(create_lucide_icon(name, icon_size), name)
-                    item.setToolTip(name)
-                    item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
-                    lw.addItem(item)
-                fit_widget_height(
-                    lw,
-                    icon_grid_content_height(lw),
-                    maximum=max(180, (self._default_size.height() - 160) // max(1, len(filled))),
-                )
-                section, _, section_layout = create_command_section(title=section_title)
-                section_layout.addWidget(lw)
-                layout.addWidget(section)
-
+            layout.addWidget(panel, stretch=1)
             buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok)
             self._apply_lucide_dialog_buttons(buttons)
             buttons.accepted.connect(dialog.accept)
             layout.addWidget(buttons)
 
-        self._exec_standard_dialog(title, _build, stretch_row=1)
+        self._exec_standard_dialog(title, _build, stretch_row=0)
 
     def show_text_diff_side_by_side(
         self,
@@ -1774,13 +1748,27 @@ class ActionDialogService:
         ok_button_icon: str = OK_BUTTON_ICON,
         ok_button_before_actions: bool = False,
         use_markdown: bool = False,
+        lucide_sections: list[tuple[str, list[str]]] | None = None,
+        lucide_caption: str = "",
+        lucide_icon_size: int = 48,
     ) -> str | tuple[str | None, int] | None:
-        """Show read-only multi-line text dialog and return text if accepted."""
+        """Show read-only multi-line text dialog and return text if accepted.
+
+        When `lucide_sections` is set, the dialog splits: result text on the left
+        and Lucide SVG thumbnails on the right.
+
+        """
         has_action_buttons = (
             rerun_button or rewrite_button or ask_ai_button or translate_button or remove_paragraphs_button
         )
         folder_to_open = Path(open_folder_path) if open_folder_path is not None else None
         current_text = text
+        thumbnails = self._lucide_thumbnail_panel(
+            lucide_sections or [],
+            caption=lucide_caption,
+            icon_size=lucide_icon_size,
+            fit_heights=False,
+        )
 
         def _apply_result_text(browser: ResultTextBrowser, value: str) -> None:
             if use_markdown:
@@ -1796,7 +1784,18 @@ class ActionDialogService:
             text_edit.setMinimumHeight(self._default_size.height() - 120)
             text_edit.moveCursor(QTextCursor.MoveOperation.End)
 
-            layout.addWidget(text_edit)
+            if thumbnails is None:
+                layout.addWidget(text_edit)
+            else:
+                splitter = QSplitter(Qt.Orientation.Horizontal)
+                splitter.setChildrenCollapsible(False)
+                splitter.addWidget(text_edit)
+                splitter.addWidget(thumbnails)
+                splitter.setStretchFactor(0, 1)
+                splitter.setStretchFactor(1, 1)
+                half = max(320, self._default_size.width() // 2)
+                splitter.setSizes([half, half])
+                layout.addWidget(splitter, stretch=1)
 
             def _scroll_to_end() -> None:
                 scrollbar = text_edit.verticalScrollBar()
@@ -1886,7 +1885,16 @@ class ActionDialogService:
 
             layout.addLayout(button_layout)
 
-        result, _dialog = self._exec_standard_dialog(title, _build, stretch_row=0, adaptive=False)
+        dialog_size = self._default_size
+        if thumbnails is not None:
+            dialog_size = QSize(max(self._default_size.width(), 1100), self._default_size.height())
+        result, _dialog = self._exec_standard_dialog(
+            title,
+            _build,
+            stretch_row=0,
+            adaptive=False,
+            size=dialog_size,
+        )
         if has_action_buttons:
             if result in (
                 RERUN_DIALOG_CODE,
@@ -2060,6 +2068,63 @@ class ActionDialogService:
         if current_item is None:
             return None
         return current_item.text(), checkbox.isChecked()
+
+    def _lucide_thumbnail_panel(
+        self,
+        sections: list[tuple[str, list[str]]],
+        *,
+        caption: str = "",
+        icon_size: int = 48,
+        fit_heights: bool = True,
+    ) -> QWidget | None:
+        """Build a scrollable Lucide thumbnail panel, or `None` when empty."""
+        filled = [(section_title, names) for section_title, names in sections if names]
+        if not filled:
+            return None
+
+        panel = QWidget()
+        panel_layout = QVBoxLayout(panel)
+        panel_layout.setContentsMargins(0, 0, 0, 0)
+        if caption:
+            panel_layout.addWidget(QLabel(caption))
+
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        body = QWidget()
+        body_layout = QVBoxLayout(body)
+        body_layout.setContentsMargins(0, 0, 0, 0)
+        for section_title, names in filled:
+            lw = QListWidget()
+            lw.setViewMode(QListWidget.ViewMode.IconMode)
+            lw.setResizeMode(QListWidget.ResizeMode.Adjust)
+            lw.setMovement(QListWidget.Movement.Static)
+            lw.setSpacing(8)
+            lw.setIconSize(QSize(icon_size, icon_size))
+            lw.setGridSize(QSize(icon_size + 56, icon_size + 40))
+            lw.setWordWrap(True)
+            lw.setSelectionMode(QListWidget.SelectionMode.NoSelection)
+            lw.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+            style_transparent_icon_grid(lw)
+            for name in names:
+                item = QListWidgetItem(create_lucide_icon(name, icon_size), name)
+                item.setToolTip(name)
+                item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
+                lw.addItem(item)
+            if fit_heights:
+                fit_widget_height(
+                    lw,
+                    icon_grid_content_height(lw),
+                    maximum=max(180, (self._default_size.height() - 160) // max(1, len(filled))),
+                )
+            section, _, section_layout = create_command_section(title=section_title)
+            section_layout.addWidget(lw)
+            body_layout.addWidget(section)
+        body_layout.addStretch(1)
+        scroll.setWidget(body)
+        panel_layout.addWidget(scroll, stretch=1)
+        return panel
 
     def _resolve_folder_choice(
         self,
@@ -4130,44 +4195,18 @@ def show_lucide_icon_thumbnails(
         *,
         icon_size: int = 48,
     ) -> None:
-        filled = [(section_title, names) for section_title, names in sections if names]
-        if not filled:
+        panel = self._lucide_thumbnail_panel(sections, caption=label, icon_size=icon_size)
+        if panel is None:
             return
 
         def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
-            layout.addWidget(QLabel(label))
-            for section_title, names in filled:
-                lw = QListWidget()
-                lw.setViewMode(QListWidget.ViewMode.IconMode)
-                lw.setResizeMode(QListWidget.ResizeMode.Adjust)
-                lw.setMovement(QListWidget.Movement.Static)
-                lw.setSpacing(8)
-                lw.setIconSize(QSize(icon_size, icon_size))
-                lw.setGridSize(QSize(icon_size + 56, icon_size + 40))
-                lw.setWordWrap(True)
-                lw.setSelectionMode(QListWidget.SelectionMode.NoSelection)
-                lw.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-                style_transparent_icon_grid(lw)
-                for name in names:
-                    item = QListWidgetItem(create_lucide_icon(name, icon_size), name)
-                    item.setToolTip(name)
-                    item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
-                    lw.addItem(item)
-                fit_widget_height(
-                    lw,
-                    icon_grid_content_height(lw),
-                    maximum=max(180, (self._default_size.height() - 160) // max(1, len(filled))),
-                )
-                section, _, section_layout = create_command_section(title=section_title)
-                section_layout.addWidget(lw)
-                layout.addWidget(section)
-
+            layout.addWidget(panel, stretch=1)
             buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok)
             self._apply_lucide_dialog_buttons(buttons)
             buttons.accepted.connect(dialog.accept)
             layout.addWidget(buttons)
 
-        self._exec_standard_dialog(title, _build, stretch_row=1)
+        self._exec_standard_dialog(title, _build, stretch_row=0)
 ```
 
 </details>
@@ -4234,10 +4273,13 @@ def show_text_diff_side_by_side(
 ### ⚙️ Method `show_text_multiline`
 
 ```python
-def show_text_multiline(self, text: str, title: str = 'Result', *, open_folder_path: Path | str | None = None, rerun_button: bool = False, rerun_button_label: str = RERUN_BUTTON_LABEL, rerun_button_icon: str = RERUN_BUTTON_ICON, rewrite_button: bool = False, ask_ai_button: bool = False, translate_button: bool = False, remove_paragraphs_button: bool = False, save_button: bool = False, save_default_path: str | None = None, save_filter: str = 'Markdown Files (*.md);;All Files (*)', ok_button_label: str = OK_BUTTON_LABEL, ok_button_icon: str = OK_BUTTON_ICON, ok_button_before_actions: bool = False, use_markdown: bool = False) -> str | tuple[str | None, int] | None
+def show_text_multiline(self, text: str, title: str = 'Result', *, open_folder_path: Path | str | None = None, rerun_button: bool = False, rerun_button_label: str = RERUN_BUTTON_LABEL, rerun_button_icon: str = RERUN_BUTTON_ICON, rewrite_button: bool = False, ask_ai_button: bool = False, translate_button: bool = False, remove_paragraphs_button: bool = False, save_button: bool = False, save_default_path: str | None = None, save_filter: str = 'Markdown Files (*.md);;All Files (*)', ok_button_label: str = OK_BUTTON_LABEL, ok_button_icon: str = OK_BUTTON_ICON, ok_button_before_actions: bool = False, use_markdown: bool = False, lucide_sections: list[tuple[str, list[str]]] | None = None, lucide_caption: str = '', lucide_icon_size: int = 48) -> str | tuple[str | None, int] | None
 ```
 
 Show read-only multi-line text dialog and return text if accepted.
+
+When `lucide_sections` is set, the dialog splits: result text on the left
+and Lucide SVG thumbnails on the right.
 
 <details>
 <summary>Code:</summary>
@@ -4263,12 +4305,21 @@ def show_text_multiline(
         ok_button_icon: str = OK_BUTTON_ICON,
         ok_button_before_actions: bool = False,
         use_markdown: bool = False,
+        lucide_sections: list[tuple[str, list[str]]] | None = None,
+        lucide_caption: str = "",
+        lucide_icon_size: int = 48,
     ) -> str | tuple[str | None, int] | None:
         has_action_buttons = (
             rerun_button or rewrite_button or ask_ai_button or translate_button or remove_paragraphs_button
         )
         folder_to_open = Path(open_folder_path) if open_folder_path is not None else None
         current_text = text
+        thumbnails = self._lucide_thumbnail_panel(
+            lucide_sections or [],
+            caption=lucide_caption,
+            icon_size=lucide_icon_size,
+            fit_heights=False,
+        )
 
         def _apply_result_text(browser: ResultTextBrowser, value: str) -> None:
             if use_markdown:
@@ -4284,7 +4335,18 @@ def show_text_multiline(
             text_edit.setMinimumHeight(self._default_size.height() - 120)
             text_edit.moveCursor(QTextCursor.MoveOperation.End)
 
-            layout.addWidget(text_edit)
+            if thumbnails is None:
+                layout.addWidget(text_edit)
+            else:
+                splitter = QSplitter(Qt.Orientation.Horizontal)
+                splitter.setChildrenCollapsible(False)
+                splitter.addWidget(text_edit)
+                splitter.addWidget(thumbnails)
+                splitter.setStretchFactor(0, 1)
+                splitter.setStretchFactor(1, 1)
+                half = max(320, self._default_size.width() // 2)
+                splitter.setSizes([half, half])
+                layout.addWidget(splitter, stretch=1)
 
             def _scroll_to_end() -> None:
                 scrollbar = text_edit.verticalScrollBar()
@@ -4374,7 +4436,16 @@ def show_text_multiline(
 
             layout.addLayout(button_layout)
 
-        result, _dialog = self._exec_standard_dialog(title, _build, stretch_row=0, adaptive=False)
+        dialog_size = self._default_size
+        if thumbnails is not None:
+            dialog_size = QSize(max(self._default_size.width(), 1100), self._default_size.height())
+        result, _dialog = self._exec_standard_dialog(
+            title,
+            _build,
+            stretch_row=0,
+            adaptive=False,
+            size=dialog_size,
+        )
         if has_action_buttons:
             if result in (
                 RERUN_DIALOG_CODE,

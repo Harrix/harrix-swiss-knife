@@ -100,13 +100,14 @@ class OnUpdateLucideIcons(ActionBase):
             self.add_line("No Git changes under the Lucide folder.")
 
         self.show_toast(summary)
-        self.show_result()
-        self._show_changed_thumbnails(changes)
+        sections, caption = self._thumbnail_sections(changes)
+        self.show_result(lucide_sections=sections or None, lucide_caption=caption)
 
-    def _show_changed_thumbnails(self, changes: LucideGitChanges) -> None:
+    def _thumbnail_sections(self, changes: LucideGitChanges) -> tuple[list[tuple[str, list[str]]], str]:
+        """Return Lucide thumbnail sections and caption for the result dialog."""
         names = changes.svg_names
         if not names:
-            return
+            return [], ""
         truncated = names[:_MAX_THUMBNAILS]
         sections: list[tuple[str, list[str]]] = []
         if changes.added:
@@ -118,15 +119,11 @@ class OnUpdateLucideIcons(ActionBase):
             if modified:
                 sections.append((f"Updated ({len(changes.modified)})", modified))
         if not sections:
-            return
+            return [], ""
         note = ""
         if len(names) > _MAX_THUMBNAILS:
             note = f" Showing first {_MAX_THUMBNAILS} of {len(names)}."
-        self.dialogs.show_lucide_icon_thumbnails(
-            "Lucide changes",
-            f"SVG icons added or updated according to Git.{note}",
-            sections,
-        )
+        return sections, f"SVG icons added or updated according to Git.{note}"
 
 
 def commit_lucide_updates(

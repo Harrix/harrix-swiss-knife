@@ -166,8 +166,7 @@ def test_thread_after_clears_caches_and_summarizes(tmp_path: Path) -> None:
     summary = "Lucide icons updated: 1.0.0 → 1.1.0 (42 SVGs)."
     action.show_toast.assert_called_once_with(summary)
     action.show_result.assert_called_once()
-    action.dialogs.show_lucide_icon_thumbnails.assert_called_once()
-    args = action.dialogs.show_lucide_icon_thumbnails.call_args.args
-    assert args[0] == "Lucide changes"
-    assert ("Added (1)", ["sparkles"]) in args[2]
-    assert ("Updated (1)", ["save"]) in args[2]
+    kwargs = action.show_result.call_args.kwargs
+    assert ("Added (1)", ["sparkles"]) in kwargs["lucide_sections"]
+    assert ("Updated (1)", ["save"]) in kwargs["lucide_sections"]
+    assert "Git" in kwargs["lucide_caption"]
