@@ -79,6 +79,7 @@ class DirtyReposCommitWindow(QDialog):
         self._commit_summary_running = False
         self._commit_summary_pending = False
         self._push_emphasized = False
+        self._commit_emphasized = False
 
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
@@ -167,6 +168,7 @@ class DirtyReposCommitWindow(QDialog):
         self._commit_push_button.clicked.connect(self._on_commit_and_push)
         self._commit_button = FluentPushButton("Commit", middle)
         self._commit_button.clicked.connect(self._on_commit)
+        bind_theme(self._commit_button, self._style_commit_button)
         self._push_button = FluentPushButton("Push", middle, icon="upload")
         self._push_button.clicked.connect(self._on_push)
         bind_theme(self._push_button, self._style_push_button)
@@ -1147,6 +1149,15 @@ class DirtyReposCommitWindow(QDialog):
         self._right_stack.setCurrentWidget(self._unpushed_note)
         self._update_commit_enabled()
 
+    def _style_commit_button(self) -> None:
+        """Use accent chrome for Commit on local repositories."""
+        button = self._commit_button
+        palette = palette_for(button)
+        if self._commit_emphasized:
+            button.setStyleSheet(accent_button_qss(palette))
+        else:
+            button.setStyleSheet(push_button_qss(palette))
+
     def _style_push_button(self) -> None:
         """Use accent chrome when Push is the only remaining action."""
         button = self._push_button
@@ -1184,6 +1195,14 @@ class DirtyReposCommitWindow(QDialog):
         )
         self._commit_button.setEnabled(enabled)
         status = self._current_status()
+        is_local = status is not None and status.access_kind == "local"
+        # Local repos have no remote: hide push actions and make Commit the primary.
+        self._commit_push_button.setVisible(not is_local)
+        self._push_button.setVisible(not is_local)
+        self._commit_emphasized = is_local
+        self._style_commit_button()
+        self._commit_button.setDefault(is_local)
+        self._commit_push_button.setDefault(not is_local)
         can_commit_push = enabled and status is not None and status.access_kind == "public"
         self._commit_push_button.setEnabled(can_commit_push)
         self._commit_push_button.setToolTip(self._commit_push_tooltip(status, can_commit=enabled))
@@ -1254,6 +1273,7 @@ def __init__(
         self._commit_summary_running = False
         self._commit_summary_pending = False
         self._push_emphasized = False
+        self._commit_emphasized = False
 
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
@@ -1342,6 +1362,7 @@ def __init__(
         self._commit_push_button.clicked.connect(self._on_commit_and_push)
         self._commit_button = FluentPushButton("Commit", middle)
         self._commit_button.clicked.connect(self._on_commit)
+        bind_theme(self._commit_button, self._style_commit_button)
         self._push_button = FluentPushButton("Push", middle, icon="upload")
         self._push_button.clicked.connect(self._on_push)
         bind_theme(self._push_button, self._style_push_button)
