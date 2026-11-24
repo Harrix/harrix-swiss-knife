@@ -43,41 +43,61 @@ class OnShrinkPdfBottomMargin(ActionBase):
 
     @ActionBase.handle_exceptions("shrinking PDF for bottom margin")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Ask for a PDF, shrink pages in a worker thread, then show the result."""
+        """Ask for PDF files via drop dialog, then shrink pages in a worker thread."""
         start = str(self.config.get("path_articles") or Path.home())
-        selected = self.dialogs.get_open_filename(
+        selected = self.dialogs.get_open_filenames(
             "Select PDF",
             start,
             "PDF files (*.pdf);;All files (*.*)",
         )
         if selected is None:
             return
-        self._source = Path(selected)
+        pdfs = [path for path in selected if path.suffix.casefold() == ".pdf"]
+        if not pdfs:
+            self.add_line("⚠️ No PDF files selected.")
+            self.show_result()
+            return
+        self._sources = pdfs
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
     @ActionBase.handle_exceptions("shrinking PDF for bottom margin thread")
-    def in_thread(self) -> PdfBottomMarginResult:
-        """Shrink the selected PDF in a background thread."""
-        source = getattr(self, "_source", None)
-        if not isinstance(source, Path):
+    def in_thread(self) -> list[PdfBottomMarginResult]:
+        """Shrink selected PDF files in a background thread."""
+        sources = getattr(self, "_sources", None)
+        if not isinstance(sources, list) or not sources:
             msg = "No PDF selected"
             raise TypeError(msg)
-        self.add_line(f"🔵 Shrinking PDF for a {DEFAULT_BOTTOM_MARGIN_CM:g} cm bottom margin: {source}")
-        return shrink_pdf_for_bottom_margin(source, bottom_margin_cm=DEFAULT_BOTTOM_MARGIN_CM)
+        results: list[PdfBottomMarginResult] = []
+        for source in sources:
+            if not isinstance(source, Path):
+                msg = "No PDF selected"
+                raise TypeError(msg)
+            self.add_line(f"🔵 Shrinking PDF for a {DEFAULT_BOTTOM_MARGIN_CM:g} cm bottom margin: {source}")
+            results.append(shrink_pdf_for_bottom_margin(source, bottom_margin_cm=DEFAULT_BOTTOM_MARGIN_CM))
+        return results
 
     @ActionBase.handle_exceptions("shrinking PDF for bottom margin thread completion")
     def thread_after(self, result: Any) -> None:
-        """Report the output path and open the result dialog."""
-        if not isinstance(result, PdfBottomMarginResult):
+        """Report output paths and open the result dialog."""
+        if not isinstance(result, list) or not result:
             self.add_line(str(result))
             self.show_result()
             return
-        percent = result.scale * 100
-        self.add_line(
-            f"✅ Wrote {result.output} ({result.page_count} page(s), scale {percent:.1f}%, "
-            f"bottom margin {result.bottom_margin_cm:g} cm).",
-        )
-        self.show_toast(f"Saved {result.output.name}")
+        for item in result:
+            if not isinstance(item, PdfBottomMarginResult):
+                self.add_line(str(item))
+                continue
+            percent = item.scale * 100
+            self.add_line(
+                f"✅ Wrote {item.output} ({item.page_count} page(s), scale {percent:.1f}%, "
+                f"bottom margin {item.bottom_margin_cm:g} cm).",
+            )
+        last = result[-1]
+        if isinstance(last, PdfBottomMarginResult):
+            if len(result) == 1:
+                self.show_toast(f"Saved {last.output.name}")
+            else:
+                self.show_toast(f"Saved {len(result)} PDF files")
         self.show_result()
 ```
 
@@ -89,7 +109,7 @@ class OnShrinkPdfBottomMargin(ActionBase):
 def execute(self, *args: Any, **kwargs: Any) -> None
 ```
 
-Ask for a PDF, shrink pages in a worker thread, then show the result.
+Ask for PDF files via drop dialog, then shrink pages in a worker thread.
 
 <details>
 <summary>Code:</summary>
@@ -97,14 +117,19 @@ Ask for a PDF, shrink pages in a worker thread, then show the result.
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         start = str(self.config.get("path_articles") or Path.home())
-        selected = self.dialogs.get_open_filename(
+        selected = self.dialogs.get_open_filenames(
             "Select PDF",
             start,
             "PDF files (*.pdf);;All files (*.*)",
         )
         if selected is None:
             return
-        self._source = Path(selected)
+        pdfs = [path for path in selected if path.suffix.casefold() == ".pdf"]
+        if not pdfs:
+            self.add_line("⚠️ No PDF files selected.")
+            self.show_result()
+            return
+        self._sources = pdfs
         self.start_thread(self.in_thread, self.thread_after, self.title)
 ```
 
@@ -113,22 +138,28 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 ### ⚙️ Method `in_thread`
 
 ```python
-def in_thread(self) -> PdfBottomMarginResult
+def in_thread(self) -> list[PdfBottomMarginResult]
 ```
 
-Shrink the selected PDF in a background thread.
+Shrink selected PDF files in a background thread.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def in_thread(self) -> PdfBottomMarginResult:
-        source = getattr(self, "_source", None)
-        if not isinstance(source, Path):
+def in_thread(self) -> list[PdfBottomMarginResult]:
+        sources = getattr(self, "_sources", None)
+        if not isinstance(sources, list) or not sources:
             msg = "No PDF selected"
             raise TypeError(msg)
-        self.add_line(f"🔵 Shrinking PDF for a {DEFAULT_BOTTOM_MARGIN_CM:g} cm bottom margin: {source}")
-        return shrink_pdf_for_bottom_margin(source, bottom_margin_cm=DEFAULT_BOTTOM_MARGIN_CM)
+        results: list[PdfBottomMarginResult] = []
+        for source in sources:
+            if not isinstance(source, Path):
+                msg = "No PDF selected"
+                raise TypeError(msg)
+            self.add_line(f"🔵 Shrinking PDF for a {DEFAULT_BOTTOM_MARGIN_CM:g} cm bottom margin: {source}")
+            results.append(shrink_pdf_for_bottom_margin(source, bottom_margin_cm=DEFAULT_BOTTOM_MARGIN_CM))
+        return results
 ```
 
 </details>
@@ -139,23 +170,32 @@ def in_thread(self) -> PdfBottomMarginResult:
 def thread_after(self, result: Any) -> None
 ```
 
-Report the output path and open the result dialog.
+Report output paths and open the result dialog.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def thread_after(self, result: Any) -> None:
-        if not isinstance(result, PdfBottomMarginResult):
+        if not isinstance(result, list) or not result:
             self.add_line(str(result))
             self.show_result()
             return
-        percent = result.scale * 100
-        self.add_line(
-            f"✅ Wrote {result.output} ({result.page_count} page(s), scale {percent:.1f}%, "
-            f"bottom margin {result.bottom_margin_cm:g} cm).",
-        )
-        self.show_toast(f"Saved {result.output.name}")
+        for item in result:
+            if not isinstance(item, PdfBottomMarginResult):
+                self.add_line(str(item))
+                continue
+            percent = item.scale * 100
+            self.add_line(
+                f"✅ Wrote {item.output} ({item.page_count} page(s), scale {percent:.1f}%, "
+                f"bottom margin {item.bottom_margin_cm:g} cm).",
+            )
+        last = result[-1]
+        if isinstance(last, PdfBottomMarginResult):
+            if len(result) == 1:
+                self.show_toast(f"Saved {last.output.name}")
+            else:
+                self.show_toast(f"Saved {len(result)} PDF files")
         self.show_result()
 ```
 

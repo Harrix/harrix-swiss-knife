@@ -380,6 +380,8 @@ class DragDropFileDialog(QDialog):
         self.drop_area.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         layout.addWidget(self.drop_area)
         self._drop_area_row = layout.indexOf(self.drop_area)
+        install_url_drop_handlers(self, self.add_files)
+        install_url_drop_handlers(self.drop_area, self.add_files)
 
         self.files_list = QListWidget()
         self.files_list.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
@@ -666,6 +668,8 @@ def setup_ui(self) -> None:
         self.drop_area.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         layout.addWidget(self.drop_area)
         self._drop_area_row = layout.indexOf(self.drop_area)
+        install_url_drop_handlers(self, self.add_files)
+        install_url_drop_handlers(self.drop_area, self.add_files)
 
         self.files_list = QListWidget()
         self.files_list.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)

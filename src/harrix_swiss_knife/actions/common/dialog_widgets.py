@@ -36,6 +36,7 @@ from harrix_swiss_knife.apps.common.ui_chrome import (
     muted_caption_qss,
     selection_chrome_colors,
 )
+from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import install_url_drop_handlers
 from harrix_swiss_knife.fluent.theme import bind_theme, enable_fluent_theme
 from harrix_swiss_knife.qt_app_font import APP_FONT_FAMILY
 from harrix_swiss_knife.qt_lucide_icon import CLEAR_BUTTON_ICON, apply_lucide_dialog_buttons, make_lucide_push_button
@@ -242,6 +243,8 @@ class DragDropFileDialog(QDialog):
         self.drop_area.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         layout.addWidget(self.drop_area)
         self._drop_area_row = layout.indexOf(self.drop_area)
+        install_url_drop_handlers(self, self.add_files)
+        install_url_drop_handlers(self.drop_area, self.add_files)
 
         self.files_list = QListWidget()
         self.files_list.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
