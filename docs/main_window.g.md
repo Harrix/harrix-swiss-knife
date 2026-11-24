@@ -49,7 +49,7 @@ class MainWindow(QMainWindow):
         """
         super().__init__()
 
-        self.setWindowTitle("Harrix Swiss Knife")
+        self.setWindowTitle("Commands")
         apply_window_icon(self)
         enable_fluent_theme(self)
 
@@ -656,7 +656,7 @@ Args:
 def __init__(self, menu: QMenu) -> None:
         super().__init__()
 
-        self.setWindowTitle("Harrix Swiss Knife")
+        self.setWindowTitle("Commands")
         apply_window_icon(self)
         enable_fluent_theme(self)
 

@@ -204,6 +204,7 @@ def get_menu_structure() -> list[Any]:
                 OnBeautifyAndOptimizeIcons,
             ],
         ),
+        OnCommands,
         OnFinance,
         OnFitness,
         OnFood,

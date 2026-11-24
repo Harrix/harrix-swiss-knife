@@ -94,7 +94,7 @@ class MainWindow(QMainWindow):
         """
         super().__init__()
 
-        self.setWindowTitle("Harrix Swiss Knife")
+        self.setWindowTitle("Commands")
         apply_window_icon(self)
         enable_fluent_theme(self)
 

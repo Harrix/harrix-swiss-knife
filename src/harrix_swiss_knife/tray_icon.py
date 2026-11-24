@@ -6,11 +6,17 @@ context menu and interaction handling.
 
 """
 
-from PySide6.QtGui import QIcon
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, ClassVar
+
 from PySide6.QtWidgets import QMenu, QSystemTrayIcon, QWidget
 
 from harrix_swiss_knife import main_window
 from harrix_swiss_knife.main_menu_base import set_menu_tooltips_visible_recursive
+
+if TYPE_CHECKING:
+    from PySide6.QtGui import QIcon
 
 
 class TrayIcon(QSystemTrayIcon):
@@ -24,6 +30,8 @@ class TrayIcon(QSystemTrayIcon):
       The context menu displayed when interacting with the tray icon.
 
     """
+
+    _instance: ClassVar[TrayIcon | None] = None
 
     def __init__(
         self,
@@ -47,11 +55,17 @@ class TrayIcon(QSystemTrayIcon):
 
         """
         super().__init__(icon, parent)
+        TrayIcon._instance = self
         set_menu_tooltips_visible_recursive(menu)
         self.setContextMenu(menu)
         self.activated.connect(self.on_activated)
         self.main_window: main_window.MainWindow | None = None
         self.menu: QMenu = menu
+
+    @classmethod
+    def active(cls) -> TrayIcon | None:
+        """Return the process tray icon, if one was created."""
+        return cls._instance
 
     def ensure_main_window(self) -> main_window.MainWindow:
         """Create the main window on first use."""
@@ -80,3 +94,18 @@ class TrayIcon(QSystemTrayIcon):
         window.raise_()
         window.activateWindow()
         window.focus_initial_input()
+
+
+def show_command_window() -> bool:
+    """Show the tray command-cards window when a tray icon exists.
+
+    Returns:
+
+    - `bool`: `True` when the window was shown.
+
+    """
+    tray = TrayIcon.active()
+    if tray is None:
+        return False
+    tray.show_command_window()
+    return True

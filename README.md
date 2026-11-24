@@ -186,6 +186,7 @@ _Figure 1: Screenshot_
   - 🔄 Sync Harrix Notes Explorer public repo ꟲᴸᴵ
   - 🔄 ★ Sync Saved Commands between editors… ꟲᴸᴵ
   - 📦 ★ Update/install Harrix Notes Explorer extension for VS Code… ꟲᴸᴵ
+- 🗂️ Commands
 - 💰 Finance tracker
 - 🏃🏻 Fitness tracker
 - 🍔 Food tracker

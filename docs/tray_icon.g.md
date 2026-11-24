@@ -13,9 +13,11 @@ lang: en
 
 - [🏛️ Class `TrayIcon`](#%EF%B8%8F-class-trayicon)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `active (classmethod)`](#%EF%B8%8F-method-active-classmethod)
   - [⚙️ Method `ensure_main_window`](#%EF%B8%8F-method-ensure_main_window)
   - [⚙️ Method `on_activated`](#%EF%B8%8F-method-on_activated)
   - [⚙️ Method `show_command_window`](#%EF%B8%8F-method-show_command_window)
+- [🔧 Function `show_command_window`](#-function-show_command_window)
 
 </details>
 
@@ -31,7 +33,7 @@ Attributes:
 
 - `main_window` (`main_window.MainWindow | None`):
   The main window associated with the tray icon. Defaults to `None`.
-- [`menu`](qt_split_menu_button.g.md#%EF%B8%8F-method-menu) (`QMenu`):
+- `menu` (`QMenu`):
   The context menu displayed when interacting with the tray icon.
 
 <details>
@@ -39,6 +41,8 @@ Attributes:
 
 ```python
 class TrayIcon(QSystemTrayIcon):
+
+    _instance: ClassVar[TrayIcon | None] = None
 
     def __init__(
         self,
@@ -62,11 +66,17 @@ class TrayIcon(QSystemTrayIcon):
 
         """
         super().__init__(icon, parent)
+        TrayIcon._instance = self
         set_menu_tooltips_visible_recursive(menu)
         self.setContextMenu(menu)
         self.activated.connect(self.on_activated)
         self.main_window: main_window.MainWindow | None = None
         self.menu: QMenu = menu
+
+    @classmethod
+    def active(cls) -> TrayIcon | None:
+        """Return the process tray icon, if one was created."""
+        return cls._instance
 
     def ensure_main_window(self) -> main_window.MainWindow:
         """Create the main window on first use."""
@@ -109,9 +119,9 @@ Initialize the [`TrayIcon`](#%EF%B8%8F-class-trayicon) with the given icon and m
 
 Args:
 
-- [`icon`](qt_split_menu_button.g.md#%EF%B8%8F-method-icon) (`QIcon`):
+- `icon` (`QIcon`):
   The icon to display in the system tray.
-- [`menu`](qt_split_menu_button.g.md#%EF%B8%8F-method-menu) (`QMenu`):
+- `menu` (`QMenu`):
   The context menu to associate with the tray icon.
 - `parent` (`QWidget | None`):
   The parent widget. Defaults to `None`.
@@ -130,11 +140,30 @@ def __init__(
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(icon, parent)
+        TrayIcon._instance = self
         set_menu_tooltips_visible_recursive(menu)
         self.setContextMenu(menu)
         self.activated.connect(self.on_activated)
         self.main_window: main_window.MainWindow | None = None
         self.menu: QMenu = menu
+```
+
+</details>
+
+### ⚙️ Method `active (classmethod)`
+
+```python
+def active(cls) -> TrayIcon | None
+```
+
+Return the process tray icon, if one was created.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def active(cls) -> TrayIcon | None:
+        return cls._instance
 ```
 
 </details>
@@ -203,6 +232,32 @@ def show_command_window(self) -> None:
         window.raise_()
         window.activateWindow()
         window.focus_initial_input()
+```
+
+</details>
+
+## 🔧 Function `show_command_window`
+
+```python
+def show_command_window() -> bool
+```
+
+Show the tray command-cards window when a tray icon exists.
+
+Returns:
+
+- `bool`: `True` when the window was shown.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def show_command_window() -> bool:
+    tray = TrayIcon.active()
+    if tray is None:
+        return False
+    tray.show_command_window()
+    return True
 ```
 
 </details>
