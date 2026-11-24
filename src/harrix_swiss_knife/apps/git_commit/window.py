@@ -70,6 +70,7 @@ from harrix_swiss_knife.apps.common.tracker_splitter_settings import load_splitt
 from harrix_swiss_knife.apps.git_commit.charts import GitCommitChartsPage
 from harrix_swiss_knife.apps.git_commit.diff_view import GitDiffEdit
 from harrix_swiss_knife.fluent.app_chrome import install_fluent_app_window, prepare_fluent_app_window
+from harrix_swiss_knife.fluent.style import accent_button_qss, push_button_qss, themed_icon
 from harrix_swiss_knife.fluent.theme import bind_theme, palette_for
 from harrix_swiss_knife.fluent.tokens import ICON_SIZE, SPACE_M, SPACE_S, SPACE_XL, SPACE_XS, FluentPalette
 from harrix_swiss_knife.fluent.widgets import (
@@ -162,6 +163,7 @@ class DirtyReposCommitWindow(QDialog):
         self._commit_summary = CommitDaySummary(today=DayCommitCounts(), yesterday=DayCommitCounts())
         self._commit_summary_running = False
         self._commit_summary_pending = False
+        self._push_emphasized = False
 
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
@@ -241,6 +243,7 @@ class DirtyReposCommitWindow(QDialog):
         self._commit_push_button.clicked.connect(self._on_commit_and_push)
         self._push_button = FluentPushButton("Push", middle, icon="upload")
         self._push_button.clicked.connect(self._on_push)
+        bind_theme(self._push_button, self._style_push_button)
         self._desktop_button = FluentPushButton("Open in GitHub Desktop", middle)
         self._desktop_button.clicked.connect(self._on_open_desktop)
         buttons.addWidget(self._commit_button)
@@ -1179,6 +1182,18 @@ class DirtyReposCommitWindow(QDialog):
         self._unpushed_note.show()
         self._update_commit_enabled()
 
+    def _style_push_button(self) -> None:
+        """Use accent chrome when Push is the only remaining action."""
+        button = self._push_button
+        palette = palette_for(button)
+        if self._push_emphasized:
+            button.setStyleSheet(accent_button_qss(palette))
+            button.setIcon(create_lucide_icon("upload", ICON_SIZE, color=palette.text_on_accent))
+        else:
+            button.setStyleSheet(push_button_qss(palette))
+            button.setIcon(themed_icon("upload", palette))
+        button.setIconSize(QSize(ICON_SIZE, ICON_SIZE))
+
     def _toast(self, message: str) -> None:
         ToastNotification(message, duration=2000, parent=self)
 
@@ -1197,6 +1212,9 @@ class DirtyReposCommitWindow(QDialog):
         can_push = not self._busy and status is not None and status.access_kind == "public" and status.unpushed > 0
         self._push_button.setEnabled(can_push)
         self._push_button.setToolTip(self._push_tooltip(status))
+        # Accent Push when the tree is clean and only a public push remains.
+        self._push_emphasized = can_push and self._file_list.count() == 0
+        self._style_push_button()
         self._unpushed_push.setEnabled(can_push)
         self._desktop_button.setEnabled(self._current_repo() is not None and not self._busy)
         self._rescan_button.setEnabled(not self._busy)
