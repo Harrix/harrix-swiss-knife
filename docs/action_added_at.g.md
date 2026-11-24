@@ -27,7 +27,7 @@ lang: en
 def added_at_for(class_name: str, *, path: Path | None = None) -> datetime | None
 ```
 
-Return the parsed added-at stamp for [`class_name`](actions/common/maintenance_checklist_steps.g.md#%EF%B8%8F-method-class_name-property), or `None` if unknown.
+Return the parsed added-at stamp for `class_name`, or `None` if unknown.
 
 <details>
 <summary>Code:</summary>
@@ -193,9 +193,10 @@ def load_action_added_at(path: Path | None = None) -> ActionAddedAtMap:
 def sort_items_newest_first(items: Sequence[_T], *, class_name_of: Callable[[_T], str], path: Path | None = None) -> list[_T]
 ```
 
-Return `items` ordered by added-at descending; unknown dates last.
+Return `items` ordered by added-at descending; unknown dates first.
 
-Equal dates keep a stable alphabetical order by class name.
+Missing or invalid stamps sort above dated items. Equal dates keep a
+stable alphabetical order by class name.
 
 <details>
 <summary>Code:</summary>

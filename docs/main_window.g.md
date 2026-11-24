@@ -147,11 +147,23 @@ class MainWindow(QMainWindow):
         description = getattr(action, "action_description", "") or ""
         return bool(description) and command_matches_search(description, query)
 
+    def _action_missing_added_at(self, action: QAction) -> bool:
+        """Return `True` when the action has no usable added-at stamp."""
+        parts = get_action_identity_parts(action)
+        if parts is None:
+            return True
+        return added_at_for(parts.class_name) is None
+
     def _add_list_action_item(self, action: QAction, *, indent_level: int = 0) -> None:
         item = QListWidgetItem(("    " * indent_level) + action.text())
         item.setData(Qt.ItemDataRole.UserRole, action)
         tooltip = action.toolTip()
-        if tooltip:
+        missing_added_at = self._action_missing_added_at(action)
+        if missing_added_at:
+            note = "No added date"
+            item.setToolTip(f"{tooltip}\n{note}" if tooltip else note)
+            item.setBackground(QBrush(palette_for(self).caution_bg))
+        elif tooltip:
             item.setToolTip(tooltip)
         if not action.icon().isNull():
             item.setIcon(action.icon())
@@ -343,11 +355,15 @@ class MainWindow(QMainWindow):
             section = self._action_sections.get(action, "")
             if section:
                 overline_parts.append(section)
+        missing_added_at = self._action_missing_added_at(action)
         if show_added_at:
-            parts = get_action_identity_parts(action)
-            date_text = format_added_at_date(added_at_for(parts.class_name)) if parts is not None else ""
-            if date_text:
-                overline_parts.append(f"Added {date_text}")
+            if missing_added_at:
+                overline_parts.append("No added date")
+            else:
+                parts = get_action_identity_parts(action)
+                date_text = format_added_at_date(added_at_for(parts.class_name)) if parts is not None else ""
+                if date_text:
+                    overline_parts.append(f"Added {date_text}")
         icon_name = getattr(action, "icon_name", "") or ""
         icon = create_menu_icon(icon_name, CARD_ICON_SIZE) if icon_name else None
         card = FluentCommandCard(
@@ -357,6 +373,8 @@ class MainWindow(QMainWindow):
             overline=" · ".join(overline_parts),
             user_data=action,
         )
+        if missing_added_at:
+            card.set_caution_tint(enabled=True)
         card.clicked.connect(lambda listed=action: self._run_listed_action(listed))
         card.context_menu_requested.connect(
             lambda global_pos, listed=action, host=card: show_action_item_context_menu(

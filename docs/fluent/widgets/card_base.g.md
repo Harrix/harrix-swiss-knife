@@ -14,6 +14,7 @@ lang: en
 - [🏛️ Class `FluentCard`](#%EF%B8%8F-class-fluentcard)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `paintEvent`](#%EF%B8%8F-method-paintevent)
+  - [⚙️ Method `set_caution_tint`](#%EF%B8%8F-method-set_caution_tint)
   - [⚙️ Method `set_danger_tint`](#%EF%B8%8F-method-set_danger_tint)
   - [⚙️ Method `set_success_tint`](#%EF%B8%8F-method-set_success_tint)
 - [🏛️ Class `FluentInteractiveCard`](#%EF%B8%8F-class-fluentinteractivecard)
@@ -49,6 +50,7 @@ class FluentCard(QWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
         """Create an empty card; add content through `layout()` or your own layout."""
         super().__init__(parent)
+        self._caution_tint = False
         self._danger_tint = False
         self._success_tint = False
         bind_theme(self, self.update)
@@ -57,35 +59,49 @@ class FluentCard(QWidget):
         """Paint the card surface."""
         palette = palette_for(self)
         painter = antialiased_painter(self)
-        if self._success_tint:
-            fill = palette.success_bg
-            stroke = with_alpha(palette.success, 140)
-        elif self._danger_tint:
-            fill = palette.critical_bg
-            stroke = with_alpha(palette.critical, 140)
-        else:
-            fill = palette.card_bg
-            stroke = palette.card_stroke
+        fill, stroke = self._tint_surface_colors(palette)
         paint_surface(painter, self.rect(), fill, stroke, RADIUS_CARD)
         painter.end()
 
+    def set_caution_tint(self, *, enabled: bool) -> None:
+        """Use the caution surface colors (soft amber) when `enabled` is true."""
+        if self._caution_tint == enabled and (not enabled or not (self._danger_tint or self._success_tint)):
+            return
+        self._caution_tint = enabled
+        if enabled:
+            self._danger_tint = False
+            self._success_tint = False
+        self.update()
+
     def set_danger_tint(self, *, enabled: bool) -> None:
         """Use the critical surface colors (soft red) when `enabled` is true."""
-        if self._danger_tint == enabled and (not enabled or not self._success_tint):
+        if self._danger_tint == enabled and (not enabled or not (self._caution_tint or self._success_tint)):
             return
         self._danger_tint = enabled
         if enabled:
+            self._caution_tint = False
             self._success_tint = False
         self.update()
 
     def set_success_tint(self, *, enabled: bool) -> None:
         """Use the success surface colors (soft green) when `enabled` is true."""
-        if self._success_tint == enabled and (not enabled or not self._danger_tint):
+        if self._success_tint == enabled and (not enabled or not (self._caution_tint or self._danger_tint)):
             return
         self._success_tint = enabled
         if enabled:
+            self._caution_tint = False
             self._danger_tint = False
         self.update()
+
+    def _tint_surface_colors(self, palette: FluentPalette) -> tuple[QColor, QColor]:
+        """Return `(fill, stroke)` for the active tint, or card defaults."""
+        if self._success_tint:
+            return palette.success_bg, with_alpha(palette.success, 140)
+        if self._danger_tint:
+            return palette.critical_bg, with_alpha(palette.critical, 140)
+        if self._caution_tint:
+            return palette.caution_bg, with_alpha(palette.caution, 140)
+        return palette.card_bg, palette.card_stroke
 ```
 
 </details>
@@ -104,6 +120,7 @@ Create an empty card; add content through `layout()` or your own layout.
 ```python
 def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
+        self._caution_tint = False
         self._danger_tint = False
         self._success_tint = False
         bind_theme(self, self.update)
@@ -126,17 +143,33 @@ Paint the card surface.
 def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
         palette = palette_for(self)
         painter = antialiased_painter(self)
-        if self._success_tint:
-            fill = palette.success_bg
-            stroke = with_alpha(palette.success, 140)
-        elif self._danger_tint:
-            fill = palette.critical_bg
-            stroke = with_alpha(palette.critical, 140)
-        else:
-            fill = palette.card_bg
-            stroke = palette.card_stroke
+        fill, stroke = self._tint_surface_colors(palette)
         paint_surface(painter, self.rect(), fill, stroke, RADIUS_CARD)
         painter.end()
+```
+
+</details>
+
+### ⚙️ Method `set_caution_tint`
+
+```python
+def set_caution_tint(self, *, enabled: bool) -> None
+```
+
+Use the caution surface colors (soft amber) when `enabled` is true.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_caution_tint(self, *, enabled: bool) -> None:
+        if self._caution_tint == enabled and (not enabled or not (self._danger_tint or self._success_tint)):
+            return
+        self._caution_tint = enabled
+        if enabled:
+            self._danger_tint = False
+            self._success_tint = False
+        self.update()
 ```
 
 </details>
@@ -154,10 +187,11 @@ Use the critical surface colors (soft red) when `enabled` is true.
 
 ```python
 def set_danger_tint(self, *, enabled: bool) -> None:
-        if self._danger_tint == enabled and (not enabled or not self._success_tint):
+        if self._danger_tint == enabled and (not enabled or not (self._caution_tint or self._success_tint)):
             return
         self._danger_tint = enabled
         if enabled:
+            self._caution_tint = False
             self._success_tint = False
         self.update()
 ```
@@ -177,10 +211,11 @@ Use the success surface colors (soft green) when `enabled` is true.
 
 ```python
 def set_success_tint(self, *, enabled: bool) -> None:
-        if self._success_tint == enabled and (not enabled or not self._danger_tint):
+        if self._success_tint == enabled and (not enabled or not (self._caution_tint or self._danger_tint)):
             return
         self._success_tint = enabled
         if enabled:
+            self._caution_tint = False
             self._danger_tint = False
         self.update()
 ```
@@ -286,12 +321,18 @@ class FluentInteractiveCard(FluentCard):
 
     def paint_background(self, painter: QPainter, palette: FluentPalette) -> None:
         """Paint the state-dependent card surface (subclasses paint content on top)."""
-        fill = palette.card_bg
-        if self._pressed:
-            fill = palette.card_bg_pressed
-        elif self._hovered:
-            fill = palette.card_bg_hover
-        stroke = palette.accent if self._selected else palette.card_stroke
+        tinted = self._caution_tint or self._danger_tint or self._success_tint
+        if tinted:
+            fill, stroke = self._tint_surface_colors(palette)
+            if self._selected:
+                stroke = palette.accent
+        else:
+            fill = palette.card_bg
+            if self._pressed:
+                fill = palette.card_bg_pressed
+            elif self._hovered:
+                fill = palette.card_bg_hover
+            stroke = palette.accent if self._selected else palette.card_stroke
         paint_surface(painter, self.rect(), fill, stroke, RADIUS_CARD)
         if self.hasFocus() and self.focusPolicy() != Qt.FocusPolicy.NoFocus and self._focus_visible():
             paint_surface(painter, self.rect(), None, palette.focus_stroke_outer, RADIUS_CARD, stroke_width=2)
@@ -540,12 +581,18 @@ Paint the state-dependent card surface (subclasses paint content on top).
 
 ```python
 def paint_background(self, painter: QPainter, palette: FluentPalette) -> None:
-        fill = palette.card_bg
-        if self._pressed:
-            fill = palette.card_bg_pressed
-        elif self._hovered:
-            fill = palette.card_bg_hover
-        stroke = palette.accent if self._selected else palette.card_stroke
+        tinted = self._caution_tint or self._danger_tint or self._success_tint
+        if tinted:
+            fill, stroke = self._tint_surface_colors(palette)
+            if self._selected:
+                stroke = palette.accent
+        else:
+            fill = palette.card_bg
+            if self._pressed:
+                fill = palette.card_bg_pressed
+            elif self._hovered:
+                fill = palette.card_bg_hover
+            stroke = palette.accent if self._selected else palette.card_stroke
         paint_surface(painter, self.rect(), fill, stroke, RADIUS_CARD)
         if self.hasFocus() and self.focusPolicy() != Qt.FocusPolicy.NoFocus and self._focus_visible():
             paint_surface(painter, self.rect(), None, palette.focus_stroke_outer, RADIUS_CARD, stroke_width=2)

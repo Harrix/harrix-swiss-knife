@@ -130,9 +130,10 @@ def sort_items_newest_first(
     class_name_of: Callable[[_T], str],
     path: Path | None = None,
 ) -> list[_T]:
-    """Return `items` ordered by added-at descending; unknown dates last.
+    """Return `items` ordered by added-at descending; unknown dates first.
 
-    Equal dates keep a stable alphabetical order by class name.
+    Missing or invalid stamps sort above dated items. Equal dates keep a
+    stable alphabetical order by class name.
 
     """
     mapping = load_action_added_at(path)
@@ -157,13 +158,13 @@ def write_action_added_at(data: ActionAddedAtMap, *, path: Path | None = None) -
 
 
 def _parse_added_at(value: str) -> datetime:
-    """Parse an ISO added-at stamp; invalid or empty values sort as oldest."""
+    """Parse an ISO added-at stamp; invalid or empty values sort as newest sentinel."""
     if not value:
-        return datetime.min.replace(tzinfo=UTC)
+        return datetime.max.replace(tzinfo=UTC)
     try:
         parsed = datetime.fromisoformat(value)
     except ValueError:
-        return datetime.min.replace(tzinfo=UTC)
+        return datetime.max.replace(tzinfo=UTC)
     if parsed.tzinfo is None:
         return parsed.replace(tzinfo=UTC)
     return parsed
