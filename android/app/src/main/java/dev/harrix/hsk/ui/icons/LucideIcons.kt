@@ -11,6 +11,14 @@ import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.unit.dp
 
 object LucideIcons {
+    val Add: ImageVector by lazy {
+        lucide(
+            "plus",
+            "M5 12h14",
+            "M12 5v14",
+        )
+    }
+
     val AddAPhoto: ImageVector by lazy {
         lucide(
             "image-plus",

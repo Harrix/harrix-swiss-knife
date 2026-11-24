@@ -31,6 +31,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -137,6 +138,11 @@ fun DropboxSyncScreen(
         onPendingOAuthUriConsumeState.value()
     }
 
+    fun openAddPair() {
+        editingPair = null
+        showEditor = true
+    }
+
     BackHandler(onBack = onClose)
 
     Scaffold(
@@ -163,19 +169,21 @@ fun DropboxSyncScreen(
                     IconButton(onClick = onOpenSettings) {
                         Icon(LucideIcons.Settings, contentDescription = stringResource(R.string.nav_settings))
                     }
-                    IconButton(
-                        onClick = {
-                            editingPair = null
-                            showEditor = true
-                        },
-                    ) {
-                        Icon(LucideIcons.FolderOpen, contentDescription = stringResource(R.string.dropbox_sync_add_pair))
+                    IconButton(onClick = ::openAddPair) {
+                        Icon(LucideIcons.Add, contentDescription = stringResource(R.string.dropbox_sync_add_pair))
                     }
                 },
                 colors = hskTopAppBarColors(),
                 windowInsets = hskTopAppBarWindowInsets(),
                 expandedHeight = HskTopAppBarHeight,
             )
+        },
+        floatingActionButton = {
+            if (pairs.isNotEmpty()) {
+                FloatingActionButton(onClick = ::openAddPair) {
+                    Icon(LucideIcons.Add, contentDescription = stringResource(R.string.dropbox_sync_add_pair))
+                }
+            }
         },
     ) { padding ->
         LazyColumn(
@@ -210,10 +218,7 @@ fun DropboxSyncScreen(
             }
             if (pairs.isEmpty()) {
                 item {
-                    Text(
-                        text = stringResource(R.string.dropbox_sync_no_pairs),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
+                    EmptyPairsCard(onAddPair = ::openAddPair)
                 }
             }
             items(pairs, key = { it.id }) { pair ->
@@ -325,6 +330,41 @@ fun DropboxSyncScreen(
             logs = logs,
             onDismiss = { logsPairId = null },
         )
+    }
+}
+
+@Composable
+private fun EmptyPairsCard(onAddPair: () -> Unit) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Icon(
+                imageVector = LucideIcons.FolderSync,
+                contentDescription = null,
+                modifier = Modifier.size(40.dp),
+                tint = MaterialTheme.colorScheme.primary,
+            )
+            Text(
+                text = stringResource(R.string.dropbox_sync_no_pairs),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Button(onClick = onAddPair, modifier = Modifier.fillMaxWidth()) {
+                Icon(
+                    imageVector = LucideIcons.Add,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(stringResource(R.string.dropbox_sync_add_pair))
+            }
+        }
     }
 }
 
