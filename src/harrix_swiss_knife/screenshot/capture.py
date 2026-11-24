@@ -86,12 +86,13 @@ def capture_region(
     shutter to keep-Windows: that left the dialog ApplicationModal on top of
     the overlay, so the next `Ctrl+Shift+3` could not draw a region.
 
-    When `hide_app` is `False`, application Windows stay visible so they can be
-    included in the capture (for example a tracker window). Other modal dialogs
-    are still made mouse-transparent for the overlay pass so region drawing
-    works. The keep-Windows shutter button can flip this during selection: the
-    overlay closes, Windows are hidden or restored, and a fresh grab opens a
-    new overlay.
+    When `hide_app` is `False`, application Windows stay visible for the grab so
+    they appear in the freeze (for example a Result dialog or tracker). After the
+    grab they are concealed for the overlay pass: a live modal HWND would sit
+    above the Tool overlay and swallow clicks even with `WA_TransparentForMouseEvents`,
+    which looks like a frozen selection. The keep-Windows shutter button can flip
+    this during selection: the overlay closes, Windows are hidden or restored, and
+    a fresh grab opens a new overlay.
 
     When `show_shutter_button` is `True`, arrange, adjust, guides, keep-Windows,
     clipboard-only, OCR + translate, and close buttons are embedded in the
@@ -291,7 +292,7 @@ def _capture_loop(*, with_controls: bool, session: _HideSession) -> QImage | Non
             adjust_mode=adjust_mode,
             guides_mode=guides_mode,
         )
-        result = _exec_overlay(overlay)
+        result = _exec_overlay(overlay, conceal_under=not session.hide_app)
         adjust_mode = overlay.adjust_mode
         guides_mode = overlay.guides_mode
         clipboard_only = overlay.clipboard_only
@@ -327,14 +328,26 @@ def _copy_image_to_clipboard(image: QImage) -> None:
         clipboard.setImage(image)
 
 
-def _exec_overlay(overlay: RegionOverlay) -> int:
-    """Run the overlay after clearing leftover modal event filters."""
+def _exec_overlay(overlay: RegionOverlay, *, conceal_under: bool = False) -> int:
+    """Run the overlay after clearing leftover modal event filters.
+
+    When `conceal_under` is true (Show Main App / keep-Windows), application
+    Windows are faded or hidden for the overlay only. They were already baked
+    into the freeze; leaving a live Result/`exec()` dialog mapped lets that HWND
+    sit above the Tool overlay and eat clicks so region drawing looks frozen.
+
+    """
     close_active_popups()
+    stashed: list[ConcealedWindow] = []
+    if conceal_under:
+        stashed = hide_app_windows()
     suspended = suspend_modal_blocking()
     try:
         return overlay.exec()
     finally:
         restore_modal_blocking(suspended)
+        if stashed:
+            restore_app_windows(stashed, activate=False)
 
 
 def _grabs_for_overlay_pass(*, use_pending: bool) -> tuple[list[ScreenGrab], QRect]:
@@ -398,7 +411,7 @@ def _select_loop(*, with_controls: bool, session: _HideSession) -> QRect | None:
             adjust_mode=adjust_mode,
             guides_mode=guides_mode,
         )
-        result = _exec_overlay(overlay)
+        result = _exec_overlay(overlay, conceal_under=not session.hide_app)
         adjust_mode = overlay.adjust_mode
         guides_mode = overlay.guides_mode
 

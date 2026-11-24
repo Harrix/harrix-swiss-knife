@@ -38,12 +38,13 @@ A leftover modal result dialog (table, OCR, Finance) must not switch the
 shutter to keep-Windows: that left the dialog ApplicationModal on top of
 the overlay, so the next `Ctrl+Shift+3` could not draw a region.
 
-When `hide_app` is `False`, application Windows stay visible so they can be
-included in the capture (for example a tracker window). Other modal dialogs
-are still made mouse-transparent for the overlay pass so region drawing
-works. The keep-Windows shutter button can flip this during selection: the
-overlay closes, Windows are hidden or restored, and a fresh grab opens a
-new overlay.
+When `hide_app` is `False`, application Windows stay visible for the grab so
+they appear in the freeze (for example a Result dialog or tracker). After the
+grab they are concealed for the overlay pass: a live modal HWND would sit
+above the Tool overlay and swallow clicks even with `WA_TransparentForMouseEvents`,
+which looks like a frozen selection. The keep-Windows shutter button can flip
+this during selection: the overlay closes, Windows are hidden or restored, and
+a fresh grab opens a new overlay.
 
 When `show_shutter_button` is `True`, arrange, adjust, guides, keep-Windows,
 clipboard-only, OCR + translate, and close buttons are embedded in the
@@ -220,7 +221,7 @@ def select_region(*, show_shutter_button: bool = True, hide_app: bool | None = N
 
 Select a screen region and return its global logical rectangle.
 
-Same overlay workflow as `capture_region`, but does not crop an image or copy
+Same overlay workflow as [`capture_region`](#-function-capture_region), but does not crop an image or copy
 to the clipboard. Used before screen recording.
 
 <details>

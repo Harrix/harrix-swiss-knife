@@ -35,10 +35,96 @@ def qapp() -> QApplication:
     return app
 
 
-def _sample_image() -> QImage:
-    image = QImage(8, 8, QImage.Format.Format_RGB32)
-    image.fill(0)
-    return image
+def test_capture_region_activates_restored_windows_when_preview_skipped(
+    qapp: QApplication,  # noqa: ARG001
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    image = _sample_image()
+    restore_kwargs: list[bool] = []
+
+    monkeypatch.setattr(capture, "hide_app_windows", list)
+    monkeypatch.setattr(capture, "_wait_ms", lambda _ms: None)
+    monkeypatch.setattr(capture, "_capture_loop", lambda **_kwargs: image)
+    monkeypatch.setattr(
+        capture,
+        "restore_app_windows",
+        lambda _widgets, *, activate=True: restore_kwargs.append(activate),
+    )
+    monkeypatch.setattr(capture, "bring_window_to_foreground", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(capture, "show_screenshot_preview", MagicMock)
+
+    result = capture.capture_region(show_preview=False, show_shutter_button=False)
+
+    assert result is image
+    assert restore_kwargs == [True]
+
+
+def test_capture_region_closes_popups_before_hiding_windows(
+    qapp: QApplication,  # noqa: ARG001
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    image = _sample_image()
+    order: list[str] = []
+    monkeypatch.setattr(capture, "close_active_popups", lambda: order.append("popup") or False)
+    monkeypatch.setattr(capture, "hide_app_windows", lambda: order.append("hide") or [])
+    monkeypatch.setattr(capture, "_wait_ms", lambda _ms: None)
+    monkeypatch.setattr(capture, "_capture_loop", lambda **_kwargs: image)
+    monkeypatch.setattr(capture, "restore_app_windows", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(capture, "bring_window_to_foreground", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(capture, "show_screenshot_preview", lambda _image: MagicMock())
+
+    capture.capture_region(show_preview=True, show_shutter_button=False)
+
+    assert order[:2] == ["popup", "hide"]
+
+
+def test_capture_region_hides_windows_when_modal_is_visible(
+    qapp: QApplication,  # noqa: ARG001
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    image = _sample_image()
+    hide_calls: list[int] = []
+
+    dialog = QDialog()
+    dialog.setModal(True)
+    dialog.show()
+    QApplication.processEvents()
+
+    monkeypatch.setattr(capture, "hide_app_windows", lambda: hide_calls.append(1) or [])
+    monkeypatch.setattr(capture, "_wait_ms", lambda _ms: None)
+    monkeypatch.setattr(capture, "_capture_loop", lambda **_kwargs: image)
+    monkeypatch.setattr(capture, "restore_app_windows", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(capture, "bring_window_to_foreground", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(capture, "show_screenshot_preview", MagicMock)
+
+    try:
+        result = capture.capture_region(show_preview=False, show_shutter_button=False)
+        assert result is image
+        assert hide_calls == [1]
+    finally:
+        dialog.close()
+
+
+def test_capture_region_keeps_app_windows_visible(
+    qapp: QApplication,  # noqa: ARG001
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    image = _sample_image()
+    hide_calls: list[int] = []
+    restore_calls: list[int] = []
+
+    monkeypatch.setattr(capture, "hide_app_windows", lambda: hide_calls.append(1) or [])
+    monkeypatch.setattr(capture, "_wait_ms", lambda _ms: None)
+    monkeypatch.setattr(capture, "_capture_loop", lambda **_kwargs: image)
+    monkeypatch.setattr(capture, "restore_app_windows", lambda *_args, **_kwargs: restore_calls.append(1))
+    monkeypatch.setattr(capture, "bring_window_to_foreground", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(capture, "show_screenshot_preview", MagicMock)
+
+    result = capture.capture_region(show_preview=False, show_shutter_button=False, hide_app=False)
+
+    assert result is image
+    assert hide_calls == []
+    assert restore_calls == []
 
 
 def test_capture_region_restores_without_activate_when_preview_opens(
@@ -69,108 +155,87 @@ def test_capture_region_restores_without_activate_when_preview_opens(
     assert brought == [fake_window]
 
 
-def test_capture_region_activates_restored_windows_when_preview_skipped(
-    qapp: QApplication,  # noqa: ARG001
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_clipboard_action_skips_preview(qapp: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:  # noqa: ARG001
     image = _sample_image()
-    restore_kwargs: list[bool] = []
+    calls: list[dict[str, object]] = []
 
-    monkeypatch.setattr(capture, "hide_app_windows", list)
-    monkeypatch.setattr(capture, "_wait_ms", lambda _ms: None)
-    monkeypatch.setattr(capture, "_capture_loop", lambda **_kwargs: image)
+    def fake_capture_region(**kwargs: object) -> QImage:
+        calls.append(kwargs)
+        return image
+
     monkeypatch.setattr(
-        capture,
-        "restore_app_windows",
-        lambda _widgets, *, activate=True: restore_kwargs.append(activate),
+        "harrix_swiss_knife.actions.images.screenshot_region_clipboard.capture_region",
+        fake_capture_region,
     )
-    monkeypatch.setattr(capture, "bring_window_to_foreground", lambda *_args, **_kwargs: None)
-    monkeypatch.setattr(capture, "show_screenshot_preview", MagicMock)
 
-    result = capture.capture_region(show_preview=False, show_shutter_button=False)
+    def _silent_toast(
+        self: object,
+        message: str = "",
+        duration: int = 2000,
+        *,
+        collapsed: bool = False,
+    ) -> None:
+        del self, duration
+        toasts.append({"message": message, "collapsed": collapsed})
 
-    assert result is image
-    assert restore_kwargs == [True]
+    toasts: list[dict[str, object]] = []
+    monkeypatch.setattr(OnScreenshotRegionClipboard, "show_toast", _silent_toast)
+    OnScreenshotRegionClipboard()()
+    assert calls == [
+        {"show_preview": False, "show_shutter_button": True},
+    ]
+    assert toasts == [{"message": "Screenshot copied to clipboard", "collapsed": True}]
 
 
-def test_hide_session_toggles_keep_windows(
+def test_example_config_binds_clipboard_screenshot_hotkeys() -> None:
+    data = json.loads(_EXAMPLE_CONFIG.read_text(encoding="utf-8"))
+    by_action = {entry["action"]: entry["hotkeys"] for entry in data["hotkeys"]}
+    assert "Ctrl+Shift+4" in by_action["OnScreenshotRegionClipboard"]
+    assert "OnScreenshotRegionTranslate" not in by_action
+    assert OnScreenshotRegionClipboard.quick_launcher is True
+    assert OnScreenshotRegionTranslate.quick_launcher is True
+
+
+def test_example_config_does_not_bind_removed_clipboard_keep_windows_action() -> None:
+    data = json.loads(_EXAMPLE_CONFIG.read_text(encoding="utf-8"))
+    actions = {entry.get("action") for entry in data["hotkeys"]}
+    assert "OnScreenshotRegionClipboardKeepWindows" not in actions
+
+
+def test_exec_overlay_conceals_windows_under_show_app(
     qapp: QApplication,  # noqa: ARG001
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    hides: list[int] = []
-    restores: list[bool] = []
-
-    monkeypatch.setattr(capture, "hide_app_windows", lambda: hides.append(1) or ["hidden"])
-    monkeypatch.setattr(
-        capture,
-        "restore_app_windows",
-        lambda _widgets, *, activate=True: restores.append(activate),
-    )
-    monkeypatch.setattr(capture, "_wait_ms", lambda _ms: None)
-
-    session = capture._HideSession(hide_app=True, hidden=cast("list[ConcealedWindow]", ["hidden"]))
-    session.apply_keep_windows(keep=True)
-    assert session.hide_app is False
-    assert session.hidden == []
-    assert restores == [False]
-
-    session.apply_keep_windows(keep=False)
-    assert session.hide_app is True
-    assert hides == [1]
-    assert session.hidden == ["hidden"]
-
-
-def test_capture_region_hides_windows_when_modal_is_visible(
-    qapp: QApplication,  # noqa: ARG001
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    image = _sample_image()
+    """Show-app must fade live HWNDs for the overlay so Result cannot eat clicks."""
     hide_calls: list[int] = []
+    restore_calls: list[bool] = []
+    during: dict[str, object] = {}
 
-    dialog = QDialog()
-    dialog.setModal(True)
-    dialog.show()
-    QApplication.processEvents()
-
-    monkeypatch.setattr(capture, "hide_app_windows", lambda: hide_calls.append(1) or [])
-    monkeypatch.setattr(capture, "_wait_ms", lambda _ms: None)
-    monkeypatch.setattr(capture, "_capture_loop", lambda **_kwargs: image)
-    monkeypatch.setattr(capture, "restore_app_windows", lambda *_args, **_kwargs: None)
-    monkeypatch.setattr(capture, "bring_window_to_foreground", lambda *_args, **_kwargs: None)
-    monkeypatch.setattr(capture, "show_screenshot_preview", MagicMock)
-
-    try:
-        result = capture.capture_region(show_preview=False, show_shutter_button=False)
-        assert result is image
-        assert hide_calls == [1]
-    finally:
-        dialog.close()
-
-
-def test_exec_overlay_suspends_leftover_modal(qapp: QApplication) -> None:  # noqa: ARG001
-    dialog = QDialog()
-    dialog.setModal(True)
-    dialog.show()
-    QApplication.processEvents()
-    seen: list[Qt.WindowModality] = []
+    monkeypatch.setattr(capture, "hide_app_windows", lambda: hide_calls.append(1) or ["stashed"])
+    monkeypatch.setattr(
+        capture,
+        "restore_app_windows",
+        lambda _widgets, *, activate=True: restore_calls.append(activate),
+    )
+    monkeypatch.setattr(capture, "suspend_modal_blocking", list)
+    monkeypatch.setattr(capture, "restore_modal_blocking", lambda _items: None)
+    monkeypatch.setattr(capture, "close_active_popups", lambda: False)
 
     overlay = MagicMock()
 
     def _exec() -> int:
-        seen.append(dialog.windowModality())
-        assert dialog.testAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        during["hides"] = list(hide_calls)
+        during["restores"] = list(restore_calls)
         return int(QDialog.DialogCode.Rejected)
 
     overlay.exec.side_effect = _exec
 
-    try:
-        result = capture._exec_overlay(overlay)
-        assert result == int(QDialog.DialogCode.Rejected)
-        assert seen == [Qt.WindowModality.NonModal]
-        assert dialog.windowModality() == Qt.WindowModality.ApplicationModal
-        assert not dialog.testAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
-    finally:
-        dialog.close()
+    result = capture._exec_overlay(overlay, conceal_under=True)
+    assert result == int(QDialog.DialogCode.Rejected)
+    assert during["hides"] == [1]
+    assert during["restores"] == []
+    assert hide_calls == [1]
+    assert restore_calls == [False]
 
 
 def test_exec_overlay_leaves_message_box_exec_running(qapp: QApplication) -> None:  # noqa: ARG001
@@ -215,73 +280,57 @@ def test_exec_overlay_leaves_message_box_exec_running(qapp: QApplication) -> Non
     owner.close()
 
 
-def test_capture_region_keeps_app_windows_visible(
+def test_exec_overlay_suspends_leftover_modal(qapp: QApplication) -> None:  # noqa: ARG001
+    dialog = QDialog()
+    dialog.setModal(True)
+    dialog.show()
+    QApplication.processEvents()
+    seen: list[Qt.WindowModality] = []
+
+    overlay = MagicMock()
+
+    def _exec() -> int:
+        seen.append(dialog.windowModality())
+        assert dialog.testAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        return int(QDialog.DialogCode.Rejected)
+
+    overlay.exec.side_effect = _exec
+
+    try:
+        result = capture._exec_overlay(overlay)
+        assert result == int(QDialog.DialogCode.Rejected)
+        assert seen == [Qt.WindowModality.NonModal]
+        assert dialog.windowModality() == Qt.WindowModality.ApplicationModal
+        assert not dialog.testAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+    finally:
+        dialog.close()
+
+
+def test_hide_session_toggles_keep_windows(
     qapp: QApplication,  # noqa: ARG001
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    image = _sample_image()
-    hide_calls: list[int] = []
-    restore_calls: list[int] = []
+    hides: list[int] = []
+    restores: list[bool] = []
 
-    monkeypatch.setattr(capture, "hide_app_windows", lambda: hide_calls.append(1) or [])
-    monkeypatch.setattr(capture, "_wait_ms", lambda _ms: None)
-    monkeypatch.setattr(capture, "_capture_loop", lambda **_kwargs: image)
-    monkeypatch.setattr(capture, "restore_app_windows", lambda *_args, **_kwargs: restore_calls.append(1))
-    monkeypatch.setattr(capture, "bring_window_to_foreground", lambda *_args, **_kwargs: None)
-    monkeypatch.setattr(capture, "show_screenshot_preview", MagicMock)
-
-    result = capture.capture_region(show_preview=False, show_shutter_button=False, hide_app=False)
-
-    assert result is image
-    assert hide_calls == []
-    assert restore_calls == []
-
-
-def test_example_config_does_not_bind_removed_clipboard_keep_windows_action() -> None:
-    data = json.loads(_EXAMPLE_CONFIG.read_text(encoding="utf-8"))
-    actions = {entry.get("action") for entry in data["hotkeys"]}
-    assert "OnScreenshotRegionClipboardKeepWindows" not in actions
-
-
-def test_example_config_binds_clipboard_screenshot_hotkeys() -> None:
-    data = json.loads(_EXAMPLE_CONFIG.read_text(encoding="utf-8"))
-    by_action = {entry["action"]: entry["hotkeys"] for entry in data["hotkeys"]}
-    assert "Ctrl+Shift+4" in by_action["OnScreenshotRegionClipboard"]
-    assert "OnScreenshotRegionTranslate" not in by_action
-    assert OnScreenshotRegionClipboard.quick_launcher is True
-    assert OnScreenshotRegionTranslate.quick_launcher is True
-
-
-def test_clipboard_action_skips_preview(qapp: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:  # noqa: ARG001
-    image = _sample_image()
-    calls: list[dict[str, object]] = []
-
-    def fake_capture_region(**kwargs: object) -> QImage:
-        calls.append(kwargs)
-        return image
-
+    monkeypatch.setattr(capture, "hide_app_windows", lambda: hides.append(1) or ["hidden"])
     monkeypatch.setattr(
-        "harrix_swiss_knife.actions.images.screenshot_region_clipboard.capture_region",
-        fake_capture_region,
+        capture,
+        "restore_app_windows",
+        lambda _widgets, *, activate=True: restores.append(activate),
     )
+    monkeypatch.setattr(capture, "_wait_ms", lambda _ms: None)
 
-    def _silent_toast(
-        self: object,
-        message: str = "",
-        duration: int = 2000,
-        *,
-        collapsed: bool = False,
-    ) -> None:
-        del self, duration
-        toasts.append({"message": message, "collapsed": collapsed})
+    session = capture._HideSession(hide_app=True, hidden=cast("list[ConcealedWindow]", ["hidden"]))
+    session.apply_keep_windows(keep=True)
+    assert session.hide_app is False
+    assert session.hidden == []
+    assert restores == [False]
 
-    toasts: list[dict[str, object]] = []
-    monkeypatch.setattr(OnScreenshotRegionClipboard, "show_toast", _silent_toast)
-    OnScreenshotRegionClipboard()()
-    assert calls == [
-        {"show_preview": False, "show_shutter_button": True},
-    ]
-    assert toasts == [{"message": "Screenshot copied to clipboard", "collapsed": True}]
+    session.apply_keep_windows(keep=False)
+    assert session.hide_app is True
+    assert hides == [1]
+    assert session.hidden == ["hidden"]
 
 
 def test_keep_windows_action_keeps_app_visible(qapp: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:  # noqa: ARG001
@@ -343,20 +392,7 @@ def test_show_toast_collapsed_starts_pinned(qapp: QApplication, monkeypatch: pyt
     }
 
 
-def test_capture_region_closes_popups_before_hiding_windows(
-    qapp: QApplication,  # noqa: ARG001
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    image = _sample_image()
-    order: list[str] = []
-    monkeypatch.setattr(capture, "close_active_popups", lambda: order.append("popup") or False)
-    monkeypatch.setattr(capture, "hide_app_windows", lambda: order.append("hide") or [])
-    monkeypatch.setattr(capture, "_wait_ms", lambda _ms: None)
-    monkeypatch.setattr(capture, "_capture_loop", lambda **_kwargs: image)
-    monkeypatch.setattr(capture, "restore_app_windows", lambda *_args, **_kwargs: None)
-    monkeypatch.setattr(capture, "bring_window_to_foreground", lambda *_args, **_kwargs: None)
-    monkeypatch.setattr(capture, "show_screenshot_preview", lambda _image: MagicMock())
-
-    capture.capture_region(show_preview=True, show_shutter_button=False)
-
-    assert order[:2] == ["popup", "hide"]
+def _sample_image() -> QImage:
+    image = QImage(8, 8, QImage.Format.Format_RGB32)
+    image.fill(0)
+    return image
