@@ -11,7 +11,7 @@ import sys
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote
 from urllib.request import Request, urlopen
@@ -41,6 +41,15 @@ _GITHUB_SLUG = re.compile(
     re.IGNORECASE,
 )
 _visibility_cache: dict[str, str] = {}
+
+CommitScope = Literal["all", "private", "public", "cloud", "local"]
+COMMIT_SCOPE_LABELS: tuple[tuple[CommitScope, str], ...] = (
+    ("all", "All repositories"),
+    ("private", "Private only"),
+    ("public", "Public only"),
+    ("cloud", "Cloud (public & private)"),
+    ("local", "Local only"),
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -256,6 +265,47 @@ def configured_git_roots() -> list[Path]:
         seen.add(resolved)
         roots.append(resolved)
     return roots
+
+
+def count_commits_by_day(
+    roots: list[Path],
+    start: date,
+    end: date,
+    *,
+    scope: CommitScope = "all",
+) -> dict[date, int]:
+    """Sum commits per local calendar day under `roots` for `scope`.
+
+    Counts use the committer date of commits reachable from local branches.
+    Days with no commits are omitted. `cloud` keeps GitHub public and private
+    repositories and drops local checkouts.
+
+    """
+    if end < start:
+        return {}
+    counts: dict[date, int] = {}
+    since = _midnight_iso(start)
+    until = _midnight_iso(end + timedelta(days=1))
+    for repo in _unique_git_repos(roots):
+        bucket = _commit_visibility_bucket(repo)
+        if not _scope_includes(scope, bucket):
+            continue
+        proc = git_run(
+            repo,
+            "log",
+            "--branches",
+            f"--since={since}",
+            f"--until={until}",
+            "--pretty=format:%cI",
+        )
+        if proc.returncode != 0:
+            continue
+        for line in proc.stdout.splitlines():
+            day = _local_calendar_date(line)
+            if day is None or day < start or day > end:
+                continue
+            counts[day] = counts.get(day, 0) + 1
+    return counts
 
 
 def count_recent_commits(roots: list[Path]) -> CommitDaySummary:
@@ -746,6 +796,21 @@ def _same_folder(left: Path, right: Path) -> bool:
     except OSError:
         right_resolved = right
     return os.path.normcase(str(left_resolved)) == os.path.normcase(str(right_resolved))
+
+
+def _scope_includes(scope: CommitScope, bucket: str) -> bool:
+    """Return whether a visibility `bucket` belongs in `scope`."""
+    if scope == "all":
+        return True
+    if scope == "local":
+        return bucket == "local"
+    if scope == "public":
+        return bucket == "public"
+    if scope == "private":
+        return bucket == "private"
+    if scope == "cloud":
+        return bucket in {"public", "private"}
+    return True
 
 
 def _spawn_detached(command: list[str], *, cwd: Path) -> None:

@@ -15,6 +15,7 @@ from harrix_swiss_knife.actions.common.git_dirty_ops import (
     add_git_root,
     commit_selected_paths,
     configured_git_roots,
+    count_commits_by_day,
     count_recent_commits,
     discard_changed_paths,
     discover_git_repos,
@@ -110,6 +111,24 @@ def test_configured_git_roots_dedupes_paths(tmp_path: Path, monkeypatch: pytest.
         fake_load,
     )
     assert configured_git_roots() == [root.resolve()]
+
+
+def test_count_commits_by_day_filters_local_scope(tmp_path: Path) -> None:
+    """Local scope keeps commits from repos without a remote."""
+    root = tmp_path / "repos"
+    local = root / "local-repo"
+    _git_init(local)
+    (local / "extra.md").write_text("more\n", encoding="utf-8")
+    subprocess.run(["git", "add", "extra.md"], cwd=local, check=True, capture_output=True)  # noqa: S607
+    subprocess.run(["git", "commit", "-m", "Second"], cwd=local, check=True, capture_output=True)  # noqa: S607
+
+    today = datetime.now().astimezone().date()
+    all_counts = count_commits_by_day([root], today - timedelta(days=7), today, scope="all")
+    local_counts = count_commits_by_day([root], today - timedelta(days=7), today, scope="local")
+    public_counts = count_commits_by_day([root], today - timedelta(days=7), today, scope="public")
+    assert sum(all_counts.values()) >= 1
+    assert sum(local_counts.values()) >= 1
+    assert sum(public_counts.values()) == 0
 
 
 def test_count_recent_commits_splits_public_private_and_skips_old(

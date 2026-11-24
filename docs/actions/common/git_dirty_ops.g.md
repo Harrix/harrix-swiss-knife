@@ -27,6 +27,7 @@ lang: en
 - [🔧 Function `attention_status`](#-function-attention_status)
 - [🔧 Function `commit_selected_paths`](#-function-commit_selected_paths)
 - [🔧 Function `configured_git_roots`](#-function-configured_git_roots)
+- [🔧 Function `count_commits_by_day`](#-function-count_commits_by_day)
 - [🔧 Function `count_recent_commits`](#-function-count_recent_commits)
 - [🔧 Function `discard_changed_paths`](#-function-discard_changed_paths)
 - [🔧 Function `discover_git_repos`](#-function-discover_git_repos)
@@ -492,6 +493,58 @@ def configured_git_roots() -> list[Path]:
         seen.add(resolved)
         roots.append(resolved)
     return roots
+```
+
+</details>
+
+## 🔧 Function `count_commits_by_day`
+
+```python
+def count_commits_by_day(roots: list[Path], start: date, end: date, *, scope: CommitScope = 'all') -> dict[date, int]
+```
+
+Sum commits per local calendar day under `roots` for `scope`.
+
+Counts use the committer date of commits reachable from local branches.
+Days with no commits are omitted. `cloud` keeps GitHub public and private
+repositories and drops local checkouts.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def count_commits_by_day(
+    roots: list[Path],
+    start: date,
+    end: date,
+    *,
+    scope: CommitScope = "all",
+) -> dict[date, int]:
+    if end < start:
+        return {}
+    counts: dict[date, int] = {}
+    since = _midnight_iso(start)
+    until = _midnight_iso(end + timedelta(days=1))
+    for repo in _unique_git_repos(roots):
+        bucket = _commit_visibility_bucket(repo)
+        if not _scope_includes(scope, bucket):
+            continue
+        proc = git_run(
+            repo,
+            "log",
+            "--branches",
+            f"--since={since}",
+            f"--until={until}",
+            "--pretty=format:%cI",
+        )
+        if proc.returncode != 0:
+            continue
+        for line in proc.stdout.splitlines():
+            day = _local_calendar_date(line)
+            if day is None or day < start or day > end:
+                continue
+            counts[day] = counts.get(day, 0) + 1
+    return counts
 ```
 
 </details>

@@ -76,9 +76,12 @@ class DirtyReposCommitWindow(QDialog):
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
-        self._win11_caption = install_win11_caption(self)
 
-        body = QWidget(self)
+        self.tabWidget = QTabWidget(self)
+        self.tabWidget.setObjectName("tabWidget")
+        self.tabWidget.setDocumentMode(True)
+
+        body = QWidget(self.tabWidget)
         body.setObjectName("dirtyReposCommitBody")
         body_layout = QVBoxLayout(body)
         body_layout.setContentsMargins(SPACE_XL, SPACE_M, SPACE_XL, SPACE_XL)
@@ -193,8 +196,12 @@ class DirtyReposCommitWindow(QDialog):
         self._splitter.splitterMoved.connect(self._schedule_splitter_save)
         body_layout.addWidget(self._splitter, 1)
 
-        root.addWidget(body, 1)
+        self._charts_page = GitCommitChartsPage(self.tabWidget)
+        self.tabWidget.addTab(body, "Commit")
+        self.tabWidget.addTab(self._charts_page, "Charts")
+        root.addWidget(self.tabWidget, 1)
         install_fluent_app_window(self)
+        self._win11_caption = install_win11_caption(self)
 
         self._splitter_save_timer = QTimer(self)
         self._splitter_save_timer.setSingleShot(True)
@@ -1097,9 +1104,12 @@ def __init__(
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
-        self._win11_caption = install_win11_caption(self)
 
-        body = QWidget(self)
+        self.tabWidget = QTabWidget(self)
+        self.tabWidget.setObjectName("tabWidget")
+        self.tabWidget.setDocumentMode(True)
+
+        body = QWidget(self.tabWidget)
         body.setObjectName("dirtyReposCommitBody")
         body_layout = QVBoxLayout(body)
         body_layout.setContentsMargins(SPACE_XL, SPACE_M, SPACE_XL, SPACE_XL)
@@ -1214,8 +1224,12 @@ def __init__(
         self._splitter.splitterMoved.connect(self._schedule_splitter_save)
         body_layout.addWidget(self._splitter, 1)
 
-        root.addWidget(body, 1)
+        self._charts_page = GitCommitChartsPage(self.tabWidget)
+        self.tabWidget.addTab(body, "Commit")
+        self.tabWidget.addTab(self._charts_page, "Charts")
+        root.addWidget(self.tabWidget, 1)
         install_fluent_app_window(self)
+        self._win11_caption = install_win11_caption(self)
 
         self._splitter_save_timer = QTimer(self)
         self._splitter_save_timer.setSingleShot(True)

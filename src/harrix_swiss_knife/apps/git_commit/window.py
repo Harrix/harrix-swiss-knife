@@ -22,6 +22,7 @@ from PySide6.QtWidgets import (
     QStyle,
     QStyledItemDelegate,
     QStyleOptionViewItem,
+    QTabWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -66,6 +67,7 @@ from harrix_swiss_knife.apps.common.day_summary_chrome import (
 from harrix_swiss_knife.apps.common.qt_main_window import apply_app_window_size_and_position
 from harrix_swiss_knife.apps.common.tracker_layout_chrome import quiet_group_box, show_splitter_hairlines
 from harrix_swiss_knife.apps.common.tracker_splitter_settings import load_splitter_sizes, save_splitter_sizes
+from harrix_swiss_knife.apps.git_commit.charts import GitCommitChartsPage
 from harrix_swiss_knife.apps.git_commit.diff_view import GitDiffEdit
 from harrix_swiss_knife.fluent.app_chrome import install_fluent_app_window, prepare_fluent_app_window
 from harrix_swiss_knife.fluent.theme import bind_theme, palette_for
@@ -164,9 +166,12 @@ class DirtyReposCommitWindow(QDialog):
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
-        self._win11_caption = install_win11_caption(self)
 
-        body = QWidget(self)
+        self.tabWidget = QTabWidget(self)
+        self.tabWidget.setObjectName("tabWidget")
+        self.tabWidget.setDocumentMode(True)
+
+        body = QWidget(self.tabWidget)
         body.setObjectName("dirtyReposCommitBody")
         body_layout = QVBoxLayout(body)
         body_layout.setContentsMargins(SPACE_XL, SPACE_M, SPACE_XL, SPACE_XL)
@@ -281,8 +286,12 @@ class DirtyReposCommitWindow(QDialog):
         self._splitter.splitterMoved.connect(self._schedule_splitter_save)
         body_layout.addWidget(self._splitter, 1)
 
-        root.addWidget(body, 1)
+        self._charts_page = GitCommitChartsPage(self.tabWidget)
+        self.tabWidget.addTab(body, "Commit")
+        self.tabWidget.addTab(self._charts_page, "Charts")
+        root.addWidget(self.tabWidget, 1)
         install_fluent_app_window(self)
+        self._win11_caption = install_win11_caption(self)
 
         self._splitter_save_timer = QTimer(self)
         self._splitter_save_timer.setSingleShot(True)
