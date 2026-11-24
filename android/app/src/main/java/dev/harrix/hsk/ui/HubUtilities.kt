@@ -29,6 +29,7 @@ object HubUtilityIcons {
     val MedicineSearch: ImageVector = LucideIcons.Medication
     val Movies: ImageVector = LucideIcons.Movie
     val HealthConnect: ImageVector = LucideIcons.FitnessCenter
+    val DropboxSync: ImageVector = LucideIcons.FolderSync
 }
 
 /**
@@ -77,6 +78,11 @@ val HubUtilities: List<HubUtilityItem> =
             titleRes = R.string.nav_drawer_health_connect,
             descriptionRes = R.string.health_connect_card_description,
             icon = HubUtilityIcons.HealthConnect,
+        ),
+        HubUtilityItem(
+            titleRes = R.string.nav_drawer_dropbox_sync,
+            descriptionRes = R.string.dropbox_sync_card_description,
+            icon = HubUtilityIcons.DropboxSync,
         ),
     )
 

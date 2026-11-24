@@ -285,6 +285,18 @@ object LucideIcons {
         )
     }
 
+    val FolderSync: ImageVector by lazy {
+        lucide(
+            "folder-sync",
+            "M9 20h-5a2 2 0 0 1 -2 -2v-13a2 2 0 0 1 2 -2h3.9a2 2 0 0 1 1.69 0.9l0.81 1.2a2 2 0 0 0 1.67 0.9h7.93a" +
+                "2 2 0 0 1 2 2v0.5",
+            "M12 10v4h4",
+            "M12 14l1.535 -1.605a5 5 0 0 1 8 1.5",
+            "M22 22v-4h-4",
+            "M22 18l-1.535 1.605a5 5 0 0 1 -8 -1.5",
+        )
+    }
+
     val Info: ImageVector by lazy {
         lucide(
             "info",

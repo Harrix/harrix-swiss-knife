@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:configure="dev.harrix.hsk.dropboxsync.DropboxSyncWidgetConfigActivity"
+    android:description="@string/dropbox_sync_widget_description"
+    android:initialLayout="@layout/widget_dropbox_sync"
+    android:minWidth="40dp"
+    android:minHeight="40dp"
+    android:previewImage="@drawable/ic_widget_dropbox_sync_preview"
+    android:resizeMode="none"
+    android:targetCellWidth="1"
+    android:targetCellHeight="1"
+    android:updatePeriodMillis="0"
+    android:widgetCategory="home_screen" />

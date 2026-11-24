@@ -61,6 +61,7 @@ import androidx.compose.ui.unit.dp
 import dev.harrix.hsk.R
 import dev.harrix.hsk.ui.HskDropdownMenuItem
 import dev.harrix.hsk.ui.about.AboutScreen
+import dev.harrix.hsk.ui.dropboxsync.DropboxSyncScreen
 import dev.harrix.hsk.ui.gallery.GalleryCleanerScreen
 import dev.harrix.hsk.ui.gallery.VideoCleanerScreen
 import dev.harrix.hsk.ui.health.HealthConnectScreen
@@ -101,6 +102,7 @@ private enum class AppDestination {
     MedicineSearch,
     Movies,
     HealthConnect,
+    DropboxSync,
 }
 
 private data class UtilityCardItem(
@@ -120,6 +122,7 @@ private val HubDestinations =
         AppDestination.MedicineSearch,
         AppDestination.Movies,
         AppDestination.HealthConnect,
+        AppDestination.DropboxSync,
     )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -136,6 +139,12 @@ fun MainScreen(
     onPendingOpenSpeechToTextConsume: () -> Unit = {},
     pendingOpenSpeechAsk: Boolean = false,
     onPendingOpenSpeechAskConsume: () -> Unit = {},
+    pendingOpenDropboxSync: Boolean = false,
+    onPendingOpenDropboxSyncConsume: () -> Unit = {},
+    pendingDropboxConfirmPairId: Long? = null,
+    onPendingDropboxConfirmPairIdConsume: () -> Unit = {},
+    pendingDropboxOAuthUri: Uri? = null,
+    onPendingDropboxOAuthUriConsume: () -> Unit = {},
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -155,6 +164,14 @@ fun MainScreen(
         rememberUpdatedState(onPendingOpenSpeechAskConsume)
     var autoStartSpeechRecording by remember { mutableStateOf(false) }
     var speechAskMode by remember { mutableStateOf(false) }
+    var dropboxConfirmPairId by remember { mutableStateOf<Long?>(null) }
+    var dropboxOAuthUri by remember { mutableStateOf<Uri?>(null) }
+    val onPendingOpenDropboxSyncConsumeState =
+        rememberUpdatedState(onPendingOpenDropboxSyncConsume)
+    val onPendingDropboxConfirmPairIdConsumeState =
+        rememberUpdatedState(onPendingDropboxConfirmPairIdConsume)
+    val onPendingDropboxOAuthUriConsumeState =
+        rememberUpdatedState(onPendingDropboxOAuthUriConsume)
 
     LaunchedEffect(pendingImageUri) {
         val uri = pendingImageUri ?: return@LaunchedEffect
@@ -187,6 +204,34 @@ fun MainScreen(
         speechAskMode = true
         autoStartSpeechRecording = true
         onPendingOpenSpeechAskConsumeState.value()
+    }
+
+    LaunchedEffect(pendingOpenDropboxSync) {
+        if (!pendingOpenDropboxSync) {
+            return@LaunchedEffect
+        }
+        destination = AppDestination.DropboxSync
+        showAbout = false
+        settingsSection = null
+        onPendingOpenDropboxSyncConsumeState.value()
+    }
+
+    LaunchedEffect(pendingDropboxConfirmPairId) {
+        val pairId = pendingDropboxConfirmPairId ?: return@LaunchedEffect
+        destination = AppDestination.DropboxSync
+        showAbout = false
+        settingsSection = null
+        dropboxConfirmPairId = pairId
+        onPendingDropboxConfirmPairIdConsumeState.value()
+    }
+
+    LaunchedEffect(pendingDropboxOAuthUri) {
+        val uri = pendingDropboxOAuthUri ?: return@LaunchedEffect
+        destination = AppDestination.DropboxSync
+        showAbout = false
+        settingsSection = null
+        dropboxOAuthUri = uri
+        onPendingDropboxOAuthUriConsumeState.value()
     }
 
     BackHandler(enabled = drawerState.isOpen) {
@@ -275,6 +320,22 @@ fun MainScreen(
             AppDestination.HealthConnect -> {
                 HealthConnectScreen(
                     onClose = { destination = AppDestination.Home },
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+
+            AppDestination.DropboxSync -> {
+                DropboxSyncScreen(
+                    onClose = {
+                        dropboxConfirmPairId = null
+                        dropboxOAuthUri = null
+                        destination = AppDestination.Home
+                    },
+                    onOpenSettings = { settingsSection = SettingsSection.DropboxSync },
+                    pendingConfirmPairId = dropboxConfirmPairId,
+                    onPendingConfirmConsume = { dropboxConfirmPairId = null },
+                    pendingOAuthUri = dropboxOAuthUri,
+                    onPendingOAuthUriConsume = { dropboxOAuthUri = null },
                     modifier = Modifier.fillMaxSize(),
                 )
             }

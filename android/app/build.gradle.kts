@@ -382,6 +382,27 @@ val bothubRuEmbeddedSpeechModel =
         desktopConfig = desktopConfig,
     )
 
+fun resolveDropboxAppKey(
+    localProps: Properties,
+    desktopConfig: Map<String, Any?>?,
+): String {
+    val fromEnv = System.getenv("DROPBOX_APP_KEY")?.trim().orEmpty()
+    if (fromEnv.isNotEmpty()) {
+        return fromEnv
+    }
+    val fromProps = localProps.getProperty("dropbox.app_key")?.trim().orEmpty()
+    if (fromProps.isNotEmpty()) {
+        return fromProps
+    }
+    val fromConfig = mapString(nestedMap(desktopConfig, "dropbox"), "app_key")
+    if (fromConfig.isNotEmpty()) {
+        return resolveSnippetOrLiteral(fromConfig)
+    }
+    return ""
+}
+
+val dropboxAppKey = resolveDropboxAppKey(localProps, desktopConfig)
+
 // Backward-compatible BotHub BuildConfig fields (active chat provider values).
 val bothubApiKey = aiApiKey
 val bothubBaseUrl = aiBaseUrl
@@ -484,6 +505,7 @@ android {
             "BOTHUB_SPEECH_MODEL",
             escapeBuildConfigString(bothubSpeechModel),
         )
+        buildConfigField("String", "DROPBOX_APP_KEY", escapeBuildConfigString(dropboxAppKey))
     }
 
     buildTypes {
@@ -558,6 +580,8 @@ dependencies {
     implementation(libs.androidx.exifinterface)
     implementation(libs.okhttp)
     implementation(libs.androidx.health.connect)
+    implementation(libs.androidx.work.runtime.ktx)
+    testImplementation(libs.junit)
     debugImplementation(libs.androidx.compose.ui.tooling)
     detektPlugins(libs.detekt.compose.rules)
 }

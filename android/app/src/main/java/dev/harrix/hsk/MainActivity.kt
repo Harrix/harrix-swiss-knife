@@ -15,6 +15,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import dev.harrix.hsk.dropboxsync.DropboxSyncWorker
 import dev.harrix.hsk.speechtotext.SpeechToTextAskWidgetProvider
 import dev.harrix.hsk.speechtotext.SpeechToTextWidgetProvider
 import dev.harrix.hsk.ui.MainScreen
@@ -25,6 +26,9 @@ class MainActivity : AppCompatActivity() {
     private var pendingImageUriState = mutableStateOf<Uri?>(null)
     private var pendingOpenSpeechToTextState = mutableStateOf(false)
     private var pendingOpenSpeechAskState = mutableStateOf(false)
+    private var pendingOpenDropboxSyncState = mutableStateOf(false)
+    private var pendingDropboxConfirmPairIdState = mutableStateOf<Long?>(null)
+    private var pendingDropboxOAuthUriState = mutableStateOf<Uri?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val preferences = AppPreferences(this)
@@ -52,6 +56,9 @@ class MainActivity : AppCompatActivity() {
             var pendingImageUri by pendingImageUriState
             var pendingOpenSpeechToText by pendingOpenSpeechToTextState
             var pendingOpenSpeechAsk by pendingOpenSpeechAskState
+            var pendingOpenDropboxSync by pendingOpenDropboxSyncState
+            var pendingDropboxConfirmPairId by pendingDropboxConfirmPairIdState
+            var pendingDropboxOAuthUri by pendingDropboxOAuthUriState
             HskAndroidTheme(darkTheme = darkTheme) {
                 MainScreen(
                     themeMode = themeMode,
@@ -74,6 +81,18 @@ class MainActivity : AppCompatActivity() {
                     pendingOpenSpeechAsk = pendingOpenSpeechAsk,
                     onPendingOpenSpeechAskConsume = {
                         pendingOpenSpeechAskState.value = false
+                    },
+                    pendingOpenDropboxSync = pendingOpenDropboxSync,
+                    onPendingOpenDropboxSyncConsume = {
+                        pendingOpenDropboxSyncState.value = false
+                    },
+                    pendingDropboxConfirmPairId = pendingDropboxConfirmPairId,
+                    onPendingDropboxConfirmPairIdConsume = {
+                        pendingDropboxConfirmPairIdState.value = null
+                    },
+                    pendingDropboxOAuthUri = pendingDropboxOAuthUri,
+                    onPendingDropboxOAuthUriConsume = {
+                        pendingDropboxOAuthUriState.value = null
                     },
                     modifier = Modifier.fillMaxSize(),
                 )
@@ -100,6 +119,29 @@ class MainActivity : AppCompatActivity() {
             SpeechToTextAskWidgetProvider.ACTION_OPEN_SPEECH_ASK -> {
                 pendingOpenSpeechAskState.value = true
                 return
+            }
+
+            DropboxSyncWorker.ACTION_OPEN_DROPBOX_SYNC -> {
+                pendingOpenDropboxSyncState.value = true
+                return
+            }
+
+            DropboxSyncWorker.ACTION_OPEN_DROPBOX_CONFIRM -> {
+                val pairId = intent.getLongExtra(DropboxSyncWorker.EXTRA_PAIR_ID, -1L)
+                if (pairId > 0L) {
+                    pendingDropboxConfirmPairIdState.value = pairId
+                }
+                pendingOpenDropboxSyncState.value = true
+                return
+            }
+
+            Intent.ACTION_VIEW -> {
+                val uri = intent.data
+                if (uri != null && uri.scheme == "hsk-dropbox" && uri.host == "oauth") {
+                    pendingDropboxOAuthUriState.value = uri
+                    pendingOpenDropboxSyncState.value = true
+                    return
+                }
             }
         }
         val uri = IncomingImageIntents.extractImageUri(intent) ?: return

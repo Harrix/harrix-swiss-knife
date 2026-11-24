@@ -68,6 +68,9 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import dev.harrix.hsk.AppPreferences
 import dev.harrix.hsk.R
+import dev.harrix.hsk.dropboxsync.DropboxSyncPreferences
+import dev.harrix.hsk.dropboxsync.DropboxSyncWorker
+import dev.harrix.hsk.dropboxsync.SyncIgnoreMatcher
 import dev.harrix.hsk.gallery.CameraGalleryRepository
 import dev.harrix.hsk.gallery.GalleryCleanerPreferences
 import dev.harrix.hsk.gallery.GalleryDateFilter
@@ -104,6 +107,7 @@ enum class SettingsSection {
     VideoCleaner,
     MedicineSearch,
     Movies,
+    DropboxSync,
 }
 
 /**
@@ -116,6 +120,7 @@ private enum class HskSettingsPage {
     Gallery,
     MedicineSearch,
     Movies,
+    DropboxSync,
     Other,
 }
 
@@ -170,6 +175,7 @@ fun SettingsScreen(
                 SettingsSection.VideoCleaner -> HskSettingsPage.Hub
                 SettingsSection.MedicineSearch -> HskSettingsPage.MedicineSearch
                 SettingsSection.Movies -> HskSettingsPage.Movies
+                SettingsSection.DropboxSync -> HskSettingsPage.DropboxSync
             },
         )
     }
@@ -186,6 +192,8 @@ fun SettingsScreen(
                 stringResource(R.string.settings_medicine_search_title)
 
             HskSettingsPage.Movies -> stringResource(R.string.settings_movies_title)
+
+            HskSettingsPage.DropboxSync -> stringResource(R.string.settings_dropbox_sync_title)
 
             HskSettingsPage.Other -> stringResource(R.string.settings_other_title)
         }
@@ -263,6 +271,12 @@ fun SettingsScreen(
                         icon = LucideIcons.Movie,
                         onClick = { page = HskSettingsPage.Movies },
                     )
+                    SettingsHubRow(
+                        title = stringResource(R.string.settings_dropbox_sync_title),
+                        summary = stringResource(R.string.settings_dropbox_sync_summary),
+                        icon = LucideIcons.FolderSync,
+                        onClick = { page = HskSettingsPage.DropboxSync },
+                    )
                     SettingsCategoryHeader(text = stringResource(R.string.settings_category_essential))
                     key(settingsEpoch) {
                         EssentialSettingsSection(
@@ -336,6 +350,19 @@ fun SettingsScreen(
                 }
             }
 
+            HskSettingsPage.DropboxSync -> {
+                SettingsDetailPane(innerPadding = innerPadding) {
+                    key(settingsEpoch) {
+                        DropboxSyncSettingsSection()
+                    }
+                    if (onOpenAllSettings != null && section != SettingsSection.All) {
+                        TextButton(onClick = onOpenAllSettings) {
+                            AutoFitText(text = stringResource(R.string.settings_open_all), maxLines = 2)
+                        }
+                    }
+                }
+            }
+
             HskSettingsPage.Other -> {
                 SettingsDetailPane(innerPadding = innerPadding) {
                     Text(
@@ -368,6 +395,8 @@ fun SettingsScreen(
                 galleryPreferences.resetSettingsToDefaults()
                 medicinePreferences.resetSettingsToDefaults()
                 moviesPreferences.resetSettingsToDefaults()
+                DropboxSyncPreferences(context.applicationContext).resetSettingsToDefaults()
+                DropboxSyncWorker.schedulePeriodic(context.applicationContext)
                 onThemeModeChange(ThemeMode.System)
                 onAppLanguageChange(AppLanguage.System)
                 settingsEpoch += 1
@@ -947,6 +976,109 @@ private fun moviesFolderLabel(uri: Uri): String = uri.lastPathSegment
     ?.takeIf { it.isNotBlank() }
     ?: uri.toString()
     ?: uri.toString()
+
+@Composable
+private fun DropboxSyncSettingsSection(modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val preferences = remember { DropboxSyncPreferences(context.applicationContext) }
+    var appKey by remember { mutableStateOf(preferences.getAppKeyOverride()) }
+    var ignores by remember { mutableStateOf(preferences.getGlobalIgnores()) }
+    var scheduleMinutes by remember { mutableIntStateOf(preferences.getScheduleMinutes()) }
+    var wifiOnly by remember { mutableStateOf(preferences.isWifiOnly()) }
+    var requireCharging by remember { mutableStateOf(preferences.isRequireCharging()) }
+    var statusMessage by remember { mutableStateOf<String?>(null) }
+    val scheduleOptions = listOf(0, 15, 30, 60, 180, 360, 1440)
+
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        SettingsSectionHeader(text = stringResource(R.string.settings_dropbox_sync_app_key))
+        OutlinedTextField(
+            value = appKey,
+            onValueChange = { appKey = it },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            label = { Text(stringResource(R.string.settings_dropbox_sync_app_key)) },
+        )
+        SettingsSectionHeader(text = stringResource(R.string.settings_dropbox_sync_ignores))
+        OutlinedTextField(
+            value = ignores,
+            onValueChange = { ignores = it },
+            modifier = Modifier.fillMaxWidth(),
+            minLines = 6,
+            label = { Text(stringResource(R.string.settings_dropbox_sync_ignores)) },
+        )
+        TextButton(
+            onClick = {
+                ignores = SyncIgnoreMatcher.DefaultPatterns.joinToString("\n")
+            },
+        ) {
+            Text(stringResource(R.string.settings_dropbox_sync_reset_ignores))
+        }
+        SettingsSectionHeader(text = stringResource(R.string.settings_dropbox_sync_schedule))
+        SimpleDropdownField(
+            value =
+            if (scheduleMinutes == 0) {
+                stringResource(R.string.settings_dropbox_sync_schedule_off)
+            } else {
+                stringResource(R.string.settings_dropbox_sync_schedule_minutes, scheduleMinutes)
+            },
+            options =
+            scheduleOptions.map { minutes ->
+                if (minutes == 0) {
+                    context.getString(R.string.settings_dropbox_sync_schedule_off)
+                } else {
+                    context.getString(R.string.settings_dropbox_sync_schedule_minutes, minutes)
+                }
+            },
+            enabled = true,
+            onOptionSelect = { index -> scheduleMinutes = scheduleOptions[index] },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = stringResource(R.string.settings_dropbox_sync_wifi_only),
+                modifier = Modifier.weight(1f),
+            )
+            Switch(checked = wifiOnly, onCheckedChange = { wifiOnly = it })
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = stringResource(R.string.settings_dropbox_sync_require_charging),
+                modifier = Modifier.weight(1f),
+            )
+            Switch(checked = requireCharging, onCheckedChange = { requireCharging = it })
+        }
+        Button(
+            onClick = {
+                preferences.setAppKeyOverride(appKey)
+                preferences.setGlobalIgnores(ignores)
+                preferences.setScheduleMinutes(scheduleMinutes)
+                preferences.setWifiOnly(wifiOnly)
+                preferences.setRequireCharging(requireCharging)
+                DropboxSyncWorker.schedulePeriodic(context.applicationContext)
+                statusMessage = context.getString(R.string.settings_dropbox_sync_saved)
+            },
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(stringResource(R.string.dropbox_sync_save))
+        }
+        statusMessage?.let { message ->
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
 
 @Composable
 private fun GalleryCleanerSettingsSection(
