@@ -6,7 +6,7 @@ import logging
 from dataclasses import replace
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QModelIndex, QPoint, Qt, Signal
+from PySide6.QtCore import QModelIndex, QPoint, QSize, Qt, Signal
 from PySide6.QtGui import QBrush, QFont, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -41,6 +41,7 @@ from harrix_swiss_knife.apps.food.delegates import IsDrinkDelegate, is_drink_to_
 from harrix_swiss_knife.apps.food.food_log_calories import calculate_food_log_calories
 from harrix_swiss_knife.apps.food.food_name_autocomplete import (
     FoodNameAutocompleteProxyModel,
+    make_food_autocomplete_item,
     setup_completer_item_tooltips,
 )
 from harrix_swiss_knife.apps.food.recipe_calories import (
@@ -48,8 +49,10 @@ from harrix_swiss_knife.apps.food.recipe_calories import (
     calculate_recipe_nutrition,
 )
 from harrix_swiss_knife.apps.food.services.food_display import (
+    create_drink_icon,
     extract_food_name_from_display,
     format_food_name_with_calories,
+    install_drink_checkbox_icon,
 )
 from harrix_swiss_knife.fluent.app_chrome import style_fluent_item_view
 from harrix_swiss_knife.fluent.theme import bind_theme, css, mix, palette_for
@@ -232,6 +235,7 @@ class RecipesWidget(QWidget):
         amount_row.addWidget(self.spin_ingredient_calories)
         amount_row.addWidget(self.label_kcal_unit)
         self.check_ingredient_drink = QCheckBox("Drink")
+        install_drink_checkbox_icon(self.check_ingredient_drink)
         amount_row.addWidget(self.check_ingredient_drink)
         add_layout.addLayout(amount_row)
 
@@ -269,6 +273,7 @@ class RecipesWidget(QWidget):
         middle_layout.addWidget(self.label_recipes_heading)
         self.list_recipes = QListView()
         self.list_recipes.setObjectName("listView_recipes")
+        self.list_recipes.setIconSize(QSize(16, 16))
         self._recipes_model = QStandardItemModel(self.list_recipes)
         self.list_recipes.setModel(self._recipes_model)
         self.list_recipes.clicked.connect(self._on_recipe_clicked)
@@ -294,6 +299,7 @@ class RecipesWidget(QWidget):
         self.line_recipe_name = QLineEdit()
         self.line_recipe_name.setPlaceholderText("Recipe name")
         self.check_recipe_drink = QCheckBox("This is a drink")
+        install_drink_checkbox_icon(self.check_recipe_drink)
         form.addRow("Name:", self.line_recipe_name)
         form.addRow("", self.check_recipe_drink)
         right_layout.addLayout(form)
@@ -528,6 +534,8 @@ class RecipesWidget(QWidget):
                 is_recipe=True,
             )
             item = QStandardItem(display)
+            if recipe.is_drink:
+                item.setIcon(create_drink_icon())
             item.setData(recipe.id, Qt.ItemDataRole.UserRole)
             item.setEditable(False)
             self._recipes_model.appendRow(item)
@@ -612,16 +620,7 @@ class RecipesWidget(QWidget):
             item_names = self._db.get_food_item_names_for_autocomplete()
             merged = merge_food_autocomplete_entries(log_names, item_names)
             for entry in merged:
-                display = format_food_name_with_calories(
-                    entry.name,
-                    entry.calories_per_100g,
-                    None,
-                    is_recipe=entry.is_recipe,
-                )
-                item = QStandardItem(display if entry.is_recipe else entry.name)
-                item.setData(entry.name, Qt.ItemDataRole.EditRole)
-                item.setData(entry.name_en or "", Qt.ItemDataRole.UserRole)
-                self._completer_source.appendRow(item)
+                self._completer_source.appendRow(make_food_autocomplete_item(entry))
             self._completer_proxy.invalidateFilter()
         except Exception:
             logger.exception("Error updating recipe ingredient autocomplete")

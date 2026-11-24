@@ -17,18 +17,18 @@ from PySide6.QtCore import (
     Qt,
     QTimer,
 )
-from PySide6.QtGui import QCursor, QStandardItem
+from PySide6.QtGui import QCursor, QIcon, QPainter, QPixmap, QStandardItem
 from PySide6.QtWidgets import QAbstractItemView, QCompleter, QLabel, QStyleOptionViewItem, QWidget
 from shiboken6 import isValid
 
 from harrix_swiss_knife.apps.food.services.food_display import (
-    DRINK_EMOJI,
     FOOD_ITEM_EMOJI,
     RECIPE_EMOJI,
+    create_drink_icon,
     format_food_name_with_calories,
 )
 from harrix_swiss_knife.keyboard_layout_search import autocomplete_match_tier
-from harrix_swiss_knife.qt_emoji_icon import create_emoji_row_icon
+from harrix_swiss_knife.qt_emoji_icon import create_emoji_icon
 
 if TYPE_CHECKING:
     from harrix_swiss_knife.apps.food.database_manager import FoodAutocompleteEntry
@@ -288,24 +288,24 @@ class FoodNameAutocompleteProxyModel(QSortFilterProxyModel):
         self.sort(0)
 
 
-def food_autocomplete_icon_emojis(entry: FoodAutocompleteEntry) -> list[str]:
-    """Return leading marker emojis for a completer row (catalog, then drink)."""
-    emojis: list[str] = []
-    if entry.is_recipe:
-        emojis.append(RECIPE_EMOJI)
-    elif entry.is_food_item:
-        emojis.append(FOOD_ITEM_EMOJI)
-    if entry.is_drink:
-        emojis.append(DRINK_EMOJI)
-    return emojis
-
-
 def food_autocomplete_popup_icon_size() -> QSize:
     """Icon slot wide enough for a catalog marker plus a drink marker."""
     width = FOOD_AUTOCOMPLETE_ICON_SIZE * FOOD_AUTOCOMPLETE_ICON_MAX_COUNT + FOOD_AUTOCOMPLETE_ICON_GAP * (
         FOOD_AUTOCOMPLETE_ICON_MAX_COUNT - 1
     )
     return QSize(width, FOOD_AUTOCOMPLETE_ICON_SIZE)
+
+
+def food_autocomplete_row_icon(entry: FoodAutocompleteEntry) -> QIcon:
+    """Build leading markers: catalog/recipe emoji, then colored Lucide coffee for drinks."""
+    icons: list[QIcon] = []
+    if entry.is_recipe:
+        icons.append(create_emoji_icon(RECIPE_EMOJI, FOOD_AUTOCOMPLETE_ICON_SIZE))
+    elif entry.is_food_item:
+        icons.append(create_emoji_icon(FOOD_ITEM_EMOJI, FOOD_AUTOCOMPLETE_ICON_SIZE))
+    if entry.is_drink:
+        icons.append(create_drink_icon(FOOD_AUTOCOMPLETE_ICON_SIZE))
+    return _compose_icon_row(icons, FOOD_AUTOCOMPLETE_ICON_SIZE, FOOD_AUTOCOMPLETE_ICON_GAP)
 
 
 def make_food_autocomplete_item(entry: FoodAutocompleteEntry) -> QStandardItem:
@@ -318,15 +318,9 @@ def make_food_autocomplete_item(entry: FoodAutocompleteEntry) -> QStandardItem:
     item = QStandardItem(display if entry.is_recipe else entry.name)
     item.setData(entry.name, Qt.ItemDataRole.EditRole)
     item.setData(entry.name_en or "", Qt.ItemDataRole.UserRole)
-    emojis = food_autocomplete_icon_emojis(entry)
-    if emojis:
-        item.setIcon(
-            create_emoji_row_icon(
-                emojis,
-                FOOD_AUTOCOMPLETE_ICON_SIZE,
-                gap=FOOD_AUTOCOMPLETE_ICON_GAP,
-            ),
-        )
+    icon = food_autocomplete_row_icon(entry)
+    if not icon.isNull():
+        item.setIcon(icon)
     return item
 
 
@@ -338,6 +332,27 @@ def setup_completer_item_tooltips(completer: QCompleter) -> CompleterPopupToolti
     helper = CompleterPopupTooltipHelper(completer)
     completer._tooltip_helper = helper  # keep reference alive  # noqa: SLF001
     return helper
+
+
+def _compose_icon_row(icons: list[QIcon], size: int, gap: int) -> QIcon:
+    cleaned = [icon for icon in icons if not icon.isNull()]
+    if not cleaned:
+        return QIcon()
+    if len(cleaned) == 1:
+        return cleaned[0]
+    width = size * len(cleaned) + gap * (len(cleaned) - 1)
+    pixmap = QPixmap(width, size)
+    pixmap.fill(Qt.GlobalColor.transparent)
+    painter = QPainter(pixmap)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
+    x = 0
+    for icon in cleaned:
+        icon.paint(painter, x, 0, size, size)
+        x += size + gap
+    painter.end()
+    result = QIcon()
+    result.addPixmap(pixmap)
+    return result
 
 
 def _row_match_tier(

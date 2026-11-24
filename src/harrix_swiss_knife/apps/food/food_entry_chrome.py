@@ -53,6 +53,7 @@ from harrix_swiss_knife.apps.food.food_ui_settings import (
     save_column_visibility,
     save_food_splitter_sizes,
 )
+from harrix_swiss_knife.apps.food.services.food_display import install_drink_checkbox_icon
 from harrix_swiss_knife.fluent.app_chrome import style_fluent_item_view
 from harrix_swiss_knife.fluent.theme import bind_theme, css, mix, palette_for
 from harrix_swiss_knife.fluent.tokens import CONTROL_HEIGHT, SPACE_S, SPACE_XS
@@ -514,7 +515,7 @@ def _polish_items_list(host: Any) -> None:
     view: QListView = host.listView_food_items
     view.setUniformItemSizes(True)
     view.setSpacing(0)
-    view.setIconSize(QSize(0, 0))
+    view.setIconSize(QSize(16, 16))
     view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
     view.setVerticalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)
     view.setTextElideMode(Qt.TextElideMode.ElideRight)
@@ -592,6 +593,7 @@ def _restructure_food_form(host: Any) -> None:
     drink_row.setObjectName("horizontalLayout_food_drink")
     host.horizontalLayout_food_drink = drink_row
     drink_row.addWidget(_field_label_spacer(gb))
+    install_drink_checkbox_icon(host.checkBox_food_is_drink)
     drink_row.addWidget(host.checkBox_food_is_drink)
     drink_row.addStretch(1)
 

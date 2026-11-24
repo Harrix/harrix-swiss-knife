@@ -12,6 +12,7 @@ from harrix_swiss_knife.apps.common.tracker_filter_chrome import (
     prepare_filter_combo,
     refresh_tracker_filter_chips,
 )
+from harrix_swiss_knife.apps.food.services.food_display import create_drink_icon
 from harrix_swiss_knife.qt_lucide_icon import create_lucide_icon
 
 if TYPE_CHECKING:
@@ -21,7 +22,6 @@ FILTER_ALL_TYPES = "All types"
 FILTER_TYPE_DRINK = "Drink"
 FILTER_TYPE_FOOD = "Food"
 FOOD_LUCIDE_ICON = "utensils"
-DRINK_LUCIDE_ICON = "cup-soda"
 _FILTER_TYPE_ICON_SIZE = 16
 
 
@@ -101,7 +101,7 @@ def populate_food_log_type_filter(combo: QComboBox) -> None:
             FILTER_TYPE_FOOD,
         )
         combo.addItem(
-            create_lucide_icon(DRINK_LUCIDE_ICON, _FILTER_TYPE_ICON_SIZE),
+            create_drink_icon(_FILTER_TYPE_ICON_SIZE),
             FILTER_TYPE_DRINK,
             FILTER_TYPE_DRINK,
         )

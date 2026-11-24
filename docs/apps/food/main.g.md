@@ -3077,6 +3077,7 @@ class MainWindow(
         name_input.setPlaceholderText("Enter recipe name")
         layout.addWidget(name_input)
         is_drink_checkbox = QCheckBox("This is a drink")
+        install_drink_checkbox_icon(is_drink_checkbox)
         layout.addWidget(is_drink_checkbox)
 
         button_layout = QHBoxLayout()
@@ -5277,7 +5278,7 @@ class MainWindow(
         self.pushButton_food_add.setStyleSheet(button_cta_cyan_qss())
         if is_drink:
             self.pushButton_food_add.setText("Add drink")
-            apply_lucide_button_icon(self.pushButton_food_add, "cup-soda")
+            apply_lucide_button_icon(self.pushButton_food_add, "coffee")
         else:
             self.pushButton_food_add.setText("Add food")
             apply_lucide_button_icon(self.pushButton_food_add, "utensils")
@@ -5511,13 +5512,9 @@ class MainWindow(
                     default_portion_calories = food_item_row[6]
 
                     display_name = food_name.strip()
-                    if is_drink and display_name:
-                        display_name = (
-                            f"{DRINK_EMOJI} {display_name}"
-                            if not display_name.startswith(DRINK_EMOJI)
-                            else display_name
-                        )
                     item = QStandardItem(display_name)
+                    if is_drink and display_name:
+                        item.setIcon(create_drink_icon())
                     local_label = ""
                     if calories_per_100g is not None and str(calories_per_100g).strip() != "":
                         with contextlib.suppress(TypeError, ValueError):

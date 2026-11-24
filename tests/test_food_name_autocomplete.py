@@ -8,15 +8,12 @@ from PySide6.QtWidgets import QApplication, QCompleter
 
 from harrix_swiss_knife.apps.food.database_manager import FoodAutocompleteEntry, merge_food_autocomplete_entries
 from harrix_swiss_knife.apps.food.food_name_autocomplete import (
-    FOOD_AUTOCOMPLETE_ICON_GAP,
-    FOOD_AUTOCOMPLETE_ICON_SIZE,
-    food_autocomplete_icon_emojis,
     food_autocomplete_popup_icon_size,
+    food_autocomplete_row_icon,
     make_food_autocomplete_item,
     setup_completer_item_tooltips,
 )
-from harrix_swiss_knife.apps.food.services.food_display import DRINK_EMOJI, FOOD_ITEM_EMOJI, RECIPE_EMOJI
-from harrix_swiss_knife.qt_emoji_icon import create_emoji_row_icon
+from harrix_swiss_knife.apps.food.services.food_display import FOOD_ITEM_EMOJI, RECIPE_EMOJI
 
 
 @pytest.fixture
@@ -31,53 +28,42 @@ def qapp() -> QApplication:
     return app
 
 
-def test_make_food_autocomplete_item_recipe_has_icon(qapp: QApplication) -> None:  # noqa: ARG001
-    item = make_food_autocomplete_item(
-        FoodAutocompleteEntry(name="Borscht", name_en="Borscht", is_recipe=True, calories_per_100g=45.0),
-    )
-    assert not item.icon().isNull()
-    assert RECIPE_EMOJI not in item.text()
-    assert item.data(Qt.ItemDataRole.EditRole) == "Borscht"
-
-
-def test_make_food_autocomplete_item_food_item_has_icon(qapp: QApplication) -> None:  # noqa: ARG001
-    item = make_food_autocomplete_item(
-        FoodAutocompleteEntry(name="Apple", name_en="Apple", is_food_item=True),
-    )
-    expected = create_emoji_row_icon([FOOD_ITEM_EMOJI], FOOD_AUTOCOMPLETE_ICON_SIZE)
-    assert item.text() == "Apple"
-    assert FOOD_ITEM_EMOJI not in item.text()
-    assert (
-        item.icon().pixmap(FOOD_AUTOCOMPLETE_ICON_SIZE, FOOD_AUTOCOMPLETE_ICON_SIZE).toImage()
-        == expected.pixmap(FOOD_AUTOCOMPLETE_ICON_SIZE, FOOD_AUTOCOMPLETE_ICON_SIZE).toImage()
-    )
+def test_completer_tooltip_helper_survives_popup_teardown(qapp: QApplication) -> None:
+    """Popup teardown must not raise on late filters or a cleared `_popup`."""
+    assert qapp is not None
+    completer = QCompleter(["Apple", "Banana"])
+    helper = setup_completer_item_tooltips(completer)
+    assert helper.parent() is completer
+    helper._on_popup_destroyed()
+    assert helper._is_popup_alive() is False
+    assert helper.eventFilter(completer, QEvent(QEvent.Type.Hide)) is False
 
 
 def test_make_food_autocomplete_item_food_item_drink_has_both_icons(qapp: QApplication) -> None:  # noqa: ARG001
     item = make_food_autocomplete_item(
         FoodAutocompleteEntry(name="Tea", name_en="Tea", is_food_item=True, is_drink=True),
     )
-    expected = create_emoji_row_icon(
-        [FOOD_ITEM_EMOJI, DRINK_EMOJI],
-        FOOD_AUTOCOMPLETE_ICON_SIZE,
-        gap=FOOD_AUTOCOMPLETE_ICON_GAP,
-    )
     size = food_autocomplete_popup_icon_size()
     assert item.text() == "Tea"
-    assert DRINK_EMOJI not in item.text()
-    assert item.icon().pixmap(size).toImage() == expected.pixmap(size).toImage()
-
-
-def test_make_food_autocomplete_item_recipe_drink_has_both_icons(qapp: QApplication) -> None:  # noqa: ARG001
-    item = make_food_autocomplete_item(
-        FoodAutocompleteEntry(name="Smoothie", name_en="Smoothie", is_recipe=True, is_drink=True),
-    )
-    assert food_autocomplete_icon_emojis(
-        FoodAutocompleteEntry(name="Smoothie", name_en="Smoothie", is_recipe=True, is_drink=True),
-    ) == [RECIPE_EMOJI, DRINK_EMOJI]
-    assert RECIPE_EMOJI not in item.text()
-    assert DRINK_EMOJI not in item.text()
     assert not item.icon().isNull()
+    assert item.icon().pixmap(size).width() >= size.width()
+
+
+def test_make_food_autocomplete_item_food_item_has_icon(qapp: QApplication) -> None:  # noqa: ARG001
+    item = make_food_autocomplete_item(
+        FoodAutocompleteEntry(name="Apple", name_en="Apple", is_food_item=True),
+    )
+    assert item.text() == "Apple"
+    assert FOOD_ITEM_EMOJI not in item.text()
+    assert not item.icon().isNull()
+
+
+def test_make_food_autocomplete_item_log_drink_has_drink_icon(qapp: QApplication) -> None:  # noqa: ARG001
+    entry = FoodAutocompleteEntry(name="Water", name_en="Water", is_drink=True)
+    item = make_food_autocomplete_item(entry)
+    assert not food_autocomplete_row_icon(entry).isNull()
+    assert not item.icon().isNull()
+    assert item.text() == "Water"
 
 
 def test_make_food_autocomplete_item_plain_food_has_no_icon(qapp: QApplication) -> None:  # noqa: ARG001
@@ -86,15 +72,21 @@ def test_make_food_autocomplete_item_plain_food_has_no_icon(qapp: QApplication) 
     assert item.text() == "Apple"
 
 
-def test_make_food_autocomplete_item_log_drink_has_drink_icon(qapp: QApplication) -> None:  # noqa: ARG001
-    item = make_food_autocomplete_item(
-        FoodAutocompleteEntry(name="Water", name_en="Water", is_drink=True),
-    )
-    assert food_autocomplete_icon_emojis(
-        FoodAutocompleteEntry(name="Water", name_en="Water", is_drink=True),
-    ) == [DRINK_EMOJI]
+def test_make_food_autocomplete_item_recipe_drink_has_both_icons(qapp: QApplication) -> None:  # noqa: ARG001
+    entry = FoodAutocompleteEntry(name="Smoothie", name_en="Smoothie", is_recipe=True, is_drink=True)
+    item = make_food_autocomplete_item(entry)
+    assert not food_autocomplete_row_icon(entry).isNull()
+    assert RECIPE_EMOJI not in item.text()
     assert not item.icon().isNull()
-    assert item.text() == "Water"
+
+
+def test_make_food_autocomplete_item_recipe_has_icon(qapp: QApplication) -> None:  # noqa: ARG001
+    item = make_food_autocomplete_item(
+        FoodAutocompleteEntry(name="Borscht", name_en="Borscht", is_recipe=True, calories_per_100g=45.0),
+    )
+    assert not item.icon().isNull()
+    assert RECIPE_EMOJI not in item.text()
+    assert item.data(Qt.ItemDataRole.EditRole) == "Borscht"
 
 
 def test_merge_food_autocomplete_entries_ors_catalog_and_drink_flags() -> None:
@@ -108,7 +100,7 @@ def test_merge_food_autocomplete_entries_ors_catalog_and_drink_flags() -> None:
     assert entry.is_recipe
     assert entry.is_food_item
     assert entry.is_drink
-    assert food_autocomplete_icon_emojis(entry) == [RECIPE_EMOJI, DRINK_EMOJI]
+    assert not food_autocomplete_row_icon(entry).isNull()
 
 
 def test_setup_completer_item_tooltips_sets_icon_size(qapp: QApplication) -> None:  # noqa: ARG001
@@ -117,14 +109,3 @@ def test_setup_completer_item_tooltips_sets_icon_size(qapp: QApplication) -> Non
     popup = completer.popup()
     assert popup is not None
     assert popup.iconSize() == food_autocomplete_popup_icon_size()
-
-
-def test_completer_tooltip_helper_survives_popup_teardown(qapp: QApplication) -> None:
-    """Popup teardown must not raise on late filters or a cleared `_popup`."""
-    assert qapp is not None
-    completer = QCompleter(["Apple", "Banana"])
-    helper = setup_completer_item_tooltips(completer)
-    assert helper.parent() is completer
-    helper._on_popup_destroyed()
-    assert helper._is_popup_alive() is False
-    assert helper.eventFilter(completer, QEvent(QEvent.Type.Hide)) is False

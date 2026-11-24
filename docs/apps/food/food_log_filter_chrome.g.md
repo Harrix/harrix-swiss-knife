@@ -160,7 +160,7 @@ def populate_food_log_type_filter(combo: QComboBox) -> None:
             FILTER_TYPE_FOOD,
         )
         combo.addItem(
-            create_lucide_icon(DRINK_LUCIDE_ICON, _FILTER_TYPE_ICON_SIZE),
+            create_drink_icon(_FILTER_TYPE_ICON_SIZE),
             FILTER_TYPE_DRINK,
             FILTER_TYPE_DRINK,
         )

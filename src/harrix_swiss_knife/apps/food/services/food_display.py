@@ -5,14 +5,27 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING
 
+from PySide6.QtCore import QSize
+
 from harrix_swiss_knife.keyboard_layout_search import text_matches_autocomplete
+from harrix_swiss_knife.qt_lucide_icon import create_lucide_icon
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from PySide6.QtGui import QIcon
+    from PySide6.QtWidgets import QCheckBox
+
 DRINK_EMOJI = "🥤"
+DRINK_LUCIDE_ICON = "coffee"
+DRINK_ICON_SIZE = 16
 FOOD_ITEM_EMOJI = "🥗"
 RECIPE_EMOJI = "🍽"
+
+
+def create_drink_icon(size: int = DRINK_ICON_SIZE) -> QIcon:
+    """Return the colored Lucide coffee icon used for drinks."""
+    return create_lucide_icon(DRINK_LUCIDE_ICON, size)
 
 
 def extract_food_name_from_display(display_text: str) -> str:
@@ -37,13 +50,13 @@ def format_food_name_with_calories(
     calories_per_100g: float | None,
     default_portion_calories: float | None,
     *,
-    is_drink: bool = False,
+    is_drink: bool = False,  # noqa: ARG001
     is_recipe: bool = False,
 ) -> str:
     """Append `(… kcal/portion)` or `(… kcal/100g)` when values exist.
 
-    Drinks get the same `DRINK_EMOJI` prefix as `tableView_food_log`.
-    Recipes get `RECIPE_EMOJI` (before the drink prefix when both apply).
+    Recipes get `RECIPE_EMOJI`. Drink markers use Lucide coffee icons at list /
+    checkbox call sites (`create_drink_icon`); `is_drink` is kept for callers.
 
     """
     if not food_name:
@@ -60,11 +73,15 @@ def format_food_name_with_calories(
         calories_info = f"({cal_100g:.0f} kcal/100g)"
 
     result = f"{food_name} {calories_info}" if calories_info else food_name
-    if is_drink:
-        result = f"{DRINK_EMOJI} {result}"
     if is_recipe:
         result = f"{RECIPE_EMOJI} {result}"
     return result
+
+
+def install_drink_checkbox_icon(checkbox: QCheckBox, *, size: int = DRINK_ICON_SIZE) -> None:
+    """Show the drink Lucide glyph on a drink checkbox."""
+    checkbox.setIcon(create_drink_icon(size))
+    checkbox.setIconSize(QSize(size, size))
 
 
 def partition_food_item_indexes_by_filter(texts: Sequence[str], query: str) -> tuple[list[int], list[int]]:

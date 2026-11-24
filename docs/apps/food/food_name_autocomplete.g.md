@@ -19,8 +19,8 @@ lang: en
   - [⚙️ Method `filterAcceptsRow`](#%EF%B8%8F-method-filteracceptsrow)
   - [⚙️ Method `lessThan`](#%EF%B8%8F-method-lessthan)
   - [⚙️ Method `set_filter_text`](#%EF%B8%8F-method-set_filter_text)
-- [🔧 Function `food_autocomplete_icon_emojis`](#-function-food_autocomplete_icon_emojis)
 - [🔧 Function `food_autocomplete_popup_icon_size`](#-function-food_autocomplete_popup_icon_size)
+- [🔧 Function `food_autocomplete_row_icon`](#-function-food_autocomplete_row_icon)
 - [🔧 Function `make_food_autocomplete_item`](#-function-make_food_autocomplete_item)
 - [🔧 Function `setup_completer_item_tooltips`](#-function-setup_completer_item_tooltips)
 
@@ -224,7 +224,7 @@ def __init__(self, completer: QCompleter) -> None
 Attach tooltip handling to the completer popup list.
 
 Parent is the completer (not the popup): parenting to the popup made this
-helper die with the list view, so late `eventFilter` / `destroyed` calls
+helper die with the list view, so late [`eventFilter`](#%EF%B8%8F-method-eventfilter) / `destroyed` calls
 hit a half-cleared Python object (`_popup` missing, empty slot name).
 
 <details>
@@ -508,31 +508,6 @@ def set_filter_text(self, text: str) -> None:
 
 </details>
 
-## 🔧 Function `food_autocomplete_icon_emojis`
-
-```python
-def food_autocomplete_icon_emojis(entry: FoodAutocompleteEntry) -> list[str]
-```
-
-Return leading marker emojis for a completer row (catalog, then drink).
-
-<details>
-<summary>Code:</summary>
-
-```python
-def food_autocomplete_icon_emojis(entry: FoodAutocompleteEntry) -> list[str]:
-    emojis: list[str] = []
-    if entry.is_recipe:
-        emojis.append(RECIPE_EMOJI)
-    elif entry.is_food_item:
-        emojis.append(FOOD_ITEM_EMOJI)
-    if entry.is_drink:
-        emojis.append(DRINK_EMOJI)
-    return emojis
-```
-
-</details>
-
 ## 🔧 Function `food_autocomplete_popup_icon_size`
 
 ```python
@@ -550,6 +525,31 @@ def food_autocomplete_popup_icon_size() -> QSize:
         FOOD_AUTOCOMPLETE_ICON_MAX_COUNT - 1
     )
     return QSize(width, FOOD_AUTOCOMPLETE_ICON_SIZE)
+```
+
+</details>
+
+## 🔧 Function `food_autocomplete_row_icon`
+
+```python
+def food_autocomplete_row_icon(entry: FoodAutocompleteEntry) -> QIcon
+```
+
+Build leading markers: catalog/recipe emoji, then colored Lucide coffee for drinks.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def food_autocomplete_row_icon(entry: FoodAutocompleteEntry) -> QIcon:
+    icons: list[QIcon] = []
+    if entry.is_recipe:
+        icons.append(create_emoji_icon(RECIPE_EMOJI, FOOD_AUTOCOMPLETE_ICON_SIZE))
+    elif entry.is_food_item:
+        icons.append(create_emoji_icon(FOOD_ITEM_EMOJI, FOOD_AUTOCOMPLETE_ICON_SIZE))
+    if entry.is_drink:
+        icons.append(create_drink_icon(FOOD_AUTOCOMPLETE_ICON_SIZE))
+    return _compose_icon_row(icons, FOOD_AUTOCOMPLETE_ICON_SIZE, FOOD_AUTOCOMPLETE_ICON_GAP)
 ```
 
 </details>
@@ -575,15 +575,9 @@ def make_food_autocomplete_item(entry: FoodAutocompleteEntry) -> QStandardItem:
     item = QStandardItem(display if entry.is_recipe else entry.name)
     item.setData(entry.name, Qt.ItemDataRole.EditRole)
     item.setData(entry.name_en or "", Qt.ItemDataRole.UserRole)
-    emojis = food_autocomplete_icon_emojis(entry)
-    if emojis:
-        item.setIcon(
-            create_emoji_row_icon(
-                emojis,
-                FOOD_AUTOCOMPLETE_ICON_SIZE,
-                gap=FOOD_AUTOCOMPLETE_ICON_GAP,
-            ),
-        )
+    icon = food_autocomplete_row_icon(entry)
+    if not icon.isNull():
+        item.setIcon(icon)
     return item
 ```
 

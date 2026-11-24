@@ -178,6 +178,7 @@ class RecipesWidget(QWidget):
         amount_row.addWidget(self.spin_ingredient_calories)
         amount_row.addWidget(self.label_kcal_unit)
         self.check_ingredient_drink = QCheckBox("Drink")
+        install_drink_checkbox_icon(self.check_ingredient_drink)
         amount_row.addWidget(self.check_ingredient_drink)
         add_layout.addLayout(amount_row)
 
@@ -215,6 +216,7 @@ class RecipesWidget(QWidget):
         middle_layout.addWidget(self.label_recipes_heading)
         self.list_recipes = QListView()
         self.list_recipes.setObjectName("listView_recipes")
+        self.list_recipes.setIconSize(QSize(16, 16))
         self._recipes_model = QStandardItemModel(self.list_recipes)
         self.list_recipes.setModel(self._recipes_model)
         self.list_recipes.clicked.connect(self._on_recipe_clicked)
@@ -240,6 +242,7 @@ class RecipesWidget(QWidget):
         self.line_recipe_name = QLineEdit()
         self.line_recipe_name.setPlaceholderText("Recipe name")
         self.check_recipe_drink = QCheckBox("This is a drink")
+        install_drink_checkbox_icon(self.check_recipe_drink)
         form.addRow("Name:", self.line_recipe_name)
         form.addRow("", self.check_recipe_drink)
         right_layout.addLayout(form)
@@ -474,6 +477,8 @@ class RecipesWidget(QWidget):
                 is_recipe=True,
             )
             item = QStandardItem(display)
+            if recipe.is_drink:
+                item.setIcon(create_drink_icon())
             item.setData(recipe.id, Qt.ItemDataRole.UserRole)
             item.setEditable(False)
             self._recipes_model.appendRow(item)
@@ -558,16 +563,7 @@ class RecipesWidget(QWidget):
             item_names = self._db.get_food_item_names_for_autocomplete()
             merged = merge_food_autocomplete_entries(log_names, item_names)
             for entry in merged:
-                display = format_food_name_with_calories(
-                    entry.name,
-                    entry.calories_per_100g,
-                    None,
-                    is_recipe=entry.is_recipe,
-                )
-                item = QStandardItem(display if entry.is_recipe else entry.name)
-                item.setData(entry.name, Qt.ItemDataRole.EditRole)
-                item.setData(entry.name_en or "", Qt.ItemDataRole.UserRole)
-                self._completer_source.appendRow(item)
+                self._completer_source.appendRow(make_food_autocomplete_item(entry))
             self._completer_proxy.invalidateFilter()
         except Exception:
             logger.exception("Error updating recipe ingredient autocomplete")
@@ -581,7 +577,7 @@ class RecipesWidget(QWidget):
 def __init__(self, parent: QWidget | None = None) -> None
 ```
 
-Build the recipes UI; call `set_database_manager` before loading data.
+Build the recipes UI; call [`set_database_manager`](#%EF%B8%8F-method-set_database_manager) before loading data.
 
 <details>
 <summary>Code:</summary>

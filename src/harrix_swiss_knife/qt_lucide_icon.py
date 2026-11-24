@@ -133,6 +133,8 @@ LUCIDE_ICON_COLORS: dict[str, str] = {
     "alert-triangle": LUCIDE_COLOR_YELLOW,
     "star": LUCIDE_COLOR_YELLOW,
     "trophy": LUCIDE_COLOR_YELLOW,
+    "coffee": LUCIDE_COLOR_ORANGE,
+    "cup-soda": LUCIDE_COLOR_ORANGE,
 }
 
 _ICON_NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
@@ -261,7 +263,7 @@ CHROME_EMOJI_TO_LUCIDE: dict[str, str] = {
     "↕️": "arrow-down-up",
     "↕": "arrow-down-up",
     "🎯": "target",
-    "🥤": "cup-soda",
+    "🥤": "coffee",
     "📜": "scroll-text",
     "⚠️": "alert-triangle",
     "⚠": "alert-triangle",

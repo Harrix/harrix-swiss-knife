@@ -40,30 +40,31 @@ def test_extract_food_name_from_display_suffix(display: str, expected: str) -> N
     assert extract_food_name_from_display(display) == expected
 
 
-def test_format_food_name_with_calories_empty_name() -> None:
-    assert format_food_name_with_calories("", 100.0, None) == ""
-
-
-def test_format_food_name_with_calories_portion_preferred() -> None:
-    assert format_food_name_with_calories("Egg", 140.0, 70.0) == "Egg (70 kcal/portion)"
-
-
 def test_format_food_name_with_calories_100g_when_no_portion() -> None:
     assert format_food_name_with_calories("Rice", 130.5, None) == "Rice (130 kcal/100g)"
 
 
-def test_format_food_name_with_calories_no_values() -> None:
-    assert format_food_name_with_calories("Plain", None, None) == "Plain"
+def test_format_food_name_with_calories_drink_has_no_emoji_prefix() -> None:
+    # Drink marker is a Lucide coffee icon at UI call sites, not a text prefix.
+    assert format_food_name_with_calories("Tea", None, 5.0, is_drink=True) == "Tea (5 kcal/portion)"
+    assert format_food_name_with_calories("Water", None, None, is_drink=True) == "Water"
+    assert format_food_name_with_calories("Egg", 140.0, 70.0, is_drink=False) == "Egg (70 kcal/portion)"
+
+
+def test_format_food_name_with_calories_empty_name() -> None:
+    assert format_food_name_with_calories("", 100.0, None) == ""
 
 
 def test_format_food_name_with_calories_fractional_calories() -> None:
     assert format_food_name_with_calories("X", 12.3, None) == "X (12 kcal/100g)"
 
 
-def test_format_food_name_with_calories_drink_prefix() -> None:
-    assert format_food_name_with_calories("Tea", None, 5.0, is_drink=True) == f"{DRINK_EMOJI} Tea (5 kcal/portion)"
-    assert format_food_name_with_calories("Water", None, None, is_drink=True) == f"{DRINK_EMOJI} Water"
-    assert format_food_name_with_calories("Egg", 140.0, 70.0, is_drink=False) == "Egg (70 kcal/portion)"
+def test_format_food_name_with_calories_no_values() -> None:
+    assert format_food_name_with_calories("Plain", None, None) == "Plain"
+
+
+def test_format_food_name_with_calories_portion_preferred() -> None:
+    assert format_food_name_with_calories("Egg", 140.0, 70.0) == "Egg (70 kcal/portion)"
 
 
 def test_format_food_name_with_calories_recipe_prefix() -> None:
@@ -73,8 +74,15 @@ def test_format_food_name_with_calories_recipe_prefix() -> None:
     )
     assert (
         format_food_name_with_calories("Smoothie", 60.0, None, is_drink=True, is_recipe=True)
-        == f"{RECIPE_EMOJI} {DRINK_EMOJI} Smoothie (60 kcal/100g)"
+        == f"{RECIPE_EMOJI} Smoothie (60 kcal/100g)"
     )
+
+
+def test_partition_food_item_indexes_by_filter_empty_query_matches_all() -> None:
+    texts = ["Banana", "Apple"]
+    matched, unmatched = partition_food_item_indexes_by_filter(texts, "  ")
+    assert matched == [1, 0]  # Apple, Banana
+    assert unmatched == []
 
 
 def test_partition_food_item_indexes_by_filter_keeps_matches_first() -> None:
@@ -89,10 +97,3 @@ def test_partition_food_item_indexes_by_filter_sorts_dimmed_alphabetically() -> 
     matched, unmatched = partition_food_item_indexes_by_filter(texts, "milk")
     assert matched == [1]
     assert unmatched == [2, 3, 0]  # Apple, Yogurt, Zucchini
-
-
-def test_partition_food_item_indexes_by_filter_empty_query_matches_all() -> None:
-    texts = ["Banana", "Apple"]
-    matched, unmatched = partition_food_item_indexes_by_filter(texts, "  ")
-    assert matched == [1, 0]  # Apple, Banana
-    assert unmatched == []

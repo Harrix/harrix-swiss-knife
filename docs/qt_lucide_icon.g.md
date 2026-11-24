@@ -141,7 +141,7 @@ def apply_leading_chrome_button_icon(
 def apply_leading_chrome_buttons(root: QWidget, *, icon_size: int = DEFAULT_LUCIDE_BUTTON_ICON_SIZE) -> None
 ```
 
-Convert leading chrome emoji prefixes on push and tool buttons under [`root`](apps/habits/habit_comments.g.md#%EF%B8%8F-method-root).
+Convert leading chrome emoji prefixes on push and tool buttons under `root`.
 
 <details>
 <summary>Code:</summary>
@@ -201,7 +201,7 @@ def apply_leading_chrome_icon(
 def apply_leading_chrome_icons(menu: QMenu | QMenuBar, *, icon_size: int = DEFAULT_LUCIDE_MENU_ICON_SIZE) -> None
 ```
 
-Convert leading chrome emoji prefixes on [`menu`](qt_split_menu_button.g.md#%EF%B8%8F-method-menu) actions into Lucide icons.
+Convert leading chrome emoji prefixes on `menu` actions into Lucide icons.
 
 <details>
 <summary>Code:</summary>
@@ -258,7 +258,7 @@ def apply_lucide_button_icon(button: QAbstractButton, name: str, *, icon_size: i
 
 Set a Lucide icon on an existing button.
 
-When [`color`](fluent/widgets/dialogs.g.md#%EF%B8%8F-method-color) is omitted, accent fills force a Lucide stroke matching the
+When `color` is omitted, accent fills force a Lucide stroke matching the
 button text color; ordinary gray buttons keep semantic colors.
 
 <details>
@@ -400,7 +400,7 @@ def create_lucide_icon(name: str, size: int = 64, *, color: QColor | str | None 
 
 Create a square `QIcon` from a Lucide SVG ID.
 
-When [`color`](fluent/widgets/dialogs.g.md#%EF%B8%8F-method-color) is omitted, uses the CodeStyle semantic color for `name`.
+When `color` is omitted, uses the CodeStyle semantic color for `name`.
 Unknown names log a warning and return an empty icon.
 
 <details>
@@ -445,7 +445,7 @@ Install the shared Lucide clear (red `x`) for ordinary text fields.
 
 Replaces Qt's stock clear button. The action is trailing and visible only
 while the field has text. Calling this twice on the same field reuses the
-existing action. Prefer this (or [`FluentLineEdit`](fluent/widgets/input_base.g.md#%EF%B8%8F-class-fluentlineedit)) over
+existing action. Prefer this (or `FluentLineEdit`) over
 `setClearButtonEnabled(True)`.
 
 Args:

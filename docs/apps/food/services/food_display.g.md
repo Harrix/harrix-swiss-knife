@@ -11,9 +11,29 @@ lang: en
 
 ## Contents
 
+- [🔧 Function `create_drink_icon`](#-function-create_drink_icon)
 - [🔧 Function `extract_food_name_from_display`](#-function-extract_food_name_from_display)
 - [🔧 Function `format_food_name_with_calories`](#-function-format_food_name_with_calories)
+- [🔧 Function `install_drink_checkbox_icon`](#-function-install_drink_checkbox_icon)
 - [🔧 Function `partition_food_item_indexes_by_filter`](#-function-partition_food_item_indexes_by_filter)
+
+</details>
+
+## 🔧 Function `create_drink_icon`
+
+```python
+def create_drink_icon(size: int = DRINK_ICON_SIZE) -> QIcon
+```
+
+Return the colored Lucide coffee icon used for drinks.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def create_drink_icon(size: int = DRINK_ICON_SIZE) -> QIcon:
+    return create_lucide_icon(DRINK_LUCIDE_ICON, size)
+```
 
 </details>
 
@@ -55,8 +75,8 @@ def format_food_name_with_calories(food_name: str, calories_per_100g: float | No
 
 Append `(… kcal/portion)` or `(… kcal/100g)` when values exist.
 
-Drinks get the same `DRINK_EMOJI` prefix as `tableView_food_log`.
-Recipes get `RECIPE_EMOJI` (before the drink prefix when both apply).
+Recipes get `RECIPE_EMOJI`. Drink markers use Lucide coffee icons at list /
+checkbox call sites ([`create_drink_icon`](#-function-create_drink_icon)); `is_drink` is kept for callers.
 
 <details>
 <summary>Code:</summary>
@@ -67,7 +87,7 @@ def format_food_name_with_calories(
     calories_per_100g: float | None,
     default_portion_calories: float | None,
     *,
-    is_drink: bool = False,
+    is_drink: bool = False,  # noqa: ARG001
     is_recipe: bool = False,
 ) -> str:
     if not food_name:
@@ -84,11 +104,28 @@ def format_food_name_with_calories(
         calories_info = f"({cal_100g:.0f} kcal/100g)"
 
     result = f"{food_name} {calories_info}" if calories_info else food_name
-    if is_drink:
-        result = f"{DRINK_EMOJI} {result}"
     if is_recipe:
         result = f"{RECIPE_EMOJI} {result}"
     return result
+```
+
+</details>
+
+## 🔧 Function `install_drink_checkbox_icon`
+
+```python
+def install_drink_checkbox_icon(checkbox: QCheckBox, *, size: int = DRINK_ICON_SIZE) -> None
+```
+
+Show the drink Lucide glyph on a drink checkbox.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def install_drink_checkbox_icon(checkbox: QCheckBox, *, size: int = DRINK_ICON_SIZE) -> None:
+    checkbox.setIcon(create_drink_icon(size))
+    checkbox.setIconSize(QSize(size, size))
 ```
 
 </details>

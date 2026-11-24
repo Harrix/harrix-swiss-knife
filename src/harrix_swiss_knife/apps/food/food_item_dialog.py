@@ -24,6 +24,7 @@ from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.text_case import capitalize_first_letter
 from harrix_swiss_knife.apps.food.database_manager import FoodItemByNameRow, FoodLogItemByNameRow
 from harrix_swiss_knife.apps.food.food_log_calories import calories_per_100g_for_storage
+from harrix_swiss_knife.apps.food.services.food_display import install_drink_checkbox_icon
 from harrix_swiss_knife.qt_compact_spin_box import (
     CompactDoubleSpinBox as QDoubleSpinBox,
 )
@@ -203,6 +204,7 @@ class FoodItemDialog(QDialog):
 
         # Is drink checkbox
         self.is_drink_checkbox = QCheckBox("Is Drink")
+        install_drink_checkbox_icon(self.is_drink_checkbox)
         form_layout.addRow("", self.is_drink_checkbox)
 
         # Calories per 100g field
