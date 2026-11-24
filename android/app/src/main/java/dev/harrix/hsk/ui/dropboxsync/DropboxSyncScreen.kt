@@ -8,14 +8,17 @@ import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -25,12 +28,15 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -43,9 +49,14 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.harrix.hsk.R
@@ -236,7 +247,7 @@ fun DropboxSyncScreen(
     }
 
     if (showRemotePicker) {
-        DropboxRemotePickerDialog(
+        DropboxRemotePickerScreen(
             currentPath = remotePath,
             items = remoteItems,
             onNavigate = viewModel::loadRemoteFolder,
@@ -564,8 +575,9 @@ private fun FolderPairEditorDialog(
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DropboxRemotePickerDialog(
+private fun DropboxRemotePickerScreen(
     currentPath: String,
     items: List<dev.harrix.hsk.dropboxsync.DropboxRemoteItem>,
     onNavigate: (String) -> Unit,
@@ -574,59 +586,172 @@ private fun DropboxRemotePickerDialog(
     onDismiss: () -> Unit,
 ) {
     var newFolder by remember { mutableStateOf("") }
-    AlertDialog(
+    val folders = remember(items) { items.filter { it.isDir } }
+    val canGoUp = currentPath.isNotBlank() && currentPath != "/"
+    val parentPath =
+        remember(currentPath) {
+            currentPath.trimEnd('/').substringBeforeLast('/', missingDelimiterValue = "")
+        }
+
+    Dialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.dropbox_sync_pick_remote)) },
-        text = {
-            Column {
-                Text(currentPath.ifBlank { "/" })
-                Spacer(modifier = Modifier.height(8.dp))
-                if (currentPath.isNotBlank() && currentPath != "/") {
-                    TextButton(
-                        onClick = {
-                            val parent = currentPath.trimEnd('/').substringBeforeLast('/', missingDelimiterValue = "")
-                            onNavigate(parent)
+        properties =
+        DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false,
+            dismissOnBackPress = true,
+            dismissOnClickOutside = false,
+        ),
+    ) {
+        BackHandler {
+            if (canGoUp) {
+                onNavigate(parentPath)
+            } else {
+                onDismiss()
+            }
+        }
+        Surface(modifier = Modifier.fillMaxSize(), color = hskScaffoldContainerColor()) {
+            Scaffold(
+                modifier = Modifier.fillMaxSize(),
+                containerColor = hskScaffoldContainerColor(),
+                contentWindowInsets = hskScaffoldContentWindowInsets(),
+                topBar = {
+                    TopAppBar(
+                        title = {
+                            Column {
+                                Text(
+                                    text = stringResource(R.string.dropbox_sync_pick_remote),
+                                    style = MaterialTheme.typography.titleMedium,
+                                )
+                                Text(
+                                    text = currentPath.ifBlank { "/" },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
                         },
-                    ) {
-                        Text("..")
-                    }
-                }
-                LazyColumn(modifier = Modifier.height(240.dp)) {
-                    items(items.filter { it.isDir }) { item ->
-                        TextButton(onClick = { onNavigate(item.pathDisplay) }) {
-                            Text(item.name)
+                        navigationIcon = {
+                            IconButton(
+                                onClick = {
+                                    if (canGoUp) {
+                                        onNavigate(parentPath)
+                                    } else {
+                                        onDismiss()
+                                    }
+                                },
+                            ) {
+                                Icon(
+                                    LucideIcons.ArrowBack,
+                                    contentDescription = stringResource(R.string.about_back),
+                                )
+                            }
+                        },
+                        colors = hskTopAppBarColors(),
+                        windowInsets = hskTopAppBarWindowInsets(),
+                        expandedHeight = HskTopAppBarHeight,
+                    )
+                },
+                bottomBar = {
+                    Surface(tonalElevation = 2.dp) {
+                        Column(
+                            modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 10.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                OutlinedTextField(
+                                    value = newFolder,
+                                    onValueChange = { newFolder = it },
+                                    label = { Text(stringResource(R.string.dropbox_sync_new_remote_folder)) },
+                                    singleLine = true,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                TextButton(
+                                    onClick = {
+                                        if (newFolder.isNotBlank()) {
+                                            onCreateFolder(newFolder.trim())
+                                            newFolder = ""
+                                        }
+                                    },
+                                ) {
+                                    Text(stringResource(R.string.dropbox_sync_create_folder))
+                                }
+                            }
+                            Button(
+                                onClick = { onSelect(currentPath.ifBlank { "" }) },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text(stringResource(R.string.dropbox_sync_use_this_folder))
+                            }
                         }
                     }
-                }
-                androidx.compose.material3.OutlinedTextField(
-                    value = newFolder,
-                    onValueChange = { newFolder = it },
-                    label = { Text(stringResource(R.string.dropbox_sync_new_remote_folder)) },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                TextButton(
-                    onClick = {
-                        if (newFolder.isNotBlank()) {
-                            onCreateFolder(newFolder.trim())
-                            newFolder = ""
-                        }
-                    },
+                },
+            ) { padding ->
+                LazyColumn(
+                    modifier =
+                    Modifier
+                        .padding(padding)
+                        .fillMaxSize(),
+                    contentPadding = PaddingValues(vertical = 4.dp),
                 ) {
-                    Text(stringResource(R.string.dropbox_sync_create_folder))
+                    if (canGoUp) {
+                        item(key = "__parent__") {
+                            RemoteFolderRow(
+                                name = "..",
+                                onClick = { onNavigate(parentPath) },
+                            )
+                            HorizontalDivider()
+                        }
+                    }
+                    items(folders, key = { it.pathLower }) { item ->
+                        RemoteFolderRow(
+                            name = item.name,
+                            onClick = { onNavigate(item.pathDisplay) },
+                        )
+                        HorizontalDivider()
+                    }
                 }
             }
-        },
-        confirmButton = {
-            TextButton(onClick = { onSelect(currentPath.ifBlank { "" }) }) {
-                Text(stringResource(R.string.dropbox_sync_use_this_folder))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(android.R.string.cancel))
-            }
-        },
-    )
+        }
+    }
+}
+
+@Composable
+private fun RemoteFolderRow(
+    name: String,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier =
+        Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            painter = painterResource(R.drawable.ic_folder_harrix),
+            contentDescription = null,
+            modifier = Modifier.size(28.dp),
+            tint = Color.Unspecified,
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(
+            text = name,
+            style = MaterialTheme.typography.bodyLarge,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+    }
 }
 
 @Composable

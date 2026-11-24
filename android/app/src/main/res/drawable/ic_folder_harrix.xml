@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- From Harrix-Vector-Icons it__folder/featured-image.svg -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+    <path
+        android:fillColor="#FFA000"
+        android:pathData="M0,75c0,-11 9,-20 20,-20h130c11,0 26.4,6.4 34.1,14.1l15.7,15.7C207.6,92.6 223,99 234,99h258c11,0 20,9 20,20v184c0,11 -9,20 -20,20H20c-11,0 -20,-9 -20,-20V75z" />
+    <path
+        android:fillColor="#E49003"
+        android:pathData="M0,165h512v157H0z" />
+    <path
+        android:fillColor="#EEC646"
+        android:pathData="M512,437c0,11 -9,20 -20,20H20c-11,0 -20,-9 -20,-20V207c0,-11 9,-20 20,-20h472c11,0 20,9 20,20v230z" />
+    <path
+        android:fillColor="#F4F4F4"
+        android:pathData="M83,143h346v44H83z" />
+    <path
+        android:fillColor="#E0E0E0"
+        android:pathData="M83,165h346v22H83z" />
+</vector>
