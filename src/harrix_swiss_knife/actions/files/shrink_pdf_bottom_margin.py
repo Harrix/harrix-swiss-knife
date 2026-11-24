@@ -22,7 +22,7 @@ class OnShrinkPdfBottomMargin(ActionBase):
     """
 
     icon = "📄"
-    title = "Shrink PDF for bottom margin…"
+    title = "PDF: shrink for bottom margin…"
     bold_title = False
     cli_available = False
     quick_launcher = True

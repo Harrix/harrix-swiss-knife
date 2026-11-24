@@ -43,7 +43,7 @@ def test_default_output_path_uses_margin_label(tmp_path: Path) -> None:
 
 def test_on_shrink_pdf_bottom_margin_metadata() -> None:
     action = OnShrinkPdfBottomMargin()
-    assert action.title == "Shrink PDF for bottom margin…"
+    assert action.title == "PDF: shrink for bottom margin…"
     assert action.icon == "📄"
 
 
