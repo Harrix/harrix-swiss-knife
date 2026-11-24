@@ -147,11 +147,14 @@ class DirtyReposCommitWindow(QDialog):
         self._commit_button = FluentPrimaryButton("Commit", middle)
         self._commit_button.setDefault(True)
         self._commit_button.clicked.connect(self._on_commit)
+        self._commit_push_button = FluentPushButton("Commit & push", middle, icon="upload")
+        self._commit_push_button.clicked.connect(self._on_commit_and_push)
         self._push_button = FluentPushButton("Push", middle, icon="upload")
         self._push_button.clicked.connect(self._on_push)
         self._desktop_button = FluentPushButton("Open in GitHub Desktop", middle)
         self._desktop_button.clicked.connect(self._on_open_desktop)
         buttons.addWidget(self._commit_button)
+        buttons.addWidget(self._commit_push_button)
         buttons.addWidget(self._push_button)
         buttons.addWidget(self._desktop_button)
         buttons.addStretch(1)
@@ -367,6 +370,26 @@ class DirtyReposCommitWindow(QDialog):
         self._suggestion_subjects = []
         self._suggestions.clear()
 
+    def _commit_push_tooltip(self, status: DirtyRepoStatus | None, *, can_commit: bool) -> str:
+        """Explain why Commit & push is enabled or inactive."""
+        if not can_commit:
+            if self._busy:
+                return "Busy"
+            if self._current_repo() is None:
+                return "Select a repository"
+            if not self._checked_paths():
+                return "Select files to commit"
+            if not self._subject.text().strip():
+                return "Enter a commit message"
+            return "Cannot commit"
+        if status is None:
+            return "Select a repository"
+        if status.access_kind == "local":
+            return "Local repositories are not pushed"
+        if status.access_kind != "public":
+            return "Commit & push is available for public repositories"
+        return "Commit selected files, then push all unpushed commits"
+
     def _copy_file_texts(self, paths: list[str], *, basename: bool) -> None:
         """Put relative paths or basenames on the clipboard."""
         if not paths:
@@ -567,6 +590,43 @@ class DirtyReposCommitWindow(QDialog):
             else:
                 self._toast(detail)
                 self._emit_line(f"❌ {repo.name}: {detail}")
+
+        self._run_worker(work, done)
+
+    def _on_commit_and_push(self) -> None:
+        """Commit selected paths, then push all unpushed commits on public repos."""
+        repo = self._current_repo()
+        status = self._current_status()
+        if repo is None or status is None or self._busy or status.access_kind != "public":
+            return
+        paths = self._checked_paths()
+        subject = self._subject.text().strip()
+        if not paths or not subject:
+            return
+
+        def work() -> tuple[bool, str, bool | None]:
+            ok, detail = commit_selected_paths(repo, paths, subject)
+            if not ok:
+                return False, detail, None
+            push_ok, push_detail = push_current_branch(repo)
+            return True, push_detail, push_ok
+
+        def done(result: tuple[bool, str, bool | None]) -> None:
+            ok, detail, pushed = result
+            if not ok:
+                self._toast(detail)
+                self._emit_line(f"❌ {repo.name}: {detail}")
+                return
+            self._subject.clear()
+            if pushed:
+                self._toast(f"Committed and pushed {repo.name}")
+                self._emit_line(f"✅ {repo.name}: committed and pushed — {detail}")
+            else:
+                self._toast(f"Committed {repo.name}; push failed")
+                self._emit_line(f"✅ {repo.name}: committed")
+                self._emit_line(f"❌ {repo.name}: push failed — {detail}")
+            self._refresh_known_dirty(prefer=repo)
+            self._refresh_commit_summary()
 
         self._run_worker(work, done)
 
@@ -1041,6 +1101,9 @@ class DirtyReposCommitWindow(QDialog):
         )
         self._commit_button.setEnabled(enabled)
         status = self._current_status()
+        can_commit_push = enabled and status is not None and status.access_kind == "public"
+        self._commit_push_button.setEnabled(can_commit_push)
+        self._commit_push_button.setToolTip(self._commit_push_tooltip(status, can_commit=enabled))
         can_push = not self._busy and status is not None and status.access_kind == "public" and status.unpushed > 0
         self._push_button.setEnabled(can_push)
         self._push_button.setToolTip(self._push_tooltip(status))
@@ -1175,11 +1238,14 @@ def __init__(
         self._commit_button = FluentPrimaryButton("Commit", middle)
         self._commit_button.setDefault(True)
         self._commit_button.clicked.connect(self._on_commit)
+        self._commit_push_button = FluentPushButton("Commit & push", middle, icon="upload")
+        self._commit_push_button.clicked.connect(self._on_commit_and_push)
         self._push_button = FluentPushButton("Push", middle, icon="upload")
         self._push_button.clicked.connect(self._on_push)
         self._desktop_button = FluentPushButton("Open in GitHub Desktop", middle)
         self._desktop_button.clicked.connect(self._on_open_desktop)
         buttons.addWidget(self._commit_button)
+        buttons.addWidget(self._commit_push_button)
         buttons.addWidget(self._push_button)
         buttons.addWidget(self._desktop_button)
         buttons.addStretch(1)
