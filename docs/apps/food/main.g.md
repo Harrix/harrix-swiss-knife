@@ -129,6 +129,9 @@ class MainWindow(
         self._food_chart_radios: dict[str, QRadioButton] = {}
         self._food_chart_toolbar: ChartToolbar | None = None
         self._food_metric_combo: QComboBox | None = None
+        self._food_heatmap_mode_active: bool = False
+        self._food_heatmap_period_label: str = LAST_365_LABEL
+        self._food_range_period_label: str = "Months"
         self._macros_open_range_after_queue = False
         self._macros_pending_range: tuple[str, str] | None = None
         self._macros_open_day_after_queue: str | None = None
@@ -2774,6 +2777,7 @@ class MainWindow(
             ("protein", "Protein"),
             ("fat", "Fat"),
             ("carb", "Carbohydrates"),
+            ("heatmap", "Heatmap"),
             ("compare_last", "Compare last months"),
             ("compare_same", "Compare same months"),
         )
@@ -2854,6 +2858,8 @@ class MainWindow(
             last_month=self.on_food_stats_last_month,
             last_year=self.on_food_stats_last_year,
             all_time=self.on_food_stats_all_time,
+            prev_year=self._on_food_heatmap_prev_period,
+            next_year=self._on_food_heatmap_next_period,
         )
         self._food_chart_toolbar = toolbar
         self.frame_food_stats_controls = frame
@@ -3168,6 +3174,12 @@ class MainWindow(
         self._sync_food_chart_toolbar_mode()
         backfill = mode in ("protein", "fat", "carb")
         self._refresh_food_stats_chart(backfill_macros=backfill)
+
+    def _on_food_heatmap_next_period(self) -> None:
+        self._step_food_heatmap_period(1)
+
+    def _on_food_heatmap_prev_period(self) -> None:
+        self._step_food_heatmap_period(-1)
 
     def _on_food_log_day_total_macros(self, day: str) -> None:
         """Open a day's macros from the food-log total button.
@@ -3875,6 +3887,8 @@ class MainWindow(
                 self._request_macros_chart_with_optional_backfill()
             else:
                 self._update_macros_chart()
+        elif mode == "heatmap":
+            self._update_food_heatmap_chart()
         elif mode == "compare_last":
             self._draw_food_compare_chart("compare_last")
         elif mode == "compare_same":
@@ -5127,6 +5141,16 @@ class MainWindow(
             self._day_macros_dialog.set_busy(busy=True)
         self._run_next_day_macros_request()
 
+    def _step_food_heatmap_period(self, step: int) -> None:
+        """Move the heatmap period combo. Newest periods sit at the top."""
+        toolbar = self._food_chart_toolbar
+        combo = toolbar.combo_period if toolbar is not None else None
+        if combo is None or self._current_food_chart_mode() != "heatmap":
+            return
+        index = combo.currentIndex() - step
+        if 0 <= index < combo.count():
+            combo.setCurrentIndex(index)
+
     def _stop_background_food_translate_timer(self) -> None:
         """Cancel the silent translate debounce timer."""
         self._bg_food_translate_timer.stop()
@@ -5141,8 +5165,51 @@ class MainWindow(
             toolbar.set_mode("compare_last", show_extra=True)
         elif mode == "compare_same":
             toolbar.set_mode("compare_same", show_extra=True)
+        elif mode == "heatmap":
+            toolbar.set_mode("heatmap", show_extra=True)
         else:
             toolbar.set_mode("range", show_extra=False)
+        self._sync_food_heatmap_period_choices(heatmap=mode == "heatmap")
+        self._sync_food_heatmap_year_nav_buttons()
+
+    def _sync_food_heatmap_period_choices(self, *, heatmap: bool) -> None:
+        """Swap Days/Months/Years for Last 365 / years when entering heatmap mode."""
+        toolbar = self._food_chart_toolbar
+        if toolbar is None or toolbar.combo_period is None:
+            return
+        combo = toolbar.combo_period
+        if heatmap == self._food_heatmap_mode_active:
+            return
+        if heatmap:
+            self._food_range_period_label = combo.currentText() or "Months"
+            metric = self._food_compare_metric_key()
+            recorded = daily_metric_recorded(self._food_daily_points_for_metric(metric), metric)
+            toolbar.set_period_choices(
+                heatmap_period_choices(metric_years(recorded)),
+                current=self._food_heatmap_period_label,
+            )
+        else:
+            self._food_heatmap_period_label = combo.currentText() or LAST_365_LABEL
+            toolbar.set_period_choices(range_period_choices(), current=self._food_range_period_label)
+        self._food_heatmap_mode_active = heatmap
+
+    def _sync_food_heatmap_year_nav_buttons(self) -> None:
+        """Enable heatmap period arrows only when another period is available."""
+        toolbar = self._food_chart_toolbar
+        if toolbar is None:
+            return
+        combo = toolbar.combo_period
+        prev_btn = toolbar.button_prev_year
+        next_btn = toolbar.button_next_year
+        if combo is None or prev_btn is None or next_btn is None:
+            return
+        if self._current_food_chart_mode() != "heatmap":
+            prev_btn.setEnabled(False)
+            next_btn.setEnabled(False)
+            return
+        index = combo.currentIndex()
+        prev_btn.setEnabled(index < combo.count() - 1)
+        next_btn.setEnabled(index > 0)
 
     def _transform_food_log_data(
         self, rows: list[list], *, append_state: bool = False, db_totals: bool = True
@@ -5382,6 +5449,34 @@ class MainWindow(
         except Exception as e:
             logger.exception("Error updating food calories chart")
             message_box.warning(self, "Chart Error", f"Failed to create calories chart: {e}")
+
+    def _update_food_heatmap_chart(self) -> None:
+        """Draw the calendar heatmap for the selected Metric."""
+        if not self._validate_database_connection() or self.db_manager is None:
+            return
+        metric = self._food_compare_metric_key()
+        title_name, unit = _FOOD_METRIC_UNITS.get(metric, ("Calories", "kcal"))
+        points = self._food_daily_points_for_metric(metric)
+        recorded = daily_metric_recorded(points, metric)
+        toolbar = self._food_chart_toolbar
+        combo = self.comboBox_food_stats_period
+        if toolbar is not None and combo is not None:
+            current = combo.currentText() or LAST_365_LABEL
+            self._food_heatmap_period_label = current
+            toolbar.set_period_choices(heatmap_period_choices(metric_years(recorded)), current=current)
+        selection: object = LAST_365_LABEL
+        if combo is not None:
+            data = combo.currentData()
+            selection = data if data is not None else (combo.currentText() or LAST_365_LABEL)
+        present_food_heatmap(
+            self.verticalLayout_food_stats_content,
+            recorded,
+            selection=selection,
+            metric=metric,
+            metric_title=title_name,
+            unit=unit,
+        )
+        self._sync_food_heatmap_year_nav_buttons()
 
     def _update_food_items_list(self) -> None:
         """Refresh food items list view with data from database."""
@@ -5858,6 +5953,9 @@ def __init__(self, *, hide_on_close: bool = False, presentation_mode: bool = Fal
         self._food_chart_radios: dict[str, QRadioButton] = {}
         self._food_chart_toolbar: ChartToolbar | None = None
         self._food_metric_combo: QComboBox | None = None
+        self._food_heatmap_mode_active: bool = False
+        self._food_heatmap_period_label: str = LAST_365_LABEL
+        self._food_range_period_label: str = "Months"
         self._macros_open_range_after_queue = False
         self._macros_pending_range: tuple[str, str] | None = None
         self._macros_open_day_after_queue: str | None = None
