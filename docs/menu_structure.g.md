@@ -47,7 +47,6 @@ def get_menu_structure() -> list[Any]:
                 OnUpgradeUvPackages,
                 OnInstallCli,
                 OnFluentGallery,
-                OnQuickLauncher,
             ],
         ),
         (
@@ -211,6 +210,7 @@ def get_menu_structure() -> list[Any]:
         OnGitCommit,
         OnHabits,
         OnIcons,
+        OnQuickLauncher,
         OnSnippets,
         "-",
         OnExit,

@@ -17,6 +17,7 @@ from harrix_swiss_knife.actions.apps.food import OnFood
 from harrix_swiss_knife.actions.apps.git_commit import OnGitCommit
 from harrix_swiss_knife.actions.apps.habits import OnHabits
 from harrix_swiss_knife.actions.apps.icons import OnIcons
+from harrix_swiss_knife.actions.apps.quick_launcher import OnQuickLauncher
 from harrix_swiss_knife.actions.apps.snippets import OnSnippets
 from harrix_swiss_knife.actions.development.about_dialog import OnAboutDialog
 from harrix_swiss_knife.actions.development.add_to_autostart import OnAddToAutostart
@@ -121,7 +122,6 @@ from harrix_swiss_knife.actions.python.new_uv_project import OnNewUvProject
 from harrix_swiss_knife.actions.python.publish_python_library import OnPublishPythonLibrary
 from harrix_swiss_knife.actions.python.sort_ruff_fmt_docs_python_code import OnSortRuffFmtDocsPythonCode
 from harrix_swiss_knife.actions.python.sort_ruff_fmt_python_code import OnSortRuffFmtPythonCode
-from harrix_swiss_knife.actions.quick_launcher.action import OnQuickLauncher
 from harrix_swiss_knife.actions.site import (
     OnAddSiteContentSubmodule,
     OnCheckSiteBlocking,
@@ -175,7 +175,6 @@ def get_menu_structure() -> list[Any]:
                 OnUpgradeUvPackages,
                 OnInstallCli,
                 OnFluentGallery,
-                OnQuickLauncher,
             ],
         ),
         (
@@ -339,6 +338,7 @@ def get_menu_structure() -> list[Any]:
         OnGitCommit,
         OnHabits,
         OnIcons,
+        OnQuickLauncher,
         OnSnippets,
         "-",
         OnExit,

@@ -706,7 +706,7 @@ class QuickLauncherDialog(QDialog):
 
     def _update_hint(self) -> None:
         # Local import avoids circular dependency: action -> context -> dialog.
-        from harrix_swiss_knife.actions.quick_launcher.action import OnQuickLauncher  # noqa: PLC0415
+        from harrix_swiss_knife.actions.apps.quick_launcher import OnQuickLauncher  # noqa: PLC0415
 
         hint_parts = ["Click a card to run", "Drag to move", "Esc or X to close"]
         hotkeys = load_hotkeys_for_action(OnQuickLauncher.__name__)

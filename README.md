@@ -74,7 +74,6 @@ _Figure 1: Screenshot_
   - ⌨️ Install CLI (hsk on PATH) ꟲᴸᴵ
   - 🛠️ ★ Maintenance checklist… ꟲᴸᴵ
   - ⚙️ Open `config.json`
-  - ⚡ Quick launcher…
   - 📁 Set up data-for-hsk ꟲᴸᴵ
   - ⚙️ Settings Editor
   - 📊 Show action usage stats ꟲᴸᴵ
@@ -192,6 +191,7 @@ _Figure 1: Screenshot_
 - 🍔 Food tracker
 - 📌 Git commit ꟲᴸᴵ
 - ✅ Habit tracker
+- ⚡ Quick launcher
 - 📋 Quick paste
 - 🎨 Vector Icons
 - × Exit
