@@ -343,34 +343,42 @@ class KpiSpec:
 
 
 class YearNavigator(QWidget):
-    """Compact previous / next control for Last 365 days, years, and All years.
+    """Shared period control: compact combo, then previous / next.
 
-    Items are Last 365 days, calendar years newest first, then All years.
-    The arrows move to the neighboring item.
+    Layout matches Habits Charts: `Period` lives outside this widget; here the
+    combo sizes to its text (not a stretched field), with icon-only arrows on
+    the right. Items are Last 365 days, calendar years newest first, then All.
 
     """
 
     changed = Signal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
-        """Create the control with Last 365 days and All years."""
+        """Create the control with Last 365 days and All."""
         super().__init__(parent)
+        self.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(SPACE_S)
+        self._combo = QComboBox(self)
+        self._combo.setObjectName("comboBox_year_navigator")
+        self._combo.setMinimumHeight(CONTROL_HEIGHT)
+        self._combo.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
+        self._combo.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
+        self._combo.currentIndexChanged.connect(self._on_index)
         self._previous = make_lucide_push_button("", "chevron-left")
         self._previous.setFixedSize(CONTROL_HEIGHT, CONTROL_HEIGHT)
         self._previous.setStyleSheet(button_idle_qss())
+        self._previous.setToolTip("Previous period")
         self._previous.clicked.connect(lambda: self.step(-1))
-        self._combo = QComboBox(self)
-        self._combo.setMinimumHeight(CONTROL_HEIGHT)
-        self._combo.currentIndexChanged.connect(self._on_index)
         self._next = make_lucide_push_button("", "chevron-right")
         self._next.setFixedSize(CONTROL_HEIGHT, CONTROL_HEIGHT)
         self._next.setStyleSheet(button_idle_qss())
+        self._next.setToolTip("Next period")
         self._next.clicked.connect(lambda: self.step(1))
-        layout.addWidget(self._previous)
+        # Combo first, then arrows — same order as Habits ChartToolbar heatmap row.
         layout.addWidget(self._combo)
+        layout.addWidget(self._previous)
         layout.addWidget(self._next)
         self.set_years([])
 
@@ -390,10 +398,11 @@ class YearNavigator(QWidget):
         self._combo.addItem("Last 365 days", LAST_365_KEY)
         for year in unique:
             self._combo.addItem(str(year), str(year))
-        self._combo.addItem("All years", ALL_YEARS_KEY)
+        self._combo.addItem("All", ALL_YEARS_KEY)
         restored = self._combo.findData(current)
         self._combo.setCurrentIndex(max(restored, 0))
         self._combo.blockSignals(False)  # noqa: FBT003
+        self._fit_combo_width()
         self._sync_arrows()
 
     def step(self, delta: int) -> None:
@@ -403,7 +412,7 @@ class YearNavigator(QWidget):
             self._combo.setCurrentIndex(index)
 
     def year(self) -> int | None:
-        """Return the selected calendar year, or `None` for Last 365 days and All years."""
+        """Return the selected calendar year, or `None` for Last 365 days and All."""
         key = self.selection()
         if key in {LAST_365_KEY, ALL_YEARS_KEY}:
             return None
@@ -411,6 +420,15 @@ class YearNavigator(QWidget):
             return int(key)
         except ValueError:
             return None
+
+    def _fit_combo_width(self) -> None:
+        """Keep the field as wide as the longest label, not the toolbar stretch."""
+        metrics = self._combo.fontMetrics()
+        widest = 0
+        for index in range(self._combo.count()):
+            widest = max(widest, metrics.horizontalAdvance(self._combo.itemText(index)))
+        # Padding for the dropdown arrow and frame chrome.
+        self._combo.setFixedWidth(widest + CONTROL_HEIGHT + SPACE_M)
 
     def _on_index(self, _index: int) -> None:
         self._sync_arrows()

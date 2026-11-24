@@ -31,7 +31,7 @@ from harrix_swiss_knife.apps.common.chart_theme import chart_info_panel_qss
 from harrix_swiss_knife.apps.common.tracker_layout_chrome import quiet_group_box
 from harrix_swiss_knife.apps.common.ui_chrome import button_idle_qss, muted_caption_qss
 from harrix_swiss_knife.fluent.theme import FluentTheme, bind_theme, css, mix
-from harrix_swiss_knife.fluent.tokens import CONTROL_HEIGHT, SPACE_S
+from harrix_swiss_knife.fluent.tokens import CONTROL_HEIGHT, SPACE_M, SPACE_S
 from harrix_swiss_knife.qt_compact_spin_box import CompactSpinBox
 from harrix_swiss_knife.qt_flow_layout import FlowLayout
 from harrix_swiss_knife.qt_lucide_icon import apply_lucide_button_icon, make_lucide_push_button
@@ -174,9 +174,12 @@ class ChartToolbar:
         self.combo_period = QComboBox()
         self.combo_period.setObjectName("comboBox_chart_period")
         self.combo_period.setMinimumHeight(CONTROL_HEIGHT)
+        self.combo_period.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
+        self.combo_period.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
         for item in PERIOD_ITEMS:
             self.combo_period.addItem(item)
         self.combo_period.setCurrentText("Months")
+        _fit_period_combo_width(self.combo_period)
 
         self.label_labels = _caption("Labels")
         self.combo_labels = QComboBox()
@@ -485,6 +488,7 @@ class ChartToolbar:
         index = combo.findText(previous) if previous else -1
         combo.setCurrentIndex(max(index, 0))
         combo.blockSignals(False)  # noqa: FBT003
+        _fit_period_combo_width(combo)
 
     def _apply_year_button_chrome(self, *, compact: bool) -> None:
         pairs = (
@@ -860,6 +864,15 @@ def _caption(text: str) -> QLabel:
     label = QLabel(text)
     label.setStyleSheet(muted_caption_qss())
     return label
+
+
+def _fit_period_combo_width(combo: QComboBox) -> None:
+    """Size the period field to its longest label (shared with YearNavigator)."""
+    metrics = combo.fontMetrics()
+    widest = 0
+    for index in range(combo.count()):
+        widest = max(widest, metrics.horizontalAdvance(combo.itemText(index)))
+    combo.setFixedWidth(widest + CONTROL_HEIGHT + SPACE_M)
 
 
 def _idle_button(text: str, icon: str) -> QPushButton:

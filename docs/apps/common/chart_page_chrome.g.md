@@ -168,9 +168,12 @@ class ChartToolbar:
         self.combo_period = QComboBox()
         self.combo_period.setObjectName("comboBox_chart_period")
         self.combo_period.setMinimumHeight(CONTROL_HEIGHT)
+        self.combo_period.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
+        self.combo_period.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
         for item in PERIOD_ITEMS:
             self.combo_period.addItem(item)
         self.combo_period.setCurrentText("Months")
+        _fit_period_combo_width(self.combo_period)
 
         self.label_labels = _caption("Labels")
         self.combo_labels = QComboBox()
@@ -479,6 +482,7 @@ class ChartToolbar:
         index = combo.findText(previous) if previous else -1
         combo.setCurrentIndex(max(index, 0))
         combo.blockSignals(False)  # noqa: FBT003
+        _fit_period_combo_width(combo)
 
     def _apply_year_button_chrome(self, *, compact: bool) -> None:
         pairs = (
@@ -840,9 +844,12 @@ def build(self, parent: QWidget | None = None) -> QFrame:
         self.combo_period = QComboBox()
         self.combo_period.setObjectName("comboBox_chart_period")
         self.combo_period.setMinimumHeight(CONTROL_HEIGHT)
+        self.combo_period.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
+        self.combo_period.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
         for item in PERIOD_ITEMS:
             self.combo_period.addItem(item)
         self.combo_period.setCurrentText("Months")
+        _fit_period_combo_width(self.combo_period)
 
         self.label_labels = _caption("Labels")
         self.combo_labels = QComboBox()
@@ -1305,6 +1312,7 @@ def set_period_choices(self, choices: Sequence[tuple[str, object]], *, current: 
         index = combo.findText(previous) if previous else -1
         combo.setCurrentIndex(max(index, 0))
         combo.blockSignals(False)  # noqa: FBT003
+        _fit_period_combo_width(combo)
 ```
 
 </details>
@@ -1378,7 +1386,7 @@ class MetricStrip(QWidget):
 def __init__(self, parent: QWidget | None = None) -> None
 ```
 
-Build an empty strip. `set_metrics` fills it.
+Build an empty strip. [`set_metrics`](#%EF%B8%8F-method-set_metrics) fills it.
 
 <details>
 <summary>Code:</summary>
