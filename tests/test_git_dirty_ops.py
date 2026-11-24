@@ -16,8 +16,10 @@ from harrix_swiss_knife.actions.common.git_dirty_ops import (
     commit_selected_paths,
     configured_git_roots,
     count_recent_commits,
+    discard_changed_paths,
     discover_git_repos,
     github_repo_visibility,
+    list_changed_files,
     open_github_desktop_nonblocking,
     parse_github_slug,
     parse_porcelain_files,
@@ -172,6 +174,32 @@ def test_diff_line_kind_marks_add_delete_and_hunk() -> None:
     assert diff_line_kind("+++ b/file.md") == "meta"
     assert diff_line_kind("--- a/file.md") == "meta"
     assert diff_line_kind(" context") == "context"
+
+
+def test_discard_changed_paths_restores_tracked_and_removes_untracked(tmp_path: Path) -> None:
+    """Discard restores modified files and deletes untracked / newly staged files."""
+    repo = tmp_path / "repo"
+    _git_init(repo)
+    tracked = repo / "README.md"
+    tracked.write_text("changed\n", encoding="utf-8")
+    untracked = repo / "notes.txt"
+    untracked.write_text("temp\n", encoding="utf-8")
+    nested = repo / "docs"
+    nested.mkdir()
+    added = nested / "new.md"
+    added.write_text("new\n", encoding="utf-8")
+    subprocess.run(["git", "add", "docs/new.md"], cwd=repo, check=True, capture_output=True)  # noqa: S607
+
+    before = {item.path for item in list_changed_files(repo)}
+    assert before >= {"README.md", "notes.txt", "docs/new.md"}
+
+    ok, detail = discard_changed_paths(repo, ["README.md", "notes.txt", "docs/new.md"])
+    assert ok is True
+    assert "Discarded" in detail
+    assert tracked.read_text(encoding="utf-8") == "hello\n"
+    assert not untracked.exists()
+    assert not added.exists()
+    assert list_changed_files(repo) == []
 
 
 def test_discover_git_repos_marks_only_repos_that_need_attention(tmp_path: Path) -> None:

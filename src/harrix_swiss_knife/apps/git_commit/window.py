@@ -6,10 +6,11 @@ from dataclasses import replace
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
-from PySide6.QtCore import QEvent, QObject, QRect, QSize, Qt, QThread, QTimer, Signal
+from PySide6.QtCore import QEvent, QObject, QPoint, QRect, QSize, Qt, QThread, QTimer, Signal
 from PySide6.QtGui import QColor, QIcon, QKeyEvent, QMouseEvent, QPainter
 from PySide6.QtWidgets import (
     QAbstractItemView,
+    QApplication,
     QDialog,
     QFileDialog,
     QGridLayout,
@@ -45,6 +46,7 @@ from harrix_swiss_knife.actions.common.git_dirty_ops import (
     commit_selected_paths,
     configured_git_roots,
     count_recent_commits,
+    discard_changed_paths,
     discover_git_repos,
     github_repo_visibility,
     list_changed_files,
@@ -72,6 +74,7 @@ from harrix_swiss_knife.fluent.widgets import (
     FluentHyperlinkButton,
     FluentLineEdit,
     FluentListWidget,
+    FluentMessageDialog,
     FluentPrimaryButton,
     FluentPushButton,
     FluentSplitter,
@@ -79,9 +82,10 @@ from harrix_swiss_knife.fluent.widgets import (
     TextRole,
     polish_fluent_splitter,
 )
+from harrix_swiss_knife.fluent.widgets.menus import FluentMenu
 from harrix_swiss_knife.installer.icon_assets import apply_window_icon
 from harrix_swiss_knife.qt_lucide_checkbox import CHECKBOX_INDICATOR_PX, indicator_colors, paint_lucide_checkbox
-from harrix_swiss_knife.qt_lucide_icon import create_lucide_icon
+from harrix_swiss_knife.qt_lucide_icon import COPY_BUTTON_ICON, add_lucide_action, create_lucide_icon
 from harrix_swiss_knife.toast_notification import ToastNotification
 from harrix_swiss_knife.win11_caption import (
     OVERLAY_CAPTION_PROPERTY,
@@ -98,6 +102,7 @@ _SPLITTER_KEY = "git_dirty_repos_commit_splitter_sizes_v3"
 _SPLITTER_DEFAULT = (240, 500, 800)
 _REFRESH_MS = 30_000
 _SPLITTER_SAVE_DELAY_MS = 400
+_DISCARD_PREVIEW_LIMIT = 12
 _REPO_ROLE = Qt.ItemDataRole.UserRole
 _REPO_KIND_ROLE = Qt.ItemDataRole.UserRole + 1
 _REPO_SLUG_ROLE = Qt.ItemDataRole.UserRole + 2
@@ -201,9 +206,12 @@ class DirtyReposCommitWindow(QDialog):
         middle_layout.setSpacing(SPACE_S)
         middle_layout.addWidget(FluentText("Changed files", middle, role=TextRole.SECONDARY))
         self._file_list = _CheckableFileList(middle)
-        self._file_list.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self._file_list.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+        self._file_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self._file_list.itemChanged.connect(self._on_file_item_changed)
         self._file_list.currentItemChanged.connect(self._on_file_focus_changed)
+        self._file_list.copy_path_clicked.connect(self._on_copy_file_path_clicked)
+        self._file_list.customContextMenuRequested.connect(self._on_file_context_menu)
         middle_layout.addWidget(self._file_list, 1)
 
         middle_layout.addWidget(FluentText("Commit title", middle, role=TextRole.SECONDARY))
@@ -440,6 +448,20 @@ class DirtyReposCommitWindow(QDialog):
         self._suggestion_subjects = []
         self._suggestions.clear()
 
+    def _copy_file_texts(self, paths: list[str], *, basename: bool) -> None:
+        """Put relative paths or basenames on the clipboard."""
+        if not paths:
+            return
+        texts = [Path(path).name if basename else path for path in paths]
+        clipboard = QApplication.clipboard()
+        if clipboard is None:
+            return
+        clipboard.setText("\n".join(texts))
+        if basename:
+            self._toast("Copied file name" if len(paths) == 1 else "Copied file names")
+        else:
+            self._toast("Copied path" if len(paths) == 1 else "Copied paths")
+
     def _current_repo(self) -> Path | None:
         item = self._repo_list.currentItem()
         if item is None:
@@ -628,6 +650,65 @@ class DirtyReposCommitWindow(QDialog):
                 self._emit_line(f"❌ {repo.name}: {detail}")
 
         self._run_worker(work, done)
+
+    def _on_copy_file_path_clicked(self, path: str) -> None:
+        """Copy one relative path from the row copy icon."""
+        self._copy_file_texts([path], basename=False)
+
+    def _on_discard_selected_files(self, paths: list[str]) -> None:
+        """Confirm and discard working-tree changes for the selected paths."""
+        repo = self._current_repo()
+        if repo is None or self._busy or not paths:
+            return
+        preview = "\n".join(f"  • {path}" for path in paths[:_DISCARD_PREVIEW_LIMIT])
+        extra = "" if len(paths) <= _DISCARD_PREVIEW_LIMIT else f"\n  … and {len(paths) - _DISCARD_PREVIEW_LIMIT} more"
+        noun = "file" if len(paths) == 1 else "files"
+        if not FluentMessageDialog.ask(
+            self,
+            "Discard changes",
+            f"Discard changes in {len(paths)} {noun}?\n\n{preview}{extra}",
+            yes="Discard",
+            no="Cancel",
+        ):
+            return
+
+        def work() -> tuple[bool, str]:
+            return discard_changed_paths(repo, paths)
+
+        def done(result: tuple[bool, str]) -> None:
+            ok, detail = result
+            if ok:
+                self._toast(f"Discarded {len(paths)} {noun}")
+                self._emit_line(f"↩️ {repo.name}: discarded — {detail}")
+                self._refresh_known_dirty(prefer=repo)
+            else:
+                self._toast(detail)
+                self._emit_line(f"❌ {repo.name}: {detail}")
+
+        self._run_worker(work, done)
+
+    def _on_file_context_menu(self, pos: QPoint) -> None:
+        """Copy paths or discard changes for the list selection."""
+        item = self._file_list.itemAt(pos)
+        if item is not None and not item.isSelected():
+            self._file_list.clearSelection()
+            item.setSelected(True)
+            self._file_list.setCurrentItem(item)
+        paths = self._selected_file_paths()
+        if not paths:
+            return
+        menu = FluentMenu("", self)
+        add_lucide_action(menu, "Copy relative path", COPY_BUTTON_ICON).triggered.connect(
+            lambda: self._copy_file_texts(paths, basename=False),
+        )
+        add_lucide_action(menu, "Copy file name", "file").triggered.connect(
+            lambda: self._copy_file_texts(paths, basename=True),
+        )
+        menu.addSeparator()
+        add_lucide_action(menu, "Discard changes", "undo-2").triggered.connect(
+            lambda: self._on_discard_selected_files(paths),
+        )
+        menu.exec(self._file_list.viewport().mapToGlobal(pos))
 
     def _on_file_focus_changed(
         self,
@@ -981,6 +1062,18 @@ class DirtyReposCommitWindow(QDialog):
     def _schedule_splitter_save(self, *_args: object) -> None:
         self._splitter_save_timer.start()
 
+    def _selected_file_paths(self) -> list[str]:
+        """Return selected changed-file paths in list order (not checkbox state)."""
+        paths: list[str] = []
+        for index in range(self._file_list.count()):
+            item = self._file_list.item(index)
+            if item is None or not item.isSelected():
+                continue
+            path = item.data(_FILE_PATH_ROLE)
+            if isinstance(path, str) and path:
+                paths.append(path)
+        return paths
+
     def _set_status_text(self) -> None:
         count = len(self._statuses)
         dirty_count = sum(1 for status in self._statuses if status.is_dirty)
@@ -1041,6 +1134,8 @@ class DirtyReposCommitWindow(QDialog):
 class _CheckableFileList(FluentListWidget):
     """Changed-file list: Fluent checkbox delegate, no stylesheet check glyph."""
 
+    copy_path_clicked = Signal(str)
+
     def __init__(self, parent: QWidget | None = None) -> None:
         """Create a compact file list that paints its own checkboxes."""
         super().__init__(parent, compact=True)
@@ -1054,7 +1149,7 @@ class _CheckableFileList(FluentListWidget):
 
 
 class _FileCheckDelegate(QStyledItemDelegate):
-    """Paint a Fluent checkbox and a Lucide status icon beside each path."""
+    """Paint a Fluent checkbox, status icon, path, and a copy-path control."""
 
     def editorEvent(  # noqa: N802
         self,
@@ -1063,13 +1158,21 @@ class _FileCheckDelegate(QStyledItemDelegate):
         option: QStyleOptionViewItem,
         index: QModelIndex | QPersistentModelIndex,
     ) -> bool:
-        """Toggle the row when the click lands on the checkbox."""
+        """Handle clicks on the copy icon or the checkbox."""
         if (
             event.type() in {QEvent.Type.MouseButtonRelease, QEvent.Type.MouseButtonDblClick}
             and isinstance(event, QMouseEvent)
             and event.button() == Qt.MouseButton.LeftButton
         ):
-            if not _file_check_rect(option.rect).contains(event.position().toPoint()):
+            point = event.position().toPoint()
+            if _file_copy_rect(option.rect).contains(point):
+                if event.type() == QEvent.Type.MouseButtonRelease:
+                    path = index.data(_FILE_PATH_ROLE)
+                    widget = option.widget
+                    if isinstance(path, str) and path and isinstance(widget, _CheckableFileList):
+                        widget.copy_path_clicked.emit(path)
+                return True
+            if not _file_check_rect(option.rect).contains(point):
                 return False
             if event.type() == QEvent.Type.MouseButtonRelease:
                 _toggle_check_state(model, index)
@@ -1082,7 +1185,7 @@ class _FileCheckDelegate(QStyledItemDelegate):
         option: QStyleOptionViewItem,
         index: QModelIndex | QPersistentModelIndex,
     ) -> None:
-        """Draw the row fill, a Lucide checkbox, the status icon, then the path."""
+        """Draw the row fill, checkbox, status icon, path, and copy control."""
         opt = QStyleOptionViewItem(option)
         self.initStyleOption(opt, index)
         checked = opt.checkState == Qt.CheckState.Checked
@@ -1118,11 +1221,10 @@ class _FileCheckDelegate(QStyledItemDelegate):
             painter,
             icon_rect,
         )
+        copy_rect = _file_copy_rect(option.rect)
         path_left = icon_rect.right() + SPACE_S
-        limit = option.rect.right() - SPACE_S
-        if widget is not None:
-            limit = min(limit, widget.viewport().width() - SPACE_S)
-        path_rect = QRect(path_left, option.rect.top(), max(0, limit - path_left), option.rect.height())
+        path_right = copy_rect.left() - SPACE_S
+        path_rect = QRect(path_left, option.rect.top(), max(0, path_right - path_left), option.rect.height())
         painter.save()
         painter.setFont(opt.font)
         elided = opt.fontMetrics.elidedText(text, Qt.TextElideMode.ElideRight, path_rect.width())
@@ -1133,6 +1235,10 @@ class _FileCheckDelegate(QStyledItemDelegate):
             elided,
         )
         painter.restore()
+        create_lucide_icon(COPY_BUTTON_ICON, ICON_SIZE, color=palette.text_secondary).paint(
+            painter,
+            copy_rect,
+        )
 
     def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex) -> QSize:  # noqa: N802
         """Keep the row tall enough for the checkbox."""
@@ -1267,6 +1373,16 @@ def _file_check_rect(item_rect: QRect) -> QRect:
         item_rect.y() + max(0, (item_rect.height() - CHECKBOX_INDICATOR_PX) // 2),
         CHECKBOX_INDICATOR_PX,
         CHECKBOX_INDICATOR_PX,
+    )
+
+
+def _file_copy_rect(item_rect: QRect) -> QRect:
+    """Return the copy-path icon rect on the trailing edge of the row."""
+    return QRect(
+        item_rect.right() - SPACE_M - ICON_SIZE,
+        item_rect.y() + max(0, (item_rect.height() - ICON_SIZE) // 2),
+        ICON_SIZE,
+        ICON_SIZE,
     )
 
 

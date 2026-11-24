@@ -290,6 +290,60 @@ def count_recent_commits(roots: list[Path]) -> CommitDaySummary:
     )
 
 
+def discard_changed_paths(repo: Path, paths: list[str]) -> tuple[bool, str]:
+    """Discard working-tree and index changes for `paths`. Return `(ok, detail)`.
+
+    Tracked paths are restored from `HEAD` (staged + worktree). Untracked paths
+    are removed with `git clean -fd`. Newly staged paths that are not in `HEAD`
+    are unstaged and deleted.
+
+    """
+    repo = repo.resolve()
+    cleaned = [path.replace("\\", "/").strip() for path in paths if path.strip()]
+    if not cleaned:
+        return False, "No files selected"
+
+    status_map = {item.path: item.status for item in list_changed_files(repo)}
+    tracked: list[str] = []
+    untracked: list[str] = []
+    for path in cleaned:
+        status = status_map.get(path, "")
+        if _is_untracked_status(status):
+            untracked.append(path)
+        else:
+            tracked.append(path)
+
+    discarded = 0
+    for path in tracked:
+        restore = git_run(
+            repo,
+            "restore",
+            "--source=HEAD",
+            "--staged",
+            "--worktree",
+            "--",
+            path,
+        )
+        if restore.returncode != 0:
+            # Newly staged paths are not in HEAD; unstage, then remove the file.
+            reset = git_run(repo, "reset", "--", path)
+            if reset.returncode != 0:
+                return False, (reset.stderr or reset.stdout or f"git reset failed: {path}").strip()
+            clean = git_run(repo, "clean", "-fd", "--", path)
+            if clean.returncode != 0:
+                return False, (clean.stderr or clean.stdout or f"git clean failed: {path}").strip()
+        discarded += 1
+
+    if untracked:
+        clean = git_run(repo, "clean", "-fd", "--", *untracked)
+        if clean.returncode != 0:
+            return False, (clean.stderr or clean.stdout or "git clean failed").strip()
+        discarded += len(untracked)
+
+    noun = "path" if discarded == 1 else "paths"
+    return True, f"Discarded {discarded} {noun}"
+
+
 def discover_git_repos(root: Path) -> list[FoundGitRepo]:
     """Return Git repositories under `root`, with status when they need attention.
 
@@ -630,6 +684,12 @@ def _is_git_repo(path: Path) -> bool:
         return False
     proc = git_run(path, "rev-parse", "--is-inside-work-tree")
     return proc.returncode == 0 and proc.stdout.strip() == "true"
+
+
+def _is_untracked_status(status: str) -> bool:
+    """Return whether porcelain `status` is an untracked path (`??`)."""
+    text = status.ljust(2)[:2]
+    return text == "??" or text.strip() == "?"
 
 
 def _local_calendar_date(text: str) -> date | None:

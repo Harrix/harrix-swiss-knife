@@ -28,6 +28,7 @@ lang: en
 - [🔧 Function `commit_selected_paths`](#-function-commit_selected_paths)
 - [🔧 Function `configured_git_roots`](#-function-configured_git_roots)
 - [🔧 Function `count_recent_commits`](#-function-count_recent_commits)
+- [🔧 Function `discard_changed_paths`](#-function-discard_changed_paths)
 - [🔧 Function `discover_git_repos`](#-function-discover_git_repos)
 - [🔧 Function `github_repo_visibility`](#-function-github_repo_visibility)
 - [🔧 Function `list_changed_files`](#-function-list_changed_files)
@@ -534,6 +535,71 @@ def count_recent_commits(roots: list[Path]) -> CommitDaySummary:
         today=_counts_from_buckets(today_buckets),
         yesterday=_counts_from_buckets(yesterday_buckets),
     )
+```
+
+</details>
+
+## 🔧 Function `discard_changed_paths`
+
+```python
+def discard_changed_paths(repo: Path, paths: list[str]) -> tuple[bool, str]
+```
+
+Discard working-tree and index changes for `paths`. Return `(ok, detail)`.
+
+Tracked paths are restored from `HEAD` (staged + worktree). Untracked paths
+are removed with `git clean -fd`. Newly staged paths that are not in `HEAD`
+are unstaged and deleted.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def discard_changed_paths(repo: Path, paths: list[str]) -> tuple[bool, str]:
+    repo = repo.resolve()
+    cleaned = [path.replace("\\", "/").strip() for path in paths if path.strip()]
+    if not cleaned:
+        return False, "No files selected"
+
+    status_map = {item.path: item.status for item in list_changed_files(repo)}
+    tracked: list[str] = []
+    untracked: list[str] = []
+    for path in cleaned:
+        status = status_map.get(path, "")
+        if _is_untracked_status(status):
+            untracked.append(path)
+        else:
+            tracked.append(path)
+
+    discarded = 0
+    for path in tracked:
+        restore = git_run(
+            repo,
+            "restore",
+            "--source=HEAD",
+            "--staged",
+            "--worktree",
+            "--",
+            path,
+        )
+        if restore.returncode != 0:
+            # Newly staged paths are not in HEAD; unstage, then remove the file.
+            reset = git_run(repo, "reset", "--", path)
+            if reset.returncode != 0:
+                return False, (reset.stderr or reset.stdout or f"git reset failed: {path}").strip()
+            clean = git_run(repo, "clean", "-fd", "--", path)
+            if clean.returncode != 0:
+                return False, (clean.stderr or clean.stdout or f"git clean failed: {path}").strip()
+        discarded += 1
+
+    if untracked:
+        clean = git_run(repo, "clean", "-fd", "--", *untracked)
+        if clean.returncode != 0:
+            return False, (clean.stderr or clean.stdout or "git clean failed").strip()
+        discarded += len(untracked)
+
+    noun = "path" if discarded == 1 else "paths"
+    return True, f"Discarded {discarded} {noun}"
 ```
 
 </details>
