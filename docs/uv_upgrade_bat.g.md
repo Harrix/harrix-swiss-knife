@@ -93,15 +93,17 @@ def build_relaunch_command(argv: Sequence[str]) -> str:
 ## 🔧 Function `build_uv_upgrade_cmd`
 
 ```python
-def build_uv_upgrade_cmd(*, wait_pid: int, uv_exe: Path, project_dirs: Sequence[Path], relaunch_argv: Sequence[str], log_path: Path | None = None, wait_timeout_seconds: int = WAIT_TIMEOUT_SECONDS, close_cursor: bool = True, reopen_cursor: bool = False, cursor_exe: Path | None = None, cursor_workspace: Path | None = None, pythonw_fix_project: Path | None = None) -> str
+def build_uv_upgrade_cmd(*, wait_pid: int, uv_exe: Path, project_dirs: Sequence[Path], relaunch_argv: Sequence[str], log_path: Path | None = None, wait_timeout_seconds: int = WAIT_TIMEOUT_SECONDS, close_cursor: bool = True, reopen_cursor: bool = False, cursor_exe: Path | None = None, cursor_workspace: Path | None = None, pythonw_fix_project: Path | None = None, commit_message_file: Path | None = None) -> str
 ```
 
 Return the text of a `.cmd` that waits for HSK, upgrades, then relaunches.
 
 Optionally closes Cursor first so uv-managed Python installs are not locked.
 `uv python upgrade` is scoped to each project's `.python-version` when present
-and is non-fatal so `uv sync --upgrade` can still run. On hard failure the
-script still relaunches after `pause`.
+and is non-fatal so `uv sync --upgrade` can still run. After a successful sync,
+changed `uv.lock` / `pyproject.toml` are committed with
+`UV_UPGRADE_COMMIT_MESSAGE` when `commit_message_file` is set. On hard failure
+the script still relaunches after `pause`.
 
 When `reopen_cursor` is set, Cursor is started again (without Administrator)
 with `cursor_workspace`. HSK is then expected to start from Cursor's
@@ -127,6 +129,7 @@ def build_uv_upgrade_cmd(
     cursor_exe: Path | None = None,
     cursor_workspace: Path | None = None,
     pythonw_fix_project: Path | None = None,
+    commit_message_file: Path | None = None,
 ) -> str:
     uv = str(uv_exe)
     log = str(log_path) if log_path is not None else str(Path(os.environ.get("TEMP", ".")) / _LOG_NAME)
@@ -161,6 +164,8 @@ def build_uv_upgrade_cmd(
         "goto wait_loop",
         ":wait_done",
     ]
+    if commit_message_file is not None:
+        lines.append(f'set "COMMIT_MSG={commit_message_file}"')
     if close_cursor:
         lines.extend(
             [
@@ -234,7 +239,8 @@ def build_uv_upgrade_cmd(
                 f'  echo uv sync --upgrade failed in {project.name}.>> "%LOG%"',
                 "  goto fail",
                 ")",
-            ]
+                *(_package_commit_lines(project.name) if commit_message_file is not None else ()),
+            ],
         )
     lines.extend(
         [
@@ -395,6 +401,8 @@ def write_uv_upgrade_cmd(
     cursor_workspace: Path | None = None,
     pythonw_fix_project: Path | None = None,
 ) -> Path:
+    commit_message_file = path.with_name(f"{path.stem}-commit-msg.txt")
+    commit_message_file.write_text(f"{UV_UPGRADE_COMMIT_MESSAGE}\n", encoding="utf-8")
     text = build_uv_upgrade_cmd(
         wait_pid=wait_pid,
         uv_exe=uv_exe,
@@ -407,6 +415,7 @@ def write_uv_upgrade_cmd(
         cursor_exe=cursor_exe,
         cursor_workspace=cursor_workspace,
         pythonw_fix_project=pythonw_fix_project,
+        commit_message_file=commit_message_file,
     )
     path.write_text(text, encoding="utf-8", newline="")
     return path

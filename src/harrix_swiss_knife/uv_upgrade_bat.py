@@ -12,11 +12,13 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
 PROJECT_NAMES: tuple[str, ...] = ("harrix-swiss-knife", "harrix-pylib", "harrix-pyssg")
+UV_UPGRADE_COMMIT_MESSAGE = "⬆️ Update packages"
 WAIT_TIMEOUT_SECONDS = 120
 CURSOR_PROCESS_NAME = "Cursor.exe"
 _LOG_NAME = "hsk-uv-upgrade.log"
 _POST_CLOSE_SETTLE_SECONDS = 3
 _CURSOR_REOPEN_SETTLE_SECONDS = 5
+_PACKAGE_COMMIT_PATHS = ("uv.lock", "pyproject.toml")
 
 
 def build_detached_relaunch_command(
@@ -77,13 +79,16 @@ def build_uv_upgrade_cmd(
     cursor_exe: Path | None = None,
     cursor_workspace: Path | None = None,
     pythonw_fix_project: Path | None = None,
+    commit_message_file: Path | None = None,
 ) -> str:
     """Return the text of a `.cmd` that waits for HSK, upgrades, then relaunches.
 
     Optionally closes Cursor first so uv-managed Python installs are not locked.
     `uv python upgrade` is scoped to each project's `.python-version` when present
-    and is non-fatal so `uv sync --upgrade` can still run. On hard failure the
-    script still relaunches after `pause`.
+    and is non-fatal so `uv sync --upgrade` can still run. After a successful sync,
+    changed `uv.lock` / `pyproject.toml` are committed with
+    `UV_UPGRADE_COMMIT_MESSAGE` when `commit_message_file` is set. On hard failure
+    the script still relaunches after `pause`.
 
     When `reopen_cursor` is set, Cursor is started again (without Administrator)
     with `cursor_workspace`. HSK is then expected to start from Cursor's
@@ -126,6 +131,8 @@ def build_uv_upgrade_cmd(
         "goto wait_loop",
         ":wait_done",
     ]
+    if commit_message_file is not None:
+        lines.append(f'set "COMMIT_MSG={commit_message_file}"')
     if close_cursor:
         lines.extend(
             [
@@ -199,7 +206,8 @@ def build_uv_upgrade_cmd(
                 f'  echo uv sync --upgrade failed in {project.name}.>> "%LOG%"',
                 "  goto fail",
                 ")",
-            ]
+                *(_package_commit_lines(project.name) if commit_message_file is not None else ()),
+            ],
         )
     lines.extend(
         [
@@ -310,6 +318,8 @@ def write_uv_upgrade_cmd(
     pythonw_fix_project: Path | None = None,
 ) -> Path:
     """Write the upgrade `.cmd` to `path` and return `path`."""
+    commit_message_file = path.with_name(f"{path.stem}-commit-msg.txt")
+    commit_message_file.write_text(f"{UV_UPGRADE_COMMIT_MESSAGE}\n", encoding="utf-8")
     text = build_uv_upgrade_cmd(
         wait_pid=wait_pid,
         uv_exe=uv_exe,
@@ -322,6 +332,7 @@ def write_uv_upgrade_cmd(
         cursor_exe=cursor_exe,
         cursor_workspace=cursor_workspace,
         pythonw_fix_project=pythonw_fix_project,
+        commit_message_file=commit_message_file,
     )
     path.write_text(text, encoding="utf-8", newline="")
     return path
@@ -409,6 +420,43 @@ def _detached_start_process_script(
     else:
         lines.append("Start-HskProcess -FilePath $exe -ArgumentList $argList -WorkingDirectory $wd")
     return "\n".join(lines)
+
+
+def _package_commit_lines(project_name: str) -> list[str]:
+    """Return `.cmd` lines that commit package files when anything changed."""
+    add_args = " ".join(_PACKAGE_COMMIT_PATHS)
+    label = f"after_commit_{project_name.replace('-', '_')}"
+    return [
+        "git rev-parse --is-inside-work-tree >nul 2>&1",
+        "if errorlevel 1 (",
+        f"  echo {project_name}: not a git repository; skipping package commit.",
+        f'  echo {project_name}: not a git repository; skipping package commit.>> "%LOG%"',
+        f"  goto {label}",
+        ")",
+        f"echo === {project_name}: git commit package updates ===",
+        f'echo === {project_name}: git commit package updates ===>> "%LOG%"',
+        f"git add -- {add_args}",
+        "if errorlevel 1 (",
+        f'  echo WARNING: git add failed in {project_name}; continuing.>> "%LOG%"',
+        f"  echo WARNING: git add failed in {project_name}; continuing.",
+        f"  goto {label}",
+        ")",
+        "git diff --cached --quiet >nul 2>&1",
+        "if not errorlevel 1 (",
+        f"  echo {project_name}: no package file changes to commit.",
+        f'  echo {project_name}: no package file changes to commit.>> "%LOG%"',
+        f"  goto {label}",
+        ")",
+        'git -c commit.gpgsign=false commit -F "%COMMIT_MSG%"',
+        "if errorlevel 1 (",
+        f'  echo WARNING: git commit failed in {project_name}; continuing.>> "%LOG%"',
+        f"  echo WARNING: git commit failed in {project_name}; continuing.",
+        ") else (",
+        f"  echo {project_name}: committed package updates.",
+        f'  echo {project_name}: committed package updates.>> "%LOG%"',
+        ")",
+        f":{label}",
+    ]
 
 
 def _powershell_encoded_command(script: str) -> str:

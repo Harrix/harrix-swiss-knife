@@ -39,7 +39,8 @@ class OnUpgradeUvPackages(ActionBase):
     singleton, and quits so `.venv` files are not locked. The script waits for
     this PID, closes Cursor if it is running (it can lock uv-managed Python),
     runs `uv self update`, then per project `uv python upgrade` (from
-    `.python-version` when present) and `uv sync --upgrade`, repairs
+    `.python-version` when present) and `uv sync --upgrade`, commits changed
+    `uv.lock` / `pyproject.toml` as Update packages, repairs
     `pythonw.exe` when needed, optionally reopens Cursor, then relaunches HSK
     with a GUI interpreter. If Cursor was open, it is reopened without admin and
     HSK starts from the Cursor folderOpen terminal task (dies with Cursor). When
@@ -104,7 +105,8 @@ class OnUpgradeUvPackages(ActionBase):
             "The app will exit, then run:\n\n"
             "  uv self update\n"
             "  uv python upgrade\n"
-            "  uv sync --upgrade\n\n"
+            "  uv sync --upgrade\n"
+            "  git commit (uv.lock / pyproject.toml) as Update packages\n\n"
             f"in:\n{project_lines}\n\n" + "\n".join(restore_bits) + "\n\nContinue?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,

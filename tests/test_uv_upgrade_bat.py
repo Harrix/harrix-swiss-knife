@@ -7,6 +7,7 @@ from pathlib import Path
 
 from harrix_swiss_knife.uv_upgrade_bat import (
     PROJECT_NAMES,
+    UV_UPGRADE_COMMIT_MESSAGE,
     build_detached_relaunch_command,
     build_relaunch_command,
     build_uv_upgrade_cmd,
@@ -81,6 +82,7 @@ def test_build_uv_upgrade_cmd_contains_wait_uv_and_projects(tmp_path: Path) -> N
     assert "python upgrade 3.13" in text
     assert "WARNING: uv python upgrade failed" in text
     assert "sync --upgrade" in text
+    assert "git commit package updates" not in text
     assert str(knife) in text
     assert str(pylib) in text
     assert str(pyssg) in text
@@ -177,6 +179,13 @@ def test_write_uv_upgrade_cmd_creates_file(tmp_path: Path) -> None:
     assert content.startswith(b"@echo off")
     assert b"\r\n" in content
     assert b"set WAIT_PID=7" in content
+    msg = out.with_name("run-commit-msg.txt")
+    assert msg.read_text(encoding="utf-8").strip() == UV_UPGRADE_COMMIT_MESSAGE
+    text = out.read_text(encoding="utf-8")
+    assert f'set "COMMIT_MSG={msg}"' in text
+    assert "git add -- uv.lock pyproject.toml" in text
+    assert "git -c commit.gpgsign=false commit -F" in text
+    assert "after_commit_harrix_swiss_knife" in text
 
 
 def _decode_encoded_commands(text: str) -> str:
