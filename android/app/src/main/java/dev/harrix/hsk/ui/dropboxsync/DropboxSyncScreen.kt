@@ -23,6 +23,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -36,6 +38,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -514,73 +517,119 @@ private fun FolderPairEditorDialog(
             )
         },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
                     label = { Text(stringResource(R.string.dropbox_sync_pair_name)) },
+                    singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                Text(stringResource(R.string.dropbox_sync_local_folder), style = MaterialTheme.typography.labelLarge)
-                AutoFitText(text = localPath.ifBlank { stringResource(R.string.dropbox_sync_no_local_folder) }, maxLines = 2)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(
-                        onClick = {
-                            onPickLocal(localPath) { picked ->
-                                localPath = picked
-                                storageType = StorageType.Direct
-                                if (name.isBlank()) {
-                                    name = File(picked).name.ifBlank { "Pair" }
-                                }
-                            }
-                        },
-                    ) {
-                        Text(stringResource(R.string.dropbox_sync_pick_local))
-                    }
-                    OutlinedButton(
-                        onClick = {
-                            val root = SyncStorageAdapter.defaultInternalRoot()
-                            val folder = File(root, name.ifBlank { "DropboxSync" })
-                            folder.mkdirs()
-                            localPath = folder.absolutePath
+
+                Text(
+                    text = stringResource(R.string.dropbox_sync_local_folder),
+                    style = MaterialTheme.typography.titleSmall,
+                )
+                Text(
+                    text = localPath.ifBlank { stringResource(R.string.dropbox_sync_no_local_folder) },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Button(
+                    onClick = {
+                        onPickLocal(localPath) { picked ->
+                            localPath = picked
                             storageType = StorageType.Direct
-                        },
-                    ) {
+                            if (name.isBlank()) {
+                                name = File(picked).name.ifBlank { "Pair" }
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(R.string.dropbox_sync_pick_local))
+                }
+                OutlinedButton(
+                    onClick = {
+                        val base = context.getExternalFilesDir(null) ?: context.filesDir
+                        val folder = File(base, name.ifBlank { "DropboxSync" })
+                        folder.mkdirs()
+                        localPath = folder.absolutePath
+                        storageType = StorageType.Direct
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Column(horizontalAlignment = Alignment.Start, modifier = Modifier.fillMaxWidth()) {
                         Text(stringResource(R.string.dropbox_sync_use_internal))
+                        Text(
+                            text = stringResource(R.string.dropbox_sync_use_app_folder_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 }
-                TextButton(onClick = { treeLauncher.launch(null) }) {
+                TextButton(
+                    onClick = { treeLauncher.launch(null) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
                     Text(stringResource(R.string.dropbox_sync_use_saf))
                 }
-                Text(stringResource(R.string.dropbox_sync_remote_folder), style = MaterialTheme.typography.labelLarge)
-                AutoFitText(text = remotePath.ifBlank { "/" }, maxLines = 2)
+
+                Text(
+                    text = stringResource(R.string.dropbox_sync_remote_folder),
+                    style = MaterialTheme.typography.titleSmall,
+                )
+                Text(
+                    text = remotePath.ifBlank { "/" },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
                 OutlinedButton(
                     onClick = {
                         onPickRemote { picked -> remotePath = picked }
                     },
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(stringResource(R.string.dropbox_sync_pick_remote))
                 }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(stringResource(R.string.dropbox_sync_mode_two_way))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Checkbox(
-                        checked = mode == SyncMode.TwoWay,
-                        onCheckedChange = { mode = if (it) SyncMode.TwoWay else SyncMode.DownloadMirror },
-                    )
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(stringResource(R.string.dropbox_sync_mode_mirror))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Checkbox(
-                        checked = mode == SyncMode.DownloadMirror,
-                        onCheckedChange = { mode = if (it) SyncMode.DownloadMirror else SyncMode.TwoWay },
-                    )
-                }
+
+                Text(
+                    text = stringResource(R.string.dropbox_sync_sync_mode),
+                    style = MaterialTheme.typography.titleSmall,
+                )
+                SyncModeRadioRow(
+                    selected = mode == SyncMode.TwoWay,
+                    title = stringResource(R.string.dropbox_sync_mode_two_way),
+                    description = stringResource(R.string.dropbox_sync_mode_two_way_desc),
+                    onClick = { mode = SyncMode.TwoWay },
+                )
+                SyncModeRadioRow(
+                    selected = mode == SyncMode.DownloadMirror,
+                    title = stringResource(R.string.dropbox_sync_mode_mirror),
+                    description = stringResource(R.string.dropbox_sync_mode_mirror_desc),
+                    onClick = { mode = SyncMode.DownloadMirror },
+                )
                 if (mode == SyncMode.DownloadMirror) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable { confirmLocal = !confirmLocal },
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
                         Checkbox(checked = confirmLocal, onCheckedChange = { confirmLocal = it })
-                        Text(stringResource(R.string.dropbox_sync_confirm_local_changes))
+                        Text(
+                            text = stringResource(R.string.dropbox_sync_confirm_local_changes),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(start = 4.dp),
+                        )
                     }
                 }
             }
@@ -615,6 +664,33 @@ private fun FolderPairEditorDialog(
             }
         },
     )
+}
+
+@Composable
+private fun SyncModeRadioRow(
+    selected: Boolean,
+    title: String,
+    description: String,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier =
+        Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        RadioButton(selected = selected, onClick = onClick)
+        Column(modifier = Modifier.padding(start = 4.dp)) {
+            Text(text = title, style = MaterialTheme.typography.bodyLarge)
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

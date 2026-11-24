@@ -511,8 +511,11 @@
     <string name="dropbox_sync_connect">Connect Dropbox</string>
     <string name="dropbox_sync_disconnect">Disconnect</string>
     <string name="dropbox_sync_all_files_access">All files access</string>
+    <string name="dropbox_sync_sync_mode">Sync mode</string>
     <string name="dropbox_sync_mode_two_way">Two-way</string>
+    <string name="dropbox_sync_mode_two_way_desc">Upload and download changes in both directions</string>
     <string name="dropbox_sync_mode_mirror">Mirror download</string>
+    <string name="dropbox_sync_mode_mirror_desc">Dropbox is the source; the device mirrors it</string>
     <string name="dropbox_sync_dry_run">Dry run</string>
     <string name="dropbox_sync_logs">Sync history</string>
     <string name="dropbox_sync_clear_baseline">Reset sync state cache</string>
@@ -521,8 +524,9 @@
     <string name="dropbox_sync_local_folder">Local folder</string>
     <string name="dropbox_sync_remote_folder">Dropbox folder</string>
     <string name="dropbox_sync_no_local_folder">No local folder selected</string>
-    <string name="dropbox_sync_use_internal">Use internal folder</string>
-    <string name="dropbox_sync_pick_local">Browse folders</string>
+    <string name="dropbox_sync_use_internal">Use app folder</string>
+    <string name="dropbox_sync_use_app_folder_hint">Private app storage under Android/data</string>
+    <string name="dropbox_sync_pick_local">Choose folder</string>
     <string name="dropbox_sync_use_saf">System picker (SAF)</string>
     <string name="dropbox_sync_pick_remote">Browse Dropbox</string>
     <string name="dropbox_sync_storage_roots">Storage</string>

@@ -510,8 +510,11 @@
     <string name="dropbox_sync_connect">Подключить Dropbox</string>
     <string name="dropbox_sync_disconnect">Отключить</string>
     <string name="dropbox_sync_all_files_access">Доступ ко всем файлам</string>
+    <string name="dropbox_sync_sync_mode">Режим синхронизации</string>
     <string name="dropbox_sync_mode_two_way">Двусторонняя</string>
+    <string name="dropbox_sync_mode_two_way_desc">Загрузка и скачивание изменений в обе стороны</string>
     <string name="dropbox_sync_mode_mirror">Зеркальная загрузка</string>
+    <string name="dropbox_sync_mode_mirror_desc">Источник — Dropbox; устройство зеркалирует его</string>
     <string name="dropbox_sync_dry_run">Пробный прогон</string>
     <string name="dropbox_sync_logs">История синхронизации</string>
     <string name="dropbox_sync_clear_baseline">Сбросить кэш состояния</string>
@@ -520,8 +523,9 @@
     <string name="dropbox_sync_local_folder">Локальная папка</string>
     <string name="dropbox_sync_remote_folder">Папка Dropbox</string>
     <string name="dropbox_sync_no_local_folder">Локальная папка не выбрана</string>
-    <string name="dropbox_sync_use_internal">Внутренняя папка</string>
-    <string name="dropbox_sync_pick_local">Обзор папок</string>
+    <string name="dropbox_sync_use_internal">Папка приложения</string>
+    <string name="dropbox_sync_use_app_folder_hint">Приватное хранилище приложения в Android/data</string>
+    <string name="dropbox_sync_pick_local">Выбрать папку</string>
     <string name="dropbox_sync_use_saf">Системный выбор (SAF)</string>
     <string name="dropbox_sync_pick_remote">Обзор Dropbox</string>
     <string name="dropbox_sync_storage_roots">Носители</string>
