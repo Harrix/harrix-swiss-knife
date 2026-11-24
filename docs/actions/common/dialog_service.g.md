@@ -1227,8 +1227,14 @@ class ActionDialogService:
         title: str,
         label: str,
         default_text: str | None = None,
+        *,
+        copy_button: bool = False,
     ) -> str | None:
-        """Return multi-line text, or `None` on cancel/empty."""
+        """Return multi-line text, or `None` on cancel/empty.
+
+        When `copy_button` is set, a Copy control copies the current editor text.
+
+        """
         text_edit: QPlainTextEdit | None = None
 
         def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
@@ -1248,11 +1254,22 @@ class ActionDialogService:
             )
             layout.addWidget(te)
 
+            button_row = QHBoxLayout()
+            button_row.addStretch(1)
+            if copy_button:
+
+                def click_copy_button() -> None:
+                    QGuiApplication.clipboard().setText(te.toPlainText())
+                    self._show_toast("Copied to Clipboard")
+
+                add_copy_button(button_row, click_copy_button)
+
             buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
             self._apply_lucide_dialog_buttons(buttons)
             buttons.accepted.connect(dialog.accept)
             buttons.rejected.connect(dialog.reject)
-            layout.addWidget(buttons)
+            button_row.addWidget(buttons)
+            layout.addLayout(button_row)
 
             text_edit = te
 
@@ -3485,10 +3502,12 @@ def get_text_input_with_auto(
 ### ⚙️ Method `get_text_textarea`
 
 ```python
-def get_text_textarea(self, title: str, label: str, default_text: str | None = None) -> str | None
+def get_text_textarea(self, title: str, label: str, default_text: str | None = None, *, copy_button: bool = False) -> str | None
 ```
 
 Return multi-line text, or `None` on cancel/empty.
+
+When `copy_button` is set, a Copy control copies the current editor text.
 
 <details>
 <summary>Code:</summary>
@@ -3499,6 +3518,8 @@ def get_text_textarea(
         title: str,
         label: str,
         default_text: str | None = None,
+        *,
+        copy_button: bool = False,
     ) -> str | None:
         text_edit: QPlainTextEdit | None = None
 
@@ -3519,11 +3540,22 @@ def get_text_textarea(
             )
             layout.addWidget(te)
 
+            button_row = QHBoxLayout()
+            button_row.addStretch(1)
+            if copy_button:
+
+                def click_copy_button() -> None:
+                    QGuiApplication.clipboard().setText(te.toPlainText())
+                    self._show_toast("Copied to Clipboard")
+
+                add_copy_button(button_row, click_copy_button)
+
             buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
             self._apply_lucide_dialog_buttons(buttons)
             buttons.accepted.connect(dialog.accept)
             buttons.rejected.connect(dialog.reject)
-            layout.addWidget(buttons)
+            button_row.addWidget(buttons)
+            layout.addLayout(button_row)
 
             text_edit = te
 

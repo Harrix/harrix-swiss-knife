@@ -55,10 +55,13 @@ class OnAddRussianWordFormsWithAI(ActionBase):
             if not forms:
                 message_box.critical(None, "AI Error", "No word forms in the AI response.")
                 return
+            forms_text = "\n".join(forms)
+            self.text_to_clipboard(forms_text)
             edited = self.dialogs.get_text_textarea(
                 "Word forms",
                 "Review the forms (one per line), then click OK to add them to the spellcheck dictionary.",
-                default_text="\n".join(forms),
+                default_text=forms_text,
+                copy_button=True,
             )
             if edited is None:
                 return
