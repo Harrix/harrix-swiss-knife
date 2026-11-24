@@ -60,18 +60,18 @@ def test_action_identity_context_menu_includes_menu_title(qapp: QApplication, mo
     show_action_identity_context_menu(
         parent=host,
         global_pos=QPoint(0, 0),
-        menu_title="★ Git repos needing commit…",
+        menu_title="Git commit",
         identity_parts=ActionIdentityParts(
-            name="Git: scan paths_git_roots for repositories with uncommitted changes",
-            class_name="OnCheckGitReposNeedingCommit",
-            path="src/harrix_swiss_knife/actions/files/check_git_repos_needing_commit.py",
+            name="Git: commit dirty repos and push public repos under paths_git_roots",
+            class_name="OnGitCommit",
+            path="src/harrix_swiss_knife/actions/apps/git_commit.py",
         ),
     )
     assert len(shown) == 1
     labels = [action.text() for action in shown[0].actions() if not action.isSeparator()]
     # Leading emoji is replaced by a Lucide icon in the menu chrome.
     assert labels[0].removeprefix("📋 ").startswith(COPY_MENU_TITLE_MENU_PREFIX.removeprefix("📋 "))
-    assert "Git repos needing commit" in labels[0]
+    assert "Git commit" in labels[0]
     host.close()
 
 
@@ -181,14 +181,14 @@ def test_format_copy_action_name_shortens_long_text() -> None:
 
 
 def test_format_copy_menu_title_shortens_long_text() -> None:
-    title = "★ Git repos needing commit in every configured notes folder…"
+    title = "Git commit for every configured notes folder"
     preview = truncate_action_name_preview(title)
     assert format_copy_menu_title_menu_label(title) == f"{COPY_MENU_TITLE_MENU_PREFIX}{preview}"
 
 
 def test_get_menu_item_title_strips_cli_suffix(qapp: QApplication) -> None:  # noqa: ARG001
-    action = QAction(f"★ Git repos needing commit…{CLI_MENU_SUFFIX}")
-    assert get_menu_item_title(action) == "★ Git repos needing commit…"
+    action = QAction(f"Git commit{CLI_MENU_SUFFIX}")
+    assert get_menu_item_title(action) == "Git commit"
 
 
 def test_is_tracker_launcher_action_detects_four_trackers(qapp: QApplication) -> None:  # noqa: ARG001

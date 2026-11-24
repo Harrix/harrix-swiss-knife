@@ -99,7 +99,6 @@ _Figure 1: Screenshot_
   - 📦 Extract ZIP archives in …
   - 🔀 Flip slashes
   - 🎯 Git commit message…
-  - 📌 ★ Git repos needing commit… ꟲᴸᴵ
   - 📄 List files in …
   - 📄 List files in … (ignore hidden folders)
   - 📄 List files in … (only current folder)
@@ -190,6 +189,7 @@ _Figure 1: Screenshot_
 - 💰 Finance tracker
 - 🏃🏻 Fitness tracker
 - 🍔 Food tracker
+- 📌 Git commit ꟲᴸᴵ
 - ✅ Habit tracker
 - 📋 Quick paste
 - 🎨 Vector Icons

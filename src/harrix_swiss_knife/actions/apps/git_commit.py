@@ -1,4 +1,4 @@
-"""Find Git repos under configured roots that need a commit or a public push."""
+"""Open the Git commit app for dirty and unpushed repositories."""
 
 from __future__ import annotations
 
@@ -21,30 +21,31 @@ class DirtyRepo:
     unpushed: int = 0
 
 
-class OnCheckGitReposNeedingCommit(ActionBase):
-    """Git: scan `paths_git_roots` for uncommitted changes and unpushed public repos.
+class OnGitCommit(ActionBase):
+    """Git commit app: scan `paths_git_roots`, then commit and push in a Fluent window.
 
-    Opens a Fluent window to review diffs, pick files, commit, and push.
+    Opens the Git commit window to review diffs, pick files, commit, and push.
     GitHub Desktop opens without blocking. Local repositories are not checked
     for unpushed commits.
 
     """
 
     icon = "📌"
-    title = "Git repos needing commit…"
-    description = "Git: list dirty repos and unpushed public repos under paths_git_roots."
+    title = "Git commit"
+    description = "Git: commit dirty repos and push public repos under paths_git_roots."
     cli_available = True
     cli_hint = "file check-git-repos-needing-commit"
-    bold_title = True
+    bold_title = False
+    quick_launcher = True
 
-    @ActionBase.handle_exceptions("checking git repos needing commit")
+    @ActionBase.handle_exceptions("opening git commit")
     def execute(
         self,
         *_args: Any,
         noninteractive: bool = False,
         **_kwargs: Any,
     ) -> None:
-        """Scan configured roots and open the commit window when repos need attention."""
+        """Scan configured roots and open the Git commit window when repos need attention."""
         roots = self._configured_roots()
         if not roots:
             self.add_line("❌ `paths_git_roots` is missing or empty in config.json.")
@@ -59,14 +60,14 @@ class OnCheckGitReposNeedingCommit(ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    @ActionBase.handle_exceptions("checking git repos needing commit thread")
+    @ActionBase.handle_exceptions("opening git commit thread")
     def in_thread(self) -> list[DirtyRepoStatus]:
         """Scan roots on a worker thread."""
         return self._scan_dirty_statuses(self._configured_roots())
 
-    @ActionBase.handle_exceptions("checking git repos needing commit thread completion")
+    @ActionBase.handle_exceptions("opening git commit thread completion")
     def thread_after(self, result: Any) -> None:
-        """Open the Fluent commit window, or show a clean result."""
+        """Open the Git commit window, or show a clean result."""
         raw = result if isinstance(result, list) else []
         statuses = [item for item in raw if isinstance(item, DirtyRepoStatus)]
         dirty = self._statuses_to_dirty(statuses)
@@ -78,7 +79,6 @@ class OnCheckGitReposNeedingCommit(ActionBase):
             return
 
         self.show_toast(f"{len(dirty)} repo(s) need a commit or push")
-        # Lazy import: window pulls snippets DB helpers; avoid cycle via actions.files.
         from harrix_swiss_knife.apps.git_commit.window import (  # noqa: PLC0415
             show_dirty_repos_commit_window,
         )

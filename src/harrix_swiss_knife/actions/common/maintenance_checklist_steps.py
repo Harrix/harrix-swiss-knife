@@ -27,7 +27,7 @@ if TYPE_CHECKING:
 UPDATE_HSK_STEP_CLASS = "OnUpdateHarrixSwissKnife"
 _SHOW_UPDATE_HSK_KEY = "maintenance_checklist_show_update_hsk"
 # Checks rows: green/red tint follows last scan result, not only last-run age.
-CHECK_GIT_REPOS_STEP_CLASS = "OnCheckGitReposNeedingCommit"
+CHECK_GIT_REPOS_STEP_CLASS = "OnGitCommit"
 CHECK_PYTHON_PROJECTS_STEP_CLASS = "OnCheckPythonProjects"
 _GIT_REPOS_ALL_CLEAN_KEY = "maintenance_checklist_git_repos_all_clean"
 _PY_CHECK_ALL_PASSED_KEY = "maintenance_checklist_py_check_all_passed"
@@ -279,8 +279,8 @@ MAINTENANCE_STEP_SPECS: tuple[MaintenanceStepSpec, ...] = (
         note="Full PY check for configured projects",
     ),
     MaintenanceStepSpec(
-        "harrix_swiss_knife.actions.files.check_git_repos_needing_commit",
-        "OnCheckGitReposNeedingCommit",
+        "harrix_swiss_knife.actions.apps.git_commit",
+        "OnGitCommit",
         "Checks",
         "git-branch",
         note="Uncommitted changes or unpushed public repos",

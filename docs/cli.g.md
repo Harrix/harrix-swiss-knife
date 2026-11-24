@@ -469,14 +469,14 @@ def file_group() -> None:
 def file_check_git_repos_needing_commit() -> None
 ```
 
-List dirty Git repos under `paths_git_roots` (no commit / Desktop UI).
+List dirty Git repos under `paths_git_roots` (no commit UI).
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def file_check_git_repos_needing_commit() -> None:
-    action = OnCheckGitReposNeedingCommit()
+    action = OnGitCommit()
     action(noninteractive=True)
     _finish_timed_action(action)
 ```

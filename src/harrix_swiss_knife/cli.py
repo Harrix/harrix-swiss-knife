@@ -12,6 +12,7 @@ from PySide6.QtWidgets import QApplication
 
 from harrix_swiss_knife.action_added_at import generate_action_added_at, load_action_added_at
 from harrix_swiss_knife.actions.android import OnAndroidBuild, OnAndroidCheck, OnAndroidFormat, OnAndroidSetupSdk
+from harrix_swiss_knife.actions.apps import OnGitCommit
 from harrix_swiss_knife.actions.common.quick_launcher_registry import iter_menu_structure
 from harrix_swiss_knife.actions.development import (
     OnBuildInstallZips,
@@ -21,7 +22,7 @@ from harrix_swiss_knife.actions.development import (
     OnShowActionUsageStats,
     OnTransferPrivateData,
 )
-from harrix_swiss_knife.actions.files import OnCheckGitReposNeedingCommit, OnDiscardGitChanges
+from harrix_swiss_knife.actions.files import OnDiscardGitChanges
 from harrix_swiss_knife.actions.markdown import (
     OnBeautifyMd,
     OnBeautifyMdAndRegenerateGMd,
@@ -341,8 +342,8 @@ def file_group() -> None:
 
 @file_group.command("check-git-repos-needing-commit")
 def file_check_git_repos_needing_commit() -> None:
-    """List dirty Git repos under `paths_git_roots` (no commit / Desktop UI)."""
-    action = OnCheckGitReposNeedingCommit()
+    """List dirty Git repos under `paths_git_roots` (no commit UI)."""
+    action = OnGitCommit()
     action(noninteractive=True)
     _finish_timed_action(action)
 

@@ -6,15 +6,15 @@ import subprocess
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from harrix_swiss_knife.actions.apps.git_commit import OnGitCommit
 from harrix_swiss_knife.actions.common.git_dirty_ops import DirtyRepoStatus
-from harrix_swiss_knife.actions.files.check_git_repos_needing_commit import OnCheckGitReposNeedingCommit
 
 if TYPE_CHECKING:
     import pytest
 
 
 def test_noninteractive_missing_roots(monkeypatch: pytest.MonkeyPatch) -> None:
-    action = OnCheckGitReposNeedingCommit()
+    action = OnGitCommit()
     monkeypatch.setattr(action, "_configured_roots", list)
     action.execute(noninteractive=True)
     assert any("paths_git_roots" in line for line in action.result_lines)
@@ -25,11 +25,11 @@ def test_noninteractive_reports_all_clean(tmp_path: Path, monkeypatch: pytest.Mo
     repo = root / "project"
     _git_init(repo)
 
-    action = OnCheckGitReposNeedingCommit()
+    action = OnGitCommit()
     monkeypatch.setattr(action, "_configured_roots", lambda: [root.resolve()])
     saved: list[bool] = []
     monkeypatch.setattr(
-        "harrix_swiss_knife.actions.files.check_git_repos_needing_commit.save_git_repos_all_clean",
+        "harrix_swiss_knife.actions.apps.git_commit.save_git_repos_all_clean",
         lambda *, all_clean: saved.append(all_clean),
     )
     action.execute(noninteractive=True)
@@ -44,11 +44,11 @@ def test_noninteractive_reports_dirty_repos(tmp_path: Path, monkeypatch: pytest.
     _git_init(repo)
     (repo / "README.md").write_text("changed\n", encoding="utf-8")
 
-    action = OnCheckGitReposNeedingCommit()
+    action = OnGitCommit()
     monkeypatch.setattr(action, "_configured_roots", lambda: [root.resolve()])
     saved: list[bool] = []
     monkeypatch.setattr(
-        "harrix_swiss_knife.actions.files.check_git_repos_needing_commit.save_git_repos_all_clean",
+        "harrix_swiss_knife.actions.apps.git_commit.save_git_repos_all_clean",
         lambda *, all_clean: saved.append(all_clean),
     )
     action.execute(noninteractive=True)
@@ -65,15 +65,15 @@ def test_noninteractive_reports_unpushed_public_repo(tmp_path: Path, monkeypatch
     repo = root / "public-repo"
     status = DirtyRepoStatus(path=repo, files=(), unpushed=2, access_kind="public")
 
-    action = OnCheckGitReposNeedingCommit()
+    action = OnGitCommit()
     monkeypatch.setattr(action, "_configured_roots", lambda: [root.resolve()])
     monkeypatch.setattr(
-        "harrix_swiss_knife.actions.files.check_git_repos_needing_commit.scan_dirty_repos",
+        "harrix_swiss_knife.actions.apps.git_commit.scan_dirty_repos",
         lambda _roots: [status],
     )
     saved: list[bool] = []
     monkeypatch.setattr(
-        "harrix_swiss_knife.actions.files.check_git_repos_needing_commit.save_git_repos_all_clean",
+        "harrix_swiss_knife.actions.apps.git_commit.save_git_repos_all_clean",
         lambda *, all_clean: saved.append(all_clean),
     )
     action.execute(noninteractive=True)
@@ -95,7 +95,7 @@ def test_scan_dirty_repos_across_roots(tmp_path: Path, monkeypatch: pytest.Monke
     (dirty / "README.md").write_text("changed\n", encoding="utf-8")
     (notes_dirty / "extra.txt").write_text("untracked\n", encoding="utf-8")
 
-    action = OnCheckGitReposNeedingCommit()
+    action = OnGitCommit()
     monkeypatch.setattr(action, "_configured_roots", lambda: [root_a.resolve(), root_b.resolve()])
     found = action._scan_dirty_repos(action._configured_roots())
     paths = {repo.path.resolve() for repo in found}

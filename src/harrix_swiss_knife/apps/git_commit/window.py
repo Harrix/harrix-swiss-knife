@@ -143,7 +143,7 @@ class DirtyReposCommitWindow(QDialog):
         """
         super().__init__(parent)
         self.setObjectName("dirtyReposCommitWindow")
-        self.setWindowTitle("Git repos needing commit")
+        self.setWindowTitle("Git commit")
         self.setModal(False)
         self.setWindowModality(Qt.WindowModality.NonModal)
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)  # noqa: FBT003

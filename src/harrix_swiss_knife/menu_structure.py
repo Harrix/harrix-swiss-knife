@@ -13,6 +13,7 @@ from harrix_swiss_knife.actions.apps.check_images import OnCheckImages
 from harrix_swiss_knife.actions.apps.finance import OnFinance
 from harrix_swiss_knife.actions.apps.fitness import OnFitness
 from harrix_swiss_knife.actions.apps.food import OnFood
+from harrix_swiss_knife.actions.apps.git_commit import OnGitCommit
 from harrix_swiss_knife.actions.apps.habits import OnHabits
 from harrix_swiss_knife.actions.apps.icons import OnIcons
 from harrix_swiss_knife.actions.apps.snippets import OnSnippets
@@ -45,7 +46,6 @@ from harrix_swiss_knife.actions.development.view_recent_action_logs import OnVie
 from harrix_swiss_knife.actions.files.all_files_to_parent_folder import OnAllFilesToParentFolder
 from harrix_swiss_knife.actions.files.check_featured_image import OnCheckFeaturedImage
 from harrix_swiss_knife.actions.files.check_featured_image_in_folders import OnCheckFeaturedImageInFolders
-from harrix_swiss_knife.actions.files.check_git_repos_needing_commit import OnCheckGitReposNeedingCommit
 from harrix_swiss_knife.actions.files.check_musicbee_playlists import OnCheckMusicBeePlaylists
 from harrix_swiss_knife.actions.files.clean_temporary import OnCleanTemporary
 from harrix_swiss_knife.actions.files.close_all_adobe import OnCloseAllAdobe
@@ -244,7 +244,6 @@ def get_menu_structure() -> list[Any]:
                 OnExtractZipArchives,
                 OnCombineForAI,
                 OnFlipSlashes,
-                OnCheckGitReposNeedingCommit,
                 OnDiscardGitChanges,
                 OnListFilesSimple,
                 OnListFilesSimpleIgnoreHiddenFolders,
@@ -335,6 +334,7 @@ def get_menu_structure() -> list[Any]:
         OnFinance,
         OnFitness,
         OnFood,
+        OnGitCommit,
         OnHabits,
         OnIcons,
         OnSnippets,
