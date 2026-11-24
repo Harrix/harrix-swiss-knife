@@ -207,6 +207,14 @@ from harrix_swiss_knife.apps.finance.exchange_rates_operations import (
     stop_running_qthread,
 )
 from harrix_swiss_knife.apps.finance.exchange_validation import validate_exchange_data
+from harrix_swiss_knife.apps.finance.heatmap_charts import (
+    LAST_365_LABEL,
+    daily_expense_recorded,
+    expense_years,
+    heatmap_period_choices,
+    present_expense_heatmap,
+    range_period_choices,
+)
 from harrix_swiss_knife.apps.finance.layout_chrome import (
     install_finance_layout_chrome,
     persist_finance_tabs_splitter_sizes,
@@ -493,6 +501,9 @@ class MainWindow(
         self._average_salary_year_start_day: int = 1
         self._average_salary_show_monthly: bool = True
         self._average_salary_show_annual: bool = True
+        self._finance_heatmap_mode_active: bool = False
+        self._finance_heatmap_period_label: str = LAST_365_LABEL
+        self._finance_range_period_label: str = "Months"
 
         # Dialog state flags
         self._account_edit_dialog_open: bool = False
@@ -2200,6 +2211,7 @@ class MainWindow(
         self.checkBox_use_date_filter.toggled.connect(self._on_use_date_filter_toggled)
 
         # Chart type radios + shared toolbar (period / dates / compare).
+        self._ensure_finance_heatmap_chart_radio()
         self.radioButton_type_of_chart_balance.toggled.connect(self._update_finance_chart)
         self.radioButton_type_of_chart_balance_compare_last_years.toggled.connect(self._update_finance_chart)
         self.radioButton_expense_and_income.toggled.connect(self._update_finance_chart)
@@ -2209,6 +2221,7 @@ class MainWindow(
         self.radioButton_type_of_chart_compare_same_months.toggled.connect(self._update_finance_chart)
         self.radioButton_type_of_chart_compare_last_years.toggled.connect(self._update_finance_chart)
         self.radioButton_type_of_chart_average_salary.toggled.connect(self._update_finance_chart)
+        self.radioButton_type_of_chart_heatmap.toggled.connect(self._update_finance_chart)
         self.checkBox_chart_show_labels.toggled.connect(self._update_finance_chart)
         self._install_chart_toolbar()
 
@@ -2992,6 +3005,20 @@ class MainWindow(
         self._finish_finance_axes(ax)
         self._add_chart_canvas(fig)
 
+    def _ensure_finance_heatmap_chart_radio(self) -> None:
+        """Add the Heatmap chart type radio when the generated UI does not include it."""
+        existing = getattr(self, "radioButton_type_of_chart_heatmap", None)
+        if isinstance(existing, QRadioButton):
+            return
+        group = getattr(self, "groupBox_type_of_charts", None)
+        layout = getattr(self, "verticalLayout_23", None)
+        if group is None or layout is None:
+            return
+        radio = QRadioButton("Heatmap", group)
+        radio.setObjectName("radioButton_type_of_chart_heatmap")
+        layout.addWidget(radio)
+        self.radioButton_type_of_chart_heatmap = radio
+
     def _exchange_id_from_table_index(self, index: QModelIndex) -> int | None:
         """Return currency-exchange database ID for an exchanges table model index."""
         if not index.isValid():
@@ -3056,6 +3083,14 @@ class MainWindow(
             self.apply_filter()
         except Exception:
             logger.exception("❌ Error filtering by category from table")
+
+    def _finance_heatmap_years(self) -> list[int]:
+        """Return years with expenses for the heatmap period combo."""
+        if self.db_manager is None:
+            return []
+        rows = self.db_manager.get_all_transactions()
+        recorded = daily_expense_recorded(rows, self.db_manager)
+        return expense_years(recorded)
 
     def _finance_transactions_translate_descriptions_limit(self) -> int:
         """Return max unique untranslated descriptions per AI batch."""
@@ -3318,6 +3353,7 @@ class MainWindow(
             self.radioButton_type_of_chart_compare_same_months,
             self.radioButton_type_of_chart_compare_last_years,
             self.radioButton_type_of_chart_average_salary,
+            self.radioButton_type_of_chart_heatmap,
         )
         for widget in chart_widgets:
             widget.blockSignals(True)  # noqa: FBT003
@@ -3421,6 +3457,8 @@ class MainWindow(
             last_month=self.set_chart_last_month,
             last_year=self.set_chart_last_year,
             all_time=self.set_chart_all_time,
+            prev_year=self._on_finance_heatmap_prev_period,
+            next_year=self._on_finance_heatmap_next_period,
         )
         self._chart_toolbar = toolbar
         self._sync_finance_chart_toolbar_mode()
@@ -4411,6 +4449,12 @@ class MainWindow(
                     suffix = "" if len(dates) <= preview_limit else f" … (+{len(dates) - preview_limit} more)"
                     lines.append(f"{code}: {preview}{suffix}")
                 message_box.warning(self, "Missing Exchange Rates", "\n".join(lines))
+
+    def _on_finance_heatmap_next_period(self) -> None:
+        self._step_finance_heatmap_period(1)
+
+    def _on_finance_heatmap_prev_period(self) -> None:
+        self._step_finance_heatmap_period(-1)
 
     def _on_net_negative_revisions_clicked(
         self,
@@ -6584,6 +6628,16 @@ class MainWindow(
             # This will be handled by the lambda connection above
             pass
 
+    def _step_finance_heatmap_period(self, step: int) -> None:
+        """Move the heatmap period combo. Newest periods sit at the top."""
+        toolbar = self._chart_toolbar
+        combo = toolbar.combo_period if toolbar is not None else None
+        if combo is None or not self.radioButton_type_of_chart_heatmap.isChecked():
+            return
+        index = combo.currentIndex() - step
+        if 0 <= index < combo.count():
+            combo.setCurrentIndex(index)
+
     def _stop_background_transaction_translate_timer(self) -> None:
         """Cancel the silent translate debounce timer."""
         if not isValid(self):
@@ -6629,6 +6683,7 @@ class MainWindow(
         toolbar = self._chart_toolbar
         if toolbar is None:
             return
+        heatmap = self.radioButton_type_of_chart_heatmap.isChecked()
         if self.radioButton_type_of_chart_compare_last.isChecked():
             toolbar.set_mode("compare_last")
         elif self.radioButton_type_of_chart_compare_same_months.isChecked():
@@ -6641,8 +6696,50 @@ class MainWindow(
             toolbar.set_mode("compare_years")
         elif self.radioButton_type_of_chart_average_salary.isChecked():
             toolbar.set_mode("labels_only", show_count=False)
+        elif heatmap:
+            toolbar.set_mode("heatmap")
         else:
             toolbar.set_mode("range")
+        self._sync_finance_heatmap_period_choices(heatmap=heatmap)
+        self._sync_finance_heatmap_year_nav_buttons()
+
+    def _sync_finance_heatmap_period_choices(self, *, heatmap: bool) -> None:
+        """Swap Days/Months/Years for Last 365 / years when entering heatmap mode."""
+        toolbar = self._chart_toolbar
+        if toolbar is None or toolbar.combo_period is None:
+            return
+        combo = toolbar.combo_period
+        if heatmap == self._finance_heatmap_mode_active:
+            return
+        if heatmap:
+            self._finance_range_period_label = combo.currentText() or "Months"
+            toolbar.set_period_choices(
+                heatmap_period_choices(self._finance_heatmap_years()),
+                current=self._finance_heatmap_period_label,
+            )
+        else:
+            self._finance_heatmap_period_label = combo.currentText() or LAST_365_LABEL
+            toolbar.set_period_choices(range_period_choices(), current=self._finance_range_period_label)
+        self._finance_heatmap_mode_active = heatmap
+
+    def _sync_finance_heatmap_year_nav_buttons(self) -> None:
+        """Enable heatmap period arrows only when another period is available."""
+        toolbar = self._chart_toolbar
+        if toolbar is None:
+            return
+        combo = toolbar.combo_period
+        prev_btn = toolbar.button_prev_year
+        next_btn = toolbar.button_next_year
+        if combo is None or prev_btn is None or next_btn is None:
+            return
+        if not self.radioButton_type_of_chart_heatmap.isChecked():
+            prev_btn.setEnabled(False)
+            next_btn.setEnabled(False)
+            return
+        index = combo.currentIndex()
+        # Combo is newest-first: previous period is the next row.
+        prev_btn.setEnabled(index < combo.count() - 1)
+        next_btn.setEnabled(index > 0)
 
     def _tab_object_name(self, index: int | None = None) -> str:
         """Return the object name of the tab at `index`, or the current tab."""
@@ -6865,6 +6962,26 @@ class MainWindow(
             date_from = self.dateEdit_chart_from.date().toString("yyyy-MM-dd")
             date_to = self.dateEdit_chart_to.date().toString("yyyy-MM-dd")
             currency_symbol = self._get_default_currency_symbol()
+
+            if self.radioButton_type_of_chart_heatmap.isChecked():
+                transaction_rows = self.db_manager.get_all_transactions()
+                recorded = daily_expense_recorded(transaction_rows, self.db_manager)
+                toolbar = self._chart_toolbar
+                if toolbar is not None:
+                    current = self.comboBox_chart_period.currentText() or LAST_365_LABEL
+                    self._finance_heatmap_period_label = current
+                    toolbar.set_period_choices(heatmap_period_choices(expense_years(recorded)), current=current)
+                selection = self.comboBox_chart_period.currentData()
+                if selection is None:
+                    selection = self.comboBox_chart_period.currentText() or LAST_365_LABEL
+                present_expense_heatmap(
+                    self.verticalLayout_charts_content,
+                    recorded,
+                    selection=selection,
+                    currency_symbol=currency_symbol,
+                )
+                self._sync_finance_heatmap_year_nav_buttons()
+                return
 
             if self.radioButton_type_of_chart_average_salary.isChecked():
                 year_start_month = self._compare_last_years_start_month

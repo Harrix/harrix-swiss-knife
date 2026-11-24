@@ -1718,6 +1718,13 @@
                  </property>
                 </widget>
                </item>
+               <item>
+                <widget class="QRadioButton" name="radioButton_type_of_chart_heatmap">
+                 <property name="text">
+                  <string>Heatmap</string>
+                 </property>
+                </widget>
+               </item>
               </layout>
              </widget>
             </item>
