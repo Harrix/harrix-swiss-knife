@@ -37,6 +37,7 @@ from harrix_swiss_knife.apps.habits.habit_process_charts import (
 )
 from harrix_swiss_knife.fluent.tokens import SPACE_M, SPACE_S, SPACE_XL
 from harrix_swiss_knife.fluent.widgets import FluentPushButton, FluentText, TextRole
+from harrix_swiss_knife.toast_countdown_notification import ToastCountdownNotification
 from harrix_swiss_knife.toast_notification import ToastNotification
 
 if TYPE_CHECKING:
@@ -47,6 +48,7 @@ if TYPE_CHECKING:
 _CHART_PERIOD_DAYS = 365
 _SIDEBAR_WIDTH = 220
 _EARLIEST = date(1970, 1, 1)
+_LOADING_TOAST_MESSAGE = "Loading commits…"
 
 
 class GitCommitChartsPage(QWidget):
@@ -61,6 +63,7 @@ class GitCommitChartsPage(QWidget):
         self._cache_ready = False
         self._busy = False
         self._worker: _CommitsChartWorker | None = None
+        self._loading_toast: ToastCountdownNotification | None = None
         self._timeline_bars: list[Any] = []
         self._timeline_canvas: FigureCanvas | None = None
         self._updating_period = False
@@ -137,8 +140,9 @@ class GitCommitChartsPage(QWidget):
         if self._cache_ready and not force:
             self._present_from_cache()
             return
-        self._status.setText("Loading commits…")
+        self._status.setText(_LOADING_TOAST_MESSAGE)
         self._set_busy(busy=True)
+        self._start_loading_toast()
         roots = configured_git_roots()
         scope = self._scope
         worker = _CommitsChartWorker(roots, scope, force=force, parent=self)
@@ -162,12 +166,23 @@ class GitCommitChartsPage(QWidget):
         self._timeline_canvas = None
         self._timeline_bars = []
 
+    def _close_loading_toast(self) -> None:
+        """Stop the elapsed-time toast after the worker finishes."""
+        toast = self._loading_toast
+        self._loading_toast = None
+        if toast is None:
+            return
+        toast.update_time()
+        toast.close()
+
     def _on_failed(self, message: str) -> None:
+        self._close_loading_toast()
         self._set_busy(busy=False)
         self._status.setText(message)
         ToastNotification(message, duration=2500, parent=self)
 
     def _on_loaded(self, payload: object) -> None:
+        self._close_loading_toast()
         self._set_busy(busy=False)
         try:
             recorded, years = cast("tuple[object, object]", payload)
@@ -352,6 +367,13 @@ class GitCommitChartsPage(QWidget):
         self._timeline_canvas = canvas
         canvas.show()
         canvas.draw()
+
+    def _start_loading_toast(self) -> None:
+        """Show a countdown toast so the long first scan is visible by elapsed time."""
+        self._close_loading_toast()
+        toast = ToastCountdownNotification(_LOADING_TOAST_MESSAGE, parent=self.window())
+        toast.start_countdown()
+        self._loading_toast = toast
 
 
 class _CommitsChartWorker(QThread):
