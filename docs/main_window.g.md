@@ -75,7 +75,7 @@ class MainWindow(QMainWindow):
             root_layout.addWidget(caption_tools)
         root_layout.addWidget(self._build_body_widget(), stretch=1)
         self._build_sections_from_menu(menu)
-        self._sync_sort_combo()
+        self._sync_newest_checkbox()
         self._apply_catalog_view()
         self._setup_window_size_and_position()
         bind_theme(self, self._refresh_theme_icons)
@@ -230,14 +230,12 @@ class MainWindow(QMainWindow):
         self._search_edit.textChanged.connect(self._on_search_changed)
         row.addWidget(self._search_edit, stretch=1)
 
-        self._sort_combo = FluentComboBox(tools, compact=True)
-        self._sort_combo.setObjectName("captionSortCombo")
-        for mode, label, _icon in _SORT_MODES:
-            self._sort_combo.addItem(label, mode)
-        self._sort_combo.setToolTip("Sort commands by menu structure or date added")
-        self._sort_combo.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
-        self._sort_combo.currentIndexChanged.connect(self._on_sort_mode_changed)
-        row.addWidget(self._sort_combo)
+        self._newest_checkbox = FluentCheckBox("Newest first", tools)
+        self._newest_checkbox.setObjectName("captionNewestCheckbox")
+        self._newest_checkbox.setToolTip("Sort commands by date added instead of menu structure")
+        self._newest_checkbox.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+        self._newest_checkbox.toggled.connect(self._on_newest_toggled)
+        row.addWidget(self._newest_checkbox)
 
         self._theme_button = FluentIconButton("moon", tools)
         self._theme_button.setObjectName("themeToggleButton")
@@ -420,6 +418,22 @@ class MainWindow(QMainWindow):
         if not self._is_newest_sort() and not self._search_edit.text().strip():
             self._refresh_recent_section()
 
+    def _on_newest_toggled(self, checked: bool) -> None:  # noqa: FBT001
+        """Persist sort mode and refresh the catalog view."""
+        mode = MAIN_WINDOW_SORT_MODE_NEWEST if checked else MAIN_WINDOW_SORT_MODE_MENU
+        if mode == self._sort_mode:
+            return
+        previous = self._sort_mode
+        self._sort_mode = mode
+        try:
+            set_main_window_sort_mode(mode=mode)
+        except (OSError, TypeError, ValueError) as exc:
+            self._sort_mode = previous
+            self._sync_newest_checkbox()
+            message_box.warning(self, "Settings", f"Could not save config-temp.json:\n{exc}")
+            return
+        self._apply_catalog_view()
+
     def _on_search_changed(self, text: str) -> None:
         query = text.strip()
         self._apply_list_search(query)
@@ -434,22 +448,6 @@ class MainWindow(QMainWindow):
             self._startup_checkbox.setChecked(get_show_main_window_on_startup())
             self._startup_checkbox.blockSignals(False)  # noqa: FBT003
             message_box.warning(self, "Settings", f"Could not save config.json:\n{exc}")
-
-    def _on_sort_mode_changed(self, _index: int) -> None:
-        """Persist sort mode and refresh the catalog view."""
-        mode = self._sort_combo.currentData()
-        if not isinstance(mode, str) or mode == self._sort_mode:
-            return
-        previous = self._sort_mode
-        self._sort_mode = mode
-        try:
-            set_main_window_sort_mode(mode=mode)
-        except (OSError, TypeError, ValueError) as exc:
-            self._sort_mode = previous
-            self._sync_sort_combo()
-            message_box.warning(self, "Settings", f"Could not save config-temp.json:\n{exc}")
-            return
-        self._apply_catalog_view()
 
     def _on_theme_toggled(self) -> None:
         """Flip light / dark and persist `ui_theme` to `config.json`."""
@@ -517,10 +515,8 @@ class MainWindow(QMainWindow):
             section.grid.add_card(self._create_card(action))
 
     def _refresh_theme_icons(self) -> None:
-        """Re-tint the sort and theme glyphs for the current palette."""
+        """Re-tint the theme glyph for the current palette."""
         palette = palette_for(self)
-        for index, (_mode, _label, icon_name) in enumerate(_SORT_MODES):
-            self._sort_combo.setItemIcon(index, themed_icon(icon_name, palette))
         dark = palette.dark
         self.setStyleSheet(wallpaper_qss(palette))
         self.setPalette(to_qpalette(palette, self.palette()))
@@ -588,12 +584,11 @@ class MainWindow(QMainWindow):
             host_widget=list_widget.itemWidget(item) or list_widget,
         )
 
-    def _sync_sort_combo(self) -> None:
-        """Select the combo item matching `_sort_mode` without emitting changes."""
-        self._sort_combo.blockSignals(True)  # noqa: FBT003
-        index = self._sort_combo.findData(self._sort_mode)
-        self._sort_combo.setCurrentIndex(max(index, 0))
-        self._sort_combo.blockSignals(False)  # noqa: FBT003
+    def _sync_newest_checkbox(self) -> None:
+        """Match the Newest first checkbox to `_sort_mode` without emitting changes."""
+        self._newest_checkbox.blockSignals(True)  # noqa: FBT003
+        self._newest_checkbox.setChecked(self._is_newest_sort())
+        self._newest_checkbox.blockSignals(False)  # noqa: FBT003
 ```
 
 </details>
@@ -608,7 +603,7 @@ Initialize the main window from the tray menu structure.
 
 Args:
 
-- [`menu`](qt_split_menu_button.g.md#%EF%B8%8F-method-menu) (`QMenu`): Tray menu whose actions are shown in the window.
+- `menu` (`QMenu`): Tray menu whose actions are shown in the window.
 
 <details>
 <summary>Code:</summary>
@@ -643,7 +638,7 @@ def __init__(self, menu: QMenu) -> None:
             root_layout.addWidget(caption_tools)
         root_layout.addWidget(self._build_body_widget(), stretch=1)
         self._build_sections_from_menu(menu)
-        self._sync_sort_combo()
+        self._sync_newest_checkbox()
         self._apply_catalog_view()
         self._setup_window_size_and_position()
         bind_theme(self, self._refresh_theme_icons)
