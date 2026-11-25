@@ -19,6 +19,7 @@ lang: en
   - [⚙️ Method `list_compare`](#%EF%B8%8F-method-list_compare)
   - [⚙️ Method `list_history`](#%EF%B8%8F-method-list_history)
   - [⚙️ Method `list_missing`](#%EF%B8%8F-method-list_missing)
+  - [⚙️ Method `needs_first_run_seed`](#%EF%B8%8F-method-needs_first_run_seed)
   - [⚙️ Method `summary_stats`](#%EF%B8%8F-method-summary_stats)
 - [🏛️ Class `SummaryStats`](#%EF%B8%8F-class-summarystats)
 
@@ -244,6 +245,12 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
                     continue
                 rows.append((str(title), str(pack), DIFFICULTY_NAMES[diff], status, str(level_id)))
         return rows
+
+    def needs_first_run_seed(self) -> bool:
+        """Return `True` when no sync has completed yet (retry seed after a failed first open)."""
+        with sqlite3.connect(self.db_path) as conn:
+            sync_runs = conn.execute("SELECT COUNT(*) FROM sync_runs").fetchone()
+        return int(sync_runs[0] if sync_runs else 0) == 0
 
     def summary_stats(self) -> SummaryStats:
         """Return aggregate counts for the summary label."""
@@ -578,6 +585,26 @@ def list_missing(
                     continue
                 rows.append((str(title), str(pack), DIFFICULTY_NAMES[diff], status, str(level_id)))
         return rows
+```
+
+</details>
+
+### ⚙️ Method `needs_first_run_seed`
+
+```python
+def needs_first_run_seed(self) -> bool
+```
+
+Return `True` when no sync has completed yet (retry seed after a failed first open).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def needs_first_run_seed(self) -> bool:
+        with sqlite3.connect(self.db_path) as conn:
+            sync_runs = conn.execute("SELECT COUNT(*) FROM sync_runs").fetchone()
+        return int(sync_runs[0] if sync_runs else 0) == 0
 ```
 
 </details>

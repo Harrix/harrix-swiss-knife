@@ -137,10 +137,11 @@ def ingest_backup_zip(
     except (OSError, zipfile.BadZipFile) as exc:
         return IngestResult(ok=False, message=f"Could not read ZIP: {exc}")
 
-    tmp = Path(db_path).parent / f".hsk-bs-ingest-{zpath.stem}.dat"
-    try:
+    # Use system temp — not next to the Dropbox DB (WinError 32 on unlink).
+    with tempfile.TemporaryDirectory(prefix="hsk-bs-ingest-") as tmp_dir:
+        tmp = Path(tmp_dir) / "PlayerData.dat"
         tmp.write_bytes(payload)
-        return ingest_player_data(
+        result = ingest_player_data(
             db_path,
             tmp,
             source=source,
@@ -149,8 +150,9 @@ def ingest_backup_zip(
             note=f"from {zpath.name}",
             seed_catalog=seed_catalog,
         )
-    finally:
-        tmp.unlink(missing_ok=True)
+        with suppress(OSError, PermissionError):
+            tmp.unlink(missing_ok=True)
+        return result
 ```
 
 </details>

@@ -221,6 +221,12 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
                 rows.append((str(title), str(pack), DIFFICULTY_NAMES[diff], status, str(level_id)))
         return rows
 
+    def needs_first_run_seed(self) -> bool:
+        """Return `True` when no sync has completed yet (retry seed after a failed first open)."""
+        with sqlite3.connect(self.db_path) as conn:
+            sync_runs = conn.execute("SELECT COUNT(*) FROM sync_runs").fetchone()
+        return int(sync_runs[0] if sync_runs else 0) == 0
+
     def summary_stats(self) -> SummaryStats:
         """Return aggregate counts for the summary label."""
         with sqlite3.connect(self.db_path) as conn:

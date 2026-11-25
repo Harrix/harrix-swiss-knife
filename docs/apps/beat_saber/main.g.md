@@ -89,7 +89,7 @@ class MainWindow(AppWindowMixin, QMainWindow, Ui_MainWindow):
         """On empty DB, load catalog and ingest BeatSaber backup ZIPs."""
         if self.db_manager is None or self.presentation_mode:
             return
-        if not self.db_manager.is_empty_tracker():
+        if not self.db_manager.needs_first_run_seed():
             return
         seed = seed_official_catalog(self.db_manager.db_path)
         folder = beat_saber_backup_root(self._app_config)
