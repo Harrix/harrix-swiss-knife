@@ -11,11 +11,50 @@ lang: en
 
 ## Contents
 
+- [🔧 Function `fetch_github_api_json`](#-function-fetch_github_api_json)
 - [🔧 Function `github_api_headers`](#-function-github_api_headers)
 - [🔧 Function `github_download_headers`](#-function-github_download_headers)
 - [🔧 Function `is_github_hosted_url`](#-function-is_github_hosted_url)
 - [🔧 Function `resolve_github_token`](#-function-resolve_github_token)
 - [🔧 Function `validate_https_url`](#-function-validate_https_url)
+
+</details>
+
+## 🔧 Function `fetch_github_api_json`
+
+```python
+def fetch_github_api_json(url: str, *, config: dict[str, Any] | None = None, project_root: Path | None = None, user_agent: str | None = None, timeout: float = 30, retry_without_auth_on_unauthorized: bool = True) -> Any
+```
+
+GET `url` as JSON from the GitHub API.
+
+When a configured token is rejected with HTTP 401 and
+`retry_without_auth_on_unauthorized` is true, retries once without
+Authorization so public endpoints still work with an expired token.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def fetch_github_api_json(
+    url: str,
+    *,
+    config: dict[str, Any] | None = None,
+    project_root: Path | None = None,
+    user_agent: str | None = None,
+    timeout: float = 30,
+    retry_without_auth_on_unauthorized: bool = True,
+) -> Any:
+    validate_https_url(url)
+    headers = github_api_headers(config=config, project_root=project_root, user_agent=user_agent)
+    try:
+        return _read_json_response(url, headers=headers, timeout=timeout)
+    except HTTPError as exc:
+        if not retry_without_auth_on_unauthorized or exc.code != _HTTP_UNAUTHORIZED or "Authorization" not in headers:
+            raise
+        anonymous = {key: value for key, value in headers.items() if key.casefold() != "authorization"}
+        return _read_json_response(url, headers=anonymous, timeout=timeout)
+```
 
 </details>
 

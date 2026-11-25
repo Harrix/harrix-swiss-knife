@@ -8,7 +8,6 @@ online/offline payload zips. Target PCs run `harrix-swiss-knife-online.exe` or
 
 from __future__ import annotations
 
-import json
 import os
 import shutil
 import subprocess
@@ -22,19 +21,17 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError, URLError
-from urllib.request import Request, urlopen
 
 import harrix_pylib as h
 
 from harrix_swiss_knife.actions.common.github_https import (
-    github_api_headers,
+    fetch_github_api_json,
     github_download_headers,
     validate_https_url,
 )
 from harrix_swiss_knife.installer.constants import OFFLINE_EXE_NAME, ONLINE_EXE_NAME
 from harrix_swiss_knife.installer.pack_exes import build_payload_zips, pack_installer_exes
 from harrix_swiss_knife.integrations.http_download import download_https_to_path
-from harrix_swiss_knife.integrations.http_transport import https_ssl_context
 
 GITHUB_UA = "Harrix-Swiss-Knife/1.0 (Python; install-zip-builder)"
 DOWNLOAD_CHUNK = 256 * 1024
@@ -341,13 +338,16 @@ def fetch_github_release_latest(
 ) -> dict[str, Any]:
     """Fetch latest GitHub release JSON."""
     url = f"https://api.github.com/repos/{owner}/{repo}/releases/latest"
-    validate_https_url(url)
-    req = Request(
+    payload = fetch_github_api_json(
         url,
-        headers=github_api_headers(config=config, project_root=project_root, user_agent=GITHUB_UA),
+        config=config,
+        project_root=project_root,
+        user_agent=GITHUB_UA,
     )
-    with urlopen(req, timeout=30, context=https_ssl_context()) as resp:  # noqa: S310
-        return json.loads(resp.read().decode())
+    if not isinstance(payload, dict):
+        msg = f"Unexpected GitHub release payload for {owner}/{repo}"
+        raise TypeError(msg)
+    return payload
 
 
 def install_dir(project_root: Path) -> Path:

@@ -2,19 +2,51 @@
 
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 from typing import Any
+from urllib.error import HTTPError
 from urllib.parse import urlparse
+from urllib.request import Request, urlopen
 
+from harrix_swiss_knife.integrations.http_transport import https_ssl_context
 from harrix_swiss_knife.paths import get_project_root
 
 GITHUB_USER_AGENT = "harrix-swiss-knife"
 ALLOWED_HTTPS_SCHEMES = frozenset({"https"})
+_HTTP_UNAUTHORIZED = 401
 _GITHUB_DOWNLOAD_HOST_SUFFIXES = (
     "github.com",
     "githubusercontent.com",
 )
+
+
+def fetch_github_api_json(
+    url: str,
+    *,
+    config: dict[str, Any] | None = None,
+    project_root: Path | None = None,
+    user_agent: str | None = None,
+    timeout: float = 30,
+    retry_without_auth_on_unauthorized: bool = True,
+) -> Any:
+    """GET `url` as JSON from the GitHub API.
+
+    When a configured token is rejected with HTTP 401 and
+    `retry_without_auth_on_unauthorized` is true, retries once without
+    Authorization so public endpoints still work with an expired token.
+
+    """
+    validate_https_url(url)
+    headers = github_api_headers(config=config, project_root=project_root, user_agent=user_agent)
+    try:
+        return _read_json_response(url, headers=headers, timeout=timeout)
+    except HTTPError as exc:
+        if not retry_without_auth_on_unauthorized or exc.code != _HTTP_UNAUTHORIZED or "Authorization" not in headers:
+            raise
+        anonymous = {key: value for key, value in headers.items() if key.casefold() != "authorization"}
+        return _read_json_response(url, headers=anonymous, timeout=timeout)
 
 
 def github_api_headers(
@@ -101,6 +133,12 @@ def _normalize_token(raw: str) -> str:
     if not token or token.startswith("paste-your-"):
         return ""
     return token
+
+
+def _read_json_response(url: str, *, headers: dict[str, str], timeout: float) -> Any:
+    req = Request(url, headers=headers, method="GET")  # noqa: S310
+    with urlopen(req, timeout=timeout, context=https_ssl_context()) as resp:  # noqa: S310
+        return json.loads(resp.read().decode())
 
 
 def _read_token_file(path: Path) -> str:

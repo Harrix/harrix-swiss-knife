@@ -45,6 +45,7 @@ class OnDownloadOptimizeDependencies(ActionBase):
     _GITHUB_UA = "Harrix-Swiss-Knife/1.0 (Python; urllib)"
     # Chunk size for streaming download
     _DOWNLOAD_CHUNK = 256 * 1024
+    _HTTP_UNAUTHORIZED = 401
     _HTTP_FORBIDDEN = 403
     _ALLOWED_URL_SCHEMES = ("https",)
     # Windows: WSAHOST_NOT_FOUND, WSATRY_AGAIN (name resolution / DNS)
@@ -104,7 +105,12 @@ class OnDownloadOptimizeDependencies(ActionBase):
                 self.add_line("❌ Download cancelled by user.")
             except HTTPError as e:
                 self.add_line(f"HTTP error: {e.code} {e.reason}")
-                if e.code == self._HTTP_FORBIDDEN:
+                if e.code == self._HTTP_UNAUTHORIZED:
+                    self.add_line(
+                        "GitHub rejected the configured token. Update `github_token` in config.json "
+                        "or `api-keys/github-token.txt` (or unset GITHUB_TOKEN)."
+                    )
+                elif e.code == self._HTTP_FORBIDDEN:
                     self.add_line(
                         "If rate limited, add api-keys/github-token.txt (or set GITHUB_TOKEN environment variable)."
                     )
@@ -187,13 +193,15 @@ class OnDownloadOptimizeDependencies(ActionBase):
     def _fetch_release_latest(self, owner: str, repo: str) -> dict[str, Any]:
         """Fetch latest release info from GitHub API. Raises on error."""
         url = f"https://api.github.com/repos/{owner}/{repo}/releases/latest"
-        validate_https_url(url)
-        req = Request(
+        payload = fetch_github_api_json(
             url,
-            headers=github_api_headers(config=dict(self.config), user_agent=self._GITHUB_UA),
+            config=dict(self.config),
+            user_agent=self._GITHUB_UA,
         )
-        with urlopen(req, timeout=30, context=https_ssl_context()) as resp:  # noqa: S310
-            return json.loads(resp.read().decode())
+        if not isinstance(payload, dict):
+            msg = f"Unexpected GitHub release payload for {owner}/{repo}"
+            raise TypeError(msg)
+        return payload
 
     def _get_asset_download_url(
         self, release: dict[str, Any], asset_name: str | None = None, name_contains: tuple[str, ...] = ()
@@ -307,7 +315,12 @@ def in_thread(self) -> str:
                 self.add_line("❌ Download cancelled by user.")
             except HTTPError as e:
                 self.add_line(f"HTTP error: {e.code} {e.reason}")
-                if e.code == self._HTTP_FORBIDDEN:
+                if e.code == self._HTTP_UNAUTHORIZED:
+                    self.add_line(
+                        "GitHub rejected the configured token. Update `github_token` in config.json "
+                        "or `api-keys/github-token.txt` (or unset GITHUB_TOKEN)."
+                    )
+                elif e.code == self._HTTP_FORBIDDEN:
                     self.add_line(
                         "If rate limited, add api-keys/github-token.txt (or set GITHUB_TOKEN environment variable)."
                     )

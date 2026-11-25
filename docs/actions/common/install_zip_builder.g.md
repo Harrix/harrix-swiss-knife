@@ -580,13 +580,16 @@ def fetch_github_release_latest(
     project_root: Path | None = None,
 ) -> dict[str, Any]:
     url = f"https://api.github.com/repos/{owner}/{repo}/releases/latest"
-    validate_https_url(url)
-    req = Request(
+    payload = fetch_github_api_json(
         url,
-        headers=github_api_headers(config=config, project_root=project_root, user_agent=GITHUB_UA),
+        config=config,
+        project_root=project_root,
+        user_agent=GITHUB_UA,
     )
-    with urlopen(req, timeout=30, context=https_ssl_context()) as resp:  # noqa: S310
-        return json.loads(resp.read().decode())
+    if not isinstance(payload, dict):
+        msg = f"Unexpected GitHub release payload for {owner}/{repo}"
+        raise TypeError(msg)
+    return payload
 ```
 
 </details>
