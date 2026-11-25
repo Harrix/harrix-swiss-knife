@@ -321,6 +321,17 @@ class DirtyReposCommitWindow(QDialog):
             self._applying_suggestion = False
         self._update_commit_enabled()
 
+    def _add_repo_section_header(self, title: str, *, count: int) -> None:
+        """Add a non-selectable group heading to the repositories list."""
+        item = QListWidgetItem(f"{title} ({count})")
+        font = item.font()
+        font.setBold(True)
+        item.setFont(font)
+        item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsSelectable)
+        item.setData(_REPO_ROLE, title)
+        item.setForeground(palette_for(self).text_secondary)
+        self._repo_list.addItem(item)
+
     def _apply_repo_access(self, item: QListWidgetItem, access: RepoAccess) -> None:
         path = item.data(_REPO_ROLE)
         if not isinstance(path, Path):
@@ -360,11 +371,19 @@ class DirtyReposCommitWindow(QDialog):
                 updated.append(status)
         ordered = order_repo_statuses(updated, prefer_first=self._current_repo())
         if not changed and [row.path for row in ordered] == [row.path for row in self._statuses]:
-            for row, status in enumerate(ordered):
+            by_path = {status.path: status for status in ordered}
+            for row in range(self._repo_list.count()):
                 item = self._repo_list.item(row)
-                if item is not None:
-                    item.setText(status.list_label())
-                    self._style_repo_item(item, status)
+                if item is None:
+                    continue
+                path = item.data(_REPO_ROLE)
+                if not isinstance(path, Path):
+                    continue
+                status = by_path.get(path)
+                if status is None:
+                    continue
+                item.setText(status.list_label())
+                self._style_repo_item(item, status)
             self._statuses = ordered
             current = self._current_status()
             if current is not None and current.unpushed and not self._file_list.count():
@@ -917,17 +936,40 @@ class DirtyReposCommitWindow(QDialog):
         current = self._current_repo()
         self._repo_list.blockSignals(True)  # noqa: FBT003
         self._repo_list.clear()
-        select_row = 0
-        for index, status in enumerate(self._statuses):
+        attention = [status for status in self._statuses if status.needs_attention]
+        other = [status for status in self._statuses if not status.needs_attention]
+        select_row = -1
+
+        def add_status_row(status: DirtyRepoStatus) -> None:
+            nonlocal select_row
             item = QListWidgetItem(status.list_label())
             item.setData(_REPO_ROLE, status.path)
             self._apply_repo_access(item, read_repo_access(status.path))
             self._style_repo_item(item, status)
             self._repo_list.addItem(item)
             if current is not None and status.path == current:
-                select_row = index
+                select_row = self._repo_list.count() - 1
+
+        if attention:
+            self._add_repo_section_header(_REPO_SECTION_ATTENTION, count=len(attention))
+            for status in attention:
+                add_status_row(status)
+        if other:
+            self._add_repo_section_header(_REPO_SECTION_OTHER, count=len(other))
+            for status in other:
+                add_status_row(status)
+
         self._repo_list.blockSignals(False)  # noqa: FBT003
         if self._repo_list.count():
+            if select_row < 0:
+                select_row = next(
+                    (
+                        row
+                        for row in range(self._repo_list.count())
+                        if ((item := self._repo_list.item(row)) is not None and isinstance(item.data(_REPO_ROLE), Path))
+                    ),
+                    0,
+                )
             self._repo_list.setCurrentRow(min(select_row, self._repo_list.count() - 1))
         else:
             self._populate_files([])
