@@ -336,6 +336,9 @@ def _exec_overlay(overlay: RegionOverlay, *, conceal_under: bool = False) -> int
     into the freeze; leaving a live Result/`exec()` dialog mapped lets that HWND
     sit above the Tool overlay and eat clicks so region drawing looks frozen.
 
+    Faded dialogs also get native click-through, and overlay panes stay topmost
+    for the whole `exec()` so OS hit-testing cannot prefer Result over the drag.
+
     """
     close_active_popups()
     stashed: list[ConcealedWindow] = []

@@ -21,6 +21,7 @@ lang: en
 - [🔧 Function `hide_app_windows`](#-function-hide_app_windows)
 - [🔧 Function `is_screenshot_ui`](#-function-is_screenshot_ui)
 - [🔧 Function `mark_screenshot_ui`](#-function-mark_screenshot_ui)
+- [🔧 Function `pin_screenshot_surfaces_topmost`](#-function-pin_screenshot_surfaces_topmost)
 - [🔧 Function `release_screenshot_keyboard`](#-function-release_screenshot_keyboard)
 - [🔧 Function `restore_app_windows`](#-function-restore_app_windows)
 - [🔧 Function `restore_modal_blocking`](#-function-restore_modal_blocking)
@@ -77,7 +78,7 @@ class SuspendedModal:
 ## 🔧 Function `bring_window_to_foreground`
 
 ```python
-def bring_window_to_foreground(widget: QWidget, *, delays_ms: tuple[int, ...] | None = None) -> None
+def bring_window_to_foreground(widget: QWidget, *, delays_ms: tuple[int, ...] | None = None, keep_topmost: bool = False) -> None
 ```
 
 Raise `widget` now and again after Windows focus races.
@@ -87,17 +88,24 @@ Args:
 - `widget` (`QWidget`): Window that should stay in front.
 - `delays_ms` (`tuple[int, ...] | None`): Extra pin delays. Defaults to
   `_REPIN_MODAL_DELAYS_MS`. Pass `()` to raise once without a timer.
+- `keep_topmost` (`bool`): If `True`, leave the HWND topmost after activation
+  (screenshot overlay). Defaults to `False`.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def bring_window_to_foreground(widget: QWidget, *, delays_ms: tuple[int, ...] | None = None) -> None:
-    _bring_to_foreground(widget)
+def bring_window_to_foreground(
+    widget: QWidget,
+    *,
+    delays_ms: tuple[int, ...] | None = None,
+    keep_topmost: bool = False,
+) -> None:
+    _bring_to_foreground(widget, keep_topmost=keep_topmost)
     if delays_ms is None:
         delays_ms = _REPIN_MODAL_DELAYS_MS
     if delays_ms:
-        _schedule_foreground(widget, delays_ms=delays_ms)
+        _schedule_foreground(widget, delays_ms=delays_ms, keep_topmost=keep_topmost)
 ```
 
 </details>
@@ -105,26 +113,34 @@ def bring_window_to_foreground(widget: QWidget, *, delays_ms: tuple[int, ...] | 
 ## 🔧 Function `claim_screenshot_keyboard`
 
 ```python
-def claim_screenshot_keyboard(widget: QWidget) -> None
+def claim_screenshot_keyboard(widget: QWidget, *, surfaces: Sequence[QWidget] | None = None) -> None
 ```
 
 Focus `widget` and grab the keyboard so Escape reaches screenshot UI.
 
 Region overlay and arrange dialogs are `Tool` Windows. On Windows they often
-stay behind the previous foreground window, so Escape never arrives unless
-we force activation and take a keyboard grab.
+stay behind the previous foreground window (for example a live Result
+`exec()` dialog), so Escape and clicks never arrive unless we pin the
+overlay surfaces topmost for the whole selection and take a keyboard grab.
 
 Args:
 
 - `widget` (`QWidget`): Overlay or arrange dialog that must receive Escape.
+- `surfaces` (`Sequence[QWidget] | None`): Extra fullscreen panes that must
+  stay above concealed app Windows for mouse hit-testing.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def claim_screenshot_keyboard(widget: QWidget) -> None:
+def claim_screenshot_keyboard(
+    widget: QWidget,
+    *,
+    surfaces: Sequence[QWidget] | None = None,
+) -> None:
     widget.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-    bring_window_to_foreground(widget, delays_ms=())
+    pin_screenshot_surfaces_topmost((widget, *(surfaces or ())))
+    bring_window_to_foreground(widget, delays_ms=(), keep_topmost=True)
     widget.setFocus(Qt.FocusReason.ActiveWindowFocusReason)
     widget.grabKeyboard()
 ```
@@ -206,7 +222,7 @@ def has_visible_modal_dialog() -> bool
 
 Return whether a visible app modal dialog should stay in the screenshot.
 
-[`OnScreenshotRegion`](../actions/images/screenshot_region.g.md#%EF%B8%8F-class-onscreenshotregion) hides application Windows by default. A modal such as
+`OnScreenshotRegion` hides application Windows by default. A modal such as
 Finance Balance check would then vanish and drop out of the snap list, so
 hover highlights the owner window instead. ShareX keeps that dialog visible.
 
@@ -327,6 +343,33 @@ def mark_screenshot_ui(widget: QWidget) -> None:
 
 </details>
 
+## 🔧 Function `pin_screenshot_surfaces_topmost`
+
+```python
+def pin_screenshot_surfaces_topmost(widgets: Sequence[QWidget]) -> None
+```
+
+Keep screenshot overlay HWNDs above faded Result / tracker dialogs.
+
+[`claim_screenshot_keyboard`](#-function-claim_screenshot_keyboard) used to flash `HWND_TOPMOST` then clear it with
+`HWND_NOTOPMOST` so `SetForegroundWindow` could run. That left Tool panes
+under a still-mapped Result HWND, which swallowed clicks so region drawing
+looked frozen. Pin and keep topmost for the whole overlay lifetime instead.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def pin_screenshot_surfaces_topmost(widgets: Sequence[QWidget]) -> None:
+    for widget in widgets:
+        if not isValid(widget) or not widget.isVisible():
+            continue
+        widget.raise_()
+        _set_native_topmost(widget, enabled=True)
+```
+
+</details>
+
 ## 🔧 Function `release_screenshot_keyboard`
 
 ```python
@@ -363,7 +406,7 @@ Restored widgets are raised and the window that started the capture (or its
 modal dialog) is activated so the user returns to Finance / Fill with AI /
 an error `QMessageBox` — not a stay-on-top sibling such as the command cards.
 
-Non-modal ([`hide`](../apps/snippets/dialog.g.md#%EF%B8%8F-method-hide)) Windows are restored first; opacity-concealed owners
+Non-modal (`hide`) Windows are restored first; opacity-concealed owners
 next; modal dialogs last so they stay above the owner chain. Stay-on-top
 is cleared on siblings of the focus target so they cannot cover it.
 

@@ -451,7 +451,9 @@ class RegionOverlay(QDialog):
         for pane in self._panes:
             pane.show()
             pane.raise_()
-        claim_screenshot_keyboard(self)
+        # Keep panes topmost for the whole selection: a live Result HWND would
+        # otherwise sit above Tool covers and swallow the drag (looks frozen).
+        claim_screenshot_keyboard(self, surfaces=self._panes)
         self._update_snap_at(self._global_to_virtual(QCursor.pos()))
 
     def _active_highlight_rect(self) -> QRect | None:
@@ -783,13 +785,13 @@ Args:
   each screen gets its own fullscreen pane so mixed DPI layouts cover every pixel.
 - `with_shutter_controls` (`bool`): If `True`, embed shutter controls at the top center.
 - `window_rects` (`Sequence[QRect] | None`): Snappable window bounds in global logical pixels.
-- `keep_windows` (`bool`): If `True`, start with the keep-Windows shutter button on.
-- `clipboard_only` (`bool`): If `True`, start with the clipboard-only shutter button on.
-- `ocr_translate` (`bool`): If `True`, start with the OCR + translate shutter button on.
+- [`keep_windows`](#%EF%B8%8F-method-keep_windows-property) (`bool`): If `True`, start with the keep-Windows shutter button on.
+- [`clipboard_only`](#%EF%B8%8F-method-clipboard_only-property) (`bool`): If `True`, start with the clipboard-only shutter button on.
+- [`ocr_translate`](#%EF%B8%8F-method-ocr_translate-property) (`bool`): If `True`, start with the OCR + translate shutter button on.
 - `select_rect_only` (`bool`): If `True`, accept returns a region rect without cropping an image
   (used for screen recording).
-- `adjust_mode` (`bool`): If `True`, start with adjust-region enabled.
-- `guides_mode` (`bool`): If `True`, start with composition guides enabled.
+- [`adjust_mode`](#%EF%B8%8F-method-adjust_mode-property) (`bool`): If `True`, start with adjust-region enabled.
+- [`guides_mode`](#%EF%B8%8F-method-guides_mode-property) (`bool`): If `True`, start with composition guides enabled.
 
 <details>
 <summary>Code:</summary>
@@ -1408,7 +1410,9 @@ def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
         for pane in self._panes:
             pane.show()
             pane.raise_()
-        claim_screenshot_keyboard(self)
+        # Keep panes topmost for the whole selection: a live Result HWND would
+        # otherwise sit above Tool covers and swallow the drag (looks frozen).
+        claim_screenshot_keyboard(self, surfaces=self._panes)
         self._update_snap_at(self._global_to_virtual(QCursor.pos()))
 ```
 

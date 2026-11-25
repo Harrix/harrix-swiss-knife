@@ -491,7 +491,9 @@ class RegionOverlay(QDialog):
         for pane in self._panes:
             pane.show()
             pane.raise_()
-        claim_screenshot_keyboard(self)
+        # Keep panes topmost for the whole selection: a live Result HWND would
+        # otherwise sit above Tool covers and swallow the drag (looks frozen).
+        claim_screenshot_keyboard(self, surfaces=self._panes)
         self._update_snap_at(self._global_to_virtual(QCursor.pos()))
 
     def _active_highlight_rect(self) -> QRect | None:

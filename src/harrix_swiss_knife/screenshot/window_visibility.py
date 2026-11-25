@@ -11,7 +11,7 @@ from PySide6.QtWidgets import QApplication, QDialog, QMessageBox, QWidget
 from shiboken6 import isValid
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Sequence
 
 if sys.platform == "win32":
     import ctypes
@@ -26,6 +26,10 @@ _SWP_NOSIZE = 0x0001
 _SWP_NOMOVE = 0x0002
 _SWP_SHOWWINDOW = 0x0040
 _ASFW_ANY = -1
+_GWL_EXSTYLE = -20
+_WS_EX_TRANSPARENT = 0x00000020
+_WS_EX_LAYERED = 0x00080000
+_POINTER_BYTES_64 = 8
 _REPIN_MODAL_DELAYS_MS = (0, 50)
 PREVIEW_FOREGROUND_DELAYS_MS = (0, 50, 150)
 _MAX_POPUP_CLOSE = 8
@@ -54,7 +58,12 @@ class SuspendedModal:
     transparent_for_mouse: bool
 
 
-def bring_window_to_foreground(widget: QWidget, *, delays_ms: tuple[int, ...] | None = None) -> None:
+def bring_window_to_foreground(
+    widget: QWidget,
+    *,
+    delays_ms: tuple[int, ...] | None = None,
+    keep_topmost: bool = False,
+) -> None:
     """Raise `widget` now and again after Windows focus races.
 
     Args:
@@ -62,29 +71,39 @@ def bring_window_to_foreground(widget: QWidget, *, delays_ms: tuple[int, ...] | 
     - `widget` (`QWidget`): Window that should stay in front.
     - `delays_ms` (`tuple[int, ...] | None`): Extra pin delays. Defaults to
       `_REPIN_MODAL_DELAYS_MS`. Pass `()` to raise once without a timer.
+    - `keep_topmost` (`bool`): If `True`, leave the HWND topmost after activation
+      (screenshot overlay). Defaults to `False`.
 
     """
-    _bring_to_foreground(widget)
+    _bring_to_foreground(widget, keep_topmost=keep_topmost)
     if delays_ms is None:
         delays_ms = _REPIN_MODAL_DELAYS_MS
     if delays_ms:
-        _schedule_foreground(widget, delays_ms=delays_ms)
+        _schedule_foreground(widget, delays_ms=delays_ms, keep_topmost=keep_topmost)
 
 
-def claim_screenshot_keyboard(widget: QWidget) -> None:
+def claim_screenshot_keyboard(
+    widget: QWidget,
+    *,
+    surfaces: Sequence[QWidget] | None = None,
+) -> None:
     """Focus `widget` and grab the keyboard so Escape reaches screenshot UI.
 
     Region overlay and arrange dialogs are `Tool` Windows. On Windows they often
-    stay behind the previous foreground window, so Escape never arrives unless
-    we force activation and take a keyboard grab.
+    stay behind the previous foreground window (for example a live Result
+    `exec()` dialog), so Escape and clicks never arrive unless we pin the
+    overlay surfaces topmost for the whole selection and take a keyboard grab.
 
     Args:
 
     - `widget` (`QWidget`): Overlay or arrange dialog that must receive Escape.
+    - `surfaces` (`Sequence[QWidget] | None`): Extra fullscreen panes that must
+      stay above concealed app Windows for mouse hit-testing.
 
     """
     widget.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-    bring_window_to_foreground(widget, delays_ms=())
+    pin_screenshot_surfaces_topmost((widget, *(surfaces or ())))
+    bring_window_to_foreground(widget, delays_ms=(), keep_topmost=True)
     widget.setFocus(Qt.FocusReason.ActiveWindowFocusReason)
     widget.grabKeyboard()
 
@@ -213,6 +232,22 @@ def is_screenshot_ui(widget: QWidget) -> bool:
 def mark_screenshot_ui(widget: QWidget) -> None:
     """Mark a widget so it is not hidden with the rest of the application."""
     widget.setProperty(HSK_SCREENSHOT_UI_PROP, True)  # noqa: FBT003
+
+
+def pin_screenshot_surfaces_topmost(widgets: Sequence[QWidget]) -> None:
+    """Keep screenshot overlay HWNDs above faded Result / tracker dialogs.
+
+    `claim_screenshot_keyboard` used to flash `HWND_TOPMOST` then clear it with
+    `HWND_NOTOPMOST` so `SetForegroundWindow` could run. That left Tool panes
+    under a still-mapped Result HWND, which swallowed clicks so region drawing
+    looked frozen. Pin and keep topmost for the whole overlay lifetime instead.
+
+    """
+    for widget in widgets:
+        if not isValid(widget) or not widget.isVisible():
+            continue
+        widget.raise_()
+        _set_native_topmost(widget, enabled=True)
 
 
 def release_screenshot_keyboard(widget: QWidget) -> None:
@@ -363,7 +398,7 @@ def _active_top_level() -> QWidget | None:
     return top
 
 
-def _bring_to_foreground(widget: QWidget) -> None:
+def _bring_to_foreground(widget: QWidget, *, keep_topmost: bool = False) -> None:
     """Raise `widget` in Qt and ask the OS to activate its native window."""
     if not isValid(widget):
         return
@@ -371,7 +406,7 @@ def _bring_to_foreground(widget: QWidget) -> None:
         widget.show()
     widget.raise_()
     widget.activateWindow()
-    _force_foreground(widget)
+    _force_foreground(widget, keep_topmost=keep_topmost)
 
 
 def _conceal_with_opacity(widget: QWidget) -> ConcealedWindow:
@@ -386,6 +421,10 @@ def _conceal_with_opacity(widget: QWidget) -> ConcealedWindow:
         Qt.WidgetAttribute.WA_TransparentForMouseEvents,
         True,  # noqa: FBT003
     )
+    # Qt's WA_TransparentForMouseEvents is not enough against a sibling Tool
+    # overlay: a still-mapped Result HWND can win OS hit-testing. Mark the
+    # native window click-through so faded dialogs cannot steal the drag.
+    _set_native_click_through(widget, enabled=True)
     # setWindowModality() can unmap QMessageBox; show() again so exec() stays
     # alive and restore can put the box back on top of Fitness.
     if not widget.isVisible():
@@ -420,7 +459,7 @@ def _drop_stay_on_top_except(widgets: list[ConcealedWindow], focus_target: QWidg
         _set_stays_on_top(item.widget, enabled=False)
 
 
-def _force_foreground(widget: QWidget) -> None:
+def _force_foreground(widget: QWidget, *, keep_topmost: bool = False) -> None:
     """Ask the OS to put the widget's native window in the foreground."""
     if sys.platform != "win32":
         return
@@ -433,8 +472,10 @@ def _force_foreground(widget: QWidget) -> None:
         flags = _SWP_NOMOVE | _SWP_NOSIZE | _SWP_SHOWWINDOW
         user32.AllowSetForegroundWindow(_ASFW_ANY)
         # TOPMOST flash: SetForegroundWindow is often denied after a fullscreen overlay.
+        # Screenshot surfaces keep topmost so a live Result HWND cannot cover them.
         user32.SetWindowPos(hwnd, _HWND_TOPMOST, 0, 0, 0, 0, flags)
-        user32.SetWindowPos(hwnd, _HWND_NOTOPMOST, 0, 0, 0, 0, flags)
+        if not keep_topmost:
+            user32.SetWindowPos(hwnd, _HWND_NOTOPMOST, 0, 0, 0, 0, flags)
 
         foreground = user32.GetForegroundWindow()
         current_thread = kernel32.GetCurrentThreadId()
@@ -464,6 +505,11 @@ def _has_stay_on_top(widget: QWidget) -> bool:
 
     """
     return bool(widget.windowFlags() & Qt.WindowType.WindowStaysOnTopHint)
+
+
+def _is_64_bit() -> bool:
+    """Return whether this process uses 64-bit pointers."""
+    return ctypes.sizeof(ctypes.c_void_p) == _POINTER_BYTES_64
 
 
 def _is_modal_dialog(widget: QWidget) -> bool:
@@ -574,6 +620,7 @@ def _restore_opacity_item(item: ConcealedWindow) -> None:
     - `item` (`ConcealedWindow`): Window state captured before concealment.
 
     """
+    _set_native_click_through(item.widget, enabled=False)
     item.widget.setAttribute(
         Qt.WidgetAttribute.WA_TransparentForMouseEvents,
         item.transparent_for_mouse,
@@ -584,22 +631,68 @@ def _restore_opacity_item(item: ConcealedWindow) -> None:
         item.widget.show()
 
 
-def _schedule_foreground(widget: QWidget, *, delays_ms: tuple[int, ...] = _REPIN_MODAL_DELAYS_MS) -> None:
+def _schedule_foreground(
+    widget: QWidget,
+    *,
+    delays_ms: tuple[int, ...] = _REPIN_MODAL_DELAYS_MS,
+    keep_topmost: bool = False,
+) -> None:
     """Pin `widget` again after Windows finishes activating the capture overlay's owner.
 
     Args:
 
     - `widget` (`QWidget`): Modal dialog that must stay above its owner.
     - `delays_ms` (`tuple[int, ...]`): Timer delays in milliseconds.
+    - `keep_topmost` (`bool`): Forwarded to `_bring_to_foreground`.
 
     """
 
     def _pin() -> None:
         if isValid(widget) and widget.isVisible():
-            _bring_to_foreground(widget)
+            _bring_to_foreground(widget, keep_topmost=keep_topmost)
 
     for delay_ms in delays_ms:
         QTimer.singleShot(delay_ms, _pin)
+
+
+def _set_native_click_through(widget: QWidget, *, enabled: bool) -> None:
+    """Toggle `WS_EX_TRANSPARENT` so faded dialogs do not win OS hit-testing."""
+    if sys.platform != "win32":
+        return
+    try:
+        hwnd = int(widget.winId())
+        if not hwnd:
+            return
+        user32 = ctypes.windll.user32
+        if _is_64_bit():
+            get_style = user32.GetWindowLongPtrW
+            set_style = user32.SetWindowLongPtrW
+        else:
+            get_style = user32.GetWindowLongW
+            set_style = user32.SetWindowLongW
+        ex_style = int(get_style(hwnd, _GWL_EXSTYLE))
+        if enabled:
+            ex_style |= _WS_EX_TRANSPARENT | _WS_EX_LAYERED
+        else:
+            ex_style &= ~_WS_EX_TRANSPARENT
+        set_style(hwnd, _GWL_EXSTYLE, ex_style)
+    except (AttributeError, OSError, TypeError, ValueError):
+        return
+
+
+def _set_native_topmost(widget: QWidget, *, enabled: bool) -> None:
+    """Pin or unpin a widget HWND in the topmost Z band."""
+    if sys.platform != "win32":
+        return
+    try:
+        hwnd = int(widget.winId())
+        if not hwnd:
+            return
+        flags = _SWP_NOMOVE | _SWP_NOSIZE | _SWP_SHOWWINDOW
+        insert_after = _HWND_TOPMOST if enabled else _HWND_NOTOPMOST
+        ctypes.windll.user32.SetWindowPos(hwnd, insert_after, 0, 0, 0, 0, flags)
+    except (AttributeError, OSError, TypeError, ValueError):
+        return
 
 
 def _set_stays_on_top(widget: QWidget, *, enabled: bool) -> None:

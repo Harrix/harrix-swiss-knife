@@ -13,6 +13,7 @@ from harrix_swiss_knife.screenshot.window_visibility import (
     defer_until_popups_close,
     has_visible_modal_dialog,
     hide_app_windows,
+    pin_screenshot_surfaces_topmost,
     restore_app_windows,
     restore_modal_blocking,
     suspend_modal_blocking,
@@ -100,82 +101,32 @@ def test_has_visible_modal_dialog_detects_shown_modal(qapp: QApplication) -> Non
         dialog.close()
 
 
-def test_suspend_modal_blocking_skips_dialog_inside_exec(qapp: QApplication) -> None:  # noqa: ARG001
-    """In-exec QMessageBox must keep its modality so exec() can still be dismissed."""
+def test_hide_app_windows_fades_sibling_when_modal_exists(qapp: QApplication) -> None:  # noqa: ARG001
+    """A later hide()/show() of Fitness must not land above a WindowModal error box."""
+    sibling = QWidget()
+    sibling.setWindowTitle("sibling-fitness")
+    sibling.show()
     owner = QWidget()
+    owner.setWindowTitle("owner-window")
     owner.show()
-    box = QMessageBox(owner)
-    box.setText("AI error")
-    box.setWindowModality(Qt.WindowModality.WindowModal)
-    box.setStandardButtons(QMessageBox.StandardButton.Ok)
-    seen: dict[str, object] = {}
-
-    def probe() -> None:
-        suspended = suspend_modal_blocking()
-        seen["suspended"] = box in {item.widget for item in suspended}
-        seen["visible"] = box.isVisible()
-        seen["modality"] = box.windowModality()
-        restore_modal_blocking(suspended)
-        box.reject()
-
-    QTimer.singleShot(0, probe)
-    box.exec()
-    assert seen["suspended"] is False
-    assert seen["visible"] is True
-    assert seen["modality"] == Qt.WindowModality.WindowModal
-    owner.close()
-
-
-def test_suspend_modal_blocking_keeps_dialog_visible(qapp: QApplication) -> None:  # noqa: ARG001
-    dialog = QDialog()
-    dialog.setModal(True)
-    dialog.setWindowOpacity(1.0)
-    dialog.show()
-    QApplication.processEvents()
-    try:
-        suspended = suspend_modal_blocking()
-        assert any(item.widget is dialog for item in suspended)
-        assert dialog.isVisible()
-        assert dialog.windowOpacity() == 1.0
-        assert dialog.windowModality() == Qt.WindowModality.NonModal
-        assert dialog.testAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
-
-        restore_modal_blocking(suspended)
-        assert dialog.isVisible()
-        assert dialog.windowOpacity() == 1.0
-        assert dialog.windowModality() == Qt.WindowModality.ApplicationModal
-        assert not dialog.testAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
-    finally:
-        dialog.close()
-
-
-def test_hide_app_windows_keeps_modal_dialog_exec_alive(qapp: QApplication) -> None:  # noqa: ARG001
-    """Modal dialogs must stay accepted/open after conceal — hide() would reject exec()."""
-    dialog = QDialog()
-    dialog.setModal(True)
-    dialog.setWindowOpacity(1.0)
+    dialog = QDialog(owner)
+    dialog.setWindowModality(Qt.WindowModality.WindowModal)
     dialog.show()
     QApplication.processEvents()
 
     concealed = hide_app_windows()
-    assert any(item.widget is dialog and item.mode == "opacity" for item in concealed)
-    assert dialog.isVisible()
-    assert dialog.windowOpacity() == 0.0
-    assert dialog.result() == 0  # not finished/rejected
-    # Invisible modal must not keep ApplicationModal (blocks shutter / beeps).
-    assert dialog.windowModality() == Qt.WindowModality.NonModal
-    assert not dialog.isModal()
-    assert dialog.testAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+    sibling_item = next(item for item in concealed if item.widget is sibling)
+    assert sibling_item.mode == "opacity"
+    assert sibling.isVisible()
+    assert sibling.windowOpacity() == 0.0
 
     restore_app_windows(concealed)
-    assert dialog.windowOpacity() == 1.0
-    assert dialog.isVisible()
-    assert dialog.result() == 0
-    assert dialog.windowModality() == Qt.WindowModality.ApplicationModal
-    assert dialog.isModal()
-    assert not dialog.testAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+    assert sibling.windowOpacity() == 1.0
+    assert dialog.windowModality() == Qt.WindowModality.WindowModal
 
     dialog.close()
+    owner.close()
+    sibling.close()
 
 
 def test_hide_app_windows_fades_window_modal_owner_not_hide(qapp: QApplication) -> None:  # noqa: ARG001
@@ -225,32 +176,48 @@ def test_hide_app_windows_hides_non_modal_top_level(qapp: QApplication) -> None:
     window.close()
 
 
-def test_hide_app_windows_fades_sibling_when_modal_exists(qapp: QApplication) -> None:  # noqa: ARG001
-    """A later hide()/show() of Fitness must not land above a WindowModal error box."""
-    sibling = QWidget()
-    sibling.setWindowTitle("sibling-fitness")
-    sibling.show()
-    owner = QWidget()
-    owner.setWindowTitle("owner-window")
-    owner.show()
-    dialog = QDialog(owner)
-    dialog.setWindowModality(Qt.WindowModality.WindowModal)
+def test_hide_app_windows_keeps_modal_dialog_exec_alive(qapp: QApplication) -> None:  # noqa: ARG001
+    """Modal dialogs must stay accepted/open after conceal — hide() would reject exec()."""
+    dialog = QDialog()
+    dialog.setModal(True)
+    dialog.setWindowOpacity(1.0)
     dialog.show()
     QApplication.processEvents()
 
     concealed = hide_app_windows()
-    sibling_item = next(item for item in concealed if item.widget is sibling)
-    assert sibling_item.mode == "opacity"
-    assert sibling.isVisible()
-    assert sibling.windowOpacity() == 0.0
+    assert any(item.widget is dialog and item.mode == "opacity" for item in concealed)
+    assert dialog.isVisible()
+    assert dialog.windowOpacity() == 0.0
+    assert dialog.result() == 0  # not finished/rejected
+    # Invisible modal must not keep ApplicationModal (blocks shutter / beeps).
+    assert dialog.windowModality() == Qt.WindowModality.NonModal
+    assert not dialog.isModal()
+    assert dialog.testAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
 
     restore_app_windows(concealed)
-    assert sibling.windowOpacity() == 1.0
-    assert dialog.windowModality() == Qt.WindowModality.WindowModal
+    assert dialog.windowOpacity() == 1.0
+    assert dialog.isVisible()
+    assert dialog.result() == 0
+    assert dialog.windowModality() == Qt.WindowModality.ApplicationModal
+    assert dialog.isModal()
+    assert not dialog.testAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
 
     dialog.close()
-    owner.close()
-    sibling.close()
+
+
+def test_hide_app_windows_records_stay_on_top(qapp: QApplication) -> None:  # noqa: ARG001
+    """Stay-on-top command cards are remembered so restore can drop the hint."""
+    cards = QWidget()
+    cards.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint)
+    cards.show()
+    QApplication.processEvents()
+
+    concealed = hide_app_windows()
+    match = next(item for item in concealed if item.widget is cards)
+    assert match.stay_on_top
+
+    restore_app_windows(concealed)
+    cards.close()
 
 
 def test_pick_focus_target_prefers_active_window_over_last_visible(qapp: QApplication) -> None:  # noqa: ARG001
@@ -269,21 +236,6 @@ def test_pick_focus_target_prefers_active_window_over_last_visible(qapp: QApplic
 
     cards.close()
     finance.close()
-
-
-def test_hide_app_windows_records_stay_on_top(qapp: QApplication) -> None:  # noqa: ARG001
-    """Stay-on-top command cards are remembered so restore can drop the hint."""
-    cards = QWidget()
-    cards.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint)
-    cards.show()
-    QApplication.processEvents()
-
-    concealed = hide_app_windows()
-    match = next(item for item in concealed if item.widget is cards)
-    assert match.stay_on_top
-
-    restore_app_windows(concealed)
-    cards.close()
 
 
 def test_pick_focus_target_uses_saved_modality(qapp: QApplication) -> None:  # noqa: ARG001
@@ -305,6 +257,28 @@ def test_pick_focus_target_uses_saved_modality(qapp: QApplication) -> None:  # n
     owner.close()
 
 
+def test_pin_screenshot_surfaces_topmost_raises_visible_panes(qapp: QApplication) -> None:  # noqa: ARG001
+    """Overlay panes must be raisable above a still-mapped Result dialog."""
+    result = QDialog()
+    result.setModal(True)
+    result.resize(320, 240)
+    result.show()
+    pane = QWidget()
+    pane.setWindowFlags(
+        Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.Tool,
+    )
+    pane.resize(120, 80)
+    pane.show()
+    QApplication.processEvents()
+
+    pin_screenshot_surfaces_topmost((pane,))
+    assert pane.isVisible()
+    assert pane.isActiveWindow() or pane.windowFlags() & Qt.WindowType.WindowStaysOnTopHint
+
+    pane.close()
+    result.close()
+
+
 def test_restore_app_windows_prefers_modal_dialog_for_focus(qapp: QApplication) -> None:  # noqa: ARG001
     plain = QWidget()
     plain.show()
@@ -321,6 +295,30 @@ def test_restore_app_windows_prefers_modal_dialog_for_focus(qapp: QApplication) 
 
     plain.close()
     modal.close()
+
+
+def test_restore_clears_stay_on_top_on_sibling_of_focus(qapp: QApplication) -> None:  # noqa: ARG001
+    """Command cards stay-on-top must not cover Finance after a screenshot."""
+    cards = QWidget()
+    cards.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint)
+    cards.show()
+    finance = QWidget()
+    finance.show()
+    QApplication.processEvents()
+
+    widgets = [
+        ConcealedWindow(cards, "hide", stay_on_top=True),
+        ConcealedWindow(finance, "hide", was_active=True),
+    ]
+    restore_app_windows(widgets)
+    QApplication.processEvents()
+
+    assert not (cards.windowFlags() & Qt.WindowType.WindowStaysOnTopHint)
+    assert cards.isVisible()
+    assert finance.isVisible()
+
+    cards.close()
+    finance.close()
 
 
 def test_restore_keeps_message_box_reachable(qapp: QApplication) -> None:  # noqa: ARG001
@@ -347,30 +345,6 @@ def test_restore_keeps_message_box_reachable(qapp: QApplication) -> None:  # noq
 
     box.close()
     owner.close()
-
-
-def test_restore_clears_stay_on_top_on_sibling_of_focus(qapp: QApplication) -> None:  # noqa: ARG001
-    """Command cards stay-on-top must not cover Finance after a screenshot."""
-    cards = QWidget()
-    cards.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint)
-    cards.show()
-    finance = QWidget()
-    finance.show()
-    QApplication.processEvents()
-
-    widgets = [
-        ConcealedWindow(cards, "hide", stay_on_top=True),
-        ConcealedWindow(finance, "hide", was_active=True),
-    ]
-    restore_app_windows(widgets)
-    QApplication.processEvents()
-
-    assert not (cards.windowFlags() & Qt.WindowType.WindowStaysOnTopHint)
-    assert cards.isVisible()
-    assert finance.isVisible()
-
-    cards.close()
-    finance.close()
 
 
 def test_restore_keeps_stay_on_top_on_focus_window(qapp: QApplication) -> None:  # noqa: ARG001
@@ -412,3 +386,52 @@ def test_restore_without_activate_shows_windows_and_drops_stay_on_top(qapp: QApp
 
     cards.close()
     finance.close()
+
+
+def test_suspend_modal_blocking_keeps_dialog_visible(qapp: QApplication) -> None:  # noqa: ARG001
+    dialog = QDialog()
+    dialog.setModal(True)
+    dialog.setWindowOpacity(1.0)
+    dialog.show()
+    QApplication.processEvents()
+    try:
+        suspended = suspend_modal_blocking()
+        assert any(item.widget is dialog for item in suspended)
+        assert dialog.isVisible()
+        assert dialog.windowOpacity() == 1.0
+        assert dialog.windowModality() == Qt.WindowModality.NonModal
+        assert dialog.testAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+
+        restore_modal_blocking(suspended)
+        assert dialog.isVisible()
+        assert dialog.windowOpacity() == 1.0
+        assert dialog.windowModality() == Qt.WindowModality.ApplicationModal
+        assert not dialog.testAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+    finally:
+        dialog.close()
+
+
+def test_suspend_modal_blocking_skips_dialog_inside_exec(qapp: QApplication) -> None:  # noqa: ARG001
+    """In-exec QMessageBox must keep its modality so exec() can still be dismissed."""
+    owner = QWidget()
+    owner.show()
+    box = QMessageBox(owner)
+    box.setText("AI error")
+    box.setWindowModality(Qt.WindowModality.WindowModal)
+    box.setStandardButtons(QMessageBox.StandardButton.Ok)
+    seen: dict[str, object] = {}
+
+    def probe() -> None:
+        suspended = suspend_modal_blocking()
+        seen["suspended"] = box in {item.widget for item in suspended}
+        seen["visible"] = box.isVisible()
+        seen["modality"] = box.windowModality()
+        restore_modal_blocking(suspended)
+        box.reject()
+
+    QTimer.singleShot(0, probe)
+    box.exec()
+    assert seen["suspended"] is False
+    assert seen["visible"] is True
+    assert seen["modality"] == Qt.WindowModality.WindowModal
+    owner.close()
