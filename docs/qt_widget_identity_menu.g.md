@@ -92,16 +92,25 @@ def eventFilter(self, obj: QObject, event: QEvent) -> bool:  # noqa: N802
 ## 🔧 Function `add_widget_identity_actions`
 
 ```python
-def add_widget_identity_actions(menu: QMenu, widget: QWidget) -> None
+def add_widget_identity_actions(menu: QMenu, widget: QWidget, *, skip_texts: frozenset[str] | set[str] | None = None) -> None
 ```
 
 Append Copy object name / Copy class name / Copy text actions for `widget`.
+
+`skip_texts` suppresses **Copy text** when the widget text matches one of
+those values (case-insensitive), so action menus do not repeat the same
+string as **Copy menu title**.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def add_widget_identity_actions(menu: QMenu, widget: QWidget) -> None:
+def add_widget_identity_actions(
+    menu: QMenu,
+    widget: QWidget,
+    *,
+    skip_texts: frozenset[str] | set[str] | None = None,
+) -> None:
     object_name = widget_object_name_for_copy(widget)
     class_name = widget_class_name_for_copy(widget)
     copy_name = menu.addAction(format_copy_object_name_menu_label(object_name))
@@ -109,9 +118,13 @@ def add_widget_identity_actions(menu: QMenu, widget: QWidget) -> None:
     copy_class = menu.addAction(format_copy_class_name_menu_label(class_name))
     copy_class.triggered.connect(lambda *_args, text=class_name: _copy_text(text))
     widget_text = widget_text_for_copy(widget)
-    if widget_text is not None:
-        copy_value = menu.addAction(format_copy_text_menu_label(widget_text))
-        copy_value.triggered.connect(lambda *_args, text=widget_text: _copy_text(text))
+    if widget_text is None:
+        return
+    skipped = {item.strip().casefold() for item in skip_texts or () if item.strip()}
+    if widget_text.strip().casefold() in skipped:
+        return
+    copy_value = menu.addAction(format_copy_text_menu_label(widget_text))
+    copy_value.triggered.connect(lambda *_args, text=widget_text: _copy_text(text))
 ```
 
 </details>

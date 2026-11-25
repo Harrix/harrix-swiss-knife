@@ -14,6 +14,7 @@ from harrix_swiss_knife.fluent.widgets.card_base import FluentInteractiveCard
 from harrix_swiss_knife.fluent.widgets.menus import FluentMenu
 from harrix_swiss_knife.qt_widget_identity_menu import (
     WidgetIdentityEventFilter,
+    add_widget_identity_actions,
     ensure_widget_object_name,
     format_copy_class_name_menu_label,
     format_copy_object_name_menu_label,
@@ -38,42 +39,15 @@ def qapp() -> QApplication:
     return app
 
 
-@pytest.fixture(autouse=True)
-def _reset_auto_object_name_counts() -> None:
-    identity_menu._AUTO_NAME_COUNTS.clear()
-
-
-def _middle_press(widget: QWidget) -> QMouseEvent:
-    local = QPointF(1, 1)
-    return QMouseEvent(
-        QEvent.Type.MouseButtonPress,
-        local,
-        widget.mapToGlobal(local.toPoint()),
-        Qt.MouseButton.MiddleButton,
-        Qt.MouseButton.MiddleButton,
-        Qt.KeyboardModifier.NoModifier,
-    )
-
-
-def test_widget_object_name_auto_assigns_from_text(qapp: QApplication) -> None:  # noqa: ARG001
-    widget = QPushButton("Select exercise")
-    assert widget_object_name_for_copy(widget) == "QPushButton_Select_exercise"
-    assert widget.objectName() == "QPushButton_Select_exercise"
-    assert widget_class_name_for_copy(widget) == "QPushButton"
-
-
-def test_widget_object_name_preserves_explicit_name(qapp: QApplication) -> None:  # noqa: ARG001
-    widget = QPushButton("Select exercise")
-    widget.setObjectName("pushButton_select_exercise")
-    assert widget_object_name_for_copy(widget) == "pushButton_select_exercise"
-    assert ensure_widget_object_name(widget) == "pushButton_select_exercise"
-
-
-def test_widget_object_name_suffixes_duplicates(qapp: QApplication) -> None:  # noqa: ARG001
-    first = QPushButton("OK")
-    second = QPushButton("OK")
-    assert widget_object_name_for_copy(first) == "QPushButton_OK"
-    assert widget_object_name_for_copy(second) == "QPushButton_OK_2"
+def test_add_widget_identity_actions_skips_duplicate_text(qapp: QApplication) -> None:  # noqa: ARG001
+    host = QPushButton("Quick launcher")
+    menu = FluentMenu("", host)
+    add_widget_identity_actions(menu, host, skip_texts={"Quick launcher"})
+    labels = [action.text() for action in menu.actions() if not action.isSeparator()]
+    assert any("object name" in label for label in labels)
+    assert any("class name" in label for label in labels)
+    assert not any("Copy text:" in label for label in labels)
+    host.close()
 
 
 def test_ensure_skips_when_name_already_set(qapp: QApplication) -> None:  # noqa: ARG001
@@ -81,46 +55,6 @@ def test_ensure_skips_when_name_already_set(qapp: QApplication) -> None:  # noqa
     view.setObjectName("FluentListWidget")
     assert ensure_widget_object_name(view) == "FluentListWidget"
     assert view.objectName() == "FluentListWidget"
-
-
-def test_format_copy_labels() -> None:
-    assert format_copy_object_name_menu_label("foo") == "📋 Copy object name (foo)"
-    assert format_copy_class_name_menu_label("Bar") == "📋 Copy class name (Bar)"
-    assert format_copy_text_menu_label("Hello") == "📋 Copy text: Hello"
-    long_text = "x" * 50
-    assert format_copy_text_menu_label(long_text) == f"📋 Copy text: {'x' * 40}…"
-
-
-def test_widget_text_for_copy_reads_label_and_edit(qapp: QApplication) -> None:  # noqa: ARG001
-    assert widget_text_for_copy(QLabel("Amount")) == "Amount"
-    edit = QLineEdit("42.5")
-    assert widget_text_for_copy(edit) == "42.5"
-    assert widget_text_for_copy(QPushButton("Save")) == "Save"
-    assert widget_text_for_copy(QWidget()) is None
-    assert widget_text_for_copy(QLabel("   ")) is None
-
-
-def test_truncate_text_preview_flattens_whitespace() -> None:
-    assert truncate_text_preview("one\n two\t three") == "one two three"
-    assert truncate_text_preview("a" * 45, max_len=10) == "aaaaaaaaaa…"
-
-
-def test_resolve_identity_widget_prefers_named_view(qapp: QApplication) -> None:  # noqa: ARG001
-    view = QListWidget()
-    view.setObjectName("listView_exercises")
-    viewport = view.viewport()
-    assert viewport is not None
-    assert resolve_identity_widget(viewport) is view
-    assert resolve_identity_widget(view) is view
-
-
-def test_install_widget_identity_context_menus_is_idempotent(qapp: QApplication) -> None:
-    install_widget_identity_context_menus(qapp)
-    first = qapp.property("_hskWidgetIdentityFilter")
-    install_widget_identity_context_menus(qapp)
-    second = qapp.property("_hskWidgetIdentityFilter")
-    assert isinstance(first, WidgetIdentityEventFilter)
-    assert first is second
 
 
 def test_filter_auto_names_on_polish(qapp: QApplication) -> None:
@@ -161,18 +95,10 @@ def test_filter_handles_middle_click_on_line_edit(qapp: QApplication) -> None:
     show_menu.assert_called_once()
 
 
-def test_filter_skips_fluent_interactive_card(qapp: QApplication) -> None:
-    """Command cards own middle-click for the richer action copy menu."""
-    install_widget_identity_context_menus(qapp)
-    event_filter = qapp.property("_hskWidgetIdentityFilter")
-    assert isinstance(event_filter, WidgetIdentityEventFilter)
-    card = FluentInteractiveCard()
-    with patch(
-        "harrix_swiss_knife.qt_widget_identity_menu.show_widget_identity_context_menu",
-    ) as show_menu:
-        handled = event_filter.eventFilter(card, _middle_press(card))
-    assert handled is False
-    show_menu.assert_not_called()
+def test_filter_ignores_non_mouse_events(qapp: QApplication) -> None:
+    event_filter = WidgetIdentityEventFilter(qapp)
+    widget = QWidget()
+    assert event_filter.eventFilter(widget, QEvent(QEvent.Type.Hide)) is False
 
 
 def test_filter_ignores_right_click_context_menu(qapp: QApplication) -> None:
@@ -196,10 +122,18 @@ def test_filter_ignores_right_click_context_menu(qapp: QApplication) -> None:
     show_menu.assert_not_called()
 
 
-def test_filter_ignores_non_mouse_events(qapp: QApplication) -> None:
-    event_filter = WidgetIdentityEventFilter(qapp)
-    widget = QWidget()
-    assert event_filter.eventFilter(widget, QEvent(QEvent.Type.Hide)) is False
+def test_filter_skips_fluent_interactive_card(qapp: QApplication) -> None:
+    """Command cards own middle-click for the richer action copy menu."""
+    install_widget_identity_context_menus(qapp)
+    event_filter = qapp.property("_hskWidgetIdentityFilter")
+    assert isinstance(event_filter, WidgetIdentityEventFilter)
+    card = FluentInteractiveCard()
+    with patch(
+        "harrix_swiss_knife.qt_widget_identity_menu.show_widget_identity_context_menu",
+    ) as show_menu:
+        handled = event_filter.eventFilter(card, _middle_press(card))
+    assert handled is False
+    show_menu.assert_not_called()
 
 
 def test_fluent_menu_ignores_bold_parent_font(qapp: QApplication) -> None:
@@ -211,3 +145,81 @@ def test_fluent_menu_ignores_bold_parent_font(qapp: QApplication) -> None:
     menu = FluentMenu("", label)
     assert menu.font().bold() is False
     assert menu.font().weight() == qapp.font().weight()
+
+
+def test_format_copy_labels() -> None:
+    assert format_copy_object_name_menu_label("foo") == "📋 Copy object name (foo)"
+    assert format_copy_class_name_menu_label("Bar") == "📋 Copy class name (Bar)"
+    assert format_copy_text_menu_label("Hello") == "📋 Copy text: Hello"
+    long_text = "x" * 50
+    assert format_copy_text_menu_label(long_text) == f"📋 Copy text: {'x' * 40}…"
+
+
+def test_install_widget_identity_context_menus_is_idempotent(qapp: QApplication) -> None:
+    install_widget_identity_context_menus(qapp)
+    first = qapp.property("_hskWidgetIdentityFilter")
+    install_widget_identity_context_menus(qapp)
+    second = qapp.property("_hskWidgetIdentityFilter")
+    assert isinstance(first, WidgetIdentityEventFilter)
+    assert first is second
+
+
+def test_resolve_identity_widget_prefers_named_view(qapp: QApplication) -> None:  # noqa: ARG001
+    view = QListWidget()
+    view.setObjectName("listView_exercises")
+    viewport = view.viewport()
+    assert viewport is not None
+    assert resolve_identity_widget(viewport) is view
+    assert resolve_identity_widget(view) is view
+
+
+def test_truncate_text_preview_flattens_whitespace() -> None:
+    assert truncate_text_preview("one\n two\t three") == "one two three"
+    assert truncate_text_preview("a" * 45, max_len=10) == "aaaaaaaaaa…"
+
+
+def test_widget_object_name_auto_assigns_from_text(qapp: QApplication) -> None:  # noqa: ARG001
+    widget = QPushButton("Select exercise")
+    assert widget_object_name_for_copy(widget) == "QPushButton_Select_exercise"
+    assert widget.objectName() == "QPushButton_Select_exercise"
+    assert widget_class_name_for_copy(widget) == "QPushButton"
+
+
+def test_widget_object_name_preserves_explicit_name(qapp: QApplication) -> None:  # noqa: ARG001
+    widget = QPushButton("Select exercise")
+    widget.setObjectName("pushButton_select_exercise")
+    assert widget_object_name_for_copy(widget) == "pushButton_select_exercise"
+    assert ensure_widget_object_name(widget) == "pushButton_select_exercise"
+
+
+def test_widget_object_name_suffixes_duplicates(qapp: QApplication) -> None:  # noqa: ARG001
+    first = QPushButton("OK")
+    second = QPushButton("OK")
+    assert widget_object_name_for_copy(first) == "QPushButton_OK"
+    assert widget_object_name_for_copy(second) == "QPushButton_OK_2"
+
+
+def test_widget_text_for_copy_reads_label_and_edit(qapp: QApplication) -> None:  # noqa: ARG001
+    assert widget_text_for_copy(QLabel("Amount")) == "Amount"
+    edit = QLineEdit("42.5")
+    assert widget_text_for_copy(edit) == "42.5"
+    assert widget_text_for_copy(QPushButton("Save")) == "Save"
+    assert widget_text_for_copy(QWidget()) is None
+    assert widget_text_for_copy(QLabel("   ")) is None
+
+
+def _middle_press(widget: QWidget) -> QMouseEvent:
+    local = QPointF(1, 1)
+    return QMouseEvent(
+        QEvent.Type.MouseButtonPress,
+        local,
+        widget.mapToGlobal(local.toPoint()),
+        Qt.MouseButton.MiddleButton,
+        Qt.MouseButton.MiddleButton,
+        Qt.KeyboardModifier.NoModifier,
+    )
+
+
+@pytest.fixture(autouse=True)
+def _reset_auto_object_name_counts() -> None:
+    identity_menu._AUTO_NAME_COUNTS.clear()

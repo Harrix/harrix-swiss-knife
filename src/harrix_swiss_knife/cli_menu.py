@@ -10,7 +10,6 @@ from PySide6.QtGui import QAction, QClipboard, QGuiApplication, QMouseEvent
 from harrix_swiss_knife.action_identity import (
     ActionIdentityParts,
     action_identity_parts,
-    format_action_identity_text,
 )
 from harrix_swiss_knife.action_title import strip_md_inline_code_markers
 from harrix_swiss_knife.fluent.widgets.menus import FluentMenu
@@ -195,12 +194,8 @@ def show_action_class_context_menu(
     host_widget: QWidget | None = None,
     menu_title: str | None = None,
 ) -> None:
-    """Show copy name/class/path (and CLI when available) for an action class."""
+    """Show copy name/class/path for an action class (middle-click style menu)."""
     identity_parts = action_identity_parts(action_cls)
-    identity_text = format_action_identity_text(action_cls)
-    cli_copy_command: str | None = None
-    if getattr(action_cls, "cli_available", False):
-        cli_copy_command = build_cli_copy_command(str(getattr(action_cls, "cli_hint", "") or ""))
     title = menu_title.strip() if isinstance(menu_title, str) and menu_title.strip() else None
     if title is None:
         title = menu_title_from_action_class(action_cls) or None
@@ -208,9 +203,7 @@ def show_action_class_context_menu(
         parent=parent,
         global_pos=global_pos,
         menu_title=title,
-        identity_text=identity_text,
         identity_parts=identity_parts,
-        cli_copy_command=cli_copy_command,
         host_widget=host_widget,
     )
 
@@ -221,18 +214,17 @@ def show_action_identity_context_menu(
     global_pos: QPoint,
     identity_text: str | None = None,
     identity_parts: ActionIdentityParts | None = None,
-    cli_copy_command: str | None = None,
     host_widget: QWidget | None = None,
     menu_title: str | None = None,
 ) -> None:
-    """Show a context menu to copy action identity fields and optional CLI command."""
-    if (
-        menu_title is None
-        and identity_text is None
-        and identity_parts is None
-        and cli_copy_command is None
-        and host_widget is None
-    ):
+    """Show a middle-click menu to copy action identity fields (no CLI / usage).
+
+    When `identity_parts` is set, the combined name/class/path blob is omitted
+    so the three field actions are not duplicated. Widget **Copy text** is
+    skipped when it matches `menu_title`.
+
+    """
+    if menu_title is None and identity_text is None and identity_parts is None and host_widget is None:
         return
 
     menu = FluentMenu("", parent)
@@ -241,11 +233,7 @@ def show_action_identity_context_menu(
         copy_menu_title.triggered.connect(
             lambda *_args, text=menu_title: copy_text_to_clipboard(text),
         )
-    if identity_text is not None:
-        copy_identity = menu.addAction(COPY_ACTION_IDENTITY_MENU_LABEL)
-        copy_identity.triggered.connect(
-            lambda *_args, text=identity_text: copy_text_to_clipboard(text),
-        )
+    # Prefer per-field copies; the combined blob duplicates those three lines.
     if identity_parts is not None:
         copy_name = menu.addAction(format_copy_action_name_menu_label(identity_parts.name))
         copy_name.triggered.connect(
@@ -259,17 +247,16 @@ def show_action_identity_context_menu(
         copy_path.triggered.connect(
             lambda *_args, text=identity_parts.path: copy_text_to_clipboard(text),
         )
-    if cli_copy_command is not None:
-        if not menu.isEmpty():
-            menu.addSeparator()
-        copy_cli = menu.addAction(format_copy_cli_menu_label(cli_copy_command))
-        copy_cli.triggered.connect(
-            lambda *_args, cmd=cli_copy_command: copy_cli_command_to_clipboard(cmd),
+    elif identity_text is not None:
+        copy_identity = menu.addAction(COPY_ACTION_IDENTITY_MENU_LABEL)
+        copy_identity.triggered.connect(
+            lambda *_args, text=identity_text: copy_text_to_clipboard(text),
         )
     if host_widget is not None:
         if not menu.isEmpty():
             menu.addSeparator()
-        add_widget_identity_actions(menu, host_widget)
+        skip_texts = {menu_title} if menu_title else set()
+        add_widget_identity_actions(menu, host_widget, skip_texts=skip_texts)
     apply_leading_chrome_icons(menu)
     menu.refresh_theme()
     menu.exec(global_pos)
@@ -282,14 +269,12 @@ def show_action_item_context_menu(
     action: QAction,
     host_widget: QWidget | None = None,
 ) -> None:
-    """Show a context menu to copy action identity and, when present, the CLI command."""
+    """Show middle-click copy menu for a menu/card action (identity only, no CLI)."""
     show_action_identity_context_menu(
         parent=parent,
         global_pos=global_pos,
         menu_title=get_menu_item_title(action),
-        identity_text=get_action_identity_text(action),
         identity_parts=get_action_identity_parts(action),
-        cli_copy_command=get_cli_copy_command(action),
         host_widget=host_widget,
     )
 

@@ -87,17 +87,20 @@ class MainWindow(QMainWindow):
         self.hide()
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
-        """Refit Recent on cards resize; open the action menu on list right/middle-click."""
+        """Refit Recent on cards resize; list middle = identity, right = CLI/usage."""
         if event.type() == QEvent.Type.Resize and watched is self._scroll.viewport():
             self._cards_layout_timer.start()
         elif (
             event.type() == QEvent.Type.MouseButtonPress
             and isinstance(event, QMouseEvent)
-            and event.button() in {Qt.MouseButton.RightButton, Qt.MouseButton.MiddleButton}
             and watched is self.list_widget.viewport()
         ):
-            self._show_list_item_context_menu(self.list_widget, event.position().toPoint())
-            return True
+            if event.button() == Qt.MouseButton.MiddleButton:
+                self._show_list_item_context_menu(self.list_widget, event.position().toPoint())
+                return True
+            if event.button() == Qt.MouseButton.RightButton:
+                self._show_list_item_shortcut_menu(self.list_widget, event.position().toPoint())
+                return True
         return super().eventFilter(watched, event)
 
     def focus_initial_input(self) -> None:
@@ -395,6 +398,13 @@ class MainWindow(QMainWindow):
                 host_widget=host,
             ),
         )
+        card.shortcut_menu_requested.connect(
+            lambda global_pos, listed=action: show_tray_action_context_menu(
+                parent=self,
+                global_pos=global_pos,
+                action=listed,
+            ),
+        )
         return card
 
     def _create_section(
@@ -441,6 +451,14 @@ class MainWindow(QMainWindow):
 
     def _is_newest_sort(self) -> bool:
         return self._sort_mode == MAIN_WINDOW_SORT_MODE_NEWEST
+
+    @staticmethod
+    def _list_action_at(list_widget: QListWidget, pos: QPoint) -> QAction | None:
+        item = list_widget.itemAt(pos)
+        if item is None:
+            return None
+        action = item.data(Qt.ItemDataRole.UserRole)
+        return action if isinstance(action, QAction) else None
 
     def _on_cards_layout_changed(self) -> None:
         """Size Recent to one row of the catalog grid."""
@@ -605,18 +623,27 @@ class MainWindow(QMainWindow):
         apply_app_window_size_and_position(self)
 
     def _show_list_item_context_menu(self, list_widget: QListWidget, pos: QPoint) -> None:
-        """Show the action copy menu for the list item at `pos`."""
+        """Show the middle-click identity copy menu for the list item at `pos`."""
+        action = self._list_action_at(list_widget, pos)
+        if action is None:
+            return
         item = list_widget.itemAt(pos)
-        if item is None:
-            return
-        action = item.data(Qt.ItemDataRole.UserRole)
-        if not isinstance(action, QAction):
-            return
         show_action_item_context_menu(
             parent=self,
             global_pos=list_widget.viewport().mapToGlobal(pos) if list_widget.viewport() is not None else QCursor.pos(),
             action=action,
-            host_widget=list_widget.itemWidget(item) or list_widget,
+            host_widget=(list_widget.itemWidget(item) if item is not None else None) or list_widget,
+        )
+
+    def _show_list_item_shortcut_menu(self, list_widget: QListWidget, pos: QPoint) -> None:
+        """Show the right-click CLI / usage menu for the list item at `pos`."""
+        action = self._list_action_at(list_widget, pos)
+        if action is None:
+            return
+        show_tray_action_context_menu(
+            parent=self,
+            global_pos=list_widget.viewport().mapToGlobal(pos) if list_widget.viewport() is not None else QCursor.pos(),
+            action=action,
         )
 
     def _sync_newest_checkbox(self) -> None:
@@ -716,7 +743,7 @@ def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
 def eventFilter(self, watched: QObject, event: QEvent) -> bool
 ```
 
-Refit Recent on cards resize; open the action menu on list right/middle-click.
+Refit Recent on cards resize; list middle = identity, right = CLI/usage.
 
 <details>
 <summary>Code:</summary>
@@ -728,11 +755,14 @@ def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
         elif (
             event.type() == QEvent.Type.MouseButtonPress
             and isinstance(event, QMouseEvent)
-            and event.button() in {Qt.MouseButton.RightButton, Qt.MouseButton.MiddleButton}
             and watched is self.list_widget.viewport()
         ):
-            self._show_list_item_context_menu(self.list_widget, event.position().toPoint())
-            return True
+            if event.button() == Qt.MouseButton.MiddleButton:
+                self._show_list_item_context_menu(self.list_widget, event.position().toPoint())
+                return True
+            if event.button() == Qt.MouseButton.RightButton:
+                self._show_list_item_shortcut_menu(self.list_widget, event.position().toPoint())
+                return True
         return super().eventFilter(watched, event)
 ```
 

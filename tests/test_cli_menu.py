@@ -13,6 +13,7 @@ from harrix_swiss_knife.action_identity import ActionIdentityParts
 from harrix_swiss_knife.cli_menu import (
     CLI_MENU_SUFFIX,
     COPY_ACTION_CLASS_MENU_PREFIX,
+    COPY_ACTION_IDENTITY_MENU_LABEL,
     COPY_ACTION_NAME_MENU_PREFIX,
     COPY_ACTION_NAME_PREVIEW_MAX_LEN,
     COPY_ACTION_PATH_MENU_PREFIX,
@@ -29,6 +30,7 @@ from harrix_swiss_knife.cli_menu import (
     get_menu_item_title,
     is_tracker_launcher_action,
     show_action_identity_context_menu,
+    show_action_item_context_menu,
     show_open_all_trackers_menu,
     show_tray_action_context_menu,
     trigger_all_tracker_launchers,
@@ -76,6 +78,8 @@ def test_action_identity_context_menu_includes_menu_title(qapp: QApplication, mo
     assert labels[0].removeprefix("📋 ").startswith(COPY_MENU_TITLE_MENU_PREFIX.removeprefix("📋 "))
     assert "Git commit" in labels[0]
     assert "Show in Action usage stats" not in labels
+    assert not any("CLI command" in label for label in labels)
+    assert not any("name, class, and path" in label for label in labels)
     host.close()
 
 
@@ -115,6 +119,28 @@ def test_action_identity_context_menu_uses_fluent_dark_chrome(
     finally:
         theme.set_mode(previous, persist=False)
         host.close()
+
+
+def test_action_item_context_menu_omits_cli_and_combined_blob(
+    qapp: QApplication, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    assert qapp is not None
+    host = QWidget()
+    shown: list[FluentMenu] = []
+
+    def _capture_exec(self: FluentMenu, *_args: object, **_kwargs: object) -> None:
+        shown.append(self)
+
+    monkeypatch.setattr(FluentMenu, "exec", _capture_exec)
+    action = _action_with_identity("OnGitCommit", "Git commit")
+    setattr(action, "cli_copy_command", "hsk file check-git-repos-needing-commit")  # noqa: B010
+    show_action_item_context_menu(parent=host, global_pos=QPoint(0, 0), action=action, host_widget=host)
+    assert len(shown) == 1
+    labels = [item.text() for item in shown[0].actions() if not item.isSeparator()]
+    assert not any("CLI command" in label for label in labels)
+    assert COPY_ACTION_IDENTITY_MENU_LABEL not in labels
+    assert SHOW_ACTION_USAGE_STATS_MENU_LABEL not in labels
+    host.close()
 
 
 def test_cli_context_menu_right_click_opens_tray_menu_for_non_tracker(

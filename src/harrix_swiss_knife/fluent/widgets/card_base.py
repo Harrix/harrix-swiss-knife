@@ -89,10 +89,11 @@ class FluentCard(QWidget):
 
 
 class FluentInteractiveCard(FluentCard):
-    """Clickable card with hover/pressed fills, keyboard activation, and a middle-click menu signal."""
+    """Clickable card with hover/pressed fills, keyboard activation, and menu signals."""
 
     clicked = Signal()
     context_menu_requested = Signal(QPoint)
+    shortcut_menu_requested = Signal(QPoint)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         """Create a clickable card."""
@@ -142,12 +143,16 @@ class FluentInteractiveCard(FluentCard):
         super().leaveEvent(event)
 
     def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
-        """Show the pressed fill; middle-click asks for the copy / identity menu."""
+        """Show the pressed fill; middle/right-click ask for identity / shortcut menus."""
         if event.button() == Qt.MouseButton.LeftButton:
             self._pressed = True
             self.update()
         elif event.button() == Qt.MouseButton.MiddleButton:
             self.context_menu_requested.emit(event.globalPosition().toPoint())
+            event.accept()
+            return
+        elif event.button() == Qt.MouseButton.RightButton:
+            self.shortcut_menu_requested.emit(event.globalPosition().toPoint())
             event.accept()
             return
         super().mousePressEvent(event)

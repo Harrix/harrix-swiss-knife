@@ -228,7 +228,7 @@ def set_success_tint(self, *, enabled: bool) -> None:
 class FluentInteractiveCard(FluentCard)
 ```
 
-Clickable card with hover/pressed fills, keyboard activation, and a middle-click menu signal.
+Clickable card with hover/pressed fills, keyboard activation, and menu signals.
 
 <details>
 <summary>Code:</summary>
@@ -238,6 +238,7 @@ class FluentInteractiveCard(FluentCard):
 
     clicked = Signal()
     context_menu_requested = Signal(QPoint)
+    shortcut_menu_requested = Signal(QPoint)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         """Create a clickable card."""
@@ -287,12 +288,16 @@ class FluentInteractiveCard(FluentCard):
         super().leaveEvent(event)
 
     def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
-        """Show the pressed fill; middle-click asks for the copy / identity menu."""
+        """Show the pressed fill; middle/right-click ask for identity / shortcut menus."""
         if event.button() == Qt.MouseButton.LeftButton:
             self._pressed = True
             self.update()
         elif event.button() == Qt.MouseButton.MiddleButton:
             self.context_menu_requested.emit(event.globalPosition().toPoint())
+            event.accept()
+            return
+        elif event.button() == Qt.MouseButton.RightButton:
+            self.shortcut_menu_requested.emit(event.globalPosition().toPoint())
             event.accept()
             return
         super().mousePressEvent(event)
@@ -499,7 +504,7 @@ def leaveEvent(self, event: QEvent) -> None:  # noqa: N802
 def mousePressEvent(self, event: QMouseEvent) -> None
 ```
 
-Show the pressed fill; middle-click asks for the copy / identity menu.
+Show the pressed fill; middle/right-click ask for identity / shortcut menus.
 
 <details>
 <summary>Code:</summary>
@@ -511,6 +516,10 @@ def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
             self.update()
         elif event.button() == Qt.MouseButton.MiddleButton:
             self.context_menu_requested.emit(event.globalPosition().toPoint())
+            event.accept()
+            return
+        elif event.button() == Qt.MouseButton.RightButton:
+            self.shortcut_menu_requested.emit(event.globalPosition().toPoint())
             event.accept()
             return
         super().mousePressEvent(event)
