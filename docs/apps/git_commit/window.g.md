@@ -103,7 +103,12 @@ class DirtyReposCommitWindow(QDialog):
         self._add_button.setToolTip("Add a repository or a folder to config.json")
         self._add_button.clicked.connect(self._on_add_repositories)
         header.addWidget(self._add_button)
+        self._check_button = FluentPushButton("Check", body, icon="rotate-cw")
+        self._check_button.setToolTip("Re-check the selected repository")
+        self._check_button.clicked.connect(self._check_current_repo)
+        header.addWidget(self._check_button)
         self._rescan_button = FluentPushButton("Check all repositories", body, icon="refresh-cw")
+        self._rescan_button.setToolTip("Scan every repository under paths_git_roots")
         self._rescan_button.clicked.connect(self._rescan_all_repos)
         header.addWidget(self._rescan_button)
         body_layout.addLayout(header)
@@ -403,6 +408,43 @@ class DirtyReposCommitWindow(QDialog):
         self.groupBox_commits = group
         bind_theme(group, self._polish_commit_summary)
         return group
+
+    def _check_current_repo(self) -> None:
+        """Re-check only the repository selected in the list."""
+        if self._busy:
+            return
+        repo = self._current_repo()
+        if repo is None:
+            self._toast("Select a repository")
+            return
+        label = repo.name or str(repo)
+        self._status_label.setText(f"Checking {label}…")
+        self._emit_line(f"🔵 Checking {repo}")
+
+        def work() -> DirtyRepoStatus | None:
+            invalidate_unpushed_cache(repo)
+            return attention_status(repo, resolve_visibility=True, fresh_unpushed=True)
+
+        def done(status: DirtyRepoStatus | None) -> None:
+            self._history_by_repo.pop(repo, None)
+            old_index = next((index for index, item in enumerate(self._statuses) if item.path == repo), None)
+            statuses = [item for item in self._statuses if item.path != repo]
+            if status is not None:
+                insert_at = old_index if old_index is not None else len(statuses)
+                statuses.insert(min(insert_at, len(statuses)), status)
+                self._set_statuses(statuses)
+                self._emit_line(f"✅ {label}: {status.list_label()}")
+            else:
+                self._set_statuses(statuses)
+                save_git_repos_all_clean(all_clean=not statuses)
+                self._toast(f"{label} is clean")
+                self._emit_line(f"✅ {label}: clean (no commit or push needed)")
+            self._set_status_text()
+
+        def failed(_message: str) -> None:
+            self._set_status_text()
+
+        self._run_worker(work, done, busy=True, on_fail=failed)
 
     def _checked_paths(self) -> list[str]:
         paths: list[str] = []
@@ -1214,6 +1256,7 @@ class DirtyReposCommitWindow(QDialog):
         self._style_push_button()
         self._unpushed_push.setEnabled(can_push)
         self._desktop_button.setEnabled(self._current_repo() is not None and not self._busy)
+        self._check_button.setEnabled(self._current_repo() is not None and not self._busy)
         self._rescan_button.setEnabled(not self._busy)
         self._add_button.setEnabled(not self._busy)
 ```
@@ -1297,7 +1340,12 @@ def __init__(
         self._add_button.setToolTip("Add a repository or a folder to config.json")
         self._add_button.clicked.connect(self._on_add_repositories)
         header.addWidget(self._add_button)
+        self._check_button = FluentPushButton("Check", body, icon="rotate-cw")
+        self._check_button.setToolTip("Re-check the selected repository")
+        self._check_button.clicked.connect(self._check_current_repo)
+        header.addWidget(self._check_button)
         self._rescan_button = FluentPushButton("Check all repositories", body, icon="refresh-cw")
+        self._rescan_button.setToolTip("Scan every repository under paths_git_roots")
         self._rescan_button.clicked.connect(self._rescan_all_repos)
         header.addWidget(self._rescan_button)
         body_layout.addLayout(header)
