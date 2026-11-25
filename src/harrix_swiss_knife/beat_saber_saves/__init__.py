@@ -14,6 +14,7 @@ from harrix_swiss_knife.beat_saber_saves.paths import (
     pc_saves_dir,
     quest_remote_files_dir,
 )
+from harrix_swiss_knife.beat_saber_saves.report import format_progress_report, load_level_clears
 
 __all__ = [
     "SAVE_FILE_NAMES",
@@ -22,8 +23,10 @@ __all__ = [
     "default_export_zip_path",
     "export_pc_saves",
     "export_quest_saves",
+    "format_progress_report",
     "import_pc_saves",
     "import_quest_saves",
+    "load_level_clears",
     "pc_saves_dir",
     "quest_remote_files_dir",
 ]

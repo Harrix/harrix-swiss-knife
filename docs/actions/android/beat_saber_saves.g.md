@@ -43,7 +43,7 @@ class OnBeatSaberSaves(ActionBase):
 
     icon = "🎮"
     title = "Beat Saber saves…"
-    description = "Export or import Beat Saber local ranks/progress (PC or Quest)."
+    description = "Export or import Beat Saber local ranks/progress (PC or Quest); export lists ranks and full combos."
     cli_available = True
     cli_hint = "android beat-saber-saves export|import pc|quest [--zip PATH]"
     bold_title = True

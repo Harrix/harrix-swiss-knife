@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 
 from harrix_swiss_knife.actions.common.adb import adb_pull, adb_push
 from harrix_swiss_knife.beat_saber_saves.paths import pc_saves_dir, quest_remote_files_dir
+from harrix_swiss_knife.beat_saber_saves.report import format_progress_report
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -25,6 +26,7 @@ SAVE_FILE_NAMES: tuple[str, ...] = (
 )
 REQUIRED_SAVE_NAME = "PlayerData.dat"
 _MANIFEST_NAME = "manifest.json"
+_PROGRESS_REPORT_NAME = "progress-report.txt"
 _ZIP_MEMBER_PREFIX = "saves/"
 
 
@@ -314,10 +316,21 @@ def _write_zip(
         "source": source,
         "files": sorted(files),
     }
+    progress_report = ""
+    player_data = files.get(REQUIRED_SAVE_NAME)
+    if player_data is not None and mode == "export":
+        progress_report = format_progress_report(player_data)
+
     with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
         zf.writestr(_MANIFEST_NAME, json.dumps(manifest, indent=2) + "\n")
+        if progress_report:
+            zf.writestr(_PROGRESS_REPORT_NAME, progress_report + "\n")
         for name, path in files.items():
             zf.write(path, arcname=f"{_ZIP_MEMBER_PREFIX}{name}")
+
+    lines = [f"Packed `{name}`" for name in sorted(files)]
+    if progress_report:
+        lines.extend(["", progress_report])
     return BeatSaberTransferResult(
         ok=True,
         mode=mode,
@@ -325,5 +338,5 @@ def _write_zip(
         files=sorted(files),
         zip_path=zip_path,
         message=f"Exported {len(files)} file(s) to `{zip_path}`.",
-        lines=[f"Packed `{name}`" for name in sorted(files)],
+        lines=lines,
     )
