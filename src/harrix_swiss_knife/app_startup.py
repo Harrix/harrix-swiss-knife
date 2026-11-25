@@ -427,7 +427,7 @@ def _apply_uv_upgrade_resume(output_bus: ActionOutputBus, log: logging.Logger) -
     resume = pop_uv_upgrade_resume()
     if resume is None or not resume["reopen_maintenance_checklist"]:
         return
-    from harrix_swiss_knife.actions.development.run_maintenance_checklist import (  # noqa: PLC0415
+    from harrix_swiss_knife.actions.apps.maintenance_checklist import (  # noqa: PLC0415
         OnRunMaintenanceChecklist,
     )
 

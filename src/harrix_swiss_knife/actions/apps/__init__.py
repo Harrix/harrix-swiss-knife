@@ -9,6 +9,7 @@ from harrix_swiss_knife.actions.apps.food import OnFood
 from harrix_swiss_knife.actions.apps.git_commit import OnGitCommit
 from harrix_swiss_knife.actions.apps.habits import OnHabits
 from harrix_swiss_knife.actions.apps.icons import OnIcons
+from harrix_swiss_knife.actions.apps.maintenance_checklist import OnRunMaintenanceChecklist
 from harrix_swiss_knife.actions.apps.quick_launcher import OnQuickLauncher
 from harrix_swiss_knife.actions.apps.snippets import OnSnippets
 
@@ -23,5 +24,6 @@ __all__ = [
     "OnHabits",
     "OnIcons",
     "OnQuickLauncher",
+    "OnRunMaintenanceChecklist",
     "OnSnippets",
 ]

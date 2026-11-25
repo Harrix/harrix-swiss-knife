@@ -10,6 +10,7 @@ import pytest
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QWidget
 
+from harrix_swiss_knife.actions.apps.maintenance_checklist import OnRunMaintenanceChecklist
 from harrix_swiss_knife.actions.common.base import ActionBase, _line_marks_run_cancelled
 from harrix_swiss_knife.actions.common.maintenance_checklist_dialog import MaintenanceChecklistDialog
 from harrix_swiss_knife.actions.common.maintenance_checklist_steps import (
@@ -23,7 +24,6 @@ from harrix_swiss_knife.actions.common.maintenance_checklist_steps import (
     maintenance_groups,
     maintenance_steps,
 )
-from harrix_swiss_knife.actions.development.run_maintenance_checklist import OnRunMaintenanceChecklist
 from harrix_swiss_knife.actions.development.update_harrix_swiss_knife import OnUpdateHarrixSwissKnife
 from harrix_swiss_knife.actions.development.upgrade_uv_packages import OnUpgradeUvPackages
 from harrix_swiss_knife.fluent.widgets import TextRole

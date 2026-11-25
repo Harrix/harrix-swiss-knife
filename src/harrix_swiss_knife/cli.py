@@ -18,12 +18,11 @@ from harrix_swiss_knife.actions.android import (
     OnAndroidSetupSdk,
     OnBeatSaberSaves,
 )
-from harrix_swiss_knife.actions.apps import OnGitCommit
+from harrix_swiss_knife.actions.apps import OnGitCommit, OnRunMaintenanceChecklist
 from harrix_swiss_knife.actions.common.quick_launcher_registry import iter_menu_structure
 from harrix_swiss_knife.actions.development import (
     OnBuildInstallZips,
     OnInstallCli,
-    OnRunMaintenanceChecklist,
     OnSetupDataForHsk,
     OnShowActionUsageStats,
     OnTransferPrivateData,

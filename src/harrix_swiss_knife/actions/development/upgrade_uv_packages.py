@@ -12,8 +12,8 @@ from typing import Any
 from PySide6.QtWidgets import QApplication, QMessageBox
 from shiboken6 import isValid
 
+from harrix_swiss_knife.actions.apps.maintenance_checklist import OnRunMaintenanceChecklist
 from harrix_swiss_knife.actions.common.base import ActionBase
-from harrix_swiss_knife.actions.development.run_maintenance_checklist import OnRunMaintenanceChecklist
 from harrix_swiss_knife.app_restart import project_gui_relaunch_argv
 from harrix_swiss_knife.cursor_backup.paths import cursor_running, find_cursor_exe
 from harrix_swiss_knife.paths import get_project_root

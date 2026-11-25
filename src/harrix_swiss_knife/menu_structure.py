@@ -18,6 +18,7 @@ from harrix_swiss_knife.actions.apps.food import OnFood
 from harrix_swiss_knife.actions.apps.git_commit import OnGitCommit
 from harrix_swiss_knife.actions.apps.habits import OnHabits
 from harrix_swiss_knife.actions.apps.icons import OnIcons
+from harrix_swiss_knife.actions.apps.maintenance_checklist import OnRunMaintenanceChecklist
 from harrix_swiss_knife.actions.apps.quick_launcher import OnQuickLauncher
 from harrix_swiss_knife.actions.apps.snippets import OnSnippets
 from harrix_swiss_knife.actions.development.about_dialog import OnAboutDialog
@@ -31,7 +32,6 @@ from harrix_swiss_knife.actions.development.fluent_gallery import OnFluentGaller
 from harrix_swiss_knife.actions.development.install_cli import OnInstallCli
 from harrix_swiss_knife.actions.development.npm_manage_packages import OnNpmManagePackages
 from harrix_swiss_knife.actions.development.open_config_json import OnOpenConfigJson
-from harrix_swiss_knife.actions.development.run_maintenance_checklist import OnRunMaintenanceChecklist
 from harrix_swiss_knife.actions.development.settings_editor import OnSettingsEditor
 from harrix_swiss_knife.actions.development.setup_data_for_hsk import OnSetupDataForHsk
 from harrix_swiss_knife.actions.development.show_action_usage_stats import OnShowActionUsageStats
@@ -165,7 +165,6 @@ def get_menu_structure() -> list[Any]:
                 OnOpenConfigJson,
                 OnSettingsEditor,
                 OnSetupDataForHsk,
-                OnRunMaintenanceChecklist,
                 OnTransferPrivateData,
                 OnSyncQuickAccessToTotalCommander,
                 OnUpdateHarrixSwissKnife,
@@ -340,6 +339,7 @@ def get_menu_structure() -> list[Any]:
         OnGitCommit,
         OnHabits,
         OnIcons,
+        OnRunMaintenanceChecklist,
         OnQuickLauncher,
         OnSnippets,
         "-",
