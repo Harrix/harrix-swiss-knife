@@ -358,24 +358,21 @@ class DirtyReposCommitWindow(QDialog):
                 changed = True
             else:
                 updated.append(status)
-        kept = [item for item in updated if item.files or item.unpushed]
-        if not changed and len(kept) == len(self._statuses):
+        ordered = order_repo_statuses(updated, prefer_first=self._current_repo())
+        if not changed and [row.path for row in ordered] == [row.path for row in self._statuses]:
+            for row, status in enumerate(ordered):
+                item = self._repo_list.item(row)
+                if item is not None:
+                    item.setText(status.list_label())
+                    self._style_repo_item(item, status)
+            self._statuses = ordered
+            current = self._current_status()
+            if current is not None and current.unpushed and not self._file_list.count():
+                self._show_unpushed_note(current)
+            self._set_status_text()
+            self._update_commit_enabled()
             return
-        old_paths = [status.path for status in self._statuses]
-        new_paths = [status.path for status in kept]
-        if old_paths != new_paths:
-            self._set_statuses(kept)
-            return
-        self._statuses = kept
-        for row, status in enumerate(kept):
-            item = self._repo_list.item(row)
-            if item is not None:
-                item.setText(status.list_label())
-        current = self._current_status()
-        if current is not None and current.unpushed and not self._file_list.count():
-            self._show_unpushed_note(current)
-        self._set_status_text()
-        self._update_commit_enabled()
+        self._set_statuses(ordered)
 
     def _build_commit_summary(self, parent: QWidget) -> QGroupBox:
         """Build the Today / Yesterday commit totals for the repository column."""
@@ -421,22 +418,20 @@ class DirtyReposCommitWindow(QDialog):
         self._status_label.setText(f"Checking {label}…")
         self._emit_line(f"🔵 Checking {repo}")
 
-        def work() -> DirtyRepoStatus | None:
+        def work() -> DirtyRepoStatus:
             invalidate_unpushed_cache(repo)
-            return attention_status(repo, resolve_visibility=True, fresh_unpushed=True)
+            return build_repo_status(repo, resolve_visibility=True, fresh_unpushed=True)
 
-        def done(status: DirtyRepoStatus | None) -> None:
+        def done(status: DirtyRepoStatus) -> None:
             self._history_by_repo.pop(repo, None)
-            old_index = next((index for index, item in enumerate(self._statuses) if item.path == repo), None)
             statuses = [item for item in self._statuses if item.path != repo]
-            if status is not None:
-                insert_at = old_index if old_index is not None else len(statuses)
-                statuses.insert(min(insert_at, len(statuses)), status)
-                self._set_statuses(statuses)
+            statuses.append(status)
+            ordered = order_repo_statuses(statuses, prefer_first=repo)
+            self._set_statuses(ordered)
+            save_git_repos_all_clean(all_clean=not any(row.needs_attention for row in ordered))
+            if status.needs_attention:
                 self._emit_line(f"✅ {label}: {status.list_label()}")
             else:
-                self._set_statuses(statuses)
-                save_git_repos_all_clean(all_clean=not statuses)
                 self._toast(f"{label} is clean")
                 self._emit_line(f"✅ {label}: clean (no commit or push needed)")
             self._set_status_text()
@@ -573,7 +568,13 @@ class DirtyReposCommitWindow(QDialog):
                     self._clear_suggestions()
                     self._show_unpushed_note(status)
                     return
-                self._refresh_known_dirty(prefer=repo)
+                if status is not None and status.needs_attention:
+                    self._refresh_known_dirty(prefer=repo)
+                    return
+                self._populate_files([])
+                self._clear_suggestions()
+                self._show_diff_text("")
+                self._update_commit_enabled()
                 return
             self._populate_files(files)
             self._rebuild_suggestions()
@@ -591,14 +592,17 @@ class DirtyReposCommitWindow(QDialog):
         return rows
 
     def _merge_found_repos(self, repos: list[FoundGitRepo]) -> None:
-        """Keep the main list to repos that need a commit or a public push."""
+        """Merge discovered repos into the list (attention first, then clean A — Z)."""
         scanned = {repo.path.resolve() for repo in repos}
         kept = [status for status in self._statuses if status.path.resolve() not in scanned]
-        kept.extend(repo.status for repo in repos if repo.status is not None)
-        kept.sort(key=lambda status: str(status.path).casefold())
-        self._set_statuses(kept)
-        if kept:
-            save_git_repos_all_clean(all_clean=False)
+        for repo in repos:
+            if repo.status is not None:
+                kept.append(repo.status)
+            else:
+                kept.append(DirtyRepoStatus(path=repo.path.resolve(), files=()))
+        ordered = order_repo_statuses(kept)
+        self._set_statuses(ordered)
+        save_git_repos_all_clean(all_clean=not any(status.needs_attention for status in ordered))
 
     def _move_suggestion(self, delta: int) -> bool:
         rows = self._matching_suggestion_rows()
@@ -918,6 +922,7 @@ class DirtyReposCommitWindow(QDialog):
             item = QListWidgetItem(status.list_label())
             item.setData(_REPO_ROLE, status.path)
             self._apply_repo_access(item, read_repo_access(status.path))
+            self._style_repo_item(item, status)
             self._repo_list.addItem(item)
             if current is not None and status.path == current:
                 select_row = index
@@ -985,14 +990,16 @@ class DirtyReposCommitWindow(QDialog):
             return
         known = [status.path for status in self._statuses]
         prefer_path = prefer or self._current_repo()
+        had_attention = any(status.needs_attention for status in self._statuses)
 
         def work() -> list[DirtyRepoStatus]:
             return refresh_repo_statuses(known, prefer_first=prefer_path)
 
         def done(statuses: list[DirtyRepoStatus]) -> None:
             self._set_statuses(statuses)
-            save_git_repos_all_clean(all_clean=not statuses)
-            if not statuses:
+            attention_left = any(status.needs_attention for status in statuses)
+            save_git_repos_all_clean(all_clean=not attention_left)
+            if had_attention and not attention_left:
                 self._toast("Nothing left to commit or push")
                 self._emit_line("✅ Nothing left to commit or push")
 
@@ -1016,7 +1023,7 @@ class DirtyReposCommitWindow(QDialog):
 
         def work() -> tuple[list[Path], list[DirtyRepoStatus]]:
             roots = configured_git_roots()
-            return roots, scan_dirty_repos(roots)
+            return roots, scan_all_repo_statuses(roots)
 
         def done(payload: tuple[list[Path], list[DirtyRepoStatus]]) -> None:
             roots, statuses = payload
@@ -1026,13 +1033,14 @@ class DirtyReposCommitWindow(QDialog):
                 self._set_status_text()
                 return
             self._set_statuses(statuses)
-            save_git_repos_all_clean(all_clean=not statuses)
+            attention = [status for status in statuses if status.needs_attention]
+            save_git_repos_all_clean(all_clean=not attention)
             self._emit_line(f"🔵 Scanned {len(roots)} root(s) from `paths_git_roots`")
             for root in roots:
                 self._emit_line(f"  • {root}")
-            if statuses:
-                self._toast(f"{len(statuses)} repo(s) need a commit or push")
-                self._emit_line(f"🔶 {len(statuses)} repository(ies) need a commit or push")
+            if attention:
+                self._toast(f"{len(attention)} repo(s) need a commit or push")
+                self._emit_line(f"🔶 {len(attention)} repository(ies) need a commit or push")
             else:
                 self._toast("All Git repos are committed and pushed")
                 self._emit_line("✅ No repositories need a commit or push")
@@ -1152,18 +1160,23 @@ class DirtyReposCommitWindow(QDialog):
         count = len(self._statuses)
         dirty_count = sum(1 for status in self._statuses if status.is_dirty)
         push_count = sum(1 for status in self._statuses if status.unpushed)
+        attention_count = sum(1 for status in self._statuses if status.needs_attention)
         if count == 0:
-            self._status_label.setText("No repositories need a commit or push.")
+            self._status_label.setText("No repositories found under paths_git_roots.")
+            return
+        if attention_count == 0:
+            noun = "repository" if count == 1 else "repositories"
+            self._status_label.setText(f"No commit or push needed · {count} {noun} listed.")
             return
         parts: list[str] = []
         if dirty_count:
             parts.append(f"{dirty_count} with uncommitted changes")
         if push_count:
             parts.append(f"{push_count} public with unpushed commits")
-        self._status_label.setText(", ".join(parts) + ".")
+        self._status_label.setText(", ".join(parts) + f" · {count} listed.")
 
     def _set_statuses(self, statuses: list[DirtyRepoStatus]) -> None:
-        self._statuses = list(statuses)
+        self._statuses = order_repo_statuses(statuses)
         self._populate_repos()
         self._set_status_text()
 
@@ -1211,6 +1224,14 @@ class DirtyReposCommitWindow(QDialog):
             button.setStyleSheet(push_button_qss(palette))
             button.setIcon(themed_icon("upload", palette))
         button.setIconSize(QSize(ICON_SIZE, ICON_SIZE))
+
+    def _style_repo_item(self, item: QListWidgetItem, status: DirtyRepoStatus) -> None:
+        """Mute clean repositories so attention rows stand out at the top."""
+        palette = palette_for(self)
+        if status.needs_attention:
+            item.setForeground(palette.text_primary)
+            return
+        item.setForeground(palette.text_secondary)
 
     def _sync_suggestions_empty(self) -> None:
         """Show a hint when the suggestions list has no rows."""

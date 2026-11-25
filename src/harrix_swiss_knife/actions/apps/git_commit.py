@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from harrix_swiss_knife.actions.common.base import ActionBase
-from harrix_swiss_knife.actions.common.git_dirty_ops import DirtyRepoStatus, scan_dirty_repos
+from harrix_swiss_knife.actions.common.git_dirty_ops import DirtyRepoStatus, scan_all_repo_statuses, scan_dirty_repos
 from harrix_swiss_knife.actions.common.maintenance_checklist_steps import save_git_repos_all_clean
 
 
@@ -62,15 +62,15 @@ class OnGitCommit(ActionBase):
 
     @ActionBase.handle_exceptions("opening git commit thread")
     def in_thread(self) -> list[DirtyRepoStatus]:
-        """Scan roots on a worker thread."""
-        return self._scan_dirty_statuses(self._configured_roots())
+        """Scan roots on a worker thread (every repo, attention first)."""
+        return scan_all_repo_statuses(self._configured_roots())
 
     @ActionBase.handle_exceptions("opening git commit thread completion")
     def thread_after(self, result: Any) -> None:
-        """Open the Git commit window (even when the dirty list is empty)."""
+        """Open the Git commit window with every repository listed."""
         raw = result if isinstance(result, list) else []
         statuses = [item for item in raw if isinstance(item, DirtyRepoStatus)]
-        dirty = self._statuses_to_dirty(statuses)
+        dirty = self._statuses_to_dirty([item for item in statuses if item.needs_attention])
         roots = self._configured_roots()
         self._report_scan(roots, dirty)
         if dirty:
@@ -84,7 +84,7 @@ class OnGitCommit(ActionBase):
 
         quick_paste_db = self.config.get("sqlite_snippets")
         show_dirty_repos_commit_window(
-            [repo.path for repo in dirty],
+            [status.path for status in statuses],
             initial_statuses=statuses,
             quick_paste_db=str(quick_paste_db) if quick_paste_db else None,
             on_line=self.add_line,

@@ -12,6 +12,8 @@ from unittest.mock import MagicMock
 
 from harrix_swiss_knife.actions.common import git_dirty_ops
 from harrix_swiss_knife.actions.common.git_dirty_ops import (
+    ChangedFile,
+    DirtyRepoStatus,
     add_git_root,
     clear_commit_day_cache,
     commit_selected_paths,
@@ -23,6 +25,7 @@ from harrix_swiss_knife.actions.common.git_dirty_ops import (
     github_repo_visibility,
     list_changed_files,
     open_github_desktop_nonblocking,
+    order_repo_statuses,
     parse_github_slug,
     parse_porcelain_files,
     push_current_branch,
@@ -341,6 +344,21 @@ def test_open_github_desktop_nonblocking_detaches_from_console(
     assert "github.bat" in detail
 
 
+def test_order_repo_statuses_attention_then_clean_alpha() -> None:
+    zebra = DirtyRepoStatus(path=Path("D:/repos/zebra"), files=())
+    apple = DirtyRepoStatus(path=Path("D:/repos/apple"), files=())
+    beta = DirtyRepoStatus(
+        path=Path("D:/repos/beta"),
+        files=(ChangedFile(path="a.txt", status=" M"),),
+    )
+    alpha = DirtyRepoStatus(
+        path=Path("D:/repos/alpha"),
+        files=(ChangedFile(path="b.txt", status=" M"),),
+    )
+    ordered = order_repo_statuses([zebra, beta, apple, alpha], prefer_first=beta.path)
+    assert [row.path.name for row in ordered] == ["beta", "alpha", "apple", "zebra"]
+
+
 def test_parse_github_slug_accepts_https_and_ssh() -> None:
     assert parse_github_slug("https://github.com/harrix/harrix-swiss-knife.git") == (
         "harrix",
@@ -416,7 +434,7 @@ def test_refresh_keeps_cached_public_unpushed(tmp_path: Path, monkeypatch: pytes
     assert statuses[0].access_kind == "public"
 
 
-def test_refresh_repo_statuses_drops_clean(tmp_path: Path) -> None:
+def test_refresh_repo_statuses_keeps_clean_after_attention(tmp_path: Path) -> None:
     dirty = tmp_path / "dirty"
     clean = tmp_path / "clean"
     _git_init(dirty)
@@ -424,10 +442,10 @@ def test_refresh_repo_statuses_drops_clean(tmp_path: Path) -> None:
     (dirty / "extra.txt").write_text("x\n", encoding="utf-8")
 
     statuses = refresh_repo_statuses([dirty, clean], prefer_first=dirty)
-    paths = {item.path.resolve() for item in statuses}
-    assert dirty.resolve() in paths
-    assert clean.resolve() not in paths
-    assert statuses[0].path.resolve() == dirty.resolve()
+    paths = [item.path.resolve() for item in statuses]
+    assert paths == [dirty.resolve(), clean.resolve()]
+    assert statuses[0].needs_attention is True
+    assert statuses[1].needs_attention is False
 
 
 def test_repo_access_from_remote_marks_local_remote_and_visibility() -> None:

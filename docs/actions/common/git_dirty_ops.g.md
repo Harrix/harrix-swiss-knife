@@ -18,14 +18,16 @@ lang: en
   - [⚙️ Method `changed_count (property)`](#%EF%B8%8F-method-changed_count-property)
   - [⚙️ Method `is_dirty (property)`](#%EF%B8%8F-method-is_dirty-property)
   - [⚙️ Method `list_label`](#%EF%B8%8F-method-list_label)
-- [🏛️ Class `FoundGitRepo`](#%EF%B8%8F-class-foundgitrepo)
   - [⚙️ Method `needs_attention (property)`](#%EF%B8%8F-method-needs_attention-property)
+- [🏛️ Class `FoundGitRepo`](#%EF%B8%8F-class-foundgitrepo)
+  - [⚙️ Method `needs_attention (property)`](#%EF%B8%8F-method-needs_attention-property-1)
 - [🏛️ Class `GitRootAdd`](#%EF%B8%8F-class-gitrootadd)
 - [🏛️ Class `RepoAccess`](#%EF%B8%8F-class-repoaccess)
   - [⚙️ Method `summary`](#%EF%B8%8F-method-summary)
 - [🏛️ Class `RepoCommitDayCache`](#%EF%B8%8F-class-repocommitdaycache)
 - [🔧 Function `add_git_root`](#-function-add_git_root)
 - [🔧 Function `attention_status`](#-function-attention_status)
+- [🔧 Function `build_repo_status`](#-function-build_repo_status)
 - [🔧 Function `clear_commit_day_cache`](#-function-clear_commit_day_cache)
 - [🔧 Function `clear_unpushed_cache`](#-function-clear_unpushed_cache)
 - [🔧 Function `commit_selected_paths`](#-function-commit_selected_paths)
@@ -41,12 +43,14 @@ lang: en
 - [🔧 Function `list_commit_years`](#-function-list_commit_years)
 - [🔧 Function `load_repo_commit_day_cache`](#-function-load_repo_commit_day_cache)
 - [🔧 Function `open_github_desktop_nonblocking`](#-function-open_github_desktop_nonblocking)
+- [🔧 Function `order_repo_statuses`](#-function-order_repo_statuses)
 - [🔧 Function `parse_github_slug`](#-function-parse_github_slug)
 - [🔧 Function `parse_porcelain_files`](#-function-parse_porcelain_files)
 - [🔧 Function `push_current_branch`](#-function-push_current_branch)
 - [🔧 Function `read_repo_access`](#-function-read_repo_access)
 - [🔧 Function `refresh_repo_statuses`](#-function-refresh_repo_statuses)
 - [🔧 Function `repo_access_from_remote`](#-function-repo_access_from_remote)
+- [🔧 Function `scan_all_repo_statuses`](#-function-scan_all_repo_statuses)
 - [🔧 Function `scan_dirty_repos`](#-function-scan_dirty_repos)
 - [🔧 Function `unpushed_commit_count`](#-function-unpushed_commit_count)
 - [🔧 Function `visibility_from_github_payload`](#-function-visibility_from_github_payload)
@@ -125,11 +129,12 @@ class DayCommitCounts:
 class DirtyRepoStatus
 ```
 
-One repository that needs a commit, a push, or both.
+One repository with optional uncommitted files and/or public unpushed commits.
 
 `unpushed` is the number of commits on `HEAD` that are not on any
 remote-tracking branch. It stays `0` for local repositories and for
-anything that is not a public GitHub repository.
+anything that is not a public GitHub repository. Clean repositories may
+still appear in the Git commit list with empty `files` and `unpushed=0`.
 
 <details>
 <summary>Code:</summary>
@@ -162,6 +167,11 @@ class DirtyRepoStatus:
         if not parts:
             return self.path.name
         return f"{self.path.name}  ({', '.join(parts)})"
+
+    @property
+    def needs_attention(self) -> bool:
+        """Return whether the repo needs a commit or a public push."""
+        return bool(self.files) or self.unpushed > 0
 ```
 
 </details>
@@ -223,6 +233,24 @@ def list_label(self) -> str:
         if not parts:
             return self.path.name
         return f"{self.path.name}  ({', '.join(parts)})"
+```
+
+</details>
+
+### ⚙️ Method `needs_attention (property)`
+
+```python
+def needs_attention(self) -> bool
+```
+
+Return whether the repo needs a commit or a public push.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def needs_attention(self) -> bool:
+        return bool(self.files) or self.unpushed > 0
 ```
 
 </details>
@@ -441,6 +469,37 @@ def attention_status(
     resolve_visibility: bool = True,
     fresh_unpushed: bool = False,
 ) -> DirtyRepoStatus | None:
+    status = build_repo_status(
+        repo,
+        resolve_visibility=resolve_visibility,
+        fresh_unpushed=fresh_unpushed,
+    )
+    return status if status.needs_attention else None
+```
+
+</details>
+
+## 🔧 Function `build_repo_status`
+
+```python
+def build_repo_status(repo: Path, *, resolve_visibility: bool = True, fresh_unpushed: bool = False) -> DirtyRepoStatus
+```
+
+Return status for `repo`, including clean repositories.
+
+Same visibility and unpushed rules as [`attention_status`](#-function-attention_status), but always returns
+a [`DirtyRepoStatus`](#%EF%B8%8F-class-dirtyrepostatus) so the UI can list every configured repository.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def build_repo_status(
+    repo: Path,
+    *,
+    resolve_visibility: bool = True,
+    fresh_unpushed: bool = False,
+) -> DirtyRepoStatus:
     repo = repo.resolve()
     files = tuple(list_changed_files(repo))
     access = read_repo_access(repo)
@@ -457,8 +516,6 @@ def attention_status(
                 )
         if access.kind != "public":
             unpushed = 0
-    if not files and unpushed <= 0:
-        return None
     return DirtyRepoStatus(path=repo, files=files, unpushed=unpushed, access_kind=access.kind)
 ```
 
@@ -979,6 +1036,43 @@ def open_github_desktop_nonblocking(repo: Path) -> tuple[bool, str]:
 
 </details>
 
+## 🔧 Function `order_repo_statuses`
+
+```python
+def order_repo_statuses(statuses: Sequence[DirtyRepoStatus], *, prefer_first: Path | None = None) -> list[DirtyRepoStatus]
+```
+
+Put repos that need attention first, then clean repos A — Z by folder name.
+
+When `prefer_first` needs attention, it is moved to the front of that group.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def order_repo_statuses(
+    statuses: Sequence[DirtyRepoStatus],
+    *,
+    prefer_first: Path | None = None,
+) -> list[DirtyRepoStatus]:
+    attention: list[DirtyRepoStatus] = []
+    clean: list[DirtyRepoStatus] = []
+    for status in statuses:
+        if status.needs_attention:
+            attention.append(status)
+        else:
+            clean.append(status)
+    if prefer_first is not None:
+        preferred = prefer_first.resolve()
+        preferred_row = next((row for row in attention if row.path.resolve() == preferred), None)
+        if preferred_row is not None:
+            attention = [preferred_row, *[row for row in attention if row is not preferred_row]]
+    clean.sort(key=lambda row: row.path.name.casefold())
+    return [*attention, *clean]
+```
+
+</details>
+
 ## 🔧 Function `parse_github_slug`
 
 ```python
@@ -1086,7 +1180,7 @@ def read_repo_access(repo: Path) -> RepoAccess:
 def refresh_repo_statuses(repos: list[Path], *, prefer_first: Path | None = None) -> list[DirtyRepoStatus]
 ```
 
-Re-status known repos; keep those that still need a commit or a public push.
+Re-status known repos; keep clean ones and put attention rows first.
 
 Checks `prefer_first` before the rest when it is in `repos`. Visibility is
 read from the cache so this can run on a timer without calling GitHub.
@@ -1116,8 +1210,8 @@ def refresh_repo_statuses(repos: list[Path], *, prefer_first: Path | None = None
     if not ordered:
         return []
 
-    def _one(repo: Path) -> DirtyRepoStatus | None:
-        return attention_status(repo, resolve_visibility=False, fresh_unpushed=True)
+    def _one(repo: Path) -> DirtyRepoStatus:
+        return build_repo_status(repo, resolve_visibility=False, fresh_unpushed=True)
 
     workers = min(_SCAN_WORKERS, len(ordered))
     by_path: dict[Path, DirtyRepoStatus] = {}
@@ -1125,9 +1219,11 @@ def refresh_repo_statuses(repos: list[Path], *, prefer_first: Path | None = None
         futures = {pool.submit(_one, repo): repo for repo in ordered}
         for future in as_completed(futures):
             status = future.result()
-            if status is not None:
-                by_path[status.path] = status
-    return [by_path[repo] for repo in ordered if repo in by_path]
+            by_path[status.path] = status
+    return order_repo_statuses(
+        [by_path[repo] for repo in ordered if repo in by_path],
+        prefer_first=prefer_first,
+    )
 ```
 
 </details>
@@ -1155,6 +1251,42 @@ def repo_access_from_remote(remote_url: str, *, visibility: str | None = None) -
     if visibility == "private":
         return RepoAccess(kind="private", remote_url=text, github_slug=slug_text)
     return RepoAccess(kind="remote", remote_url=text, github_slug=slug_text)
+```
+
+</details>
+
+## 🔧 Function `scan_all_repo_statuses`
+
+```python
+def scan_all_repo_statuses(roots: list[Path]) -> list[DirtyRepoStatus]
+```
+
+Return every repository under `roots`, attention first then clean A — Z.
+
+Same discovery rules as [`scan_dirty_repos`](#-function-scan_dirty_repos), but clean repositories stay in
+the list for the Git commit window.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def scan_all_repo_statuses(roots: list[Path]) -> list[DirtyRepoStatus]:
+    repos = list(_unique_git_repos(roots))
+    if not repos:
+        return []
+
+    def _one(repo: Path) -> DirtyRepoStatus:
+        return build_repo_status(repo)
+
+    workers = min(_SCAN_WORKERS, len(repos))
+    by_path: dict[Path, DirtyRepoStatus] = {}
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        futures = {pool.submit(_one, repo): repo for repo in repos}
+        for future in as_completed(futures):
+            status = future.result()
+            by_path[status.path] = status
+    ordered = [by_path[repo] for repo in repos if repo in by_path]
+    return order_repo_statuses(ordered)
 ```
 
 </details>
