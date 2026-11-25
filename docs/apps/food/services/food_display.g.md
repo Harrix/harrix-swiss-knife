@@ -25,7 +25,7 @@ lang: en
 def create_drink_icon(size: int = DRINK_ICON_SIZE) -> QIcon
 ```
 
-Return the colored Lucide coffee icon used for drinks.
+Return the dark-blue Lucide coffee icon used for drinks.
 
 <details>
 <summary>Code:</summary>

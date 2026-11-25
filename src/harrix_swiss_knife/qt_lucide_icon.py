@@ -44,6 +44,7 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife.apps.common.ui_chrome import (
+    BRAND_INK,
     BUTTON_ON_DARK_FG,
     button_danger_qss,
     button_idle_qss,
@@ -133,8 +134,9 @@ LUCIDE_ICON_COLORS: dict[str, str] = {
     "alert-triangle": LUCIDE_COLOR_YELLOW,
     "star": LUCIDE_COLOR_YELLOW,
     "trophy": LUCIDE_COLOR_YELLOW,
-    "coffee": LUCIDE_COLOR_ORANGE,
-    "cup-soda": LUCIDE_COLOR_ORANGE,
+    # Food drink markers — brand ink, not warm orange (soft-blue chrome).
+    "coffee": BRAND_INK,
+    "cup-soda": BRAND_INK,
 }
 
 _ICON_NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")

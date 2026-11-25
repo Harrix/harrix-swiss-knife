@@ -24,7 +24,7 @@ RECIPE_EMOJI = "🍽"
 
 
 def create_drink_icon(size: int = DRINK_ICON_SIZE) -> QIcon:
-    """Return the colored Lucide coffee icon used for drinks."""
+    """Return the dark-blue Lucide coffee icon used for drinks."""
     return create_lucide_icon(DRINK_LUCIDE_ICON, size)
 
 
