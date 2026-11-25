@@ -228,6 +228,14 @@ MAINTENANCE_STEP_SPECS: tuple[MaintenanceStepSpec, ...] = (
         note="Install / refresh Node.js",
     ),
     MaintenanceStepSpec(
+        "harrix_swiss_knife.actions.android.android_setup_sdk",
+        "OnAndroidSetupSdk",
+        "Tools",
+        "smartphone",
+        note="Install / refresh JDK 17, Android SDK, optional Android Studio",
+        include_in_run_all=False,
+    ),
+    MaintenanceStepSpec(
         "harrix_swiss_knife.actions.development.npm_manage_packages",
         "OnNpmManagePackages",
         "Tools",

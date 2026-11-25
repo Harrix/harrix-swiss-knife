@@ -147,10 +147,10 @@ def android_format(folder: Path) -> None:
     "--android-studio",
     "install_android_studio",
     is_flag=True,
-    help="Also install Android Studio via winget (optional; needs admin).",
+    help="Also install or update Android Studio via winget (optional).",
 )
 def android_setup(*, install_android_studio: bool) -> None:
-    """Install JDK 17 and Android SDK for the `android/` module."""
+    """Install or update JDK 17 and Android SDK for the `android/` module."""
     action = OnAndroidSetupSdk()
     action(install_android_studio=install_android_studio, noninteractive=True)
     _finish_timed_action(action)

@@ -198,7 +198,7 @@ def android_format(folder: Path) -> None:
 def android_setup(*, install_android_studio: bool) -> None
 ```
 
-Install JDK 17 and Android SDK for the `android/` module.
+Install or update JDK 17 and Android SDK for the `android/` module.
 
 <details>
 <summary>Code:</summary>

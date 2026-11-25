@@ -24,11 +24,13 @@ lang: en
 class OnAndroidSetupSdk(ActionBase)
 ```
 
-Install JDK 17 and Android SDK packages for building the Android module.
+Install or update JDK 17 and Android SDK packages for the Android module.
 
 Idempotent. Uses portable Temurin 17 under `%LOCALAPPDATA%\Java` when no
 JDK 17 is found (usually no UAC). SDK goes to `%LOCALAPPDATA%\Android\Sdk`.
-Optional Android Studio via winget. Windows only.
+Refreshes installed SDK packages via `sdkmanager --update`, then ensures
+the required packages. Optional Android Studio via winget install/upgrade.
+Windows only.
 
 <details>
 <summary>Code:</summary>
@@ -37,12 +39,13 @@ Optional Android Studio via winget. Windows only.
 class OnAndroidSetupSdk(ActionBase):
 
     icon = "📥"
-    title = "Install JDK and Android SDK"
+    title = "Install / Update JDK and Android SDK"
     cli_available = True
     cli_hint = "android setup [--android-studio]"
 
-    STUDIO_CHOICE: str = "Install Android Studio"
+    STUDIO_CHOICE: str = "Android Studio (install or update via winget)"
     SDK_PACKAGES: tuple[str, ...] = (
+        "cmdline-tools;latest",
         "platform-tools",
         "platforms;android-35",
         "build-tools;35.0.0",
@@ -64,7 +67,7 @@ class OnAndroidSetupSdk(ActionBase):
         noninteractive: bool = False,
         **_kwargs: Any,
     ) -> None:
-        """Install the Android toolchain (sync for CLI, background thread for tray)."""
+        """Install or update the Android toolchain (sync for CLI, thread for tray)."""
         if sys.platform != "win32":
             self.add_line("❌ This action is only available on Windows.")
             if not noninteractive:
@@ -80,13 +83,19 @@ class OnAndroidSetupSdk(ActionBase):
 
         want_studio = install_android_studio
         if not noninteractive:
-            disabled = [self.STUDIO_CHOICE] if is_android_studio_installed() else []
+            studio_hint = (
+                "Android Studio is already installed — checking the box runs winget upgrade."
+                if is_android_studio_installed()
+                else "Android Studio is optional — checking the box installs it via winget."
+            )
             selected = self.get_checkbox_selection(
                 self.title,
-                "JDK 17 and the Android SDK are always installed. Android Studio is optional.",
+                (
+                    "JDK 17 and the Android SDK are always installed or refreshed "
+                    f"(sdkmanager --update + required packages).\n\n{studio_hint}"
+                ),
                 [self.STUDIO_CHOICE],
-                default_selected=[],
-                disabled_choices=disabled,
+                default_selected=[self.STUDIO_CHOICE] if is_android_studio_installed() else [],
             )
             if selected is None:
                 return
@@ -145,6 +154,46 @@ class OnAndroidSetupSdk(ActionBase):
             timeout=self._DOWNLOAD_TIMEOUT,
             should_cancel=self.is_work_cancelled,
         )
+
+    def _ensure_android_studio(self) -> None:
+        """Install or upgrade Android Studio with winget when requested."""
+        self.add_line("🔵 6/6 Android Studio (optional)")
+        winget = shutil.which("winget")
+        if winget is None:
+            self.add_line("  winget not found; skip Android Studio. Install it later from Microsoft Store.")
+            return
+        already = is_android_studio_installed()
+        verb = "upgrade" if already else "install"
+        self.add_line(f"  Running winget {verb} Google.AndroidStudio...")
+        process = subprocess.run(
+            [
+                winget,
+                verb,
+                "--id",
+                "Google.AndroidStudio",
+                "--accept-package-agreements",
+                "--accept-source-agreements",
+                "--disable-interactivity",
+            ],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+            timeout=self._WINGET_TIMEOUT,
+            **windows_no_window_kwargs(),
+        )
+        output = "\n".join(part for part in (process.stdout.strip(), process.stderr.strip()) if part)
+        if output:
+            self.add_line(output)
+        lower = output.casefold()
+        if already and ("no newer package versions are available" in lower or "no applicable upgrade found" in lower):
+            self.add_line("  Android Studio is already the latest version in winget.")
+            return
+        if process.returncode != 0 and not is_android_studio_installed():
+            self.add_line(f"  Android Studio {verb} failed (winget exit {process.returncode}).")
+            return
+        self.add_line(f"  Android Studio {verb} finished (or already satisfied).")
 
     def _ensure_cmdline_tools(self, sdk_root: Path) -> None:
         """Install Android `cmdline-tools/latest` under `sdk_root` when missing."""
@@ -206,53 +255,47 @@ class OnAndroidSetupSdk(ActionBase):
         self.add_line(f"  JAVA_HOME: {java_home}")
         return java_home
 
-    def _install_android_studio(self) -> None:
-        """Install Android Studio with winget when requested and not already present."""
-        self.add_line("🔵 6/6 Android Studio (optional)")
-        if is_android_studio_installed():
-            self.add_line("  Android Studio already installed.")
-            return
-        winget = shutil.which("winget")
-        if winget is None:
-            self.add_line("  winget not found; skip Android Studio. Install it later from Microsoft Store.")
-            return
-        self.add_line("  Installing Android Studio via winget...")
-        process = subprocess.run(
-            [
-                winget,
-                "install",
-                "--id",
-                "Google.AndroidStudio",
-                "--accept-package-agreements",
-                "--accept-source-agreements",
-                "--disable-interactivity",
-            ],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            check=False,
-            timeout=self._WINGET_TIMEOUT,
-            **windows_no_window_kwargs(),
-        )
-        output = "\n".join(part for part in (process.stdout.strip(), process.stderr.strip()) if part)
-        if output:
-            self.add_line(output)
-        if process.returncode != 0 and not is_android_studio_installed():
-            self.add_line(f"  Android Studio install failed (winget exit {process.returncode}).")
-            return
-        self.add_line("  Android Studio installed (or already satisfied).")
-
     def _install_sdk_packages(self, sdk_root: Path, java_home: str) -> None:
-        """Accept licenses and install platform-tools, android-35, and build-tools 35.0.0."""
-        self.add_line("🔵 3/6 SDK packages (platform-tools, android-35, build-tools 35.0.0)")
+        """Update installed packages, then ensure required SDK components."""
+        self.add_line("🔵 3/6 SDK packages (update + ensure platform-tools, android-35, build-tools)")
         write_android_sdk_licenses(sdk_root)
         sdkmanager = sdk_root / "cmdline-tools" / "latest" / "bin" / "sdkmanager.bat"
         env = gradle_env(java_home)
         env["ANDROID_HOME"] = str(sdk_root)
         env["ANDROID_SDK_ROOT"] = str(sdk_root)
+        self._run_sdkmanager(
+            sdkmanager,
+            sdk_root,
+            env,
+            ["--update"],
+            label="sdkmanager --update",
+            require_ok=False,
+        )
+        self.raise_if_work_cancelled()
+        self._run_sdkmanager(
+            sdkmanager,
+            sdk_root,
+            env,
+            list(self.SDK_PACKAGES),
+            label="sdkmanager packages",
+            require_ok=True,
+        )
+        self.add_line("  SDK packages OK.")
+
+    def _run_sdkmanager(
+        self,
+        sdkmanager: Path,
+        sdk_root: Path,
+        env: dict[str, str],
+        args: list[str],
+        *,
+        label: str,
+        require_ok: bool,
+    ) -> None:
+        """Run `sdkmanager.bat` with `args` and optionally raise on failure."""
+        self.add_line(f"  {label}...")
         process = subprocess.run(
-            [str(sdkmanager), f"--sdk_root={sdk_root}", *self.SDK_PACKAGES],
+            [str(sdkmanager), f"--sdk_root={sdk_root}", *args],
             cwd=str(sdk_root),
             env=env,
             capture_output=True,
@@ -266,10 +309,11 @@ class OnAndroidSetupSdk(ActionBase):
         output = "\n".join(part for part in (process.stdout.strip(), process.stderr.strip()) if part)
         if output:
             self.add_line(output)
-        if process.returncode != 0:
-            msg = f"sdkmanager failed with exit code {process.returncode}"
+        if require_ok and process.returncode != 0:
+            msg = f"{label} failed with exit code {process.returncode}"
             raise RuntimeError(msg)
-        self.add_line("  SDK packages OK.")
+        if process.returncode != 0:
+            self.add_line(f"  {label} exited {process.returncode} (continuing).")
 
     def _run_setup(self, android_dir: Path, *, install_android_studio: bool) -> None:
         """Run the full JDK / SDK / env / local.properties setup sequence."""
@@ -285,7 +329,7 @@ class OnAndroidSetupSdk(ActionBase):
         local_props = write_android_local_properties(android_dir, sdk_root)
         self.add_line(f"  Wrote {local_props}")
         if install_android_studio:
-            self._install_android_studio()
+            self._ensure_android_studio()
         self.add_line("✅ Android toolchain is ready.")
         self.add_line("Restart the app (and terminals) so JAVA_HOME / ANDROID_HOME apply.")
 ```
@@ -298,7 +342,7 @@ class OnAndroidSetupSdk(ActionBase):
 def execute(self, *_args: Any, install_android_studio: bool = False, noninteractive: bool = False, **_kwargs: Any) -> None
 ```
 
-Install the Android toolchain (sync for CLI, background thread for tray).
+Install or update the Android toolchain (sync for CLI, thread for tray).
 
 <details>
 <summary>Code:</summary>
@@ -326,13 +370,19 @@ def execute(
 
         want_studio = install_android_studio
         if not noninteractive:
-            disabled = [self.STUDIO_CHOICE] if is_android_studio_installed() else []
+            studio_hint = (
+                "Android Studio is already installed — checking the box runs winget upgrade."
+                if is_android_studio_installed()
+                else "Android Studio is optional — checking the box installs it via winget."
+            )
             selected = self.get_checkbox_selection(
                 self.title,
-                "JDK 17 and the Android SDK are always installed. Android Studio is optional.",
+                (
+                    "JDK 17 and the Android SDK are always installed or refreshed "
+                    f"(sdkmanager --update + required packages).\n\n{studio_hint}"
+                ),
                 [self.STUDIO_CHOICE],
-                default_selected=[],
-                disabled_choices=disabled,
+                default_selected=[self.STUDIO_CHOICE] if is_android_studio_installed() else [],
             )
             if selected is None:
                 return

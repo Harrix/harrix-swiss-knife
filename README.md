@@ -63,7 +63,7 @@ _Figure 1: Screenshot_
   - 📱 ★ Build Android APK in … ꟲᴸᴵ
   - 🔬 Check Android code in … ꟲᴸᴵ
   - ✨ Format Android code in … ꟲᴸᴵ
-  - 📥 Install JDK and Android SDK ꟲᴸᴵ
+  - 📥 Install / Update JDK and Android SDK ꟲᴸᴵ
 - **Dev**
   - ℹ️ About
   - 🚀 Add to Windows autostart
