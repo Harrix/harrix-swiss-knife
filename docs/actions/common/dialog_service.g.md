@@ -1350,6 +1350,7 @@ class ActionDialogService:
         *,
         summary: str,
         on_run_action: Callable[[str], None] | None = None,
+        select_class_name: str | None = None,
     ) -> None:
         """Show a sortable table of action invocation statistics."""
         dialog_parent = QApplication.activeWindow()
@@ -1361,6 +1362,7 @@ class ActionDialogService:
             rows,
             summary=summary,
             on_run_action=on_run_action,
+            select_class_name=select_class_name,
         )(dialog, layout)
         dialog.setLayout(layout)
         layout.setStretch(1, 1)
@@ -3796,7 +3798,7 @@ def show_action_output_log_browser(
 ### ⚙️ Method `show_action_usage_stats_browser`
 
 ```python
-def show_action_usage_stats_browser(self, rows: list[ActionUsageStatsRow], *, summary: str, on_run_action: Callable[[str], None] | None = None) -> None
+def show_action_usage_stats_browser(self, rows: list[ActionUsageStatsRow], *, summary: str, on_run_action: Callable[[str], None] | None = None, select_class_name: str | None = None) -> None
 ```
 
 Show a sortable table of action invocation statistics.
@@ -3811,6 +3813,7 @@ def show_action_usage_stats_browser(
         *,
         summary: str,
         on_run_action: Callable[[str], None] | None = None,
+        select_class_name: str | None = None,
     ) -> None:
         dialog_parent = QApplication.activeWindow()
         dialog = QDialog(dialog_parent)
@@ -3821,6 +3824,7 @@ def show_action_usage_stats_browser(
             rows,
             summary=summary,
             on_run_action=on_run_action,
+            select_class_name=select_class_name,
         )(dialog, layout)
         dialog.setLayout(layout)
         layout.setStretch(1, 1)

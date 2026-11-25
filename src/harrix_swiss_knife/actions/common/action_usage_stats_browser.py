@@ -55,12 +55,16 @@ def build_action_usage_stats_browser(
     *,
     summary: str,
     on_run_action: Callable[[str], None] | None = None,
+    select_class_name: str | None = None,
 ) -> Callable[[QDialog, QVBoxLayout], None]:
     """Return dialog layout builder: summary label + sortable usage table.
 
     `on_run_action` receives the action class name when the user chooses **Run**
     from the table context menu. The stats dialog is closed before the callback
     runs so the launched action is not nested under the modal stats window.
+
+    When `select_class_name` is set, that action row is selected and scrolled into
+    view after the initial sort.
 
     """
 
@@ -120,6 +124,20 @@ def build_action_usage_stats_browser(
                 return row["cli"]
             return row["last_used"]
 
+        def select_named_row(class_name: str | None) -> None:
+            if not class_name:
+                return
+            for row_idx in range(table.rowCount()):
+                item = table.item(row_idx, _COL_ACTION)
+                if item is None:
+                    continue
+                if item.data(Qt.ItemDataRole.UserRole) != class_name:
+                    continue
+                table.setCurrentCell(row_idx, _COL_ACTION)
+                table.selectRow(row_idx)
+                table.scrollToItem(item, QAbstractItemView.ScrollHint.PositionAtCenter)
+                return
+
         def apply_sort() -> None:
             nonlocal sort_column, sort_ascending
             # Stable sort: title first, then primary so ties keep title ascending.
@@ -129,6 +147,10 @@ def build_action_usage_stats_browser(
             header = table.horizontalHeader()
             order = Qt.SortOrder.AscendingOrder if sort_ascending else Qt.SortOrder.DescendingOrder
             header.setSortIndicator(sort_column, order)
+
+        def apply_initial_sort() -> None:
+            apply_sort()
+            select_named_row(select_class_name)
 
         def on_header_clicked(logical_index: int) -> None:
             nonlocal sort_column, sort_ascending
@@ -203,7 +225,7 @@ def build_action_usage_stats_browser(
         copy_shortcut = QShortcut(QKeySequence.StandardKey.Copy, table)
         copy_shortcut.activated.connect(on_copy)
 
-        apply_sort()
+        apply_initial_sort()
         layout.addWidget(table)
 
         button_layout = QHBoxLayout()

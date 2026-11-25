@@ -1405,6 +1405,7 @@ class ActionDialogService:
         *,
         summary: str,
         on_run_action: Callable[[str], None] | None = None,
+        select_class_name: str | None = None,
     ) -> None:
         """Show a sortable table of action invocation statistics."""
         dialog_parent = QApplication.activeWindow()
@@ -1416,6 +1417,7 @@ class ActionDialogService:
             rows,
             summary=summary,
             on_run_action=on_run_action,
+            select_class_name=select_class_name,
         )(dialog, layout)
         dialog.setLayout(layout)
         layout.setStretch(1, 1)

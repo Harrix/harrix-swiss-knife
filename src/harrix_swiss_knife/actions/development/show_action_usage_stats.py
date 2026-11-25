@@ -22,8 +22,19 @@ class OnShowActionUsageStats(ActionBase):
     cli_hint: ClassVar[str] = "dev action-usage"
 
     @ActionBase.handle_exceptions("show action usage stats")
-    def execute(self, *args: Any, noninteractive: bool = False, **kwargs: Any) -> None:  # noqa: ARG002
-        """Open usage table dialog, or print a text report when `noninteractive`."""
+    def execute(
+        self,
+        *_args: Any,
+        noninteractive: bool = False,
+        select_class_name: str | None = None,
+        **_kwargs: Any,
+    ) -> None:
+        """Open usage table dialog, or print a text report when `noninteractive`.
+
+        `select_class_name` highlights that action row when the dialog opens
+        (for example from a Commands window context menu).
+
+        """
         # Lazy import: menu_structure registers this class (circular import).
         from harrix_swiss_knife.menu_structure import get_menu_structure  # noqa: PLC0415
 
@@ -90,4 +101,10 @@ class OnShowActionUsageStats(ActionBase):
             rows,
             summary=summary,
             on_run_action=on_run_action,
+            select_class_name=select_class_name,
         )
+
+
+def open_action_usage_stats(*, select_class_name: str | None = None) -> None:
+    """Open Action usage stats, optionally selecting `select_class_name`."""
+    OnShowActionUsageStats()(select_class_name=select_class_name)

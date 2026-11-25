@@ -489,6 +489,15 @@ def show_action_identity_context_menu(
         return
 
     menu = FluentMenu("", parent)
+    if identity_parts is not None:
+        show_stats = menu.addAction(SHOW_ACTION_USAGE_STATS_MENU_LABEL)
+        apply_lucide_action_icon(show_stats, _SHOW_ACTION_USAGE_STATS_ICON)
+        show_stats.triggered.connect(
+            lambda *_args, class_name=identity_parts.class_name: _open_action_usage_stats(
+                select_class_name=class_name,
+            ),
+        )
+        menu.addSeparator()
     if menu_title is not None:
         copy_menu_title = menu.addAction(format_copy_menu_title_menu_label(menu_title))
         copy_menu_title.triggered.connect(

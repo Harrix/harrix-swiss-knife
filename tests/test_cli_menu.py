@@ -69,9 +69,10 @@ def test_action_identity_context_menu_includes_menu_title(qapp: QApplication, mo
     )
     assert len(shown) == 1
     labels = [action.text() for action in shown[0].actions() if not action.isSeparator()]
+    assert labels[0] == "Show in Action usage stats"
     # Leading emoji is replaced by a Lucide icon in the menu chrome.
-    assert labels[0].removeprefix("📋 ").startswith(COPY_MENU_TITLE_MENU_PREFIX.removeprefix("📋 "))
-    assert "Git commit" in labels[0]
+    assert labels[1].removeprefix("📋 ").startswith(COPY_MENU_TITLE_MENU_PREFIX.removeprefix("📋 "))
+    assert "Git commit" in labels[1]
     host.close()
 
 

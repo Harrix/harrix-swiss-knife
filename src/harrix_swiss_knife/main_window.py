@@ -132,13 +132,13 @@ class MainWindow(QMainWindow):
         self.hide()
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
-        """Refit Recent on cards resize; open the action copy menu on list middle-click."""
+        """Refit Recent on cards resize; open the action menu on list right/middle-click."""
         if event.type() == QEvent.Type.Resize and watched is self._scroll.viewport():
             self._cards_layout_timer.start()
         elif (
             event.type() == QEvent.Type.MouseButtonPress
             and isinstance(event, QMouseEvent)
-            and event.button() == Qt.MouseButton.MiddleButton
+            and event.button() in {Qt.MouseButton.RightButton, Qt.MouseButton.MiddleButton}
             and watched is self.list_widget.viewport()
         ):
             self._show_list_item_context_menu(self.list_widget, event.position().toPoint())

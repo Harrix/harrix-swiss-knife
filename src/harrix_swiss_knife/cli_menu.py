@@ -36,6 +36,7 @@ COPY_ACTION_CLASS_MENU_PREFIX = "📋 Copy action class: "
 COPY_ACTION_PATH_MENU_PREFIX = "📋 Copy action path: "
 COPY_ACTION_NAME_PREVIEW_MAX_LEN = 40
 COPY_CLI_MENU_PREFIX = "📋 Copy CLI command: "
+SHOW_ACTION_USAGE_STATS_MENU_LABEL = "Show in Action usage stats"
 OPEN_ALL_TRACKERS_MENU_LABEL = "Open all trackers"
 OPEN_ALL_TRACKERS_PRESENTATION_MENU_LABEL = "Open all trackers in presentation mode"
 # Tray top-level trackers that share the «Open all trackers» right-click menu.
@@ -50,6 +51,7 @@ TRACKER_LAUNCHER_CLASS_NAMES: frozenset[str] = frozenset(
 _OPEN_ALL_TRACKERS_ICON = "layout-grid"
 _OPEN_ALL_TRACKERS_PRESENTATION_ICON = "monitor-play"
 _OPEN_IN_PRESENTATION_ICON = "presentation"
+_SHOW_ACTION_USAGE_STATS_ICON = "chart-column"
 _ELLIPSIS = "…"
 
 
@@ -233,6 +235,15 @@ def show_action_identity_context_menu(
         return
 
     menu = FluentMenu("", parent)
+    if identity_parts is not None:
+        show_stats = menu.addAction(SHOW_ACTION_USAGE_STATS_MENU_LABEL)
+        apply_lucide_action_icon(show_stats, _SHOW_ACTION_USAGE_STATS_ICON)
+        show_stats.triggered.connect(
+            lambda *_args, class_name=identity_parts.class_name: _open_action_usage_stats(
+                select_class_name=class_name,
+            ),
+        )
+        menu.addSeparator()
     if menu_title is not None:
         copy_menu_title = menu.addAction(format_copy_menu_title_menu_label(menu_title))
         copy_menu_title.triggered.connect(
@@ -374,3 +385,12 @@ def truncate_action_name_preview(name: str, max_len: int = COPY_ACTION_NAME_PREV
     if len(name) <= max_len:
         return name
     return name[:max_len].rstrip() + _ELLIPSIS
+
+
+def _open_action_usage_stats(*, select_class_name: str | None = None) -> None:
+    """Open Action usage stats from a context menu (lazy import)."""
+    from harrix_swiss_knife.actions.development.show_action_usage_stats import (  # noqa: PLC0415
+        open_action_usage_stats,
+    )
+
+    open_action_usage_stats(select_class_name=select_class_name)
