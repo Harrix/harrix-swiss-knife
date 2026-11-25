@@ -1124,8 +1124,10 @@ class DirtyReposCommitWindow(QDialog):
                 found[path] = (visibility, ahead)
             return found
 
-        def done(found: dict[Path, tuple[str, int]]) -> None:
+        def done(found: object) -> None:
             if generation != self._visibility_generation:
+                return
+            if not isinstance(found, dict):
                 return
             for row in range(self._repo_list.count()):
                 item = self._repo_list.item(row)
@@ -1156,31 +1158,28 @@ class DirtyReposCommitWindow(QDialog):
     ) -> None:
         worker = _FnWorker(fn, parent=self)
         self._workers.append(worker)
-        outcome: dict[str, Any] = {"ok": None, "error": None}
 
         def finished(result: Any) -> None:
-            outcome["ok"] = result
-
-        def failed(message: str) -> None:
-            outcome["error"] = message
-
-        def cleanup() -> None:
             if busy:
                 self._busy = False
                 self._update_commit_enabled()
+            on_done(result)
+
+        def failed(message: str) -> None:
+            if busy:
+                self._busy = False
+                self._update_commit_enabled()
+            self._toast(message)
+            self._emit_line(f"❌ {message}")
+            if on_fail is not None:
+                on_fail(message)
+
+        def cleanup() -> None:
+            # Only after QThread.finished — never deleteLater from inside run().
             if worker in self._workers:
                 self._workers.remove(worker)
             worker.deleteLater()
-            error = outcome["error"]
-            if isinstance(error, str):
-                self._toast(error)
-                self._emit_line(f"❌ {error}")
-                if on_fail is not None:
-                    on_fail(error)
-                return
-            on_done(outcome["ok"])
 
-        # Deliver results from inside run(); destroy only after QThread.finished.
         worker.finished_ok.connect(finished)
         worker.failed.connect(failed)
         worker.finished.connect(cleanup)
