@@ -74,7 +74,7 @@ class OnGitCommit(ActionBase):
         noninteractive: bool = False,
         **_kwargs: Any,
     ) -> None:
-        """Scan configured roots and open the Git commit window when repos need attention."""
+        """Scan configured roots and open the Git commit window."""
         roots = self._configured_roots()
         if not roots:
             self.add_line("❌ `paths_git_roots` is missing or empty in config.json.")
@@ -96,18 +96,17 @@ class OnGitCommit(ActionBase):
 
     @ActionBase.handle_exceptions("opening git commit thread completion")
     def thread_after(self, result: Any) -> None:
-        """Open the Git commit window, or show a clean result."""
+        """Open the Git commit window (even when the dirty list is empty)."""
         raw = result if isinstance(result, list) else []
         statuses = [item for item in raw if isinstance(item, DirtyRepoStatus)]
         dirty = self._statuses_to_dirty(statuses)
         roots = self._configured_roots()
         self._report_scan(roots, dirty)
-        if not dirty:
+        if dirty:
+            self.show_toast(f"{len(dirty)} repo(s) need a commit or push")
+        else:
             self.show_toast("All Git repos are committed and pushed")
-            self.show_result()
-            return
 
-        self.show_toast(f"{len(dirty)} repo(s) need a commit or push")
         from harrix_swiss_knife.apps.git_commit.window import (  # noqa: PLC0415
             show_dirty_repos_commit_window,
         )
@@ -199,7 +198,7 @@ class OnGitCommit(ActionBase):
 def execute(self, *_args: Any, noninteractive: bool = False, **_kwargs: Any) -> None
 ```
 
-Scan configured roots and open the Git commit window when repos need attention.
+Scan configured roots and open the Git commit window.
 
 <details>
 <summary>Code:</summary>
@@ -252,7 +251,7 @@ def in_thread(self) -> list[DirtyRepoStatus]:
 def thread_after(self, result: Any) -> None
 ```
 
-Open the Git commit window, or show a clean result.
+Open the Git commit window (even when the dirty list is empty).
 
 <details>
 <summary>Code:</summary>
@@ -264,12 +263,11 @@ def thread_after(self, result: Any) -> None:
         dirty = self._statuses_to_dirty(statuses)
         roots = self._configured_roots()
         self._report_scan(roots, dirty)
-        if not dirty:
+        if dirty:
+            self.show_toast(f"{len(dirty)} repo(s) need a commit or push")
+        else:
             self.show_toast("All Git repos are committed and pushed")
-            self.show_result()
-            return
 
-        self.show_toast(f"{len(dirty)} repo(s) need a commit or push")
         from harrix_swiss_knife.apps.git_commit.window import (  # noqa: PLC0415
             show_dirty_repos_commit_window,
         )
