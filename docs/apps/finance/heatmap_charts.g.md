@@ -134,7 +134,7 @@ def present_expense_heatmap(
     start, end = bounds
     period_recorded = {key: value for key, value in recorded.items() if start <= key <= end}
     first_day = min(period_recorded) if period_recorded else None
-    tokens, marks, legend, bin_count = habit_calendar_model(
+    tokens, _marks, legend, bin_count = habit_calendar_model(
         period_recorded,
         start,
         end,
@@ -145,12 +145,12 @@ def present_expense_heatmap(
     colors = {cell: habit_token_color(state, bin_count=bin_count) for cell, state in tokens.items()}
     tips = {cell: _expense_cell_tip(cell, period_recorded.get(cell, 0), currency_symbol) for cell in tokens}
     heatmap = YearHeatmap()
+    # Expense amounts are too large for cell glyphs; values stay on hover only.
     heatmap.set_calendar(
         start,
         end,
         colors,
         legend=habit_legend_colors(legend, bin_count=bin_count),
-        marks=marks,
         tooltips=tips,
     )
     layout.addWidget(heatmap)
