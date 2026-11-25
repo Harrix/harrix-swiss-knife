@@ -16,9 +16,11 @@ from harrix_swiss_knife.cli_menu import (
     COPY_ACTION_NAME_MENU_PREFIX,
     COPY_ACTION_NAME_PREVIEW_MAX_LEN,
     COPY_ACTION_PATH_MENU_PREFIX,
+    COPY_CLI_MENU_PREFIX,
     COPY_MENU_TITLE_MENU_PREFIX,
     OPEN_ALL_TRACKERS_MENU_LABEL,
     OPEN_ALL_TRACKERS_PRESENTATION_MENU_LABEL,
+    SHOW_ACTION_USAGE_STATS_MENU_LABEL,
     CliContextMenu,
     format_copy_action_class_menu_label,
     format_copy_action_name_menu_label,
@@ -28,6 +30,7 @@ from harrix_swiss_knife.cli_menu import (
     is_tracker_launcher_action,
     show_action_identity_context_menu,
     show_open_all_trackers_menu,
+    show_tray_action_context_menu,
     trigger_all_tracker_launchers,
     trigger_all_tracker_launchers_presentation_mode,
     truncate_action_name_preview,
@@ -69,10 +72,10 @@ def test_action_identity_context_menu_includes_menu_title(qapp: QApplication, mo
     )
     assert len(shown) == 1
     labels = [action.text() for action in shown[0].actions() if not action.isSeparator()]
-    assert labels[0] == "Show in Action usage stats"
     # Leading emoji is replaced by a Lucide icon in the menu chrome.
-    assert labels[1].removeprefix("📋 ").startswith(COPY_MENU_TITLE_MENU_PREFIX.removeprefix("📋 "))
-    assert "Git commit" in labels[1]
+    assert labels[0].removeprefix("📋 ").startswith(COPY_MENU_TITLE_MENU_PREFIX.removeprefix("📋 "))
+    assert "Git commit" in labels[0]
+    assert "Show in Action usage stats" not in labels
     host.close()
 
 
@@ -114,14 +117,16 @@ def test_action_identity_context_menu_uses_fluent_dark_chrome(
         host.close()
 
 
-def test_cli_context_menu_right_click_ignores_non_tracker(qapp: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_cli_context_menu_right_click_opens_tray_menu_for_non_tracker(
+    qapp: QApplication, monkeypatch: pytest.MonkeyPatch
+) -> None:
     assert qapp is not None
     menu = CliContextMenu()
     icons = _action_with_identity("OnIcons", "Icons")
     menu.addAction(icons)
     opened: list[dict[str, object]] = []
     monkeypatch.setattr(
-        "harrix_swiss_knife.cli_menu.show_tracker_launcher_context_menu",
+        "harrix_swiss_knife.cli_menu.show_tray_action_context_menu",
         lambda **kwargs: opened.append(kwargs),
     )
     monkeypatch.setattr(menu, "actionAt", MagicMock(return_value=icons))
@@ -134,10 +139,12 @@ def test_cli_context_menu_right_click_ignores_non_tracker(qapp: QApplication, mo
         Qt.KeyboardModifier.NoModifier,
     )
     menu.mouseReleaseEvent(event)
-    assert opened == []
+    assert len(opened) == 1
+    assert opened[0]["action"] is icons
+    assert opened[0]["host_menu"] is menu
 
 
-def test_cli_context_menu_right_click_opens_all_trackers_menu(
+def test_cli_context_menu_right_click_opens_tray_menu_for_tracker(
     qapp: QApplication, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     assert qapp is not None
@@ -147,7 +154,7 @@ def test_cli_context_menu_right_click_opens_all_trackers_menu(
     menu.setFixedSize(200, 40)
     opened: list[dict[str, object]] = []
     monkeypatch.setattr(
-        "harrix_swiss_knife.cli_menu.show_tracker_launcher_context_menu",
+        "harrix_swiss_knife.cli_menu.show_tray_action_context_menu",
         lambda **kwargs: opened.append(kwargs),
     )
     monkeypatch.setattr(menu, "actionAt", MagicMock(return_value=finance))
@@ -162,7 +169,7 @@ def test_cli_context_menu_right_click_opens_all_trackers_menu(
     menu.mouseReleaseEvent(event)
     assert len(opened) == 1
     assert opened[0]["host_menu"] is menu
-    assert opened[0]["tracker_action"] is finance
+    assert opened[0]["action"] is finance
 
 
 def test_format_copy_action_class_and_path_show_full_value() -> None:
@@ -218,6 +225,25 @@ def test_show_open_all_trackers_menu_has_open_and_presentation_actions(
     labels = [action.text() for action in actions]
     assert labels == [OPEN_ALL_TRACKERS_MENU_LABEL, OPEN_ALL_TRACKERS_PRESENTATION_MENU_LABEL]
     assert all(not action.icon().isNull() for action in actions)
+
+
+def test_tray_action_context_menu_has_cli_and_usage_stats(qapp: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:
+    assert qapp is not None
+    host = QWidget()
+    shown: list[FluentMenu] = []
+
+    def _capture_exec(self: FluentMenu, *_args: object, **_kwargs: object) -> None:
+        shown.append(self)
+
+    monkeypatch.setattr(FluentMenu, "exec", _capture_exec)
+    action = _action_with_identity("OnGitCommit", "Git commit")
+    setattr(action, "cli_copy_command", "hsk file check-git-repos-needing-commit")  # noqa: B010
+    show_tray_action_context_menu(parent=host, global_pos=QPoint(0, 0), action=action)
+    assert len(shown) == 1
+    labels = [item.text() for item in shown[0].actions() if not item.isSeparator()]
+    assert any(label.removeprefix("📋 ").startswith(COPY_CLI_MENU_PREFIX.removeprefix("📋 ")) for label in labels)
+    assert SHOW_ACTION_USAGE_STATS_MENU_LABEL in labels
+    host.close()
 
 
 def test_tray_context_menu_follows_dark_theme_without_host(qapp: QApplication) -> None:

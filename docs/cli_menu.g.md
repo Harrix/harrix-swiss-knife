@@ -33,6 +33,7 @@ lang: en
 - [🔧 Function `show_action_item_context_menu`](#-function-show_action_item_context_menu)
 - [🔧 Function `show_open_all_trackers_menu`](#-function-show_open_all_trackers_menu)
 - [🔧 Function `show_tracker_launcher_context_menu`](#-function-show_tracker_launcher_context_menu)
+- [🔧 Function `show_tray_action_context_menu`](#-function-show_tray_action_context_menu)
 - [🔧 Function `trigger_all_tracker_launchers`](#-function-trigger_all_tracker_launchers)
 - [🔧 Function `trigger_all_tracker_launchers_presentation_mode`](#-function-trigger_all_tracker_launchers_presentation_mode)
 - [🔧 Function `trigger_tracker_presentation_mode`](#-function-trigger_tracker_presentation_mode)
@@ -46,7 +47,7 @@ lang: en
 class CliContextMenu(FluentMenu)
 ```
 
-Tray menu: middle-click copies identity; right-click on trackers opens all four.
+Tray menu: middle-click copies identity; right-click opens CLI / usage menu.
 
 <details>
 <summary>Code:</summary>
@@ -55,7 +56,7 @@ Tray menu: middle-click copies identity; right-click on trackers opens all four.
 class CliContextMenu(FluentMenu):
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
-        """Handle middle-click identity copy and right-click open-all for trackers."""
+        """Handle middle-click identity copy and right-click tray action menu."""
         action = self.actionAt(event.position().toPoint())
         if action is not None and not action.isSeparator() and action.menu() is None:
             if event.button() == Qt.MouseButton.MiddleButton:
@@ -66,12 +67,13 @@ class CliContextMenu(FluentMenu):
                 )
                 event.accept()
                 return
-            if event.button() == Qt.MouseButton.RightButton and is_tracker_launcher_action(action):
-                show_tracker_launcher_context_menu(
+            if event.button() == Qt.MouseButton.RightButton:
+                # Do not fall through to QMenu — that would trigger the action.
+                show_tray_action_context_menu(
                     parent=self,
                     global_pos=event.globalPosition().toPoint(),
+                    action=action,
                     host_menu=self,
-                    tracker_action=action,
                 )
                 event.accept()
                 return
@@ -86,7 +88,7 @@ class CliContextMenu(FluentMenu):
 def mouseReleaseEvent(self, event: QMouseEvent) -> None
 ```
 
-Handle middle-click identity copy and right-click open-all for trackers.
+Handle middle-click identity copy and right-click tray action menu.
 
 <details>
 <summary>Code:</summary>
@@ -103,12 +105,13 @@ def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
                 )
                 event.accept()
                 return
-            if event.button() == Qt.MouseButton.RightButton and is_tracker_launcher_action(action):
-                show_tracker_launcher_context_menu(
+            if event.button() == Qt.MouseButton.RightButton:
+                # Do not fall through to QMenu — that would trigger the action.
+                show_tray_action_context_menu(
                     parent=self,
                     global_pos=event.globalPosition().toPoint(),
+                    action=action,
                     host_menu=self,
-                    tracker_action=action,
                 )
                 event.accept()
                 return
@@ -489,15 +492,6 @@ def show_action_identity_context_menu(
         return
 
     menu = FluentMenu("", parent)
-    if identity_parts is not None:
-        show_stats = menu.addAction(SHOW_ACTION_USAGE_STATS_MENU_LABEL)
-        apply_lucide_action_icon(show_stats, _SHOW_ACTION_USAGE_STATS_ICON)
-        show_stats.triggered.connect(
-            lambda *_args, class_name=identity_parts.class_name: _open_action_usage_stats(
-                select_class_name=class_name,
-            ),
-        )
-        menu.addSeparator()
     if menu_title is not None:
         copy_menu_title = menu.addAction(format_copy_menu_title_menu_label(menu_title))
         copy_menu_title.triggered.connect(
@@ -618,26 +612,67 @@ def show_tracker_launcher_context_menu(
     host_menu: QMenu,
     tracker_action: QAction | None,
 ) -> None:
-    from harrix_swiss_knife.apps.common.presentation_mode import (  # noqa: PLC0415
-        OPEN_IN_PRESENTATION_MENU_LABEL,
-    )
-
     menu = FluentMenu("", parent)
-    if tracker_action is not None:
-        open_presentation = menu.addAction(OPEN_IN_PRESENTATION_MENU_LABEL)
-        apply_lucide_action_icon(open_presentation, _OPEN_IN_PRESENTATION_ICON)
-        open_presentation.triggered.connect(
-            lambda *_args, source=tracker_action: trigger_tracker_presentation_mode(source),
+    _add_tracker_launcher_actions(menu, host_menu=host_menu, tracker_action=tracker_action)
+    apply_menu_icon_size(menu)
+    menu.refresh_theme()
+    menu.exec(global_pos)
+```
+
+</details>
+
+## 🔧 Function `show_tray_action_context_menu`
+
+```python
+def show_tray_action_context_menu(*, parent: QWidget | None, global_pos: QPoint, action: QAction, host_menu: QMenu | None = None) -> None
+```
+
+Show tray right-click menu: CLI copy (when set), usage stats, tracker extras.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def show_tray_action_context_menu(
+    *,
+    parent: QWidget | None,
+    global_pos: QPoint,
+    action: QAction,
+    host_menu: QMenu | None = None,
+) -> None:
+    menu = FluentMenu("", parent)
+    has_items = False
+
+    if host_menu is not None and is_tracker_launcher_action(action):
+        _add_tracker_launcher_actions(menu, host_menu=host_menu, tracker_action=action)
+        has_items = True
+
+    cli_copy_command = get_cli_copy_command(action)
+    if cli_copy_command is not None:
+        if has_items:
+            menu.addSeparator()
+        copy_cli = menu.addAction(format_copy_cli_menu_label(cli_copy_command))
+        copy_cli.triggered.connect(
+            lambda *_args, cmd=cli_copy_command: copy_cli_command_to_clipboard(cmd),
         )
-        menu.addSeparator()
-    open_all = menu.addAction(OPEN_ALL_TRACKERS_MENU_LABEL)
-    apply_lucide_action_icon(open_all, _OPEN_ALL_TRACKERS_ICON)
-    open_all.triggered.connect(lambda *_args, source=host_menu: trigger_all_tracker_launchers(source))
-    open_all_presentation = menu.addAction(OPEN_ALL_TRACKERS_PRESENTATION_MENU_LABEL)
-    apply_lucide_action_icon(open_all_presentation, _OPEN_ALL_TRACKERS_PRESENTATION_ICON)
-    open_all_presentation.triggered.connect(
-        lambda *_args, source=host_menu: trigger_all_tracker_launchers_presentation_mode(source),
-    )
+        has_items = True
+
+    identity_parts = get_action_identity_parts(action)
+    if identity_parts is not None:
+        if has_items:
+            menu.addSeparator()
+        show_stats = menu.addAction(SHOW_ACTION_USAGE_STATS_MENU_LABEL)
+        apply_lucide_action_icon(show_stats, _SHOW_ACTION_USAGE_STATS_ICON)
+        show_stats.triggered.connect(
+            lambda *_args, class_name=identity_parts.class_name: _open_action_usage_stats(
+                select_class_name=class_name,
+            ),
+        )
+        has_items = True
+
+    if not has_items:
+        return
+    apply_leading_chrome_icons(menu)
     apply_menu_icon_size(menu)
     menu.refresh_theme()
     menu.exec(global_pos)
