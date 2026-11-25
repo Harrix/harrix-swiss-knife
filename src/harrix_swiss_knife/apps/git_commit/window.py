@@ -365,10 +365,15 @@ class DirtyReposCommitWindow(QDialog):
         self._update_commit_enabled()
 
     def closeEvent(self, event: Any) -> None:  # noqa: N802
-        """Stop timers and clear the singleton when closing."""
+        """Stop timers, join workers, and clear the singleton when closing."""
         self._refresh_timer.stop()
         self._splitter_save_timer.stop()
         self._save_splitter_sizes()
+        for worker in list(self._workers):
+            if worker.isRunning() and not worker.wait(3000):
+                worker.terminate()
+                worker.wait(1000)
+        self._workers.clear()
         global _active_window  # noqa: PLW0603
         if _active_window is self:
             _active_window = None
@@ -1245,32 +1250,36 @@ class DirtyReposCommitWindow(QDialog):
         busy: bool = True,
         on_fail: Callable[[str], None] | None = None,
     ) -> None:
-        worker = _FnWorker(fn)
+        worker = _FnWorker(fn, parent=self)
         self._workers.append(worker)
+        outcome: dict[str, Any] = {"ok": None, "error": None}
 
         def finished(result: Any) -> None:
-            if busy:
-                self._busy = False
-                self._update_commit_enabled()
-            if worker in self._workers:
-                self._workers.remove(worker)
-            worker.deleteLater()
-            on_done(result)
+            outcome["ok"] = result
 
         def failed(message: str) -> None:
+            outcome["error"] = message
+
+        def cleanup() -> None:
             if busy:
                 self._busy = False
                 self._update_commit_enabled()
             if worker in self._workers:
                 self._workers.remove(worker)
             worker.deleteLater()
-            self._toast(message)
-            self._emit_line(f"❌ {message}")
-            if on_fail is not None:
-                on_fail(message)
+            error = outcome["error"]
+            if isinstance(error, str):
+                self._toast(error)
+                self._emit_line(f"❌ {error}")
+                if on_fail is not None:
+                    on_fail(error)
+                return
+            on_done(outcome["ok"])
 
+        # Deliver results from inside run(); destroy only after QThread.finished.
         worker.finished_ok.connect(finished)
         worker.failed.connect(failed)
+        worker.finished.connect(cleanup)
         if busy:
             self._busy = True
             self._update_commit_enabled()

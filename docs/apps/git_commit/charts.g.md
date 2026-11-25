@@ -124,9 +124,22 @@ class GitCommitChartsPage(QWidget):
         roots = configured_git_roots()
         scope = self._scope
         worker = _CommitsChartWorker(roots, scope, force=force, parent=self)
-        worker.finished_ok.connect(self._on_loaded)
-        worker.failed.connect(self._on_failed)
         self._worker = worker
+
+        def on_ok(payload: object) -> None:
+            self._on_loaded(payload)
+
+        def on_fail(message: str) -> None:
+            self._on_failed(message)
+
+        def cleanup() -> None:
+            if self._worker is worker:
+                self._worker = None
+            worker.deleteLater()
+
+        worker.finished_ok.connect(on_ok)
+        worker.failed.connect(on_fail)
+        worker.finished.connect(cleanup)
         worker.start()
 
     def showEvent(self, event: Any) -> None:  # noqa: N802
@@ -473,9 +486,22 @@ def refresh(self, *, force: bool = False) -> None:
         roots = configured_git_roots()
         scope = self._scope
         worker = _CommitsChartWorker(roots, scope, force=force, parent=self)
-        worker.finished_ok.connect(self._on_loaded)
-        worker.failed.connect(self._on_failed)
         self._worker = worker
+
+        def on_ok(payload: object) -> None:
+            self._on_loaded(payload)
+
+        def on_fail(message: str) -> None:
+            self._on_failed(message)
+
+        def cleanup() -> None:
+            if self._worker is worker:
+                self._worker = None
+            worker.deleteLater()
+
+        worker.finished_ok.connect(on_ok)
+        worker.failed.connect(on_fail)
+        worker.finished.connect(cleanup)
         worker.start()
 ```
 

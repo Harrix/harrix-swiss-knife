@@ -301,6 +301,7 @@ class MaintenanceChecklistDialog(QDialog):
         worker = getattr(action, "_current_worker", None)
         if worker is not None and worker.isRunning():
             loop = QEventLoop(self)
+            # Wait for QThread.finished (after run), not result_ready from inside run.
             worker.finished.connect(loop.quit)
             if worker.isRunning():
                 loop.exec()

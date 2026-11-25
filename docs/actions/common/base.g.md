@@ -711,15 +711,17 @@ class ActionBase(ABC):
         def _cleanup_worker() -> None:
             with contextlib.suppress(ValueError):
                 _active_action_workers.remove(worker)
-            # Qt 6.12 qFatal's if a still-Running QThread is destroyed; join first.
+            # QThread.finished fires after run() returns; join before deleteLater
+            # so Qt 6.12 does not qFatal on a still-Running QThread.
             worker.wait(3000)
             worker.deleteLater()
 
+        # result_ready is emitted from inside run(); QThread.finished is after it.
+        worker.result_ready.connect(callback_wrapper)
         worker.finished.connect(_cleanup_worker)
 
         if cancellable and ui_message:
             self.toast.cancel_requested.connect(worker.cancel)
-        worker.finished.connect(callback_wrapper)  # Connect to our wrapper instead
         worker.start()
         # Store reference to prevent garbage collection
         self._current_worker = worker
@@ -1979,15 +1981,17 @@ def start_thread(
         def _cleanup_worker() -> None:
             with contextlib.suppress(ValueError):
                 _active_action_workers.remove(worker)
-            # Qt 6.12 qFatal's if a still-Running QThread is destroyed; join first.
+            # QThread.finished fires after run() returns; join before deleteLater
+            # so Qt 6.12 does not qFatal on a still-Running QThread.
             worker.wait(3000)
             worker.deleteLater()
 
+        # result_ready is emitted from inside run(); QThread.finished is after it.
+        worker.result_ready.connect(callback_wrapper)
         worker.finished.connect(_cleanup_worker)
 
         if cancellable and ui_message:
             self.toast.cancel_requested.connect(worker.cancel)
-        worker.finished.connect(callback_wrapper)  # Connect to our wrapper instead
         worker.start()
         # Store reference to prevent garbage collection
         self._current_worker = worker

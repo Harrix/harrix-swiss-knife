@@ -717,15 +717,17 @@ class ActionBase(ABC):
         def _cleanup_worker() -> None:
             with contextlib.suppress(ValueError):
                 _active_action_workers.remove(worker)
-            # Qt 6.12 qFatal's if a still-Running QThread is destroyed; join first.
+            # QThread.finished fires after run() returns; join before deleteLater
+            # so Qt 6.12 does not qFatal on a still-Running QThread.
             worker.wait(3000)
             worker.deleteLater()
 
+        # result_ready is emitted from inside run(); QThread.finished is after it.
+        worker.result_ready.connect(callback_wrapper)
         worker.finished.connect(_cleanup_worker)
 
         if cancellable and ui_message:
             self.toast.cancel_requested.connect(worker.cancel)
-        worker.finished.connect(callback_wrapper)  # Connect to our wrapper instead
         worker.start()
         # Store reference to prevent garbage collection
         self._current_worker = worker
@@ -878,9 +880,14 @@ class _WorkerFailure:
 
 
 class _WorkerForThread(QThread):
-    """Run a function in a QThread and emit its result."""
+    """Run a function in a QThread and emit its result.
 
-    finished = Signal(object)
+    Uses `result_ready` instead of shadowing `QThread.finished`, so cleanup can
+    connect to the real finished signal after `run()` returns.
+
+    """
+
+    result_ready = Signal(object)
 
     def __init__(
         self,
@@ -904,15 +911,15 @@ class _WorkerForThread(QThread):
         try:
             result = self.work_function()
             if self.should_stop:
-                self.finished.emit(_WorkerCancelled())
+                self.result_ready.emit(_WorkerCancelled())
                 return
-            self.finished.emit(result)
+            self.result_ready.emit(result)
         except Exception as e:
             if isinstance(e, DownloadCancelledError) or self.should_stop:
-                self.finished.emit(_WorkerCancelled())
+                self.result_ready.emit(_WorkerCancelled())
                 return
             logger.exception("Worker thread failed")
-            self.finished.emit(_WorkerFailure(e))
+            self.result_ready.emit(_WorkerFailure(e))
         finally:
             if getattr(_output_path_local, "file", None) is self._output_path:
                 delattr(_output_path_local, "file")
