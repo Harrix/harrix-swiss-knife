@@ -485,6 +485,7 @@
   "sqlite_fitness": "<YOUR_GITHUB_FOLDER>/data-for-hsk/databases/fitness.db",
   "sqlite_food": "<YOUR_GITHUB_FOLDER>/data-for-hsk/databases/food.db",
   "sqlite_habits": "<YOUR_GITHUB_FOLDER>/data-for-hsk/databases/habits.db",
+  "sqlite_beat_saber": "<YOUR_GITHUB_FOLDER>/data-for-hsk/databases/beat_saber.db",
   "sqlite_snippets": "<YOUR_GITHUB_FOLDER>/data-for-hsk/databases/snippets.db",
   "start_pattern_jupyter_notebooks": "jupyter-notebook-",
   "start_pattern_py_projects": "python-project-",

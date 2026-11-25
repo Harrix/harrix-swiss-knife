@@ -9,6 +9,7 @@ from harrix_swiss_knife.actions.android.android_check import OnAndroidCheck
 from harrix_swiss_knife.actions.android.android_format import OnAndroidFormat
 from harrix_swiss_knife.actions.android.android_setup_sdk import OnAndroidSetupSdk
 from harrix_swiss_knife.actions.android.beat_saber_saves import OnBeatSaberSaves
+from harrix_swiss_knife.actions.apps.beat_saber import OnBeatSaber
 from harrix_swiss_knife.actions.apps.beautify_and_optimize_icons import OnBeautifyAndOptimizeIcons
 from harrix_swiss_knife.actions.apps.check_images import OnCheckImages
 from harrix_swiss_knife.actions.apps.commands import OnCommands
@@ -332,6 +333,7 @@ def get_menu_structure() -> list[Any]:
                 OnBeautifyAndOptimizeIcons,
             ],
         ),
+        OnBeatSaber,
         OnCommands,
         OnFinance,
         OnFitness,

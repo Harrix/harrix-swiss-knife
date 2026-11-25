@@ -11,8 +11,10 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 # Beat Saber `Rank` enum order (E=0 … SSS=7). Confirmed against LocalLow PlayerData.
-_RANK_NAMES: tuple[str, ...] = ("E", "D", "C", "B", "A", "S", "SS", "SSS")
-_DIFFICULTY_NAMES: tuple[str, ...] = ("Easy", "Normal", "Hard", "Expert", "Expert+")
+RANK_NAMES: tuple[str, ...] = ("E", "D", "C", "B", "A", "S", "SS", "SSS")
+DIFFICULTY_NAMES: tuple[str, ...] = ("Easy", "Normal", "Hard", "Expert", "Expert+")
+_RANK_NAMES = RANK_NAMES
+_DIFFICULTY_NAMES = DIFFICULTY_NAMES
 _CUSTOM_LEVEL_PREFIX = "custom_level_"
 _CUSTOM_HASH_PREVIEW_LEN = 8
 _CAMEL_SPLIT_RE = re.compile(r"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])")

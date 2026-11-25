@@ -1,5 +1,6 @@
 """Actions for launching applications."""
 
+from harrix_swiss_knife.actions.apps.beat_saber import OnBeatSaber
 from harrix_swiss_knife.actions.apps.beautify_and_optimize_icons import OnBeautifyAndOptimizeIcons
 from harrix_swiss_knife.actions.apps.check_images import OnCheckImages
 from harrix_swiss_knife.actions.apps.commands import OnCommands
@@ -14,6 +15,7 @@ from harrix_swiss_knife.actions.apps.quick_launcher import OnQuickLauncher
 from harrix_swiss_knife.actions.apps.snippets import OnSnippets
 
 __all__ = [
+    "OnBeatSaber",
     "OnBeautifyAndOptimizeIcons",
     "OnCheckImages",
     "OnCommands",

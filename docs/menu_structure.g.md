@@ -203,6 +203,7 @@ def get_menu_structure() -> list[Any]:
                 OnBeautifyAndOptimizeIcons,
             ],
         ),
+        OnBeatSaber,
         OnCommands,
         OnFinance,
         OnFitness,

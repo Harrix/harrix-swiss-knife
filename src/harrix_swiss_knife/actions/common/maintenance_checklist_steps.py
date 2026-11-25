@@ -323,6 +323,14 @@ MAINTENANCE_STEP_SPECS: tuple[MaintenanceStepSpec, ...] = (
         include_in_run_all=False,
     ),
     MaintenanceStepSpec(
+        "harrix_swiss_knife.actions.apps.beat_saber",
+        "OnBeatSaber",
+        "Sync",
+        "gamepad-2",
+        note="Open tracker / sync PC·Quest progress",
+        include_in_run_all=False,
+    ),
+    MaintenanceStepSpec(
         "harrix_swiss_knife.actions.apps.habits",
         "OnHabits",
         "Sync",

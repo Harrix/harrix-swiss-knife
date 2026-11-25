@@ -1,5 +1,12 @@
 """Beat Saber local save export / import (PC LocalLow and Meta Quest via adb)."""
 
+from harrix_swiss_knife.beat_saber_saves.catalog import load_official_songs
+from harrix_swiss_knife.beat_saber_saves.ingest import (
+    ingest_backup_folder,
+    ingest_backup_zip,
+    ingest_player_data,
+    seed_official_catalog,
+)
 from harrix_swiss_knife.beat_saber_saves.pack import (
     SAVE_FILE_NAMES,
     BeatSaberTransferResult,
@@ -26,7 +33,12 @@ __all__ = [
     "format_progress_report",
     "import_pc_saves",
     "import_quest_saves",
+    "ingest_backup_folder",
+    "ingest_backup_zip",
+    "ingest_player_data",
     "load_level_clears",
+    "load_official_songs",
     "pc_saves_dir",
     "quest_remote_files_dir",
+    "seed_official_catalog",
 ]

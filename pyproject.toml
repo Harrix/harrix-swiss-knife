@@ -50,6 +50,7 @@ packages = ["src/harrix_swiss_knife"]
 [tool.hatch.build.targets.wheel.shared-data]
 "src/harrix_swiss_knife/**/*.ui" = "harrix_swiss_knife"
 "src/harrix_swiss_knife/**/*.sql" = "harrix_swiss_knife"
+"src/harrix_swiss_knife/**/*.json" = "harrix_swiss_knife"
 "src/harrix_swiss_knife/**/*.qrc" = "harrix_swiss_knife"
 "src/harrix_swiss_knife/assets/*" = "harrix_swiss_knife/assets"
 "src/harrix_swiss_knife/assets/dictionaries/*" = "harrix_swiss_knife/assets/dictionaries"
@@ -135,6 +136,7 @@ exclude = [
     "src/harrix_swiss_knife/apps/food/window.py",
     "src/harrix_swiss_knife/apps/finance/window.py",
     "src/harrix_swiss_knife/apps/habits/window.py",
+    "src/harrix_swiss_knife/apps/beat_saber/window.py",
     "install/dependencies",
 ]
 
