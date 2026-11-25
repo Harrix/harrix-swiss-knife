@@ -222,7 +222,16 @@ def _active_table_editor(view: QAbstractItemView) -> QWidget | None:
             return editor
 
     # Temporary QAbstractItemDelegate editors are focus children, not index widgets.
+    # Walk up from the focused child (checkbox, line edit, …) to the editor root
+    # that Qt registered under the viewport — closing a child warns and fails.
     focus = view.focusWidget()
-    if focus is not None and focus is not view:
-        return focus
+    if focus is None or focus is view:
+        return None
+    viewport = view.viewport()
+    widget: QWidget | None = focus
+    while widget is not None and widget is not view and widget is not viewport:
+        parent = widget.parentWidget()
+        if parent is viewport or parent is view:
+            return widget
+        widget = parent
     return None

@@ -35,110 +35,6 @@ RUB_ID = 1
 
 
 @pytest.fixture
-def qapp() -> QApplication:
-    app = QApplication.instance()
-    if app is None:
-        return QApplication([])
-    if not isinstance(app, QApplication):
-        msg = "QApplication.instance() returned a non-QApplication object."
-        raise TypeError(msg)
-    return app
-
-
-def test_parse_and_format_tag_text() -> None:
-    assert parse_tag_text("  trip, food, trip ,  ") == ["trip", "food"]
-    assert parse_tag_text("Trip, trip") == ["Trip"]
-    assert format_tag_text(["food", "Trip", "food"]) == "food, Trip"
-
-
-def test_tag_fragment_and_matching_known_tags() -> None:
-    """Suggestions use the fragment after the last comma and skip already chosen tags."""
-    assert tag_fragment_parts("food, tri") == ("food,", " tri")
-    assert tag_fragment_parts("trip") == ("", "trip")
-    known = ["trip", "transport", "food", "gift"]
-    assert matching_known_tags(known, "tri") == ["trip"]
-    assert matching_known_tags(known, "tr", exclude=["trip"]) == ["transport"]
-    assert matching_known_tags(known, "x") == []
-    assert apply_tag_suggestion("food, tri", "trip") == "food, trip"
-    assert apply_tag_suggestion("tri", "trip") == "trip"
-    assert TAG_SUGGEST_MIN_CHARS == 2
-
-
-def test_matching_known_tags_tolerates_wrong_keyboard_layout() -> None:
-    """EN keys can match Russian tags and RU keys can match English tags."""
-    known = ["путешествие", "транспорт", "trip", "gift"]
-    assert matching_known_tags(known, "gent") == ["путешествие"]
-    assert matching_known_tags(known, "nhf") == ["транспорт"]
-    assert matching_known_tags(known, "екш") == ["trip"]
-    assert matching_known_tags(known, "nhf", exclude=["транспорт"]) == []
-
-
-def test_tag_suggest_popup_lists_matches(qapp: QApplication) -> None:
-    """Typing enough characters opens the Fluent checklist of matching tags."""
-    assert qapp is not None
-    anchor = QWidget()
-    anchor.setGeometry(80, 80, 220, 32)
-    anchor.show()
-    qapp.processEvents()
-    popup = TagSuggestPopup(anchor)
-    chosen: list[str] = []
-    popup.tag_chosen.connect(chosen.append)
-    popup.show_matches(anchor, ["trip", "transport"], [])
-    assert popup.isVisible()
-    boxes = popup.findChildren(FluentCheckBox)
-    assert len(boxes) == 2
-    boxes[0].click()
-    assert chosen == ["trip"]
-    assert not popup.isVisible()
-    popup.close()
-    anchor.close()
-
-
-def test_tag_delegate_writes_checked_and_typed_tags(qapp: QApplication) -> None:
-    assert qapp is not None
-    model = QStandardItemModel(1, 1)
-    model.setData(model.index(0, 0), "gift")
-    delegate = TagDelegate(None, tags_provider=lambda: ["gift", "trip"])
-    parent = QWidget()
-    index = model.index(0, 0)
-    editor = delegate.createEditor(parent, QStyleOptionViewItem(), index)
-    delegate.setEditorData(editor, index)
-    boxes = editor.findChildren(FluentCheckBox)
-    assert {box.text() for box in boxes} == {"gift", "trip"}
-    for box in boxes:
-        if box.text() == "trip":
-            box.setChecked(True)
-        if box.text() == "gift":
-            assert box.isChecked()
-    field = editor.findChild(FluentLineEdit)
-    assert field is not None
-    field.setText("cafe")
-    delegate.setModelData(editor, model, index)
-    assert model.data(index) == "cafe, gift, trip"
-    editor.close()
-    parent.close()
-
-
-def test_tag_delegate_paints_chips_without_plain_text(qapp: QApplication) -> None:
-    assert qapp is not None
-    model = QStandardItemModel(1, 1)
-    model.setData(model.index(0, 0), "trip, food")
-    delegate = TagDelegate(None, tags=["trip", "food"])
-    option = QStyleOptionViewItem()
-    option.rect = option.rect.adjusted(0, 0, 200, 28)
-    option.rect.setRect(0, 0, 200, 28)
-    pixmap = QPixmap(200, 28)
-    pixmap.fill(Qt.GlobalColor.white)
-    painter = QPainter(pixmap)
-    delegate.paint(painter, option, model.index(0, 0))
-    painter.end()
-    image = pixmap.toImage()
-    assert any(
-        image.pixelColor(x, y) != Qt.GlobalColor.white for y in range(image.height()) for x in range(image.width())
-    )
-
-
-@pytest.fixture
 def finance_db(tmp_path: Path, qapp: QApplication) -> Iterator[DatabaseManager]:
     assert qapp is not None
     db_path = tmp_path / "finance.db"
@@ -148,34 +44,15 @@ def finance_db(tmp_path: Path, qapp: QApplication) -> Iterator[DatabaseManager]:
     db.close()
 
 
-def _category_id(db: DatabaseManager, name: str) -> int:
-    rows = db.get_rows("SELECT _id FROM categories WHERE name = :name", {"name": name})
-    assert rows
-    return int(rows[0][0])
-
-
-def test_transaction_can_keep_several_tags(finance_db: DatabaseManager) -> None:
-    category_id = _category_id(finance_db, "Food")
-    assert finance_db.add_transaction(12.0, "Lunch", category_id, RUB_ID, "2024-05-01", "trip, food")
-    assert finance_db.add_transaction(8.0, "Coffee", category_id, RUB_ID, "2024-05-02", "trip")
-
-    stored = finance_db.get_rows("SELECT _id, tag FROM transactions WHERE description = 'Lunch'")
-    assert stored[0][1] == "food, trip"
-    lunch_id = int(stored[0][0])
-    lunch_ids = {int(row[0]) for row in finance_db.get_transactions_for_tag("food")}
-    trip_ids = {int(row[0]) for row in finance_db.get_transactions_for_tag("Trip")}
-    assert lunch_id in lunch_ids
-    assert lunch_id in trip_ids
-    # "trip, food" is stored as links in first-seen parse order; picker lists newest _id first.
-    assert finance_db.get_distinct_transaction_tags() == ["food", "trip"]
-
-    assert finance_db.remove_transaction_tag(lunch_id, "food")
-    assert finance_db.get_rows("SELECT tag FROM transactions WHERE _id = :id", {"id": lunch_id})[0][0] == "trip"
-    assert finance_db.get_transactions_for_tag("food") == []
-    totals = finance_db.get_tag_expense_totals_by_currency("trip")
-    assert totals
-    assert totals[0][1] == "RUB"
-    assert totals[0][3] == 2000
+@pytest.fixture
+def qapp() -> QApplication:
+    app = QApplication.instance()
+    if app is None:
+        return QApplication([])
+    if not isinstance(app, QApplication):
+        msg = "QApplication.instance() returned a non-QApplication object."
+        raise TypeError(msg)
+    return app
 
 
 def test_distinct_tags_follow_newest_first_and_refresh(finance_db: DatabaseManager) -> None:
@@ -189,26 +66,41 @@ def test_distinct_tags_follow_newest_first_and_refresh(finance_db: DatabaseManag
     assert finance_db.get_distinct_transaction_tags() == ["gamma", "beta", "alpha"]
 
 
-def test_tag_checklist_has_ok_and_close_buttons(qapp: QApplication) -> None:
-    """Tag picker exposes OK / Close so the window is not Enter-only."""
+def test_legacy_tag_column_is_copied_when_database_opens(tmp_path: Path, qapp: QApplication) -> None:
     assert qapp is not None
-    parent = QWidget()
-    editor = TagCheckListEditor(["gift", "trip"], ["gift"], parent)
-    assert editor.findChild(FluentPrimaryButton) is not None
-    assert any(button.text() == "Close" for button in editor.findChildren(FluentPushButton))
-    accepted: list[bool] = []
-    rejected: list[bool] = []
-    editor.accepted.connect(lambda: accepted.append(True))
-    editor.rejected.connect(lambda: rejected.append(True))
-    ok = editor.findChild(FluentPrimaryButton)
-    assert ok is not None
-    ok.click()
-    assert accepted == [True]
-    close = next(button for button in editor.findChildren(FluentPushButton) if button.text() == "Close")
-    close.click()
-    assert rejected == [True]
-    editor.close()
-    parent.close()
+    db_path = tmp_path / "legacy.db"
+    assert DatabaseManager.create_database_from_sql(str(db_path), str(RECOVER_SQL))
+    db = DatabaseManager(str(db_path))
+    category_id = _category_id(db, "Transport")
+    assert db.add_transaction(30.0, "Taxi", category_id, RUB_ID, "2024-06-01", "legacy")
+    assert db.execute_simple_query("DROP TABLE transaction_tags")
+    assert db.execute_simple_query("DROP TABLE tags")
+    db.close()
+
+    reopened = DatabaseManager(str(db_path))
+    assert reopened.get_distinct_transaction_tags() == ["legacy"]
+    assert int(reopened.get_rows("SELECT COUNT(*) FROM transaction_tags")[0][0]) == 1
+    assert reopened.get_rows("SELECT tag FROM transactions WHERE description = 'Taxi'")[0][0] == "legacy"
+    reopened.close()
+
+    again = DatabaseManager(str(db_path))
+    assert int(again.get_rows("SELECT COUNT(*) FROM transaction_tags")[0][0]) == 1
+    again.close()
+
+
+def test_matching_known_tags_tolerates_wrong_keyboard_layout() -> None:
+    """EN keys can match Russian tags and RU keys can match English tags."""
+    known = ["путешествие", "транспорт", "trip", "gift"]  # ignore: HP001
+    assert matching_known_tags(known, "gent") == ["путешествие"]  # ignore: HP001
+    assert matching_known_tags(known, "nhf") == ["транспорт"]  # ignore: HP001
+    assert matching_known_tags(known, "екш") == ["trip"]  # ignore: HP001
+    assert matching_known_tags(known, "nhf", exclude=["транспорт"]) == []  # ignore: HP001
+
+
+def test_parse_and_format_tag_text() -> None:
+    assert parse_tag_text("  trip, food, trip ,  ") == ["trip", "food"]
+    assert parse_tag_text("Trip, trip") == ["Trip"]
+    assert format_tag_text(["food", "Trip", "food"]) == "food, Trip"
 
 
 def test_pick_transaction_tags_uses_popup_under_anchor(qapp: QApplication) -> None:
@@ -250,23 +142,152 @@ def test_pick_transaction_tags_uses_popup_under_anchor(qapp: QApplication) -> No
     anchor.close()
 
 
-def test_legacy_tag_column_is_copied_when_database_opens(tmp_path: Path, qapp: QApplication) -> None:
+def test_tag_checklist_has_ok_and_close_buttons(qapp: QApplication) -> None:
+    """Tag picker exposes OK / Close so the window is not Enter-only."""
     assert qapp is not None
-    db_path = tmp_path / "legacy.db"
-    assert DatabaseManager.create_database_from_sql(str(db_path), str(RECOVER_SQL))
-    db = DatabaseManager(str(db_path))
-    category_id = _category_id(db, "Transport")
-    assert db.add_transaction(30.0, "Taxi", category_id, RUB_ID, "2024-06-01", "legacy")
-    assert db.execute_simple_query("DROP TABLE transaction_tags")
-    assert db.execute_simple_query("DROP TABLE tags")
-    db.close()
+    parent = QWidget()
+    editor = TagCheckListEditor(["gift", "trip"], ["gift"], parent)
+    assert editor.findChild(FluentPrimaryButton) is not None
+    assert any(button.text() == "Close" for button in editor.findChildren(FluentPushButton))
+    accepted: list[bool] = []
+    rejected: list[bool] = []
+    editor.accepted.connect(lambda: accepted.append(True))
+    editor.rejected.connect(lambda: rejected.append(True))
+    ok = editor.findChild(FluentPrimaryButton)
+    assert ok is not None
+    ok.click()
+    assert accepted == [True]
+    close = next(button for button in editor.findChildren(FluentPushButton) if button.text() == "Close")
+    close.click()
+    assert rejected == [True]
+    editor.close()
+    parent.close()
 
-    reopened = DatabaseManager(str(db_path))
-    assert reopened.get_distinct_transaction_tags() == ["legacy"]
-    assert int(reopened.get_rows("SELECT COUNT(*) FROM transaction_tags")[0][0]) == 1
-    assert reopened.get_rows("SELECT tag FROM transactions WHERE description = 'Taxi'")[0][0] == "legacy"
-    reopened.close()
 
-    again = DatabaseManager(str(db_path))
-    assert int(again.get_rows("SELECT COUNT(*) FROM transaction_tags")[0][0]) == 1
-    again.close()
+def test_tag_delegate_commit_is_idempotent(qapp: QApplication) -> None:
+    """Enter can fire accepted several times; commitData/closeEditor must run once."""
+    assert qapp is not None
+    model = QStandardItemModel(1, 1)
+    model.setData(model.index(0, 0), "gift")
+    delegate = TagDelegate(None, tags=["gift"])
+    parent = QWidget()
+    editor = delegate.createEditor(parent, QStyleOptionViewItem(), model.index(0, 0))
+    commits: list[QWidget] = []
+    closes: list[QWidget] = []
+    delegate.commitData.connect(commits.append)
+    delegate.closeEditor.connect(lambda widget, _hint: closes.append(widget))
+
+    delegate._commit_editor(editor)
+    delegate._commit_editor(editor)
+    assert commits == [editor]
+    assert closes == [editor]
+    editor.close()
+    parent.close()
+
+
+def test_tag_delegate_paints_chips_without_plain_text(qapp: QApplication) -> None:
+    assert qapp is not None
+    model = QStandardItemModel(1, 1)
+    model.setData(model.index(0, 0), "trip, food")
+    delegate = TagDelegate(None, tags=["trip", "food"])
+    option = QStyleOptionViewItem()
+    option.rect = option.rect.adjusted(0, 0, 200, 28)
+    option.rect.setRect(0, 0, 200, 28)
+    pixmap = QPixmap(200, 28)
+    pixmap.fill(Qt.GlobalColor.white)
+    painter = QPainter(pixmap)
+    delegate.paint(painter, option, model.index(0, 0))
+    painter.end()
+    image = pixmap.toImage()
+    assert any(
+        image.pixelColor(x, y) != Qt.GlobalColor.white for y in range(image.height()) for x in range(image.width())
+    )
+
+
+def test_tag_delegate_writes_checked_and_typed_tags(qapp: QApplication) -> None:
+    assert qapp is not None
+    model = QStandardItemModel(1, 1)
+    model.setData(model.index(0, 0), "gift")
+    delegate = TagDelegate(None, tags_provider=lambda: ["gift", "trip"])
+    parent = QWidget()
+    index = model.index(0, 0)
+    editor = delegate.createEditor(parent, QStyleOptionViewItem(), index)
+    delegate.setEditorData(editor, index)
+    boxes = editor.findChildren(FluentCheckBox)
+    assert {box.text() for box in boxes} == {"gift", "trip"}
+    for box in boxes:
+        if box.text() == "trip":
+            box.setChecked(True)
+        if box.text() == "gift":
+            assert box.isChecked()
+    field = editor.findChild(FluentLineEdit)
+    assert field is not None
+    field.setText("cafe")
+    delegate.setModelData(editor, model, index)
+    assert model.data(index) == "cafe, gift, trip"
+    editor.close()
+    parent.close()
+
+
+def test_tag_fragment_and_matching_known_tags() -> None:
+    """Suggestions use the fragment after the last comma and skip already chosen tags."""
+    assert tag_fragment_parts("food, tri") == ("food,", " tri")
+    assert tag_fragment_parts("trip") == ("", "trip")
+    known = ["trip", "transport", "food", "gift"]
+    assert matching_known_tags(known, "tri") == ["trip"]
+    assert matching_known_tags(known, "tr", exclude=["trip"]) == ["transport"]
+    assert matching_known_tags(known, "x") == []
+    assert apply_tag_suggestion("food, tri", "trip") == "food, trip"
+    assert apply_tag_suggestion("tri", "trip") == "trip"
+    assert TAG_SUGGEST_MIN_CHARS == 2
+
+
+def test_tag_suggest_popup_lists_matches(qapp: QApplication) -> None:
+    """Typing enough characters opens the Fluent checklist of matching tags."""
+    assert qapp is not None
+    anchor = QWidget()
+    anchor.setGeometry(80, 80, 220, 32)
+    anchor.show()
+    qapp.processEvents()
+    popup = TagSuggestPopup(anchor)
+    chosen: list[str] = []
+    popup.tag_chosen.connect(chosen.append)
+    popup.show_matches(anchor, ["trip", "transport"], [])
+    assert popup.isVisible()
+    boxes = popup.findChildren(FluentCheckBox)
+    assert len(boxes) == 2
+    boxes[0].click()
+    assert chosen == ["trip"]
+    assert not popup.isVisible()
+    popup.close()
+    anchor.close()
+
+
+def test_transaction_can_keep_several_tags(finance_db: DatabaseManager) -> None:
+    category_id = _category_id(finance_db, "Food")
+    assert finance_db.add_transaction(12.0, "Lunch", category_id, RUB_ID, "2024-05-01", "trip, food")
+    assert finance_db.add_transaction(8.0, "Coffee", category_id, RUB_ID, "2024-05-02", "trip")
+
+    stored = finance_db.get_rows("SELECT _id, tag FROM transactions WHERE description = 'Lunch'")
+    assert stored[0][1] == "food, trip"
+    lunch_id = int(stored[0][0])
+    lunch_ids = {int(row[0]) for row in finance_db.get_transactions_for_tag("food")}
+    trip_ids = {int(row[0]) for row in finance_db.get_transactions_for_tag("Trip")}
+    assert lunch_id in lunch_ids
+    assert lunch_id in trip_ids
+    # "trip, food" is stored as links in first-seen parse order; picker lists newest _id first.
+    assert finance_db.get_distinct_transaction_tags() == ["food", "trip"]
+
+    assert finance_db.remove_transaction_tag(lunch_id, "food")
+    assert finance_db.get_rows("SELECT tag FROM transactions WHERE _id = :id", {"id": lunch_id})[0][0] == "trip"
+    assert finance_db.get_transactions_for_tag("food") == []
+    totals = finance_db.get_tag_expense_totals_by_currency("trip")
+    assert totals
+    assert totals[0][1] == "RUB"
+    assert totals[0][3] == 2000
+
+
+def _category_id(db: DatabaseManager, name: str) -> int:
+    rows = db.get_rows("SELECT _id FROM categories WHERE name = :name", {"name": name})
+    assert rows
+    return int(rows[0][0])

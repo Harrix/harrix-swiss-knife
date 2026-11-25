@@ -62,11 +62,11 @@ class IsDrinkDelegate(QStyledItemDelegate):
         container.setProperty("_is_drink_checkbox", checkbox)
         return container
 
-    def displayText(self, value: object, _locale: QLocale | QLocale.Language) -> str:  # noqa: N802
+    def displayText(self, _value: object, _locale: QLocale | QLocale.Language) -> str:  # noqa: N802
         """Hide text; the drink marker is painted as a Lucide icon."""
         return ""
 
-    def paint(  # noqa: N802
+    def paint(
         self,
         painter: QPainter,
         option: QStyleOptionViewItem,
@@ -146,6 +146,10 @@ class IsDrinkDelegate(QStyledItemDelegate):
 
     def _commit_checkbox_editor(self, editor: QWidget) -> None:
         """Commit editor data when the user toggles the checkbox."""
+        # Screenshot conceal / model reload can hide the editor while a queued
+        # stateChanged still fires; Qt then warns the editor is not owned.
+        if not editor.isVisible() or editor.parentWidget() is None:
+            return
         self.commitData.emit(editor)
 ```
 
@@ -192,7 +196,7 @@ def createEditor(  # noqa: N802
 ### ⚙️ Method `displayText`
 
 ```python
-def displayText(self, value: object, _locale: QLocale | QLocale.Language) -> str
+def displayText(self, _value: object, _locale: QLocale | QLocale.Language) -> str
 ```
 
 Hide text; the drink marker is painted as a Lucide icon.
@@ -201,7 +205,7 @@ Hide text; the drink marker is painted as a Lucide icon.
 <summary>Code:</summary>
 
 ```python
-def displayText(self, value: object, _locale: QLocale | QLocale.Language) -> str:  # noqa: N802
+def displayText(self, _value: object, _locale: QLocale | QLocale.Language) -> str:  # noqa: N802
         return ""
 ```
 
@@ -219,7 +223,7 @@ Draw the colored coffee icon when the row is a drink.
 <summary>Code:</summary>
 
 ```python
-def paint(  # noqa: N802
+def paint(
         self,
         painter: QPainter,
         option: QStyleOptionViewItem,

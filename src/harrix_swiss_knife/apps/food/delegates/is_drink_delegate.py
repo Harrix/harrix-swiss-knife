@@ -134,6 +134,10 @@ class IsDrinkDelegate(QStyledItemDelegate):
 
     def _commit_checkbox_editor(self, editor: QWidget) -> None:
         """Commit editor data when the user toggles the checkbox."""
+        # Screenshot conceal / model reload can hide the editor while a queued
+        # stateChanged still fires; Qt then warns the editor is not owned.
+        if not editor.isVisible() or editor.parentWidget() is None:
+            return
         self.commitData.emit(editor)
 
 

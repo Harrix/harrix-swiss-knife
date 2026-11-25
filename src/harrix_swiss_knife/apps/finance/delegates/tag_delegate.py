@@ -62,6 +62,7 @@ _CHIP_HEIGHT = 20
 _CHIP_PAD_X = 8
 _CHIP_GAP = 4
 _CHIP_MARGIN_Y = 2
+_TAG_EDITOR_DONE_PROP = "_hsk_tag_editor_done"
 
 
 class TagCheckListEditor(QFrame):
@@ -283,6 +284,8 @@ class TagDelegate(QStyledItemDelegate):
         editor.setGeometry(rect)
 
     def _close_editor(self, editor: QWidget, *, revert: bool) -> None:
+        if not _mark_tag_editor_finished(editor):
+            return
         hint = (
             QAbstractItemDelegate.EndEditHint.RevertModelCache
             if revert
@@ -291,8 +294,13 @@ class TagDelegate(QStyledItemDelegate):
         self.closeEditor.emit(editor, hint)
 
     def _commit_editor(self, editor: QWidget) -> None:
+        # Enter can hit returnPressed, a QShortcut, keyPressEvent, and the default
+        # OK button; without a guard Qt warns that commitData/closeEditor use an
+        # editor that no longer belongs to the view.
+        if not _mark_tag_editor_finished(editor):
+            return
         self.commitData.emit(editor)
-        self._close_editor(editor, revert=False)
+        self.closeEditor.emit(editor, QAbstractItemDelegate.EndEditHint.SubmitModelCache)
 
     def _known_tags(self) -> list[str]:
         """Return the tag names the editor should offer."""
@@ -489,6 +497,14 @@ def _draw_chip(
         int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft),
         text,
     )
+
+
+def _mark_tag_editor_finished(editor: QWidget) -> bool:
+    """Return `True` once for each editor so OK/Enter cannot double-commit."""
+    if bool(editor.property(_TAG_EDITOR_DONE_PROP)):
+        return False
+    editor.setProperty(_TAG_EDITOR_DONE_PROP, True)  # noqa: FBT003
+    return True
 
 
 def _paint_tag_chips(painter: QPainter, cell: QRect, names: list[str], palette: FluentPalette) -> None:

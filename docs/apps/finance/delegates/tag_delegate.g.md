@@ -451,6 +451,8 @@ class TagDelegate(QStyledItemDelegate):
         editor.setGeometry(rect)
 
     def _close_editor(self, editor: QWidget, *, revert: bool) -> None:
+        if not _mark_tag_editor_finished(editor):
+            return
         hint = (
             QAbstractItemDelegate.EndEditHint.RevertModelCache
             if revert
@@ -459,8 +461,13 @@ class TagDelegate(QStyledItemDelegate):
         self.closeEditor.emit(editor, hint)
 
     def _commit_editor(self, editor: QWidget) -> None:
+        # Enter can hit returnPressed, a QShortcut, keyPressEvent, and the default
+        # OK button; without a guard Qt warns that commitData/closeEditor use an
+        # editor that no longer belongs to the view.
+        if not _mark_tag_editor_finished(editor):
+            return
         self.commitData.emit(editor)
-        self._close_editor(editor, revert=False)
+        self.closeEditor.emit(editor, QAbstractItemDelegate.EndEditHint.SubmitModelCache)
 
     def _known_tags(self) -> list[str]:
         """Return the tag names the editor should offer."""
