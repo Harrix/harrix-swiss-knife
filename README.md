@@ -73,7 +73,6 @@ _Figure 1: Screenshot_
   - ⬇️ Download ffmpeg, avifenc, avifdec
   - 🧩 Fluent widget gallery
   - ⌨️ Install CLI (hsk on PATH) ꟲᴸᴵ
-  - 🛠️ ★ Maintenance checklist… ꟲᴸᴵ
   - ⚙️ Open `config.json`
   - 📁 Set up data-for-hsk ꟲᴸᴵ
   - ⚙️ Settings Editor
@@ -192,6 +191,7 @@ _Figure 1: Screenshot_
 - 🍔 Food tracker
 - 📌 Git commit ꟲᴸᴵ
 - ✅ Habit tracker
+- 🛠️ Maintenance checklist ꟲᴸᴵ
 - ⚡ Quick launcher
 - 📋 Quick paste
 - 🎨 Vector Icons
