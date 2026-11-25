@@ -30,6 +30,7 @@ class OnShowActionUsageStats(ActionBase):
         usage = load_action_usage()
         seen: set[str] = set()
         rows: list[ActionUsageStatsRow] = []
+        action_by_name: dict[str, type[ActionBase]] = {}
         used_count = 0
         total_calls = 0
 
@@ -38,6 +39,7 @@ class OnShowActionUsageStats(ActionBase):
             if class_name in seen:
                 continue
             seen.add(class_name)
+            action_by_name[class_name] = action_cls
 
             entry = usage.get(class_name)
             count = int(entry["count"]) if entry is not None else 0
@@ -51,6 +53,7 @@ class OnShowActionUsageStats(ActionBase):
             title = strip_md_inline_code_markers(action_cls.title)
             rows.append(
                 ActionUsageStatsRow(
+                    class_name=class_name,
                     count=count,
                     title=title,
                     icon=resolve_ui_icon_spec(action_cls),
@@ -77,4 +80,14 @@ class OnShowActionUsageStats(ActionBase):
                 )
             return
 
-        self.dialogs.show_action_usage_stats_browser(rows, summary=summary)
+        def on_run_action(class_name: str) -> None:
+            action_cls = action_by_name.get(class_name)
+            if action_cls is None:
+                return
+            action_cls(output_bus=self._output_bus)()
+
+        self.dialogs.show_action_usage_stats_browser(
+            rows,
+            summary=summary,
+            on_run_action=on_run_action,
+        )

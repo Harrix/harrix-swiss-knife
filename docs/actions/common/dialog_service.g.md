@@ -1349,6 +1349,7 @@ class ActionDialogService:
         rows: list[ActionUsageStatsRow],
         *,
         summary: str,
+        on_run_action: Callable[[str], None] | None = None,
     ) -> None:
         """Show a sortable table of action invocation statistics."""
         dialog_parent = QApplication.activeWindow()
@@ -1356,7 +1357,11 @@ class ActionDialogService:
         dialog.setWindowTitle("Action usage stats")
 
         layout = QVBoxLayout()
-        build_action_usage_stats_browser(rows, summary=summary)(dialog, layout)
+        build_action_usage_stats_browser(
+            rows,
+            summary=summary,
+            on_run_action=on_run_action,
+        )(dialog, layout)
         dialog.setLayout(layout)
         layout.setStretch(1, 1)
 
@@ -3791,7 +3796,7 @@ def show_action_output_log_browser(
 ### ⚙️ Method `show_action_usage_stats_browser`
 
 ```python
-def show_action_usage_stats_browser(self, rows: list[ActionUsageStatsRow], *, summary: str) -> None
+def show_action_usage_stats_browser(self, rows: list[ActionUsageStatsRow], *, summary: str, on_run_action: Callable[[str], None] | None = None) -> None
 ```
 
 Show a sortable table of action invocation statistics.
@@ -3805,13 +3810,18 @@ def show_action_usage_stats_browser(
         rows: list[ActionUsageStatsRow],
         *,
         summary: str,
+        on_run_action: Callable[[str], None] | None = None,
     ) -> None:
         dialog_parent = QApplication.activeWindow()
         dialog = QDialog(dialog_parent)
         dialog.setWindowTitle("Action usage stats")
 
         layout = QVBoxLayout()
-        build_action_usage_stats_browser(rows, summary=summary)(dialog, layout)
+        build_action_usage_stats_browser(
+            rows,
+            summary=summary,
+            on_run_action=on_run_action,
+        )(dialog, layout)
         dialog.setLayout(layout)
         layout.setStretch(1, 1)
 

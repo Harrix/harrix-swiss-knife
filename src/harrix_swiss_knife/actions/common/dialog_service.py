@@ -1404,6 +1404,7 @@ class ActionDialogService:
         rows: list[ActionUsageStatsRow],
         *,
         summary: str,
+        on_run_action: Callable[[str], None] | None = None,
     ) -> None:
         """Show a sortable table of action invocation statistics."""
         dialog_parent = QApplication.activeWindow()
@@ -1411,7 +1412,11 @@ class ActionDialogService:
         dialog.setWindowTitle("Action usage stats")
 
         layout = QVBoxLayout()
-        build_action_usage_stats_browser(rows, summary=summary)(dialog, layout)
+        build_action_usage_stats_browser(
+            rows,
+            summary=summary,
+            on_run_action=on_run_action,
+        )(dialog, layout)
         dialog.setLayout(layout)
         layout.setStretch(1, 1)
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING, TypedDict
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -40,6 +40,7 @@ if TYPE_CHECKING:
 class ActionUsageStatsRow(TypedDict):
     """One row for the action usage stats table."""
 
+    class_name: str
     count: int
     title: str
     icon: str
@@ -53,8 +54,15 @@ def build_action_usage_stats_browser(
     rows: list[ActionUsageStatsRow],
     *,
     summary: str,
+    on_run_action: Callable[[str], None] | None = None,
 ) -> Callable[[QDialog, QVBoxLayout], None]:
-    """Return dialog layout builder: summary label + sortable usage table."""
+    """Return dialog layout builder: summary label + sortable usage table.
+
+    `on_run_action` receives the action class name when the user chooses **Run**
+    from the table context menu. The stats dialog is closed before the callback
+    runs so the launched action is not nested under the modal stats window.
+
+    """
 
     def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
         summary_label = QLabel(summary)
@@ -84,6 +92,7 @@ def build_action_usage_stats_browser(
 
                 action_item = QTableWidgetItem(row["title"])
                 action_item.setIcon(_row_icon(row["icon"]))
+                action_item.setData(Qt.ItemDataRole.UserRole, row["class_name"])
                 table.setItem(row_idx, _COL_ACTION, action_item)
 
                 table.setItem(row_idx, _COL_CATEGORY, QTableWidgetItem(row["category"]))
@@ -143,12 +152,38 @@ def build_action_usage_stats_browser(
                 sheet_name="Action usage",
             )
 
+        def class_name_at(pos: QPoint) -> str | None:
+            index = table.indexAt(pos)
+            row = index.row() if index.isValid() else table.currentRow()
+            if row < 0:
+                return None
+            item = table.item(row, _COL_ACTION)
+            if item is None:
+                return None
+            value = item.data(Qt.ItemDataRole.UserRole)
+            return value if isinstance(value, str) and value else None
+
+        def on_run(class_name: str) -> None:
+            if on_run_action is None:
+                return
+            # Close first, then run after the event loop resumes so the action
+            # is not nested under this modal stats dialog.
+            QTimer.singleShot(0, lambda name=class_name: on_run_action(name))
+            dialog.accept()
+
         def on_context_menu(pos: QPoint) -> None:
             menu = QMenu(table)
+            run_action = None
+            class_name = class_name_at(pos) if on_run_action is not None else None
+            if class_name is not None:
+                run_action = add_lucide_action(menu, "Run", "play")
+                menu.addSeparator()
             copy_action = add_lucide_action(menu, "Copy", COPY_BUTTON_ICON)
             excel_action = add_lucide_action(menu, "Save as Excel…", "chart-column")
             chosen = menu.exec_(table.viewport().mapToGlobal(pos))
-            if chosen is copy_action:
+            if run_action is not None and chosen is run_action and class_name is not None:
+                on_run(class_name)
+            elif chosen is copy_action:
                 on_copy()
             elif chosen is excel_action:
                 on_save_excel()
