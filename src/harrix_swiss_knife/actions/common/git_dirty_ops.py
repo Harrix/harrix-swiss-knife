@@ -549,6 +549,10 @@ def load_repo_commit_day_cache(repo: Path, *, force: bool = False) -> RepoCommit
 def open_github_desktop_nonblocking(repo: Path) -> tuple[bool, str]:
     """Open `repo` in GitHub Desktop without waiting for the app to exit.
 
+    Prefer the Desktop CLI (`github.bat` / `github`) with the repository path.
+    The old `x-github-client://openLocalRepo/` protocol no longer switches the
+    selected repository in current Desktop builds.
+
     The process is detached from this console. `os.startfile` would let GitHub
     Desktop inherit it and print Chromium logs into the app terminal.
 
@@ -557,27 +561,22 @@ def open_github_desktop_nonblocking(repo: Path) -> tuple[bool, str]:
     if not repo.is_dir():
         return False, f"Folder not found: {repo}"
 
+    path_arg = str(repo)
     if sys.platform == "win32":
         local = os.environ.get("LOCALAPPDATA") or str(Path.home() / "AppData" / "Local")
-        url = "x-github-client://openLocalRepo/" + quote(str(repo).replace("\\", "/"))
-        exe = Path(local) / "GitHubDesktop" / "GitHubDesktop.exe"
         bat = Path(local) / "GitHubDesktop" / "bin" / "github.bat"
-        try:
-            _spawn_detached(["cmd", "/c", "start", "", url], cwd=repo)
-        except OSError:
-            pass
-        else:
-            return True, url
+        exe = Path(local) / "GitHubDesktop" / "GitHubDesktop.exe"
         if bat.is_file():
-            _spawn_detached(["cmd", "/c", "start", "", str(bat), str(repo)], cwd=repo)
+            # `github.bat` forwards the path as a CLI open action.
+            _spawn_detached(["cmd", "/c", str(bat), path_arg], cwd=repo)
             return True, str(bat)
         if exe.is_file():
-            _spawn_detached([str(exe), str(repo)], cwd=repo)
+            _spawn_detached([str(exe), path_arg], cwd=repo)
             return True, str(exe)
 
     github_cli = shutil.which("github")
     if github_cli:
-        _spawn_detached([github_cli, str(repo)], cwd=repo)
+        _spawn_detached([github_cli, path_arg], cwd=repo)
         return True, github_cli
 
     return False, "GitHub Desktop not found (install it or add `github` to PATH)"

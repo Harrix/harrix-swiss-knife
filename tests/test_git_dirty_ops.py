@@ -312,6 +312,10 @@ def test_open_github_desktop_nonblocking_detaches_from_console(
         "harrix_swiss_knife.actions.common.git_dirty_ops.sys.platform",
         "win32",
     )
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
+    desktop_bin = tmp_path / "GitHubDesktop" / "bin"
+    desktop_bin.mkdir(parents=True)
+    (desktop_bin / "github.bat").write_text("@echo off\n", encoding="utf-8")
     monkeypatch.setattr(
         "harrix_swiss_knife.actions.common.git_dirty_ops.subprocess.Popen",
         fake_popen,
@@ -325,14 +329,16 @@ def test_open_github_desktop_nonblocking_detaches_from_console(
     assert ok is True
     assert calls
     command, kwargs = calls[0]
-    assert command[:4] == ["cmd", "/c", "start", ""]
-    assert command[-1].startswith("x-github-client://openLocalRepo/")
+    assert command[:2] == ["cmd", "/c"]
+    assert command[2].endswith("github.bat")
+    assert Path(command[3]).resolve() == repo.resolve()
     flags = kwargs["creationflags"]
     assert isinstance(flags, int)
     assert flags & subprocess.DETACHED_PROCESS
     assert kwargs["stdout"] is subprocess.DEVNULL
     assert kwargs["stderr"] is subprocess.DEVNULL
     assert "blocking" not in detail
+    assert "github.bat" in detail
 
 
 def test_parse_github_slug_accepts_https_and_ssh() -> None:
