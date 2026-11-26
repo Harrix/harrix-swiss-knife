@@ -59,7 +59,7 @@ _Figure 1: Screenshot_
 ## 📋 List of commands
 
 - **Android**
-  - 🎮 ★ Beat Saber saves… ꟲᴸᴵ
+  - 🎮 Beat Saber saves… ꟲᴸᴵ
   - 📱 ★ Build Android APK in … ꟲᴸᴵ
   - 🔬 Check Android code in … ꟲᴸᴵ
   - ✨ Format Android code in … ꟲᴸᴵ
