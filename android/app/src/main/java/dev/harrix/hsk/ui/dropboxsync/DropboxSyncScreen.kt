@@ -594,7 +594,10 @@ private fun FolderPairEditorDialog(
                     },
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text(stringResource(R.string.dropbox_sync_pick_local))
+                    ButtonIconLabel(
+                        icon = LucideIcons.FolderOpen,
+                        label = stringResource(R.string.dropbox_sync_pick_local),
+                    )
                 }
                 OutlinedButton(
                     onClick = {
@@ -606,20 +609,34 @@ private fun FolderPairEditorDialog(
                     },
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Column(horizontalAlignment = Alignment.Start, modifier = Modifier.fillMaxWidth()) {
-                        Text(stringResource(R.string.dropbox_sync_use_internal))
-                        Text(
-                            text = stringResource(R.string.dropbox_sync_use_app_folder_hint),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Icon(
+                            imageVector = LucideIcons.Smartphone,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
                         )
+                        Column(horizontalAlignment = Alignment.Start, modifier = Modifier.weight(1f)) {
+                            Text(stringResource(R.string.dropbox_sync_use_internal))
+                            Text(
+                                text = stringResource(R.string.dropbox_sync_use_app_folder_hint),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
                 }
                 TextButton(
                     onClick = { treeLauncher.launch(null) },
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text(stringResource(R.string.dropbox_sync_use_saf))
+                    ButtonIconLabel(
+                        icon = LucideIcons.OpenWith,
+                        label = stringResource(R.string.dropbox_sync_use_saf),
+                    )
                 }
 
                 SectionTitleWithIcon(
@@ -648,7 +665,10 @@ private fun FolderPairEditorDialog(
                     },
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text(stringResource(R.string.dropbox_sync_pick_remote))
+                    ButtonIconLabel(
+                        icon = LucideIcons.Cloud,
+                        label = stringResource(R.string.dropbox_sync_pick_remote),
+                    )
                 }
 
                 Text(
@@ -706,15 +726,37 @@ private fun FolderPairEditorDialog(
                     )
                 },
             ) {
-                Text(stringResource(R.string.dropbox_sync_save))
+                ButtonIconLabel(
+                    icon = LucideIcons.Save,
+                    label = stringResource(R.string.dropbox_sync_save),
+                )
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(stringResource(android.R.string.cancel))
+                ButtonIconLabel(
+                    icon = LucideIcons.Close,
+                    label = stringResource(android.R.string.cancel),
+                )
             }
         },
     )
+}
+
+@Composable
+private fun ButtonIconLabel(
+    icon: ImageVector,
+    label: String,
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(18.dp),
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(label)
+    }
 }
 
 @Composable
@@ -1127,14 +1169,20 @@ private fun FolderPickerBottomBar(
                     modifier = Modifier.weight(1f),
                 )
                 TextButton(onClick = onCreateFolder) {
-                    Text(stringResource(R.string.dropbox_sync_create_folder))
+                    ButtonIconLabel(
+                        icon = LucideIcons.FolderPlus,
+                        label = stringResource(R.string.dropbox_sync_create_folder),
+                    )
                 }
             }
             Button(
                 onClick = onUseFolder,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(stringResource(R.string.dropbox_sync_use_this_folder))
+                ButtonIconLabel(
+                    icon = LucideIcons.FolderCheck,
+                    label = stringResource(R.string.dropbox_sync_use_this_folder),
+                )
             }
         }
     }

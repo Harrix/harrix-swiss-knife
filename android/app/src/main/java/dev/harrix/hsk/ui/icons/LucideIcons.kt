@@ -300,11 +300,30 @@ object LucideIcons {
         )
     }
 
+    val FolderCheck: ImageVector by lazy {
+        lucide(
+            "folder-check",
+            "M20 20a2 2 0 0 0 2 -2v-10a2 2 0 0 0 -2 -2h-7.9a2 2 0 0 1 -1.69 -0.9l-0.81 -1.2A2 2 0 0 0 7.93 3h-3" +
+                ".93a2 2 0 0 0 -2 2v13a2 2 0 0 0 2 2z",
+            "M9 13l2 2l4 -4",
+        )
+    }
+
     val FolderOpen: ImageVector by lazy {
         lucide(
             "folder-open",
             "M6 14l1.5 -2.9A2 2 0 0 1 9.24 10h10.76a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1 -1.95 1.5h-14.45a2 2 0 0" +
                 " 1 -2 -2v-13a2 2 0 0 1 2 -2h3.9a2 2 0 0 1 1.69 0.9l0.81 1.2a2 2 0 0 0 1.67 0.9h5.93a2 2 0 0 1 2 2v2",
+        )
+    }
+
+    val FolderPlus: ImageVector by lazy {
+        lucide(
+            "folder-plus",
+            "M12 10v6",
+            "M9 13h6",
+            "M20 20a2 2 0 0 0 2 -2v-10a2 2 0 0 0 -2 -2h-7.9a2 2 0 0 1 -1.69 -0.9l-0.81 -1.2A2 2 0 0 0 7.93 3h-3" +
+                ".93a2 2 0 0 0 -2 2v13a2 2 0 0 0 2 2z",
         )
     }
 
@@ -626,6 +645,14 @@ object LucideIcons {
             "M15 12h-12",
             "M17 19h-14",
             autoMirror = true,
+        )
+    }
+
+    val Smartphone: ImageVector by lazy {
+        lucide(
+            "smartphone",
+            "M7 2H17A2 2 0 0 1 19 4V20A2 2 0 0 1 17 22H7A2 2 0 0 1 5 20V4A2 2 0 0 1 7 2Z",
+            "M12 18h0.01",
         )
     }
 
