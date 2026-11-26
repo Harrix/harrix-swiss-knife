@@ -15,117 +15,21 @@
   </property>
   <widget class="QWidget" name="centralWidget">
    <layout class="QVBoxLayout" name="verticalLayout_root">
-    <item>
-     <widget class="QLabel" name="label_summary">
-      <property name="text">
-       <string>Summary</string>
-      </property>
-      <property name="wordWrap">
-       <bool>true</bool>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <layout class="QHBoxLayout" name="horizontalLayout_filters">
-      <item>
-       <widget class="QLabel" name="label_source">
-        <property name="text">
-         <string>Source</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QComboBox" name="combo_source">
-        <item>
-         <property name="text">
-          <string>Best (PC or Quest)</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>PC</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>Quest</string>
-         </property>
-        </item>
-       </widget>
-      </item>
-      <item>
-       <widget class="QLabel" name="label_difficulty">
-        <property name="text">
-         <string>Difficulty</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QComboBox" name="combo_difficulty">
-        <item>
-         <property name="text">
-          <string>All</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>Easy</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>Normal</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>Hard</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>Expert</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>Expert+</string>
-         </property>
-        </item>
-       </widget>
-      </item>
-      <item>
-       <widget class="QLineEdit" name="line_search">
-        <property name="placeholderText">
-         <string>Search song or pack…</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QCheckBox" name="check_require_fc">
-        <property name="text">
-         <string>Require full combo</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <spacer name="horizontalSpacer_filters">
-        <property name="orientation">
-         <enum>Qt::Orientation::Horizontal</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>40</width>
-          <height>20</height>
-         </size>
-        </property>
-        <property name="sizeType">
-         <enum>QSizePolicy::Policy::Expanding</enum>
-        </property>
-       </spacer>
-      </item>
-     </layout>
-    </item>
+    <property name="leftMargin">
+     <number>0</number>
+    </property>
+    <property name="topMargin">
+     <number>0</number>
+    </property>
+    <property name="rightMargin">
+     <number>0</number>
+    </property>
+    <property name="bottomMargin">
+     <number>0</number>
+    </property>
+    <property name="spacing">
+     <number>0</number>
+    </property>
     <item>
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
@@ -136,6 +40,150 @@
         <string>Missing</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_missing">
+        <property name="leftMargin">
+         <number>9</number>
+        </property>
+        <property name="topMargin">
+         <number>9</number>
+        </property>
+        <property name="rightMargin">
+         <number>9</number>
+        </property>
+        <property name="bottomMargin">
+         <number>9</number>
+        </property>
+        <item>
+         <widget class="QFrame" name="frame_header">
+          <property name="frameShape">
+           <enum>QFrame::Shape::NoFrame</enum>
+          </property>
+          <layout class="QVBoxLayout" name="verticalLayout_header">
+           <property name="leftMargin">
+            <number>0</number>
+           </property>
+           <property name="topMargin">
+            <number>0</number>
+           </property>
+           <property name="rightMargin">
+            <number>0</number>
+           </property>
+           <property name="bottomMargin">
+            <number>0</number>
+           </property>
+           <item>
+            <widget class="QLabel" name="label_summary">
+             <property name="text">
+              <string>Summary</string>
+             </property>
+             <property name="wordWrap">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <layout class="QHBoxLayout" name="horizontalLayout_filters">
+             <item>
+              <widget class="QLabel" name="label_source">
+               <property name="text">
+                <string>Source</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QComboBox" name="combo_source">
+               <item>
+                <property name="text">
+                 <string>Best (PC or Quest)</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>PC</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>Quest</string>
+                </property>
+               </item>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="label_difficulty">
+               <property name="text">
+                <string>Difficulty</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QComboBox" name="combo_difficulty">
+               <item>
+                <property name="text">
+                 <string>All</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>Easy</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>Normal</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>Hard</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>Expert</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>Expert+</string>
+                </property>
+               </item>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLineEdit" name="line_search">
+               <property name="placeholderText">
+                <string>Search song or pack…</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QCheckBox" name="check_require_fc">
+               <property name="text">
+                <string>Require full combo</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <spacer name="horizontalSpacer_filters">
+               <property name="orientation">
+                <enum>Qt::Orientation::Horizontal</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>40</width>
+                 <height>20</height>
+                </size>
+               </property>
+               <property name="sizeType">
+                <enum>QSizePolicy::Policy::Expanding</enum>
+               </property>
+              </spacer>
+             </item>
+            </layout>
+           </item>
+          </layout>
+         </widget>
+        </item>
         <item>
          <widget class="QTableWidget" name="table_missing"/>
         </item>
@@ -146,6 +194,18 @@
         <string>Compare</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_compare">
+        <property name="leftMargin">
+         <number>9</number>
+        </property>
+        <property name="topMargin">
+         <number>9</number>
+        </property>
+        <property name="rightMargin">
+         <number>9</number>
+        </property>
+        <property name="bottomMargin">
+         <number>9</number>
+        </property>
         <item>
          <widget class="QTableWidget" name="table_compare"/>
         </item>
@@ -156,6 +216,18 @@
         <string>Clears</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_clears">
+        <property name="leftMargin">
+         <number>9</number>
+        </property>
+        <property name="topMargin">
+         <number>9</number>
+        </property>
+        <property name="rightMargin">
+         <number>9</number>
+        </property>
+        <property name="bottomMargin">
+         <number>9</number>
+        </property>
         <item>
          <widget class="QTableWidget" name="table_clears"/>
         </item>
@@ -166,6 +238,18 @@
         <string>History</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_history">
+        <property name="leftMargin">
+         <number>9</number>
+        </property>
+        <property name="topMargin">
+         <number>9</number>
+        </property>
+        <property name="rightMargin">
+         <number>9</number>
+        </property>
+        <property name="bottomMargin">
+         <number>9</number>
+        </property>
         <item>
          <widget class="QTableWidget" name="table_history"/>
         </item>
@@ -189,7 +273,6 @@
      <string>File</string>
     </property>
     <addaction name="actionExit"/>
-    <addaction name="actionAbout"/>
    </widget>
    <widget class="QMenu" name="menuSync">
     <property name="title">
@@ -211,30 +294,16 @@
     <addaction name="action_import_quest"/>
     <addaction name="action_backup_db"/>
    </widget>
+   <widget class="QMenu" name="menuHelp">
+    <property name="title">
+     <string>Help</string>
+    </property>
+    <addaction name="actionAbout"/>
+   </widget>
    <addaction name="menuFile"/>
    <addaction name="menuSync"/>
    <addaction name="menuSaves"/>
-  </widget>
-  <widget class="QToolBar" name="toolBar">
-   <property name="windowTitle">
-    <string>toolBar</string>
-   </property>
-   <attribute name="toolBarArea">
-    <enum>TopToolBarArea</enum>
-   </attribute>
-   <attribute name="toolBarBreak">
-    <bool>false</bool>
-   </attribute>
-   <addaction name="action_sync_pc"/>
-   <addaction name="action_sync_quest"/>
-   <addaction name="separator"/>
-   <addaction name="action_export_pc"/>
-   <addaction name="action_export_quest"/>
-   <addaction name="action_import_pc"/>
-   <addaction name="action_import_quest"/>
-   <addaction name="separator"/>
-   <addaction name="action_import_backups"/>
-   <addaction name="action_backup_db"/>
+   <addaction name="menuHelp"/>
   </widget>
   <action name="action_sync_pc">
    <property name="text">

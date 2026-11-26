@@ -8,7 +8,7 @@ import sys
 import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import harrix_pylib as h
 from PySide6.QtCore import Qt
@@ -19,6 +19,8 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMessageBox,
     QTableWidgetItem,
+    QVBoxLayout,
+    QWidget,
 )
 
 from harrix_swiss_knife.actions.common.adb import adb_pull, list_adb_device_states, resolve_adb
@@ -30,7 +32,6 @@ from harrix_swiss_knife.apps.common.app_entry import run_app_main
 from harrix_swiss_knife.apps.common.db_init import init_tracker_database
 from harrix_swiss_knife.apps.common.qt_database_manager_base import QtSqliteDatabaseManagerBase
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
-from harrix_swiss_knife.apps.common.ui_chrome import button_idle_qss
 from harrix_swiss_knife.backup_paths import beat_saber_backup_root
 from harrix_swiss_knife.beat_saber_saves.ingest import (
     ingest_backup_folder,
@@ -47,6 +48,7 @@ from harrix_swiss_knife.beat_saber_saves.pack import (
 from harrix_swiss_knife.beat_saber_saves.paths import default_export_zip_path, pc_saves_dir, quest_remote_files_dir
 from harrix_swiss_knife.installer.icon_assets import apply_window_icon
 from harrix_swiss_knife.paths import get_config_path_str
+from harrix_swiss_knife.win11_caption import install_win11_caption, try_handle_win11_caption_native_event
 
 
 class MainWindow(AppWindowMixin, QMainWindow, Ui_MainWindow):
@@ -72,6 +74,13 @@ class MainWindow(AppWindowMixin, QMainWindow, Ui_MainWindow):
         self._maybe_seed_from_backups()
         self._refresh_all_views()
 
+    def nativeEvent(self, event_type, message) -> tuple[bool, int]:  # noqa: ANN001, N802
+        """Drag, resize, and size the client area for the custom caption bar."""
+        handled = try_handle_win11_caption_native_event(self, event_type, message)
+        if handled is not None:
+            return handled
+        return cast("tuple[bool, int]", super().nativeEvent(event_type, message))
+
     def _fill_table(self, table: Any, headers: list[str], rows: list[tuple[Any, ...]]) -> None:
         table.clear()
         table.setColumnCount(len(headers))
@@ -80,6 +89,19 @@ class MainWindow(AppWindowMixin, QMainWindow, Ui_MainWindow):
         for r, row in enumerate(rows):
             for c, value in enumerate(row):
                 table.setItem(r, c, QTableWidgetItem(str(value)))
+
+    def _host_header_on_current_tab(self) -> None:
+        """Keep summary/filters under the caption on the active tab."""
+        page = self.tabWidget.currentWidget()
+        if not isinstance(page, QWidget):
+            return
+        layout = page.layout()
+        if not isinstance(layout, QVBoxLayout):
+            return
+        if layout.indexOf(self.frame_header) == 0:
+            return
+        self.frame_header.setParent(None)
+        layout.insertWidget(0, self.frame_header)
 
     def _init_database(self) -> None:
         """Open `sqlite_beat_saber` (create from `recover.sql` when missing)."""
@@ -254,6 +276,11 @@ class MainWindow(AppWindowMixin, QMainWindow, Ui_MainWindow):
         message_box.information(self, "Sync from Quest", result.message)
         self._refresh_all_views()
 
+    def _on_tab_changed(self, _index: int) -> None:
+        """Move shared filters onto the active tab and refresh its table."""
+        self._host_header_on_current_tab()
+        self._refresh_all_views()
+
     def _pick_quest_device(self) -> tuple[Path, str] | None:
         adb = resolve_adb()
         if adb is None:
@@ -333,7 +360,11 @@ class MainWindow(AppWindowMixin, QMainWindow, Ui_MainWindow):
         return "best"
 
     def _setup_ui(self) -> None:
-        """Wire menus, filters, and table headers."""
+        """Wire menus, filters, caption chrome, and table headers."""
+        self._place_menu_bar_on_tab_row()
+        install_win11_caption(self)
+        self._apply_exit_about_menu_emojis()
+
         self.action_sync_pc.triggered.connect(self._on_sync_pc)
         self.action_sync_quest.triggered.connect(self._on_sync_quest)
         self.action_import_backups.triggered.connect(self._on_import_backups)
@@ -349,7 +380,8 @@ class MainWindow(AppWindowMixin, QMainWindow, Ui_MainWindow):
         self.combo_difficulty.currentIndexChanged.connect(self._refresh_all_views)
         self.check_require_fc.stateChanged.connect(self._refresh_all_views)
         self.line_search.textChanged.connect(self._refresh_all_views)
-        self.tabWidget.currentChanged.connect(self._refresh_all_views)
+        self.tabWidget.currentChanged.connect(self._on_tab_changed)
+        self._host_header_on_current_tab()
 
         for table in (self.table_missing, self.table_compare, self.table_clears, self.table_history):
             table.setAlternatingRowColors(True)
@@ -358,7 +390,6 @@ class MainWindow(AppWindowMixin, QMainWindow, Ui_MainWindow):
             table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
             table.verticalHeader().setVisible(False)
 
-        self.toolBar.setStyleSheet(button_idle_qss())
         self._setup_window_size_and_position()
         self._connect_exit_about_actions()
 

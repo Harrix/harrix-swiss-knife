@@ -1,3 +1,4 @@
+# ruff: noqa: ANN001, ANN201, D100, D101, D102, F401, I001, N801, N802, N803, UP004, UP009
 # -*- coding: utf-8 -*-
 
 ################################################################################
@@ -18,9 +19,9 @@ from PySide6.QtCore import (
     QPoint,
     QRect,
     QSize,
-    Qt,
     QTime,
     QUrl,
+    Qt,
 )
 from PySide6.QtGui import (
     QAction,
@@ -45,6 +46,7 @@ from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
     QComboBox,
+    QFrame,
     QHBoxLayout,
     QHeaderView,
     QLabel,
@@ -54,10 +56,9 @@ from PySide6.QtWidgets import (
     QMenuBar,
     QSizePolicy,
     QSpacerItem,
+    QTabWidget,
     QTableWidget,
     QTableWidgetItem,
-    QTabWidget,
-    QToolBar,
     QVBoxLayout,
     QWidget,
 )
@@ -111,7 +112,7 @@ class Ui_MainWindow(object):
         self.menuFile.setTitle(QCoreApplication.translate("MainWindow", "File", None))
         self.menuSync.setTitle(QCoreApplication.translate("MainWindow", "Sync", None))
         self.menuSaves.setTitle(QCoreApplication.translate("MainWindow", "Saves", None))
-        self.toolBar.setWindowTitle(QCoreApplication.translate("MainWindow", "toolBar", None))
+        self.menuHelp.setTitle(QCoreApplication.translate("MainWindow", "Help", None))
 
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
@@ -144,21 +145,36 @@ class Ui_MainWindow(object):
         self.centralWidget = QWidget(MainWindow)
         self.centralWidget.setObjectName("centralWidget")
         self.verticalLayout_root = QVBoxLayout(self.centralWidget)
+        self.verticalLayout_root.setSpacing(0)
         self.verticalLayout_root.setObjectName("verticalLayout_root")
-        self.label_summary = QLabel(self.centralWidget)
+        self.verticalLayout_root.setContentsMargins(0, 0, 0, 0)
+        self.tabWidget = QTabWidget(self.centralWidget)
+        self.tabWidget.setObjectName("tabWidget")
+        self.tab_missing = QWidget()
+        self.tab_missing.setObjectName("tab_missing")
+        self.verticalLayout_missing = QVBoxLayout(self.tab_missing)
+        self.verticalLayout_missing.setObjectName("verticalLayout_missing")
+        self.verticalLayout_missing.setContentsMargins(9, 9, 9, 9)
+        self.frame_header = QFrame(self.tab_missing)
+        self.frame_header.setObjectName("frame_header")
+        self.frame_header.setFrameShape(QFrame.Shape.NoFrame)
+        self.verticalLayout_header = QVBoxLayout(self.frame_header)
+        self.verticalLayout_header.setObjectName("verticalLayout_header")
+        self.verticalLayout_header.setContentsMargins(0, 0, 0, 0)
+        self.label_summary = QLabel(self.frame_header)
         self.label_summary.setObjectName("label_summary")
         self.label_summary.setWordWrap(True)
 
-        self.verticalLayout_root.addWidget(self.label_summary)
+        self.verticalLayout_header.addWidget(self.label_summary)
 
         self.horizontalLayout_filters = QHBoxLayout()
         self.horizontalLayout_filters.setObjectName("horizontalLayout_filters")
-        self.label_source = QLabel(self.centralWidget)
+        self.label_source = QLabel(self.frame_header)
         self.label_source.setObjectName("label_source")
 
         self.horizontalLayout_filters.addWidget(self.label_source)
 
-        self.combo_source = QComboBox(self.centralWidget)
+        self.combo_source = QComboBox(self.frame_header)
         self.combo_source.addItem("")
         self.combo_source.addItem("")
         self.combo_source.addItem("")
@@ -166,12 +182,12 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_filters.addWidget(self.combo_source)
 
-        self.label_difficulty = QLabel(self.centralWidget)
+        self.label_difficulty = QLabel(self.frame_header)
         self.label_difficulty.setObjectName("label_difficulty")
 
         self.horizontalLayout_filters.addWidget(self.label_difficulty)
 
-        self.combo_difficulty = QComboBox(self.centralWidget)
+        self.combo_difficulty = QComboBox(self.frame_header)
         self.combo_difficulty.addItem("")
         self.combo_difficulty.addItem("")
         self.combo_difficulty.addItem("")
@@ -182,12 +198,12 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_filters.addWidget(self.combo_difficulty)
 
-        self.line_search = QLineEdit(self.centralWidget)
+        self.line_search = QLineEdit(self.frame_header)
         self.line_search.setObjectName("line_search")
 
         self.horizontalLayout_filters.addWidget(self.line_search)
 
-        self.check_require_fc = QCheckBox(self.centralWidget)
+        self.check_require_fc = QCheckBox(self.frame_header)
         self.check_require_fc.setObjectName("check_require_fc")
 
         self.horizontalLayout_filters.addWidget(self.check_require_fc)
@@ -196,14 +212,10 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_filters.addItem(self.horizontalSpacer_filters)
 
-        self.verticalLayout_root.addLayout(self.horizontalLayout_filters)
+        self.verticalLayout_header.addLayout(self.horizontalLayout_filters)
 
-        self.tabWidget = QTabWidget(self.centralWidget)
-        self.tabWidget.setObjectName("tabWidget")
-        self.tab_missing = QWidget()
-        self.tab_missing.setObjectName("tab_missing")
-        self.verticalLayout_missing = QVBoxLayout(self.tab_missing)
-        self.verticalLayout_missing.setObjectName("verticalLayout_missing")
+        self.verticalLayout_missing.addWidget(self.frame_header)
+
         self.table_missing = QTableWidget(self.tab_missing)
         self.table_missing.setObjectName("table_missing")
 
@@ -214,6 +226,7 @@ class Ui_MainWindow(object):
         self.tab_compare.setObjectName("tab_compare")
         self.verticalLayout_compare = QVBoxLayout(self.tab_compare)
         self.verticalLayout_compare.setObjectName("verticalLayout_compare")
+        self.verticalLayout_compare.setContentsMargins(9, 9, 9, 9)
         self.table_compare = QTableWidget(self.tab_compare)
         self.table_compare.setObjectName("table_compare")
 
@@ -224,6 +237,7 @@ class Ui_MainWindow(object):
         self.tab_clears.setObjectName("tab_clears")
         self.verticalLayout_clears = QVBoxLayout(self.tab_clears)
         self.verticalLayout_clears.setObjectName("verticalLayout_clears")
+        self.verticalLayout_clears.setContentsMargins(9, 9, 9, 9)
         self.table_clears = QTableWidget(self.tab_clears)
         self.table_clears.setObjectName("table_clears")
 
@@ -234,6 +248,7 @@ class Ui_MainWindow(object):
         self.tab_history.setObjectName("tab_history")
         self.verticalLayout_history = QVBoxLayout(self.tab_history)
         self.verticalLayout_history.setObjectName("verticalLayout_history")
+        self.verticalLayout_history.setContentsMargins(9, 9, 9, 9)
         self.table_history = QTableWidget(self.tab_history)
         self.table_history.setObjectName("table_history")
 
@@ -253,16 +268,15 @@ class Ui_MainWindow(object):
         self.menuSync.setObjectName("menuSync")
         self.menuSaves = QMenu(self.menuBar)
         self.menuSaves.setObjectName("menuSaves")
+        self.menuHelp = QMenu(self.menuBar)
+        self.menuHelp.setObjectName("menuHelp")
         MainWindow.setMenuBar(self.menuBar)
-        self.toolBar = QToolBar(MainWindow)
-        self.toolBar.setObjectName("toolBar")
-        MainWindow.addToolBar(Qt.ToolBarArea.TopToolBarArea, self.toolBar)
 
         self.menuBar.addAction(self.menuFile.menuAction())
         self.menuBar.addAction(self.menuSync.menuAction())
         self.menuBar.addAction(self.menuSaves.menuAction())
+        self.menuBar.addAction(self.menuHelp.menuAction())
         self.menuFile.addAction(self.actionExit)
-        self.menuFile.addAction(self.actionAbout)
         self.menuSync.addAction(self.action_sync_pc)
         self.menuSync.addAction(self.action_sync_quest)
         self.menuSync.addAction(self.action_import_backups)
@@ -273,16 +287,7 @@ class Ui_MainWindow(object):
         self.menuSaves.addAction(self.action_import_pc)
         self.menuSaves.addAction(self.action_import_quest)
         self.menuSaves.addAction(self.action_backup_db)
-        self.toolBar.addAction(self.action_sync_pc)
-        self.toolBar.addAction(self.action_sync_quest)
-        self.toolBar.addSeparator()
-        self.toolBar.addAction(self.action_export_pc)
-        self.toolBar.addAction(self.action_export_quest)
-        self.toolBar.addAction(self.action_import_pc)
-        self.toolBar.addAction(self.action_import_quest)
-        self.toolBar.addSeparator()
-        self.toolBar.addAction(self.action_import_backups)
-        self.toolBar.addAction(self.action_backup_db)
+        self.menuHelp.addAction(self.actionAbout)
 
         self.retranslateUi(MainWindow)
 
