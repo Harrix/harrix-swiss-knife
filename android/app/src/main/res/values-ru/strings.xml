@@ -555,7 +555,9 @@
     <string name="dropbox_sync_widget_configure">Выберите пару папок</string>
     <string name="dropbox_sync_widget_all_pairs">Все включённые пары</string>
     <string name="settings_dropbox_sync_title">Dropbox Sync</string>
-    <string name="settings_dropbox_sync_summary">App Key, исключения и расписание</string>
+    <string name="settings_dropbox_sync_summary">Аккаунт, App Key, исключения и расписание</string>
+    <string name="settings_dropbox_sync_account">Аккаунт</string>
+    <string name="settings_dropbox_sync_need_app_key">Сначала укажите Dropbox App Key</string>
     <string name="settings_dropbox_sync_app_key">Dropbox App Key</string>
     <string name="settings_dropbox_sync_ignores">Глобальные исключения</string>
     <string name="settings_dropbox_sync_reset_ignores">Вернуть исключения по умолчанию</string>

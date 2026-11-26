@@ -199,22 +199,24 @@ fun DropboxSyncScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            item {
-                AccountCard(
-                    connected = connected,
-                    accountLabel = accountLabel,
-                    onConnect = { viewModel.beginConnect { viewModel.openAuthorizeUri(it) } },
-                    onDisconnect = viewModel::disconnect,
-                    onManageAllFiles = {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                            val intent =
-                                Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
-                                    data = Uri.parse("package:${context.packageName}")
-                                }
-                            context.startActivity(intent)
-                        }
-                    },
-                )
+            if (!connected) {
+                item {
+                    DropboxAccountCard(
+                        connected = false,
+                        accountLabel = accountLabel,
+                        onConnect = { viewModel.beginConnect { viewModel.openAuthorizeUri(it) } },
+                        onDisconnect = viewModel::disconnect,
+                        onManageAllFiles = {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                                val intent =
+                                    Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
+                                        data = Uri.parse("package:${context.packageName}")
+                                    }
+                                context.startActivity(intent)
+                            }
+                        },
+                    )
+                }
             }
             progress?.let { current ->
                 item {
@@ -370,46 +372,6 @@ private fun EmptyPairsCard(onAddPair: () -> Unit) {
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(stringResource(R.string.dropbox_sync_add_pair))
-            }
-        }
-    }
-}
-
-@Composable
-private fun AccountCard(
-    connected: Boolean,
-    accountLabel: String,
-    onConnect: () -> Unit,
-    onDisconnect: () -> Unit,
-    onManageAllFiles: () -> Unit,
-) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text =
-                if (connected) {
-                    stringResource(R.string.dropbox_sync_connected, accountLabel.ifBlank { "Dropbox" })
-                } else {
-                    stringResource(R.string.dropbox_sync_not_connected)
-                },
-                style = MaterialTheme.typography.titleMedium,
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (connected) {
-                    OutlinedButton(onClick = onDisconnect) {
-                        Text(stringResource(R.string.dropbox_sync_disconnect))
-                    }
-                } else {
-                    Button(onClick = onConnect) {
-                        Text(stringResource(R.string.dropbox_sync_connect))
-                    }
-                }
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    OutlinedButton(onClick = onManageAllFiles) {
-                        Text(stringResource(R.string.dropbox_sync_all_files_access))
-                    }
-                }
             }
         }
     }

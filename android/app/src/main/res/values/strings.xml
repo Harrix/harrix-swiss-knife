@@ -556,7 +556,9 @@
     <string name="dropbox_sync_widget_configure">Choose folder pair</string>
     <string name="dropbox_sync_widget_all_pairs">All enabled pairs</string>
     <string name="settings_dropbox_sync_title">Dropbox Sync</string>
-    <string name="settings_dropbox_sync_summary">App key, ignore list, and schedule</string>
+    <string name="settings_dropbox_sync_summary">Account, app key, ignore list, and schedule</string>
+    <string name="settings_dropbox_sync_account">Account</string>
+    <string name="settings_dropbox_sync_need_app_key">Configure Dropbox App Key first</string>
     <string name="settings_dropbox_sync_app_key">Dropbox App Key</string>
     <string name="settings_dropbox_sync_ignores">Global ignore patterns</string>
     <string name="settings_dropbox_sync_reset_ignores">Restore default ignores</string>

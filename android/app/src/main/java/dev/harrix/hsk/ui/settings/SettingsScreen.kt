@@ -2,6 +2,8 @@ package dev.harrix.hsk.ui.settings
 
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
+import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -68,6 +70,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import dev.harrix.hsk.AppPreferences
 import dev.harrix.hsk.R
+import dev.harrix.hsk.dropboxsync.DropboxAuthManager
 import dev.harrix.hsk.dropboxsync.DropboxSyncPreferences
 import dev.harrix.hsk.dropboxsync.DropboxSyncWorker
 import dev.harrix.hsk.dropboxsync.SyncIgnoreMatcher
@@ -84,6 +87,7 @@ import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.HskDropdownMenuItem
 import dev.harrix.hsk.ui.TypeYesConfirmDialog
 import dev.harrix.hsk.ui.adaptiveContentWidth
+import dev.harrix.hsk.ui.dropboxsync.DropboxAccountCard
 import dev.harrix.hsk.ui.icons.LucideIcons
 import dev.harrix.hsk.ui.isCompactWidth
 import dev.harrix.hsk.ui.theme.AppLanguage
@@ -981,6 +985,9 @@ private fun moviesFolderLabel(uri: Uri): String = uri.lastPathSegment
 private fun DropboxSyncSettingsSection(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val preferences = remember { DropboxSyncPreferences(context.applicationContext) }
+    val authManager = remember { DropboxAuthManager(context.applicationContext, preferences) }
+    var connected by remember { mutableStateOf(authManager.isConnected()) }
+    var accountLabel by remember { mutableStateOf(authManager.accountLabel()) }
     var appKey by remember { mutableStateOf(preferences.getAppKeyOverride()) }
     var ignores by remember { mutableStateOf(preferences.getGlobalIgnores()) }
     var scheduleMinutes by remember { mutableIntStateOf(preferences.getScheduleMinutes()) }
@@ -988,11 +995,59 @@ private fun DropboxSyncSettingsSection(modifier: Modifier = Modifier) {
     var requireCharging by remember { mutableStateOf(preferences.isRequireCharging()) }
     var statusMessage by remember { mutableStateOf<String?>(null) }
     val scheduleOptions = listOf(0, 15, 30, 60, 180, 360, 1440)
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    fun refreshAccount() {
+        connected = authManager.isConnected()
+        accountLabel = authManager.accountLabel()
+    }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer =
+            LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_RESUME) {
+                    refreshAccount()
+                }
+            }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        SettingsSectionHeader(text = stringResource(R.string.settings_dropbox_sync_account))
+        DropboxAccountCard(
+            connected = connected,
+            accountLabel = accountLabel,
+            onConnect = {
+                runCatching {
+                    if (!authManager.isConfigured()) {
+                        statusMessage =
+                            context.getString(R.string.settings_dropbox_sync_need_app_key)
+                        return@DropboxAccountCard
+                    }
+                    val uri = authManager.buildAuthorizeUri()
+                    context.startActivity(Intent(Intent.ACTION_VIEW, uri))
+                }.onFailure { error ->
+                    statusMessage = error.message
+                }
+            },
+            onDisconnect = {
+                authManager.disconnect()
+                refreshAccount()
+            },
+            onManageAllFiles = {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    val intent =
+                        Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
+                            data = Uri.parse("package:${context.packageName}")
+                        }
+                    context.startActivity(intent)
+                }
+            },
+        )
         SettingsSectionHeader(text = stringResource(R.string.settings_dropbox_sync_app_key))
         OutlinedTextField(
             value = appKey,
