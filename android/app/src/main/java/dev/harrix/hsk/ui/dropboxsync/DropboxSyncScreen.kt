@@ -635,7 +635,16 @@ private fun FolderPairEditorDialog(
                 )
                 OutlinedButton(
                     onClick = {
-                        onPickRemote { picked -> remotePath = picked }
+                        onPickRemote { picked ->
+                            val previousFolderName = remoteFolderName(remotePath)
+                            remotePath = picked
+                            val folderName = remoteFolderName(picked)
+                            if (folderName.isNotBlank() &&
+                                (name.isBlank() || name == previousFolderName)
+                            ) {
+                                name = folderName
+                            }
+                        }
                     },
                     modifier = Modifier.fillMaxWidth(),
                 ) {
@@ -1129,6 +1138,14 @@ private fun FolderPickerBottomBar(
             }
         }
     }
+}
+
+private fun remoteFolderName(path: String): String {
+    val trimmed = path.trim().trimEnd('/')
+    if (trimmed.isEmpty() || trimmed == "/") {
+        return ""
+    }
+    return trimmed.substringAfterLast('/').ifBlank { trimmed }
 }
 
 @Composable
