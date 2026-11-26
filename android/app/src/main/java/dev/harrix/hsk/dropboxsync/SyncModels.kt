@@ -79,6 +79,8 @@ data class FolderPair(
     val lastSyncAtMs: Long? = null,
     val lastStatus: SyncRunStatus? = null,
     val lastSummary: String? = null,
+    /** Sum of local file sizes from baseline after last sync; not a DB column. */
+    val localSizeBytes: Long? = null,
 )
 
 /** One planned sync action. */

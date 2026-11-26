@@ -5,6 +5,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.Settings
+import android.text.format.DateUtils
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -75,6 +76,7 @@ import dev.harrix.hsk.dropboxsync.SyncAction
 import dev.harrix.hsk.dropboxsync.SyncMode
 import dev.harrix.hsk.dropboxsync.SyncPhase
 import dev.harrix.hsk.dropboxsync.SyncStorageAdapter
+import dev.harrix.hsk.gallery.CameraGalleryRepository
 import dev.harrix.hsk.ui.HskDropdownMenuItem
 import dev.harrix.hsk.ui.HubUtilityIcons
 import dev.harrix.hsk.ui.UtilityTopBarTitle
@@ -512,12 +514,45 @@ private fun PairCard(
             }
             Spacer(modifier = Modifier.height(4.dp))
             Text("${pair.localPathOrUri} ↔ ${pair.remotePath}", style = MaterialTheme.typography.bodySmall)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = formatPairLastSync(pair.lastSyncAtMs),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            pair.localSizeBytes?.takeIf { it > 0L }?.let { bytes ->
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text =
+                    stringResource(
+                        R.string.dropbox_sync_local_size,
+                        CameraGalleryRepository.formatFileSize(bytes),
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             pair.lastSummary?.let {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(it, style = MaterialTheme.typography.bodySmall)
             }
         }
     }
+}
+
+@Composable
+private fun formatPairLastSync(lastSyncAtMs: Long?): String {
+    if (lastSyncAtMs == null || lastSyncAtMs <= 0L) {
+        return stringResource(R.string.dropbox_sync_never_synced)
+    }
+    val relative =
+        DateUtils.getRelativeTimeSpanString(
+            lastSyncAtMs,
+            System.currentTimeMillis(),
+            DateUtils.MINUTE_IN_MILLIS,
+            DateUtils.FORMAT_ABBREV_RELATIVE,
+        ).toString()
+    return stringResource(R.string.dropbox_sync_last_sync, relative)
 }
 
 @Composable

@@ -89,12 +89,14 @@ class SyncStateDatabase(
     }
 
     fun listPairs(): List<FolderPair> {
+        val sizes = localSizesByPairId()
         readableDatabase
             .query("folder_pairs", null, null, null, null, null, "name COLLATE NOCASE ASC")
             .use { cursor ->
                 val out = mutableListOf<FolderPair>()
                 while (cursor.moveToNext()) {
-                    out += cursorToPair(cursor)
+                    val pair = cursorToPair(cursor)
+                    out += pair.copy(localSizeBytes = sizes[pair.id])
                 }
                 return out
             }
@@ -104,8 +106,29 @@ class SyncStateDatabase(
         readableDatabase
             .query("folder_pairs", null, "id=?", arrayOf(id.toString()), null, null, null)
             .use { cursor ->
-                return if (cursor.moveToFirst()) cursorToPair(cursor) else null
+                if (!cursor.moveToFirst()) {
+                    return null
+                }
+                val pair = cursorToPair(cursor)
+                return pair.copy(localSizeBytes = localSizesByPairId(pair.id)[pair.id])
             }
+    }
+
+    private fun localSizesByPairId(pairId: Long? = null): Map<Long, Long> {
+        val sql =
+            if (pairId == null) {
+                "SELECT pair_id, SUM(local_size) FROM sync_entries WHERE is_dir=0 GROUP BY pair_id"
+            } else {
+                "SELECT pair_id, SUM(local_size) FROM sync_entries WHERE is_dir=0 AND pair_id=? GROUP BY pair_id"
+            }
+        val args = pairId?.let { arrayOf(it.toString()) }
+        readableDatabase.rawQuery(sql, args).use { cursor ->
+            val out = mutableMapOf<Long, Long>()
+            while (cursor.moveToNext()) {
+                out[cursor.getLong(0)] = cursor.getLong(1)
+            }
+            return out
+        }
     }
 
     fun insertPair(pair: FolderPair): Long {

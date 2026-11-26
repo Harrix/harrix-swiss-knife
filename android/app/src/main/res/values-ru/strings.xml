@@ -520,6 +520,9 @@
     <string name="dropbox_sync_clear_baseline">Сбросить кэш состояния</string>
     <string name="dropbox_sync_review_local_changes">Проверить локальные изменения</string>
     <string name="dropbox_sync_pair_name">Название пары</string>
+    <string name="dropbox_sync_last_sync">Последняя синхронизация: %1$s</string>
+    <string name="dropbox_sync_never_synced">Ещё не синхронизировалось</string>
+    <string name="dropbox_sync_local_size">Объём: %1$s</string>
     <string name="dropbox_sync_local_folder">Локальная папка</string>
     <string name="dropbox_sync_remote_folder">Папка Dropbox</string>
     <string name="dropbox_sync_no_local_folder">Локальная папка не выбрана</string>

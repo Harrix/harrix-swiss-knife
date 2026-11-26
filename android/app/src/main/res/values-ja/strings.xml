@@ -520,6 +520,9 @@
     <string name="dropbox_sync_clear_baseline">Reset sync state cache</string>
     <string name="dropbox_sync_review_local_changes">Review local changes</string>
     <string name="dropbox_sync_pair_name">Pair name</string>
+    <string name="dropbox_sync_last_sync">Last sync: %1$s</string>
+    <string name="dropbox_sync_never_synced">Never synced</string>
+    <string name="dropbox_sync_local_size">Size: %1$s</string>
     <string name="dropbox_sync_local_folder">Local folder</string>
     <string name="dropbox_sync_remote_folder">Dropbox folder</string>
     <string name="dropbox_sync_no_local_folder">No local folder selected</string>
