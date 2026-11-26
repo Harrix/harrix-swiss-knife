@@ -120,6 +120,7 @@ fun DropboxSyncScreen(
     var showLocalPicker by remember { mutableStateOf(false) }
     var localPickTarget by remember { mutableStateOf<((String) -> Unit)?>(null) }
     var localPickInitial by remember { mutableStateOf<String?>(null) }
+    var localPickMatchingName by remember { mutableStateOf("") }
 
     LaunchedEffect(message) {
         val text = message ?: return@LaunchedEffect
@@ -252,7 +253,7 @@ fun DropboxSyncScreen(
                 viewModel.savePair(pair)
                 showEditor = false
             },
-            onPickLocal = { current, onPicked ->
+            onPickLocal = { current, matchingName, onPicked ->
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
                     !Environment.isExternalStorageManager()
                 ) {
@@ -261,6 +262,7 @@ fun DropboxSyncScreen(
                         .show()
                 } else {
                     localPickInitial = current
+                    localPickMatchingName = matchingName
                     localPickTarget = onPicked
                     showLocalPicker = true
                 }
@@ -276,6 +278,7 @@ fun DropboxSyncScreen(
     if (showLocalPicker) {
         LocalFolderPickerScreen(
             initialPath = localPickInitial,
+            matchingFolderName = localPickMatchingName,
             onSelect = { path ->
                 localPickTarget?.invoke(path)
                 showLocalPicker = false
@@ -520,7 +523,7 @@ private fun FolderPairEditorDialog(
     initial: FolderPair?,
     onDismiss: () -> Unit,
     onSave: (FolderPair) -> Unit,
-    onPickLocal: (currentPath: String, onPicked: (String) -> Unit) -> Unit,
+    onPickLocal: (currentPath: String, matchingName: String, onPicked: (String) -> Unit) -> Unit,
     onPickRemote: ((String) -> Unit) -> Unit,
 ) {
     val context = LocalContext.current
@@ -531,6 +534,9 @@ private fun FolderPairEditorDialog(
     var mode by remember { mutableStateOf(initial?.mode ?: SyncMode.TwoWay) }
     var confirmLocal by remember { mutableStateOf(initial?.confirmLocalChanges ?: true) }
     var conflictPolicy by remember { mutableStateOf(initial?.conflictPolicy ?: ConflictPolicy.KeepBoth) }
+    val remoteSelected = remotePath.isNotBlank()
+    val matchingFolderName =
+        name.trim().ifBlank { remoteFolderName(remotePath) }.ifBlank { "DropboxSync" }
 
     val treeLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
@@ -541,9 +547,6 @@ private fun FolderPairEditorDialog(
                 )
                 localPath = uri.toString()
                 storageType = StorageType.Saf
-                if (name.isBlank()) {
-                    name = uri.lastPathSegment?.substringAfterLast(':') ?: "Pair"
-                }
             }
         }
 
@@ -563,11 +566,49 @@ private fun FolderPairEditorDialog(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
+                SectionTitleWithIcon(
+                    icon = LucideIcons.Cloud,
+                    text = stringResource(R.string.dropbox_sync_remote_folder),
+                )
+                Text(
+                    text =
+                    if (remoteSelected) {
+                        remotePath
+                    } else {
+                        stringResource(R.string.dropbox_sync_select_dropbox_first)
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                OutlinedButton(
+                    onClick = {
+                        onPickRemote { picked ->
+                            val previousFolderName = remoteFolderName(remotePath)
+                            remotePath = picked
+                            val folderName = remoteFolderName(picked)
+                            if (folderName.isNotBlank() &&
+                                (name.isBlank() || name == previousFolderName)
+                            ) {
+                                name = folderName
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    ButtonIconLabel(
+                        icon = LucideIcons.Cloud,
+                        label = stringResource(R.string.dropbox_sync_pick_remote),
+                    )
+                }
+
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
                     label = { Text(stringResource(R.string.dropbox_sync_pair_name)) },
                     singleLine = true,
+                    enabled = remoteSelected,
                     modifier = Modifier.fillMaxWidth(),
                 )
 
@@ -576,7 +617,12 @@ private fun FolderPairEditorDialog(
                     text = stringResource(R.string.dropbox_sync_local_folder),
                 )
                 Text(
-                    text = localPath.ifBlank { stringResource(R.string.dropbox_sync_no_local_folder) },
+                    text =
+                    when {
+                        !remoteSelected -> stringResource(R.string.dropbox_sync_select_dropbox_first)
+                        localPath.isBlank() -> stringResource(R.string.dropbox_sync_no_local_folder)
+                        else -> localPath
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 3,
@@ -584,14 +630,12 @@ private fun FolderPairEditorDialog(
                 )
                 Button(
                     onClick = {
-                        onPickLocal(localPath) { picked ->
+                        onPickLocal(localPath, matchingFolderName) { picked ->
                             localPath = picked
                             storageType = StorageType.Direct
-                            if (name.isBlank()) {
-                                name = File(picked).name.ifBlank { "Pair" }
-                            }
                         }
                     },
+                    enabled = remoteSelected,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     ButtonIconLabel(
@@ -602,11 +646,12 @@ private fun FolderPairEditorDialog(
                 OutlinedButton(
                     onClick = {
                         val base = context.getExternalFilesDir(null) ?: context.filesDir
-                        val folder = File(base, name.ifBlank { "DropboxSync" })
+                        val folder = File(base, matchingFolderName)
                         folder.mkdirs()
                         localPath = folder.absolutePath
                         storageType = StorageType.Direct
                     },
+                    enabled = remoteSelected,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Row(
@@ -631,43 +676,12 @@ private fun FolderPairEditorDialog(
                 }
                 TextButton(
                     onClick = { treeLauncher.launch(null) },
+                    enabled = remoteSelected,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     ButtonIconLabel(
                         icon = LucideIcons.OpenWith,
                         label = stringResource(R.string.dropbox_sync_use_saf),
-                    )
-                }
-
-                SectionTitleWithIcon(
-                    icon = LucideIcons.Cloud,
-                    text = stringResource(R.string.dropbox_sync_remote_folder),
-                )
-                Text(
-                    text = remotePath.ifBlank { "/" },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                OutlinedButton(
-                    onClick = {
-                        onPickRemote { picked ->
-                            val previousFolderName = remoteFolderName(remotePath)
-                            remotePath = picked
-                            val folderName = remoteFolderName(picked)
-                            if (folderName.isNotBlank() &&
-                                (name.isBlank() || name == previousFolderName)
-                            ) {
-                                name = folderName
-                            }
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    ButtonIconLabel(
-                        icon = LucideIcons.Cloud,
-                        label = stringResource(R.string.dropbox_sync_pick_remote),
                     )
                 }
 
@@ -809,6 +823,7 @@ private fun SyncModeRadioRow(
 @Composable
 private fun LocalFolderPickerScreen(
     initialPath: String?,
+    matchingFolderName: String,
     onSelect: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -960,6 +975,20 @@ private fun LocalFolderPickerScreen(
                                 }
                             },
                             onUseFolder = { onSelect(currentDir.absolutePath) },
+                            matchingFolderName = matchingFolderName,
+                            onCreateMatchingFolder = {
+                                val folderName = matchingFolderName.trim()
+                                if (folderName.isEmpty()) return@FolderPickerBottomBar
+                                val created = File(currentDir, folderName)
+                                if (created.mkdirs() || created.isDirectory) {
+                                    onSelect(created.absolutePath)
+                                } else {
+                                    message =
+                                        context.getString(
+                                            R.string.dropbox_sync_create_folder_failed,
+                                        )
+                                }
+                            },
                         )
                     }
                 },
@@ -1147,7 +1176,10 @@ private fun FolderPickerBottomBar(
     onNewFolderChange: (String) -> Unit,
     onCreateFolder: () -> Unit,
     onUseFolder: () -> Unit,
+    matchingFolderName: String = "",
+    onCreateMatchingFolder: (() -> Unit)? = null,
 ) {
+    val createMatching = onCreateMatchingFolder
     Surface(tonalElevation = 2.dp) {
         Column(
             modifier =
@@ -1172,6 +1204,21 @@ private fun FolderPickerBottomBar(
                     ButtonIconLabel(
                         icon = LucideIcons.FolderPlus,
                         label = stringResource(R.string.dropbox_sync_create_folder),
+                    )
+                }
+            }
+            if (matchingFolderName.isNotBlank() && createMatching != null) {
+                OutlinedButton(
+                    onClick = createMatching,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    ButtonIconLabel(
+                        icon = LucideIcons.FolderPlus,
+                        label =
+                        stringResource(
+                            R.string.dropbox_sync_create_matching_folder,
+                            matchingFolderName,
+                        ),
                     )
                 }
             }

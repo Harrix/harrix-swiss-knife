@@ -523,6 +523,7 @@
     <string name="dropbox_sync_local_folder">Local folder</string>
     <string name="dropbox_sync_remote_folder">Dropbox folder</string>
     <string name="dropbox_sync_no_local_folder">No local folder selected</string>
+    <string name="dropbox_sync_select_dropbox_first">Select a Dropbox folder first</string>
     <string name="dropbox_sync_use_internal">Use app folder</string>
     <string name="dropbox_sync_use_app_folder_hint">Private app storage under Android/data</string>
     <string name="dropbox_sync_pick_local">Choose folder</string>
@@ -530,6 +531,7 @@
     <string name="dropbox_sync_pick_remote">Browse Dropbox</string>
     <string name="dropbox_sync_storage_roots">Storage</string>
     <string name="dropbox_sync_create_folder_failed">Could not create folder</string>
+    <string name="dropbox_sync_create_matching_folder">Create \"%1$s\" here and use</string>
     <string name="dropbox_sync_need_all_files">Grant All files access first</string>
     <string name="dropbox_sync_confirm_local_changes">Ask before replacing or deleting locally changed files</string>
     <string name="dropbox_sync_pair_incomplete">Name, local folder, and Dropbox path are required</string>

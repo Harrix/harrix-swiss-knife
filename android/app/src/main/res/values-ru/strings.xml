@@ -523,6 +523,7 @@
     <string name="dropbox_sync_local_folder">Локальная папка</string>
     <string name="dropbox_sync_remote_folder">Папка Dropbox</string>
     <string name="dropbox_sync_no_local_folder">Локальная папка не выбрана</string>
+    <string name="dropbox_sync_select_dropbox_first">Сначала выберите папку Dropbox</string>
     <string name="dropbox_sync_use_internal">Папка приложения</string>
     <string name="dropbox_sync_use_app_folder_hint">Приватное хранилище приложения в Android/data</string>
     <string name="dropbox_sync_pick_local">Выбрать папку</string>
@@ -530,6 +531,7 @@
     <string name="dropbox_sync_pick_remote">Обзор Dropbox</string>
     <string name="dropbox_sync_storage_roots">Носители</string>
     <string name="dropbox_sync_create_folder_failed">Не удалось создать папку</string>
+    <string name="dropbox_sync_create_matching_folder">Создать «%1$s» здесь и использовать</string>
     <string name="dropbox_sync_need_all_files">Сначала разрешите доступ ко всем файлам</string>
     <string name="dropbox_sync_confirm_local_changes">Спрашивать перед заменой или удалением локально изменённых файлов</string>
     <string name="dropbox_sync_pair_incomplete">Нужны название, локальная папка и путь Dropbox</string>
