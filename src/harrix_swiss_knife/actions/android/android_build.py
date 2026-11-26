@@ -23,6 +23,7 @@ from harrix_swiss_knife.actions.common.android_gradle import (
     ANDROID_SDK_SETUP_HINT,
     GRADLE_DAEMON_CONNECT_HINT,
     find_built_apk,
+    find_built_apks,
     is_android_project,
     resolve_android_home,
     resolve_java_home,
@@ -38,15 +39,17 @@ class OnAndroidBuild(ActionBase):
     checkbox to build all listed projects sequentially, a **Release** checkbox
     (initial value from `android_build_variant` in `config/config.json`, default
     `release`), and a single install target on the right: connected `adb`
-    devices plus installed AVDs. Selecting a stopped AVD starts the emulator
-    before `adb install -r`. CLI may pass a project folder and optional
-    `debug`/`release` to override the variant, or `--all` to build every
-    configured project; CLI installs on the first authorized adb device.
-    Requires Windows, JDK 17, and Android SDK (`ANDROID_HOME` /
-    `local.properties`). Use **Android** → **Install JDK and Android SDK**
-    (or `hsk android setup`) once to install the toolchain. After a successful
-    build, the result dialog can open the APK folder. If the phone is still
-    waiting for USB debugging authorization, waits for confirmation.
+    devices plus installed AVDs (**Refresh devices** reloads the list without
+    closing the dialog). Selecting a stopped AVD starts the emulator before
+    `adb install -r`. Builds produce per-ABI APKs (`armeabi-v7a`, `arm64-v8a`,
+    `x86`, `x86_64`) plus a universal APK; install picks the device ABI.
+    CLI may pass a project folder and optional `debug`/`release` to override
+    the variant, or `--all` to build every configured project; CLI installs on
+    the first authorized adb device. Requires Windows, JDK 17, and Android SDK
+    (`ANDROID_HOME` / `local.properties`). Use **Android** → **Install JDK and
+    Android SDK** (or `hsk android setup`) once to install the toolchain. After
+    a successful build, the result dialog can open the APK folder. If the phone
+    is still waiting for USB debugging authorization, waits for confirmation.
 
     """
 
@@ -123,6 +126,13 @@ class OnAndroidBuild(ActionBase):
                     app.processEvents()
             default_device_id = targets[0].device_id if targets else None
             release_default = self._config_variant_is_release()
+
+            def _refresh_devices() -> list[tuple[str, str]]:
+                refreshed = self._collect_install_targets()
+                targets.clear()
+                targets.extend(refreshed)
+                return [(target.label, target.device_id) for target in targets]
+
             choice = self.dialogs.get_android_build_selection(
                 self.config["paths_android_projects"],
                 self.config["path_github"],
@@ -130,6 +140,7 @@ class OnAndroidBuild(ActionBase):
                 release_default=release_default,
                 devices=[(target.label, target.device_id) for target in targets],
                 default_device_id=default_device_id,
+                refresh_devices=_refresh_devices,
             )
             if choice is None:
                 return
@@ -292,6 +303,21 @@ class OnAndroidBuild(ActionBase):
             projects.append(resolved)
         return projects
 
+    def _device_abi_preferences(self, adb: Path, serial: str) -> list[str]:
+        """Return preferred ABI names for a device (primary first)."""
+        known = ("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
+        found: list[str] = []
+        primary = self._adb_shell_getprop(adb, serial, "ro.product.cpu.abi")
+        if primary:
+            found.append(primary.strip())
+        abilist = self._adb_shell_getprop(adb, serial, "ro.product.cpu.abilist")
+        if abilist:
+            for part in abilist.split(","):
+                abi = part.strip()
+                if abi and abi not in found:
+                    found.append(abi)
+        return [abi for abi in found if abi in known] or [abi for abi in found if abi]
+
     def _emulator_avd_name(self, adb: Path, serial: str) -> str | None:
         """Return AVD name for an emulator serial, or `None` for physical devices."""
         if not serial.startswith("emulator-"):
@@ -359,8 +385,16 @@ class OnAndroidBuild(ActionBase):
         self,
         apk_path: Path,
         target: InstallTarget | None = None,
+        *,
+        android_dir: Path | None = None,
+        variant_key: str | None = None,
     ) -> None:
-        """Install the APK on the selected (or first) adb device."""
+        """Install the APK on the selected (or first) adb device.
+
+        When ABI-split APKs exist, picks the split matching the device ABI (or
+        universal) after the install serial is known.
+
+        """
         adb = self._resolve_adb()
         if adb is None:
             self.add_line("🔵 adb not found - APK not installed (install platform-tools / Android SDK setup).")
@@ -370,7 +404,17 @@ class OnAndroidBuild(ActionBase):
         if not serial:
             return
 
-        cmd = [str(adb), "-s", serial, "install", "-r", str(apk_path)]
+        install_apk = apk_path
+        if android_dir is not None and variant_key is not None:
+            prefs = self._device_abi_preferences(adb, serial)
+            preferred = prefs[0] if prefs else None
+            matched = find_built_apk(android_dir, variant_key, preferred_abi=preferred)
+            if matched is not None:
+                install_apk = matched
+                if preferred:
+                    self.add_line(f"🔵 Device ABI preference: {', '.join(prefs)} → {install_apk.name}")
+
+        cmd = [str(adb), "-s", serial, "install", "-r", str(install_apk)]
         self.add_line(f"$ {' '.join(cmd)}")
         process = subprocess.run(
             cmd,
@@ -498,15 +542,23 @@ class OnAndroidBuild(ActionBase):
                 self.add_line(f"Hint: {ANDROID_SDK_SETUP_HINT}")
             return False
 
-        apk_path = find_built_apk(android_dir, variant_key)
-        if apk_path is None:
+        apks = find_built_apks(android_dir, variant_key)
+        if not apks:
             expected = android_dir / "app" / "build" / "outputs" / "apk" / variant_key
             self.add_line(f"❌ {gradle_task} finished but no APK found in {expected}")
             return False
 
-        self.add_line(f"✅ APK: {apk_path}")
-        self.result_folder = apk_path.parent
-        self._install_apk_via_adb(apk_path, target)
+        for apk_path in apks:
+            self.add_line(f"✅ APK: {apk_path}")
+        # With ABI splits, each APK lives in its own subfolder; open the variant root.
+        variant_root = android_dir / "app" / "build" / "outputs" / "apk" / variant_key
+        self.result_folder = variant_root if variant_root.is_dir() else apks[0].parent
+        self._install_apk_via_adb(
+            apks[0],
+            target,
+            android_dir=android_dir,
+            variant_key=variant_key,
+        )
         return True
 
     def _run_projects_build(

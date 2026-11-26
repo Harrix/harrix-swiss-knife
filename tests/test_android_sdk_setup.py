@@ -9,6 +9,8 @@ from harrix_swiss_knife.actions.common.android_gradle import (
     GRADLE_PREFER_IPV4,
     SDK_LICENSE_HASH,
     SDK_PREVIEW_LICENSE_HASH,
+    find_built_apk,
+    find_built_apks,
     gradle_env,
     is_java_version_17_output,
     path_with_user_entry,
@@ -18,18 +20,36 @@ from harrix_swiss_knife.actions.common.android_gradle import (
 )
 
 
-def test_is_java_version_17_output() -> None:
-    assert is_java_version_17_output('openjdk version "17.0.14" 2025-01-21')
-    assert is_java_version_17_output('java version "17"')
-    assert not is_java_version_17_output('openjdk version "21.0.1"')
-    assert not is_java_version_17_output('openjdk version "11.0.2"')
+def test_find_built_apk_prefers_abi_split(tmp_path: Path) -> None:
+    root = tmp_path / "android"
+    release = root / "app" / "build" / "outputs" / "apk" / "release"
+    arm64 = release / "arm64-v8a"
+    universal = release / "universal"
+    arm64.mkdir(parents=True)
+    universal.mkdir(parents=True)
+    arm64_apk = arm64 / "HarrixSwissKnife-arm64-v8a-release.apk"
+    universal_apk = universal / "HarrixSwissKnife-universal-release.apk"
+    arm64_apk.write_bytes(b"a")
+    universal_apk.write_bytes(b"u")
+
+    assert find_built_apk(root, "release", preferred_abi="arm64-v8a") == arm64_apk
+    assert find_built_apk(root, "release", preferred_abi="armeabi-v7a") == universal_apk
+    assert {path.name for path in find_built_apks(root, "release")} == {
+        arm64_apk.name,
+        universal_apk.name,
+    }
 
 
-def test_path_with_user_entry_appends_once() -> None:
-    assert path_with_user_entry("", r"C:\tools") == r"C:\tools"
-    assert path_with_user_entry(r"C:\a;C:\b", r"C:\c") == r"C:\a;C:\b;C:\c"
-    assert path_with_user_entry(r"C:\a;C:\c;C:\b", r"C:\c") == r"C:\a;C:\c;C:\b"
-    assert path_with_user_entry(r"C:\a;C:\c\;C:\b", r"C:\c") == r"C:\a;C:\c\;C:\b"
+def test_gradle_env_appends_ipv4_to_existing_opts(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("JAVA_TOOL_OPTIONS", "-Xmx512m")
+    monkeypatch.setenv("GRADLE_OPTS", "-Dorg.gradle.daemon.idletimeout=10000")
+    with patch(
+        "harrix_swiss_knife.actions.common.android_gradle.resolve_android_home",
+        return_value=None,
+    ):
+        env = gradle_env(r"C:\Java\jdk-17")
+    assert env["JAVA_TOOL_OPTIONS"] == f"-Xmx512m {GRADLE_PREFER_IPV4}"
+    assert env["GRADLE_OPTS"] == f"-Dorg.gradle.daemon.idletimeout=10000 {GRADLE_PREFER_IPV4}"
 
 
 def test_gradle_env_forces_ipv4(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -47,16 +67,18 @@ def test_gradle_env_forces_ipv4(monkeypatch: pytest.MonkeyPatch) -> None:
     assert env["JAVA_HOME"] == r"C:\Java\jdk-17"
 
 
-def test_gradle_env_appends_ipv4_to_existing_opts(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("JAVA_TOOL_OPTIONS", "-Xmx512m")
-    monkeypatch.setenv("GRADLE_OPTS", "-Dorg.gradle.daemon.idletimeout=10000")
-    with patch(
-        "harrix_swiss_knife.actions.common.android_gradle.resolve_android_home",
-        return_value=None,
-    ):
-        env = gradle_env(r"C:\Java\jdk-17")
-    assert env["JAVA_TOOL_OPTIONS"] == f"-Xmx512m {GRADLE_PREFER_IPV4}"
-    assert env["GRADLE_OPTS"] == f"-Dorg.gradle.daemon.idletimeout=10000 {GRADLE_PREFER_IPV4}"
+def test_is_java_version_17_output() -> None:
+    assert is_java_version_17_output('openjdk version "17.0.14" 2025-01-21')
+    assert is_java_version_17_output('java version "17"')
+    assert not is_java_version_17_output('openjdk version "21.0.1"')
+    assert not is_java_version_17_output('openjdk version "11.0.2"')
+
+
+def test_path_with_user_entry_appends_once() -> None:
+    assert path_with_user_entry("", r"C:\tools") == r"C:\tools"
+    assert path_with_user_entry(r"C:\a;C:\b", r"C:\c") == r"C:\a;C:\b;C:\c"
+    assert path_with_user_entry(r"C:\a;C:\c;C:\b", r"C:\c") == r"C:\a;C:\c;C:\b"
+    assert path_with_user_entry(r"C:\a;C:\c\;C:\b", r"C:\c") == r"C:\a;C:\c\;C:\b"
 
 
 def test_run_gradle_does_not_pass_no_daemon(tmp_path: Path) -> None:

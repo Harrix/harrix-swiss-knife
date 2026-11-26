@@ -521,6 +521,17 @@ android {
         }
     }
 
+    // Per-ABI APKs (plus universal) for sideload/distribution, same idea as AmneziaVPN splits.
+    // armeabi-v7a = 32-bit ARM; arm64-v8a = 64-bit ARM; x86 / x86_64 = emulators / some tablets.
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+            isUniversalApk = true
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17

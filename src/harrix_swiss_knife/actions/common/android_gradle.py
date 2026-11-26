@@ -73,21 +73,41 @@ def default_portable_jdk_home() -> Path:
     return Path(os.environ.get("LOCALAPPDATA", "")) / "Java" / PORTABLE_TEMURIN_DIR_NAME
 
 
-def find_built_apk(android_dir: Path, variant: str) -> Path | None:
-    """Return the newest APK under `app/build/outputs/apk/<variant>/`, if any.
+def find_built_apk(
+    android_dir: Path,
+    variant: str,
+    *,
+    preferred_abi: str | None = None,
+) -> Path | None:
+    """Return a built APK under `app/build/outputs/apk/<variant>/`, if any.
 
-    Prefers files whose names do not contain `unsigned`.
+    Prefers a matching ABI split when `preferred_abi` is set, then a universal
+    APK, then the newest non-unsigned APK (including nested per-ABI folders).
 
     """
-    out_dir = android_dir / "app" / "build" / "outputs" / "apk" / variant
-    if not out_dir.is_dir():
-        return None
-    apks = [path for path in out_dir.glob("*.apk") if path.is_file()]
+    apks = find_built_apks(android_dir, variant)
     if not apks:
         return None
-    preferred = [path for path in apks if "unsigned" not in path.name.lower()]
-    candidates = preferred or apks
-    return max(candidates, key=lambda path: path.stat().st_mtime)
+    if preferred_abi:
+        needle = preferred_abi.lower()
+        for apk in apks:
+            haystack = f"{apk.parent.name}/{apk.name}".lower()
+            if needle in haystack:
+                return apk
+    for apk in apks:
+        haystack = f"{apk.parent.name}/{apk.name}".lower()
+        if "universal" in haystack:
+            return apk
+    return apks[0]
+
+
+def find_built_apks(android_dir: Path, variant: str) -> list[Path]:
+    """Return non-unsigned APKs under `app/build/outputs/apk/<variant>/` (newest first)."""
+    out_dir = android_dir / "app" / "build" / "outputs" / "apk" / variant
+    if not out_dir.is_dir():
+        return []
+    apks = [path for path in out_dir.rglob("*.apk") if path.is_file() and "unsigned" not in path.name.lower()]
+    return sorted(apks, key=lambda path: path.stat().st_mtime, reverse=True)
 
 
 def gradle_env(java_home: str) -> dict[str, str]:

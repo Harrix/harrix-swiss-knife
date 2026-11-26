@@ -96,10 +96,12 @@ class ActionDialogService:
         release_default: bool = True,
         devices: list[tuple[str, str]],
         default_device_id: str | None = None,
+        refresh_devices: Callable[[], list[tuple[str, str]]] | None = None,
     ) -> AndroidBuildDialogResult | None:
         """Pick Android project folder, build options, and one install target.
 
         `devices` entries are `(display_label, device_id)`. Cancel returns `None`.
+        When `refresh_devices` is set, a **Refresh devices** button reloads the list.
 
         """
         select_folder = "📁 Select folder …"
@@ -116,6 +118,32 @@ class ActionDialogService:
             self._default_size.width(),
             max(self._default_size.height(), 560),
         )
+
+        def _populate_devices(
+            dialog: QDialog,
+            dlw: QListWidget,
+            entries: list[tuple[str, str]],
+            *,
+            prefer_id: str | None,
+        ) -> None:
+            with QSignalBlocker(dlw):
+                dlw.clear()
+            with contextlib.suppress(TypeError, RuntimeError):
+                dlw.itemDoubleClicked.disconnect()
+            default_row = 0
+            for index, (label, device_id) in enumerate(entries):
+                item = QListWidgetItem(label)
+                item.setData(Qt.ItemDataRole.UserRole, device_id)
+                dlw.addItem(item)
+                if prefer_id is not None and device_id == prefer_id:
+                    default_row = index
+            if entries:
+                dlw.setCurrentRow(default_row)
+                dlw.itemDoubleClicked.connect(dialog.accept)
+            else:
+                empty = QListWidgetItem("No adb devices or AVDs found")
+                empty.setFlags(Qt.ItemFlag.NoItemFlags)
+                dlw.addItem(empty)
 
         def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
             nonlocal folder_list, device_list, build_all_checkbox, release_checkbox
@@ -149,25 +177,46 @@ class ActionDialogService:
             columns.addLayout(left, stretch=1)
 
             right = QVBoxLayout()
-            right.addWidget(QLabel("Install device"))
+            device_header = QHBoxLayout()
+            device_header.addWidget(QLabel("Install device"))
+            device_header.addStretch(1)
+            refresh_btn = QPushButton("Refresh devices")
+            refresh_btn.setEnabled(refresh_devices is not None)
+            device_header.addWidget(refresh_btn)
+            right.addLayout(device_header)
             dlw = QListWidget()
             dlw.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
             dlw.setFont(font)
             dlw.setSelectionMode(QListWidget.SelectionMode.SingleSelection)
-            default_row = 0
-            for index, (label, device_id) in enumerate(devices):
-                item = QListWidgetItem(label)
-                item.setData(Qt.ItemDataRole.UserRole, device_id)
-                dlw.addItem(item)
-                if default_device_id is not None and device_id == default_device_id:
-                    default_row = index
-            if dlw.count() > 0:
-                dlw.setCurrentRow(default_row)
-                dlw.itemDoubleClicked.connect(dialog.accept)
-            else:
-                empty = QListWidgetItem("No adb devices or AVDs found")
-                empty.setFlags(Qt.ItemFlag.NoItemFlags)
-                dlw.addItem(empty)
+            _populate_devices(dialog, dlw, devices, prefer_id=default_device_id)
+
+            def _on_refresh() -> None:
+                if refresh_devices is None:
+                    return
+                refresh_btn.setEnabled(False)
+                refresh_btn.setText("Refreshing…")
+                app = QApplication.instance()
+                if app is not None:
+                    app.processEvents()
+                try:
+                    current = dlw.currentItem()
+                    prefer = None
+                    if current is not None:
+                        raw = current.data(Qt.ItemDataRole.UserRole)
+                        if isinstance(raw, str) and raw:
+                            prefer = raw
+                    entries = refresh_devices()
+                    _populate_devices(
+                        dialog,
+                        dlw,
+                        entries,
+                        prefer_id=prefer or default_device_id,
+                    )
+                finally:
+                    refresh_btn.setText("Refresh devices")
+                    refresh_btn.setEnabled(True)
+
+            refresh_btn.clicked.connect(_on_refresh)
             right.addWidget(dlw, stretch=1)
             columns.addLayout(right, stretch=1)
 
@@ -2204,12 +2253,13 @@ def create_emoji_icon(self, emoji: str, size: int = 64) -> QIcon:
 ### ⚙️ Method `get_android_build_selection`
 
 ```python
-def get_android_build_selection(self, folders_list: list[str], default_path: str, *, build_all_checkbox_label: str, build_all_default: bool = False, release_default: bool = True, devices: list[tuple[str, str]], default_device_id: str | None = None) -> AndroidBuildDialogResult | None
+def get_android_build_selection(self, folders_list: list[str], default_path: str, *, build_all_checkbox_label: str, build_all_default: bool = False, release_default: bool = True, devices: list[tuple[str, str]], default_device_id: str | None = None, refresh_devices: Callable[[], list[tuple[str, str]]] | None = None) -> AndroidBuildDialogResult | None
 ```
 
 Pick Android project folder, build options, and one install target.
 
 `devices` entries are `(display_label, device_id)`. Cancel returns `None`.
+When `refresh_devices` is set, a **Refresh devices** button reloads the list.
 
 <details>
 <summary>Code:</summary>
@@ -2225,6 +2275,7 @@ def get_android_build_selection(
         release_default: bool = True,
         devices: list[tuple[str, str]],
         default_device_id: str | None = None,
+        refresh_devices: Callable[[], list[tuple[str, str]]] | None = None,
     ) -> AndroidBuildDialogResult | None:
         select_folder = "📁 Select folder …"
         display_folders = [f"📁 {folder}" for folder in folders_list]
@@ -2240,6 +2291,32 @@ def get_android_build_selection(
             self._default_size.width(),
             max(self._default_size.height(), 560),
         )
+
+        def _populate_devices(
+            dialog: QDialog,
+            dlw: QListWidget,
+            entries: list[tuple[str, str]],
+            *,
+            prefer_id: str | None,
+        ) -> None:
+            with QSignalBlocker(dlw):
+                dlw.clear()
+            with contextlib.suppress(TypeError, RuntimeError):
+                dlw.itemDoubleClicked.disconnect()
+            default_row = 0
+            for index, (label, device_id) in enumerate(entries):
+                item = QListWidgetItem(label)
+                item.setData(Qt.ItemDataRole.UserRole, device_id)
+                dlw.addItem(item)
+                if prefer_id is not None and device_id == prefer_id:
+                    default_row = index
+            if entries:
+                dlw.setCurrentRow(default_row)
+                dlw.itemDoubleClicked.connect(dialog.accept)
+            else:
+                empty = QListWidgetItem("No adb devices or AVDs found")
+                empty.setFlags(Qt.ItemFlag.NoItemFlags)
+                dlw.addItem(empty)
 
         def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
             nonlocal folder_list, device_list, build_all_checkbox, release_checkbox
@@ -2273,25 +2350,46 @@ def get_android_build_selection(
             columns.addLayout(left, stretch=1)
 
             right = QVBoxLayout()
-            right.addWidget(QLabel("Install device"))
+            device_header = QHBoxLayout()
+            device_header.addWidget(QLabel("Install device"))
+            device_header.addStretch(1)
+            refresh_btn = QPushButton("Refresh devices")
+            refresh_btn.setEnabled(refresh_devices is not None)
+            device_header.addWidget(refresh_btn)
+            right.addLayout(device_header)
             dlw = QListWidget()
             dlw.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
             dlw.setFont(font)
             dlw.setSelectionMode(QListWidget.SelectionMode.SingleSelection)
-            default_row = 0
-            for index, (label, device_id) in enumerate(devices):
-                item = QListWidgetItem(label)
-                item.setData(Qt.ItemDataRole.UserRole, device_id)
-                dlw.addItem(item)
-                if default_device_id is not None and device_id == default_device_id:
-                    default_row = index
-            if dlw.count() > 0:
-                dlw.setCurrentRow(default_row)
-                dlw.itemDoubleClicked.connect(dialog.accept)
-            else:
-                empty = QListWidgetItem("No adb devices or AVDs found")
-                empty.setFlags(Qt.ItemFlag.NoItemFlags)
-                dlw.addItem(empty)
+            _populate_devices(dialog, dlw, devices, prefer_id=default_device_id)
+
+            def _on_refresh() -> None:
+                if refresh_devices is None:
+                    return
+                refresh_btn.setEnabled(False)
+                refresh_btn.setText("Refreshing…")
+                app = QApplication.instance()
+                if app is not None:
+                    app.processEvents()
+                try:
+                    current = dlw.currentItem()
+                    prefer = None
+                    if current is not None:
+                        raw = current.data(Qt.ItemDataRole.UserRole)
+                        if isinstance(raw, str) and raw:
+                            prefer = raw
+                    entries = refresh_devices()
+                    _populate_devices(
+                        dialog,
+                        dlw,
+                        entries,
+                        prefer_id=prefer or default_device_id,
+                    )
+                finally:
+                    refresh_btn.setText("Refresh devices")
+                    refresh_btn.setEnabled(True)
+
+            refresh_btn.clicked.connect(_on_refresh)
             right.addWidget(dlw, stretch=1)
             columns.addLayout(right, stretch=1)
 

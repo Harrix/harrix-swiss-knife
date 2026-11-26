@@ -17,6 +17,7 @@ lang: en
 - [🔧 Function `default_android_sdk_root`](#-function-default_android_sdk_root)
 - [🔧 Function `default_portable_jdk_home`](#-function-default_portable_jdk_home)
 - [🔧 Function `find_built_apk`](#-function-find_built_apk)
+- [🔧 Function `find_built_apks`](#-function-find_built_apks)
 - [🔧 Function `gradle_env`](#-function-gradle_env)
 - [🔧 Function `is_android_project`](#-function-is_android_project)
 - [🔧 Function `is_android_studio_installed`](#-function-is_android_studio_installed)
@@ -149,27 +150,60 @@ def default_portable_jdk_home() -> Path:
 ## 🔧 Function `find_built_apk`
 
 ```python
-def find_built_apk(android_dir: Path, variant: str) -> Path | None
+def find_built_apk(android_dir: Path, variant: str, *, preferred_abi: str | None = None) -> Path | None
 ```
 
-Return the newest APK under `app/build/outputs/apk/<variant>/`, if any.
+Return a built APK under `app/build/outputs/apk/<variant>/`, if any.
 
-Prefers files whose names do not contain `unsigned`.
+Prefers a matching ABI split when `preferred_abi` is set, then a universal
+APK, then the newest non-unsigned APK (including nested per-ABI folders).
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def find_built_apk(android_dir: Path, variant: str) -> Path | None:
-    out_dir = android_dir / "app" / "build" / "outputs" / "apk" / variant
-    if not out_dir.is_dir():
-        return None
-    apks = [path for path in out_dir.glob("*.apk") if path.is_file()]
+def find_built_apk(
+    android_dir: Path,
+    variant: str,
+    *,
+    preferred_abi: str | None = None,
+) -> Path | None:
+    apks = find_built_apks(android_dir, variant)
     if not apks:
         return None
-    preferred = [path for path in apks if "unsigned" not in path.name.lower()]
-    candidates = preferred or apks
-    return max(candidates, key=lambda path: path.stat().st_mtime)
+    if preferred_abi:
+        needle = preferred_abi.lower()
+        for apk in apks:
+            haystack = f"{apk.parent.name}/{apk.name}".lower()
+            if needle in haystack:
+                return apk
+    for apk in apks:
+        haystack = f"{apk.parent.name}/{apk.name}".lower()
+        if "universal" in haystack:
+            return apk
+    return apks[0]
+```
+
+</details>
+
+## 🔧 Function `find_built_apks`
+
+```python
+def find_built_apks(android_dir: Path, variant: str) -> list[Path]
+```
+
+Return non-unsigned APKs under `app/build/outputs/apk/<variant>/` (newest first).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def find_built_apks(android_dir: Path, variant: str) -> list[Path]:
+    out_dir = android_dir / "app" / "build" / "outputs" / "apk" / variant
+    if not out_dir.is_dir():
+        return []
+    apks = [path for path in out_dir.rglob("*.apk") if path.is_file() and "unsigned" not in path.name.lower()]
+    return sorted(apks, key=lambda path: path.stat().st_mtime, reverse=True)
 ```
 
 </details>
