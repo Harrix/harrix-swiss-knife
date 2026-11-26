@@ -20,10 +20,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -821,7 +819,9 @@ private fun LocalFolderPickerScreen(
         properties =
         DialogProperties(
             usePlatformDefaultWidth = false,
-            decorFitsSystemWindows = false,
+            // Fit system windows so the dialog is not drawn under the nav bar.
+            // Edge-to-edge + Compose insets is unreliable in Dialog on some devices.
+            decorFitsSystemWindows = true,
             dismissOnBackPress = true,
             dismissOnClickOutside = false,
         ),
@@ -838,8 +838,6 @@ private fun LocalFolderPickerScreen(
             modifier =
             Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding()
                 .imePadding(),
             color = hskScaffoldContainerColor(),
         ) {
@@ -892,56 +890,26 @@ private fun LocalFolderPickerScreen(
                 },
                 bottomBar = {
                     if (!showingRoots) {
-                        Surface(tonalElevation = 2.dp) {
-                            Column(
-                                modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 10.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                ) {
-                                    OutlinedTextField(
-                                        value = newFolder,
-                                        onValueChange = { newFolder = it },
-                                        label = {
-                                            Text(stringResource(R.string.dropbox_sync_new_remote_folder))
-                                        },
-                                        singleLine = true,
-                                        modifier = Modifier.weight(1f),
-                                    )
-                                    TextButton(
-                                        onClick = {
-                                            val folderName = newFolder.trim()
-                                            if (folderName.isEmpty()) return@TextButton
-                                            val created = File(currentDir, folderName)
-                                            if (created.mkdirs() || created.isDirectory) {
-                                                newFolder = ""
-                                                refreshChildren()
-                                                currentDir = created
-                                            } else {
-                                                message =
-                                                    context.getString(
-                                                        R.string.dropbox_sync_create_folder_failed,
-                                                    )
-                                            }
-                                        },
-                                    ) {
-                                        Text(stringResource(R.string.dropbox_sync_create_folder))
-                                    }
+                        FolderPickerBottomBar(
+                            newFolder = newFolder,
+                            onNewFolderChange = { newFolder = it },
+                            onCreateFolder = {
+                                val folderName = newFolder.trim()
+                                if (folderName.isEmpty()) return@FolderPickerBottomBar
+                                val created = File(currentDir, folderName)
+                                if (created.mkdirs() || created.isDirectory) {
+                                    newFolder = ""
+                                    refreshChildren()
+                                    currentDir = created
+                                } else {
+                                    message =
+                                        context.getString(
+                                            R.string.dropbox_sync_create_folder_failed,
+                                        )
                                 }
-                                Button(
-                                    onClick = { onSelect(currentDir.absolutePath) },
-                                    modifier = Modifier.fillMaxWidth(),
-                                ) {
-                                    Text(stringResource(R.string.dropbox_sync_use_this_folder))
-                                }
-                            }
-                        }
+                            },
+                            onUseFolder = { onSelect(currentDir.absolutePath) },
+                        )
                     }
                 },
             ) { padding ->
@@ -1016,7 +984,9 @@ private fun DropboxRemotePickerScreen(
         properties =
         DialogProperties(
             usePlatformDefaultWidth = false,
-            decorFitsSystemWindows = false,
+            // Fit system windows so the dialog is not drawn under the nav bar.
+            // Edge-to-edge + Compose insets is unreliable in Dialog on some devices.
+            decorFitsSystemWindows = true,
             dismissOnBackPress = true,
             dismissOnClickOutside = false,
         ),
@@ -1032,8 +1002,6 @@ private fun DropboxRemotePickerScreen(
             modifier =
             Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding()
                 .imePadding(),
             color = hskScaffoldContainerColor(),
         ) {
@@ -1080,45 +1048,17 @@ private fun DropboxRemotePickerScreen(
                     )
                 },
                 bottomBar = {
-                    Surface(tonalElevation = 2.dp) {
-                        Column(
-                            modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 10.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                OutlinedTextField(
-                                    value = newFolder,
-                                    onValueChange = { newFolder = it },
-                                    label = { Text(stringResource(R.string.dropbox_sync_new_remote_folder)) },
-                                    singleLine = true,
-                                    modifier = Modifier.weight(1f),
-                                )
-                                TextButton(
-                                    onClick = {
-                                        if (newFolder.isNotBlank()) {
-                                            onCreateFolder(newFolder.trim())
-                                            newFolder = ""
-                                        }
-                                    },
-                                ) {
-                                    Text(stringResource(R.string.dropbox_sync_create_folder))
-                                }
+                    FolderPickerBottomBar(
+                        newFolder = newFolder,
+                        onNewFolderChange = { newFolder = it },
+                        onCreateFolder = {
+                            if (newFolder.isNotBlank()) {
+                                onCreateFolder(newFolder.trim())
+                                newFolder = ""
                             }
-                            Button(
-                                onClick = { onSelect(currentPath.ifBlank { "" }) },
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                Text(stringResource(R.string.dropbox_sync_use_this_folder))
-                            }
-                        }
-                    }
+                        },
+                        onUseFolder = { onSelect(currentPath.ifBlank { "" }) },
+                    )
                 },
             ) { padding ->
                 LazyColumn(
@@ -1145,6 +1085,47 @@ private fun DropboxRemotePickerScreen(
                         HorizontalDivider()
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FolderPickerBottomBar(
+    newFolder: String,
+    onNewFolderChange: (String) -> Unit,
+    onCreateFolder: () -> Unit,
+    onUseFolder: () -> Unit,
+) {
+    Surface(tonalElevation = 2.dp) {
+        Column(
+            modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                OutlinedTextField(
+                    value = newFolder,
+                    onValueChange = onNewFolderChange,
+                    label = { Text(stringResource(R.string.dropbox_sync_new_remote_folder)) },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f),
+                )
+                TextButton(onClick = onCreateFolder) {
+                    Text(stringResource(R.string.dropbox_sync_create_folder))
+                }
+            }
+            Button(
+                onClick = onUseFolder,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(stringResource(R.string.dropbox_sync_use_this_folder))
             }
         }
     }
