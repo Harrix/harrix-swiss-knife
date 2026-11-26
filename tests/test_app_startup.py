@@ -4,55 +4,21 @@ from __future__ import annotations
 
 import faulthandler
 import logging
+import os
 from typing import TYPE_CHECKING
 from unittest.mock import patch
 
 from harrix_swiss_knife import app_startup, desktop_shortcut
-from harrix_swiss_knife.app_startup import install_diagnostic_handlers, is_ignored_qt_message
+from harrix_swiss_knife.app_startup import (
+    configure_qt_webengine_chromium_flags,
+    install_diagnostic_handlers,
+    is_ignored_qt_message,
+)
 
 if TYPE_CHECKING:
     from pathlib import Path
 
     import pytest
-
-
-def test_is_ignored_qt_message_filters_svg_noise() -> None:
-    assert is_ignored_qt_message(
-        r"D:\Dropbox\Graphic\Vector\Background\light (4).svg:1:2004848: Could not resolve property: #aoG"
-    )
-    assert is_ignored_qt_message("Invalid path data; path truncated.")
-    assert is_ignored_qt_message("link #SVGID_1_ is undefined!")
-    assert is_ignored_qt_message("QFont::setPointSize: Point size <= 0 (-1), must be greater than 0")
-    assert is_ignored_qt_message("QWindowsWindow::setGeometry: Unable to set geometry 3840x2006+0+58 on QWidgetWindow")
-    assert is_ignored_qt_message('IAudioClient3::GetCurrentPadding failed "AUDCLNT_E_DEVICE_INVALIDATED" (None:0)')
-    assert is_ignored_qt_message(
-        "DirectWrite: CreateFontFaceFromHDC() failed (Indicates an error in an input file such as a "
-        'font file.) for QFontDef(Family="8514oem", stylename=Regular, pointsize=9, pixelsize=20, '
-        "styleHint=5, weight=400, stretch=100, hintingPreference=1)",
-    )
-    assert is_ignored_qt_message(
-        'External WM_DESTROY received for  QWidgetWindow(0x164abc29de0, name="snippetsDialogWindow") '
-        ", parent:  QWindow(0x0) , transient parent:  QWindow(0x0) (None:0)",
-    )
-    assert not is_ignored_qt_message("QPainter::begin: Paint device returned engine == 0")
-    assert not is_ignored_qt_message("")
-
-
-def test_install_diagnostic_handlers_without_stderr(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Shortcuts start the app through `pythonw.exe`, where `sys.stderr` is `None`."""
-    monkeypatch.setattr(app_startup.sys, "stderr", None)
-    monkeypatch.setattr(app_startup, "get_log_dir", lambda: tmp_path)
-    root = logging.getLogger()
-    handlers_before = list(root.handlers)
-    try:
-        install_diagnostic_handlers(logging.getLogger("test_app_startup"))
-        assert faulthandler.is_enabled()
-        assert (tmp_path / "faulthandler.log").is_file()
-    finally:
-        faulthandler.disable()
-        for handler in list(root.handlers):
-            if handler not in handlers_before:
-                root.removeHandler(handler)
 
 
 def test_app_shortcut_targets_pythonw_launcher(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -80,6 +46,70 @@ def test_app_shortcut_targets_pythonw_launcher(tmp_path: Path, monkeypatch: pyte
     assert lnk == desktop / desktop_shortcut.SHORTCUT_NAME
     assert captured["target"] == scripts / "pythonw.exe"
     assert captured["arguments"] == f'"{root / "launch_tray.py"}"'
+
+
+def test_configure_qt_webengine_chromium_flags_keeps_existing(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("QTWEBENGINE_CHROMIUM_FLAGS", "--disable-gpu")
+    configure_qt_webengine_chromium_flags()
+    assert "--disable-gpu" in os.environ["QTWEBENGINE_CHROMIUM_FLAGS"]
+    assert "--log-level=3" in os.environ["QTWEBENGINE_CHROMIUM_FLAGS"]
+    monkeypatch.setenv("QTWEBENGINE_CHROMIUM_FLAGS", "--log-level=1")
+    configure_qt_webengine_chromium_flags()
+    assert os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] == "--log-level=1"
+
+
+def test_configure_qt_webengine_chromium_flags_sets_log_level(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("QTWEBENGINE_CHROMIUM_FLAGS", raising=False)
+    configure_qt_webengine_chromium_flags()
+    assert os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] == "--log-level=3"
+    configure_qt_webengine_chromium_flags()
+    assert os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] == "--log-level=3"
+
+
+def test_install_diagnostic_handlers_without_stderr(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Shortcuts start the app through `pythonw.exe`, where `sys.stderr` is `None`."""
+    monkeypatch.setattr(app_startup.sys, "stderr", None)
+    monkeypatch.setattr(app_startup, "get_log_dir", lambda: tmp_path)
+    root = logging.getLogger()
+    handlers_before = list(root.handlers)
+    try:
+        install_diagnostic_handlers(logging.getLogger("test_app_startup"))
+        assert faulthandler.is_enabled()
+        assert (tmp_path / "faulthandler.log").is_file()
+    finally:
+        faulthandler.disable()
+        for handler in list(root.handlers):
+            if handler not in handlers_before:
+                root.removeHandler(handler)
+
+
+def test_is_ignored_qt_message_filters_svg_noise() -> None:
+    assert is_ignored_qt_message(
+        r"D:\Dropbox\Graphic\Vector\Background\light (4).svg:1:2004848: Could not resolve property: #aoG"
+    )
+    assert is_ignored_qt_message("Invalid path data; path truncated.")
+    assert is_ignored_qt_message("link #SVGID_1_ is undefined!")
+    assert is_ignored_qt_message("QFont::setPointSize: Point size <= 0 (-1), must be greater than 0")
+    assert is_ignored_qt_message("QWindowsWindow::setGeometry: Unable to set geometry 3840x2006+0+58 on QWidgetWindow")
+    assert is_ignored_qt_message('IAudioClient3::GetCurrentPadding failed "AUDCLNT_E_DEVICE_INVALIDATED" (None:0)')
+    assert is_ignored_qt_message(
+        "DirectWrite: CreateFontFaceFromHDC() failed (Indicates an error in an input file such as a "
+        'font file.) for QFontDef(Family="8514oem", stylename=Regular, pointsize=9, pixelsize=20, '
+        "styleHint=5, weight=400, stretch=100, hintingPreference=1)",
+    )
+    assert is_ignored_qt_message(
+        'External WM_DESTROY received for  QWidgetWindow(0x164abc29de0, name="snippetsDialogWindow") '
+        ", parent:  QWindow(0x0) , transient parent:  QWindow(0x0) (None:0)",
+    )
+    assert is_ignored_qt_message(
+        "QueryVideoProcessorCustomExtForHDR: Failed to retrieve D3D11 device",
+    )
+    assert is_ignored_qt_message(
+        r"ERROR:C:\Users\qt\work\qt\qtwebengine_build\src\3rdparty\chromium\ui\gl\\"
+        r"direct_composition_support.cc:513",
+    )
+    assert not is_ignored_qt_message("QPainter::begin: Paint device returned engine == 0")
+    assert not is_ignored_qt_message("")
 
 
 def test_remove_desktop_uninstall_shortcut(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

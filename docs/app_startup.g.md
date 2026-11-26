@@ -11,6 +11,7 @@ lang: en
 
 ## Contents
 
+- [🔧 Function `configure_qt_webengine_chromium_flags`](#-function-configure_qt_webengine_chromium_flags)
 - [🔧 Function `get_log_dir`](#-function-get_log_dir)
 - [🔧 Function `install_diagnostic_handlers`](#-function-install_diagnostic_handlers)
 - [🔧 Function `is_ignored_qt_message`](#-function-is_ignored_qt_message)
@@ -18,6 +19,32 @@ lang: en
 - [🔧 Function `run_tray_application`](#-function-run_tray_application)
 - [🔧 Function `setup_file_logging`](#-function-setup_file_logging)
 - [🔧 Function `show_fatal_error_dialog`](#-function-show_fatal_error_dialog)
+
+</details>
+
+## 🔧 Function `configure_qt_webengine_chromium_flags`
+
+```python
+def configure_qt_webengine_chromium_flags() -> None
+```
+
+Quiet Chromium ERROR spam (HDR / DirectComposition) before WebEngine starts.
+
+These lines often bypass `qInstallMessageHandler` and print straight to
+stderr. `--log-level=3` keeps FATAL only. Existing user flags are preserved.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def configure_qt_webengine_chromium_flags() -> None:
+    existing = os.environ.get("QTWEBENGINE_CHROMIUM_FLAGS", "").strip()
+    if "--log-level=" in existing or "--disable-logging" in existing:
+        return
+    os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = (
+        f"{existing} {_WEBENGINE_CHROMIUM_LOG_LEVEL_FLAG}".strip() if existing else _WEBENGINE_CHROMIUM_LOG_LEVEL_FLAG
+    )
+```
 
 </details>
 
@@ -73,6 +100,7 @@ Shortcuts run the app through `pythonw.exe` (or the GUI script wrapper), where
 
 ```python
 def install_diagnostic_handlers(log: logging.Logger) -> None:
+    configure_qt_webengine_chromium_flags()
     stderr = _usable_stderr()
     root = logging.getLogger()
     if stderr is not None:

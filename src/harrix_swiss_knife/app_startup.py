@@ -83,7 +83,26 @@ _QT_IGNORED_SUBSTRINGS = (
     "External WM_DESTROY received for",
     # Frameless windows flush once while DWM recreates the HWND. Harmless.
     "QWindowsBackingStore::flush: GetDC failed",
+    # Qt WebEngine / Chromium HDR probe on some GPUs (AI Markdown view).
+    "QueryVideoProcessorCustomExtForHDR",
+    "direct_composition_support.cc",
 )
+_WEBENGINE_CHROMIUM_LOG_LEVEL_FLAG = "--log-level=3"
+
+
+def configure_qt_webengine_chromium_flags() -> None:
+    """Quiet Chromium ERROR spam (HDR / DirectComposition) before WebEngine starts.
+
+    These lines often bypass `qInstallMessageHandler` and print straight to
+    stderr. `--log-level=3` keeps FATAL only. Existing user flags are preserved.
+
+    """
+    existing = os.environ.get("QTWEBENGINE_CHROMIUM_FLAGS", "").strip()
+    if "--log-level=" in existing or "--disable-logging" in existing:
+        return
+    os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = (
+        f"{existing} {_WEBENGINE_CHROMIUM_LOG_LEVEL_FLAG}".strip() if existing else _WEBENGINE_CHROMIUM_LOG_LEVEL_FLAG
+    )
 
 
 def get_log_dir() -> Path:
@@ -116,6 +135,7 @@ def install_diagnostic_handlers(log: logging.Logger) -> None:
     `sys.stderr` is `None`, so every console hookup here stays optional.
 
     """
+    configure_qt_webengine_chromium_flags()
     stderr = _usable_stderr()
     root = logging.getLogger()
     if stderr is not None:
