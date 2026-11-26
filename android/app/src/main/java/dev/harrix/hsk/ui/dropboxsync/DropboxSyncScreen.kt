@@ -456,6 +456,12 @@ private fun PairCard(
                         color = MaterialTheme.colorScheme.primary,
                     )
                 }
+                Button(onClick = onSync) {
+                    ButtonIconLabel(
+                        icon = LucideIcons.Refresh,
+                        label = stringResource(R.string.dropbox_sync_sync_pair),
+                    )
+                }
                 IconButton(onClick = { menuExpanded = true }) {
                     Icon(LucideIcons.MoreVert, contentDescription = null)
                 }
@@ -509,10 +515,6 @@ private fun PairCard(
             pair.lastSummary?.let {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(it, style = MaterialTheme.typography.bodySmall)
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Button(onClick = onSync) {
-                Text(stringResource(R.string.dropbox_sync_sync_pair))
             }
         }
     }
