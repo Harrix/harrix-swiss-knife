@@ -91,6 +91,7 @@ import dev.harrix.hsk.speechtotext.SpeechProcessingKind
 import dev.harrix.hsk.speechtotext.SpeechQueueItem
 import dev.harrix.hsk.speechtotext.SpeechToTextQueueStore
 import dev.harrix.hsk.speechtotext.SpeechToTextRepository
+import dev.harrix.hsk.speechtotext.TickTickShare
 import dev.harrix.hsk.speechtotext.WaveformBucket
 import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.CompactBottomActionButton
@@ -125,7 +126,6 @@ private val SlowWarningAmber = Color(0xFFFFA000)
 private val RecordButtonRed = Color(0xFFE53935)
 private val RecordButtonRedPressed = Color(0xFFC62828)
 private val RecordButtonRedDisabled = Color(0xFFEF9A9A)
-private const val TickTickPackage = "com.ticktick.task"
 private val RecordButtonSize = 56.dp
 private val SwipeDeleteRed = Color(0xFFC62828)
 private const val SwipeDeleteHintFraction = 0.22f
@@ -209,14 +209,9 @@ fun SpeechToTextScreen(
         if (payload.isEmpty()) {
             return
         }
-        val tickTickIntent =
-            Intent(Intent.ACTION_SEND).apply {
-                type = "text/plain"
-                setPackage(TickTickPackage)
-                putExtra(Intent.EXTRA_TEXT, payload)
-            }
+        val parts = TickTickShare.partsFor(payload)
         try {
-            context.startActivity(tickTickIntent)
+            context.startActivity(TickTickShare.shareIntent(parts.title, parts.content))
             viewModel.markSentToTickTick(id)
         } catch (_: ActivityNotFoundException) {
             showToast(tickTickUnavailableMessage)
