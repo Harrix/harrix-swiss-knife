@@ -12,18 +12,26 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -50,6 +58,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -60,12 +69,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.DialogWindowProvider
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.harrix.hsk.R
@@ -879,161 +891,94 @@ private fun LocalFolderPickerScreen(
             currentDir.absolutePath in rootPaths || currentDir.parentFile != null
         }
 
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties =
-        DialogProperties(
-            usePlatformDefaultWidth = false,
-            // Fit system windows so the dialog is not drawn under the nav bar.
-            // Edge-to-edge + Compose insets is unreliable in Dialog on some devices.
-            decorFitsSystemWindows = true,
-            dismissOnBackPress = true,
-            dismissOnClickOutside = false,
-        ),
-    ) {
-        BackHandler {
+    FolderPickerDialog(
+        onDismiss = onDismiss,
+        onBack = {
             when {
                 showingRoots -> onDismiss()
                 currentDir.absolutePath in rootPaths -> showingRoots = true
                 currentDir.parentFile != null -> currentDir = currentDir.parentFile!!
                 else -> onDismiss()
             }
-        }
-        Surface(
-            modifier =
-            Modifier
-                .fillMaxSize()
-                .imePadding(),
-            color = hskScaffoldContainerColor(),
+        },
+        title = stringResource(R.string.dropbox_sync_pick_local),
+        subtitle = titlePath,
+        bottomBar = {
+            if (!showingRoots) {
+                FolderPickerBottomBar(
+                    newFolder = newFolder,
+                    onNewFolderChange = { newFolder = it },
+                    onCreateFolder = {
+                        val folderName = newFolder.trim()
+                        if (folderName.isEmpty()) return@FolderPickerBottomBar
+                        val created = File(currentDir, folderName)
+                        if (created.mkdirs() || created.isDirectory) {
+                            newFolder = ""
+                            refreshChildren()
+                            currentDir = created
+                        } else {
+                            message =
+                                context.getString(
+                                    R.string.dropbox_sync_create_folder_failed,
+                                )
+                        }
+                    },
+                    onUseFolder = { onSelect(currentDir.absolutePath) },
+                    matchingFolderName = matchingFolderName,
+                    onCreateMatchingFolder = {
+                        val folderName = matchingFolderName.trim()
+                        if (folderName.isEmpty()) return@FolderPickerBottomBar
+                        val created = File(currentDir, folderName)
+                        if (created.mkdirs() || created.isDirectory) {
+                            onSelect(created.absolutePath)
+                        } else {
+                            message =
+                                context.getString(
+                                    R.string.dropbox_sync_create_folder_failed,
+                                )
+                        }
+                    },
+                )
+            }
+        },
+    ) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(vertical = 4.dp),
         ) {
-            Scaffold(
-                modifier = Modifier.fillMaxSize(),
-                containerColor = hskScaffoldContainerColor(),
-                contentWindowInsets = WindowInsets(0, 0, 0, 0),
-                topBar = {
-                    TopAppBar(
-                        title = {
-                            Column {
-                                Text(
-                                    text = stringResource(R.string.dropbox_sync_pick_local),
-                                    style = MaterialTheme.typography.titleMedium,
-                                )
-                                Text(
-                                    text = titlePath,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            }
+            if (showingRoots) {
+                items(roots, key = { it.absolutePath }) { root ->
+                    FolderRow(
+                        name = root.absolutePath,
+                        onClick = {
+                            currentDir = root
+                            showingRoots = false
                         },
-                        navigationIcon = {
-                            IconButton(
-                                onClick = {
-                                    when {
-                                        showingRoots -> onDismiss()
-
-                                        currentDir.absolutePath in rootPaths -> showingRoots = true
-
-                                        currentDir.parentFile != null ->
-                                            currentDir = currentDir.parentFile!!
-
-                                        else -> onDismiss()
-                                    }
-                                },
-                            ) {
-                                Icon(
-                                    LucideIcons.ArrowBack,
-                                    contentDescription = stringResource(R.string.about_back),
-                                )
-                            }
-                        },
-                        colors = hskTopAppBarColors(),
-                        windowInsets = WindowInsets(0, 0, 0, 0),
-                        expandedHeight = HskTopAppBarHeight,
                     )
-                },
-                bottomBar = {
-                    if (!showingRoots) {
-                        FolderPickerBottomBar(
-                            newFolder = newFolder,
-                            onNewFolderChange = { newFolder = it },
-                            onCreateFolder = {
-                                val folderName = newFolder.trim()
-                                if (folderName.isEmpty()) return@FolderPickerBottomBar
-                                val created = File(currentDir, folderName)
-                                if (created.mkdirs() || created.isDirectory) {
-                                    newFolder = ""
-                                    refreshChildren()
-                                    currentDir = created
+                    HorizontalDivider()
+                }
+            } else {
+                if (canGoUp) {
+                    item(key = "__parent__") {
+                        FolderRow(
+                            name = "..",
+                            onClick = {
+                                if (currentDir.absolutePath in rootPaths) {
+                                    showingRoots = true
                                 } else {
-                                    message =
-                                        context.getString(
-                                            R.string.dropbox_sync_create_folder_failed,
-                                        )
-                                }
-                            },
-                            onUseFolder = { onSelect(currentDir.absolutePath) },
-                            matchingFolderName = matchingFolderName,
-                            onCreateMatchingFolder = {
-                                val folderName = matchingFolderName.trim()
-                                if (folderName.isEmpty()) return@FolderPickerBottomBar
-                                val created = File(currentDir, folderName)
-                                if (created.mkdirs() || created.isDirectory) {
-                                    onSelect(created.absolutePath)
-                                } else {
-                                    message =
-                                        context.getString(
-                                            R.string.dropbox_sync_create_folder_failed,
-                                        )
+                                    currentDir.parentFile?.let { currentDir = it }
                                 }
                             },
                         )
+                        HorizontalDivider()
                     }
-                },
-            ) { padding ->
-                LazyColumn(
-                    modifier =
-                    Modifier
-                        .padding(padding)
-                        .fillMaxSize(),
-                    contentPadding = PaddingValues(vertical = 4.dp),
-                ) {
-                    if (showingRoots) {
-                        items(roots, key = { it.absolutePath }) { root ->
-                            FolderRow(
-                                name = root.absolutePath,
-                                onClick = {
-                                    currentDir = root
-                                    showingRoots = false
-                                },
-                            )
-                            HorizontalDivider()
-                        }
-                    } else {
-                        if (canGoUp) {
-                            item(key = "__parent__") {
-                                FolderRow(
-                                    name = "..",
-                                    onClick = {
-                                        if (currentDir.absolutePath in rootPaths) {
-                                            showingRoots = true
-                                        } else {
-                                            currentDir.parentFile?.let { currentDir = it }
-                                        }
-                                    },
-                                )
-                                HorizontalDivider()
-                            }
-                        }
-                        items(children, key = { it.absolutePath }) { child ->
-                            FolderRow(
-                                name = child.name,
-                                onClick = { currentDir = child },
-                            )
-                            HorizontalDivider()
-                        }
-                    }
+                }
+                items(children, key = { it.absolutePath }) { child ->
+                    FolderRow(
+                        name = child.name,
+                        onClick = { currentDir = child },
+                    )
+                    HorizontalDivider()
                 }
             }
         }
@@ -1058,46 +1003,100 @@ private fun DropboxRemotePickerScreen(
             currentPath.trimEnd('/').substringBeforeLast('/', missingDelimiterValue = "")
         }
 
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties =
-        DialogProperties(
-            usePlatformDefaultWidth = false,
-            // Fit system windows so the dialog is not drawn under the nav bar.
-            // Edge-to-edge + Compose insets is unreliable in Dialog on some devices.
-            decorFitsSystemWindows = true,
-            dismissOnBackPress = true,
-            dismissOnClickOutside = false,
-        ),
-    ) {
-        BackHandler {
+    FolderPickerDialog(
+        onDismiss = onDismiss,
+        onBack = {
             if (canGoUp) {
                 onNavigate(parentPath)
             } else {
                 onDismiss()
             }
+        },
+        title = stringResource(R.string.dropbox_sync_pick_remote),
+        subtitle = currentPath.ifBlank { "/" },
+        bottomBar = {
+            FolderPickerBottomBar(
+                newFolder = newFolder,
+                onNewFolderChange = { newFolder = it },
+                onCreateFolder = {
+                    if (newFolder.isNotBlank()) {
+                        onCreateFolder(newFolder.trim())
+                        newFolder = ""
+                    }
+                },
+                onUseFolder = { onSelect(currentPath.ifBlank { "" }) },
+            )
+        },
+    ) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(vertical = 4.dp),
+        ) {
+            if (canGoUp) {
+                item(key = "__parent__") {
+                    FolderRow(
+                        name = "..",
+                        onClick = { onNavigate(parentPath) },
+                    )
+                    HorizontalDivider()
+                }
+            }
+            items(folders, key = { it.pathLower }) { item ->
+                FolderRow(
+                    name = item.name,
+                    onClick = { onNavigate(item.pathDisplay) },
+                )
+                HorizontalDivider()
+            }
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun FolderPickerDialog(
+    onDismiss: () -> Unit,
+    onBack: () -> Unit,
+    title: String,
+    subtitle: String,
+    bottomBar: @Composable () -> Unit,
+    content: @Composable () -> Unit,
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties =
+        DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false,
+            dismissOnBackPress = true,
+            dismissOnClickOutside = false,
+        ),
+    ) {
+        val view = LocalView.current
+        SideEffect {
+            val window = (view.parent as? DialogWindowProvider)?.window ?: return@SideEffect
+            WindowCompat.setDecorFitsSystemWindows(window, false)
+        }
+        BackHandler(onBack = onBack)
         Surface(
-            modifier =
-            Modifier
-                .fillMaxSize()
-                .imePadding(),
+            modifier = Modifier.fillMaxSize(),
             color = hskScaffoldContainerColor(),
         ) {
             Scaffold(
                 modifier = Modifier.fillMaxSize(),
                 containerColor = hskScaffoldContainerColor(),
-                contentWindowInsets = WindowInsets(0, 0, 0, 0),
+                // Horizontal only here; top/bottom bars apply their own system insets.
+                contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal),
                 topBar = {
                     TopAppBar(
                         title = {
                             Column {
                                 Text(
-                                    text = stringResource(R.string.dropbox_sync_pick_remote),
+                                    text = title,
                                     style = MaterialTheme.typography.titleMedium,
                                 )
                                 Text(
-                                    text = currentPath.ifBlank { "/" },
+                                    text = subtitle,
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     maxLines = 1,
@@ -1106,15 +1105,7 @@ private fun DropboxRemotePickerScreen(
                             }
                         },
                         navigationIcon = {
-                            IconButton(
-                                onClick = {
-                                    if (canGoUp) {
-                                        onNavigate(parentPath)
-                                    } else {
-                                        onDismiss()
-                                    }
-                                },
-                            ) {
+                            IconButton(onClick = onBack) {
                                 Icon(
                                     LucideIcons.ArrowBack,
                                     contentDescription = stringResource(R.string.about_back),
@@ -1122,47 +1113,19 @@ private fun DropboxRemotePickerScreen(
                             }
                         },
                         colors = hskTopAppBarColors(),
-                        windowInsets = WindowInsets(0, 0, 0, 0),
+                        windowInsets = WindowInsets.statusBars,
                         expandedHeight = HskTopAppBarHeight,
                     )
                 },
-                bottomBar = {
-                    FolderPickerBottomBar(
-                        newFolder = newFolder,
-                        onNewFolderChange = { newFolder = it },
-                        onCreateFolder = {
-                            if (newFolder.isNotBlank()) {
-                                onCreateFolder(newFolder.trim())
-                                newFolder = ""
-                            }
-                        },
-                        onUseFolder = { onSelect(currentPath.ifBlank { "" }) },
-                    )
-                },
+                bottomBar = bottomBar,
             ) { padding ->
-                LazyColumn(
+                Box(
                     modifier =
                     Modifier
                         .padding(padding)
                         .fillMaxSize(),
-                    contentPadding = PaddingValues(vertical = 4.dp),
                 ) {
-                    if (canGoUp) {
-                        item(key = "__parent__") {
-                            FolderRow(
-                                name = "..",
-                                onClick = { onNavigate(parentPath) },
-                            )
-                            HorizontalDivider()
-                        }
-                    }
-                    items(folders, key = { it.pathLower }) { item ->
-                        FolderRow(
-                            name = item.name,
-                            onClick = { onNavigate(item.pathDisplay) },
-                        )
-                        HorizontalDivider()
-                    }
+                    content()
                 }
             }
         }
@@ -1179,32 +1142,24 @@ private fun FolderPickerBottomBar(
     onCreateMatchingFolder: (() -> Unit)? = null,
 ) {
     val createMatching = onCreateMatchingFolder
+    val bottomInsets = WindowInsets.navigationBars.union(WindowInsets.ime)
     Surface(tonalElevation = 2.dp) {
         Column(
             modifier =
             Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+                .windowInsetsPadding(bottomInsets)
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Row(
+            Button(
+                onClick = onUseFolder,
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                OutlinedTextField(
-                    value = newFolder,
-                    onValueChange = onNewFolderChange,
-                    label = { Text(stringResource(R.string.dropbox_sync_new_remote_folder)) },
-                    singleLine = true,
-                    modifier = Modifier.weight(1f),
+                ButtonIconLabel(
+                    icon = LucideIcons.FolderCheck,
+                    label = stringResource(R.string.dropbox_sync_use_this_folder),
                 )
-                TextButton(onClick = onCreateFolder) {
-                    ButtonIconLabel(
-                        icon = LucideIcons.FolderPlus,
-                        label = stringResource(R.string.dropbox_sync_create_folder),
-                    )
-                }
             }
             if (matchingFolderName.isNotBlank() && createMatching != null) {
                 OutlinedButton(
@@ -1221,14 +1176,29 @@ private fun FolderPickerBottomBar(
                     )
                 }
             }
-            Button(
-                onClick = onUseFolder,
+            Row(
                 modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                ButtonIconLabel(
-                    icon = LucideIcons.FolderCheck,
-                    label = stringResource(R.string.dropbox_sync_use_this_folder),
+                OutlinedTextField(
+                    value = newFolder,
+                    onValueChange = onNewFolderChange,
+                    placeholder = {
+                        Text(stringResource(R.string.dropbox_sync_new_remote_folder))
+                    },
+                    singleLine = true,
+                    modifier =
+                    Modifier
+                        .weight(1f)
+                        .height(56.dp),
                 )
+                TextButton(onClick = onCreateFolder) {
+                    ButtonIconLabel(
+                        icon = LucideIcons.FolderPlus,
+                        label = stringResource(R.string.dropbox_sync_create_folder),
+                    )
+                }
             }
         }
     }
