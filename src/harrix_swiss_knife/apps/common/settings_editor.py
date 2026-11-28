@@ -1098,6 +1098,9 @@ def _is_hotkey_key_name(key: str) -> bool:
 
 def _setting_description(key: str, value: object) -> str:
     """Return a short secondary caption for a setting card."""
+    known = _SETTING_DESCRIPTIONS.get(key)
+    if known is not None:
+        return known
     if isinstance(value, bool):
         return "On or off"
     if is_hotkey_bindings_setting(key, value):
@@ -1115,6 +1118,9 @@ def _setting_description(key: str, value: object) -> str:
 
 def _setting_icon(key: str, value: object) -> str:
     """Return a Lucide icon ID for a setting card."""
+    known = _SETTING_ICONS.get(key)
+    if known is not None:
+        return known
     if isinstance(value, bool):
         return "toggle-left"
     if is_hotkey_bindings_setting(key, value) or is_hotkey_setting(key, value):
@@ -1128,6 +1134,14 @@ def _setting_icon(key: str, value: object) -> str:
     if isinstance(value, str):
         return "text"
     return "braces"
+
+
+_SETTING_DESCRIPTIONS: dict[str, str] = {
+    "finance_ai_screenshot_fab_enabled": "Floating Add with AI screenshot button",
+}
+_SETTING_ICONS: dict[str, str] = {
+    "finance_ai_screenshot_fab_enabled": "camera",
+}
 
 
 if TYPE_CHECKING:

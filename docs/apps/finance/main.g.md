@@ -43,6 +43,7 @@ lang: en
   - [⚙️ Method `on_export_excel`](#%EF%B8%8F-method-on_export_excel)
   - [⚙️ Method `on_select_only_expense_chart_categories`](#%EF%B8%8F-method-on_select_only_expense_chart_categories)
   - [⚙️ Method `on_select_only_income_chart_categories`](#%EF%B8%8F-method-on_select_only_income_chart_categories)
+  - [⚙️ Method `on_settings`](#%EF%B8%8F-method-on_settings)
   - [⚙️ Method `on_show_all_records_clicked`](#%EF%B8%8F-method-on_show_all_records_clicked)
   - [⚙️ Method `on_standard_items`](#%EF%B8%8F-method-on_standard_items)
   - [⚙️ Method `on_tab_changed`](#%EF%B8%8F-method-on_tab_changed)
@@ -1051,6 +1052,20 @@ class MainWindow(
         """Check only income categories in the Charts category list."""
         self._select_only_chart_categories(1)
 
+    def on_settings(self) -> None:
+        """Open Finance settings and apply floating screenshot button prefs after close."""
+        ensure_fab_enabled_setting()
+        from harrix_swiss_knife.apps.common.settings_editor import SettingsEditorDialog  # noqa: PLC0415
+
+        dialog = SettingsEditorDialog(
+            cast("QWidget", self),
+            app_id=type(self).settings_app_id,
+            window_title=f"{type(self).about_app_name} settings",
+        )
+        apply_app_window_size_and_position(dialog)
+        dialog.exec()
+        self._sync_ai_screenshot_fab_from_settings()
+
     def on_show_all_records_clicked(self) -> None:
         """Toggle between showing all records and last self.count_transactions_to_show records."""
         self.show_all_transactions = not self.show_all_transactions
@@ -1204,7 +1219,7 @@ class MainWindow(
         """Show the floating AI screenshot control with the Finance window."""
         super().showEvent(event)
         fab = self._ai_screenshot_fab
-        if fab is not None and not self._is_closing:
+        if fab is not None and not self._is_closing and load_fab_enabled():
             fab.show_for_finance()
 
     @requires_database(is_show_warning=False)
@@ -1916,7 +1931,11 @@ class MainWindow(
             hint_text="Attach receipt · Ctrl+V",
         )
         self.verticalLayout_2.insertWidget(1, self._ai_image_drop_zone)
-        self._ai_screenshot_fab = FinanceAiScreenshotFab(self._on_ai_screenshot_fab_clicked)
+        ensure_fab_enabled_setting()
+        self._ai_screenshot_fab = FinanceAiScreenshotFab(
+            self._on_ai_screenshot_fab_clicked,
+            on_enabled_changed=self._on_ai_screenshot_fab_enabled_changed,
+        )
         install_line_edit_search_chrome(
             self.lineEdit_description,
             leading_icon="notepad-text",
@@ -3808,6 +3827,16 @@ class MainWindow(
         if zone is None:
             return
         zone.capture_screenshot_region()
+
+    def _on_ai_screenshot_fab_enabled_changed(self, *, enabled: bool) -> None:
+        """Apply enable/disable from the floating button context menu."""
+        fab = self._ai_screenshot_fab
+        if fab is None:
+            return
+        if enabled and self.isVisible() and not self.isMinimized() and not self._is_closing:
+            fab.show_for_finance()
+        else:
+            fab.hide_for_finance()
 
     def _on_autocomplete_selected(self, text: str) -> None:
         """Handle autocomplete selection and populate form fields.
@@ -6433,6 +6462,16 @@ class MainWindow(
         self._stop_exchange_rate_threads()
         join_released_qthreads()
 
+    def _sync_ai_screenshot_fab_from_settings(self) -> None:
+        """Show or hide the floating screenshot button after Settings changes."""
+        fab = self._ai_screenshot_fab
+        if fab is None:
+            return
+        if load_fab_enabled() and self.isVisible() and not self.isMinimized() and not self._is_closing:
+            fab.show_for_finance()
+        else:
+            fab.hide_for_finance()
+
     def _sync_amount_spin_limit(self, *_args: object) -> None:
         """Raise the amount field to the largest value a SQLite INTEGER can store."""
         subdivision = 100
@@ -8310,6 +8349,34 @@ def on_select_only_income_chart_categories(self) -> None:
 
 </details>
 
+### ⚙️ Method `on_settings`
+
+```python
+def on_settings(self) -> None
+```
+
+Open Finance settings and apply floating screenshot button prefs after close.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_settings(self) -> None:
+        ensure_fab_enabled_setting()
+        from harrix_swiss_knife.apps.common.settings_editor import SettingsEditorDialog  # noqa: PLC0415
+
+        dialog = SettingsEditorDialog(
+            cast("QWidget", self),
+            app_id=type(self).settings_app_id,
+            window_title=f"{type(self).about_app_name} settings",
+        )
+        apply_app_window_size_and_position(dialog)
+        dialog.exec()
+        self._sync_ai_screenshot_fab_from_settings()
+```
+
+</details>
+
 ### ⚙️ Method `on_show_all_records_clicked`
 
 ```python
@@ -8610,7 +8677,7 @@ Show the floating AI screenshot control with the Finance window.
 def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
         super().showEvent(event)
         fab = self._ai_screenshot_fab
-        if fab is not None and not self._is_closing:
+        if fab is not None and not self._is_closing and load_fab_enabled():
             fab.show_for_finance()
 ```
 
