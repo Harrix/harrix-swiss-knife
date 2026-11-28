@@ -21,8 +21,8 @@ from harrix_swiss_knife.qt_lucide_icon import create_lucide_icon
 if TYPE_CHECKING:
     from PySide6.QtGui import QResizeEvent
 
-_COLLAPSE_ICON = "minus"
-# Corner brackets read as "expand", not a missing-glyph tofu square.
+# Pair with maximize: Lucide window chrome, not a caption dash / tofu square.
+_COLLAPSE_ICON = "minimize"
 _EXPAND_ICON = "maximize"
 _ACTION_ICON_COLOR = QColor(255, 255, 255)
 

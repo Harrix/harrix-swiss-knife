@@ -105,7 +105,7 @@ class DirtyReposCommitWindow(QDialog):
         self._add_button.setToolTip("Add a repository or a folder to config.json")
         self._add_button.clicked.connect(self._on_add_repositories)
         header.addWidget(self._add_button)
-        self._check_button = FluentPushButton("Check", body, icon="rotate-cw")
+        self._check_button = FluentPushButton("Check", body, icon="refresh-cw")
         self._check_button.setToolTip("Re-check the selected repository")
         self._check_button.clicked.connect(self._check_current_repo)
         header.addWidget(self._check_button)
@@ -170,13 +170,13 @@ class DirtyReposCommitWindow(QDialog):
         buttons = QHBoxLayout()
         buttons.setSpacing(SPACE_S)
         # Qt treats a single "&" as a mnemonic; "&&" shows a literal ampersand.
-        self._commit_push_button = FluentPrimaryButton("Commit && push", middle, icon="upload")
+        self._commit_push_button = FluentPrimaryButton("Commit && push", middle, icon="arrow-up-from-line")
         self._commit_push_button.setDefault(True)
         self._commit_push_button.clicked.connect(self._on_commit_and_push)
         self._commit_button = FluentPushButton("Commit", middle)
         self._commit_button.clicked.connect(self._on_commit)
         bind_theme(self._commit_button, self._style_commit_button)
-        self._push_button = FluentPushButton("Push", middle, icon="upload")
+        self._push_button = FluentPushButton("Push", middle, icon="arrow-up-from-line")
         self._push_button.clicked.connect(self._on_push)
         bind_theme(self._push_button, self._style_push_button)
         self._desktop_button = FluentPushButton("Open in GitHub Desktop", middle)
@@ -213,7 +213,7 @@ class DirtyReposCommitWindow(QDialog):
             word_wrap=True,
         )
         # Accent primary: this note only appears when the tree is clean and push remains.
-        self._unpushed_push = FluentPrimaryButton("Push these commits", self._unpushed_note, icon="upload")
+        self._unpushed_push = FluentPrimaryButton("Push these commits", self._unpushed_note, icon="arrow-up-from-line")
         self._unpushed_push.clicked.connect(self._on_push)
         note_layout.addWidget(self._unpushed_label)
         note_layout.addWidget(self._unpushed_hint)
@@ -1278,10 +1278,10 @@ class DirtyReposCommitWindow(QDialog):
         palette = palette_for(button)
         if self._push_emphasized:
             button.setStyleSheet(accent_button_qss(palette))
-            button.setIcon(create_lucide_icon("upload", ICON_SIZE, color=palette.text_on_accent))
+            button.setIcon(create_lucide_icon("arrow-up-from-line", ICON_SIZE, color=palette.text_on_accent))
         else:
             button.setStyleSheet(push_button_qss(palette))
-            button.setIcon(themed_icon("upload", palette))
+            button.setIcon(themed_icon("arrow-up-from-line", palette))
         button.setIconSize(QSize(ICON_SIZE, ICON_SIZE))
 
     def _style_repo_item(self, item: QListWidgetItem, status: DirtyRepoStatus) -> None:
@@ -1420,7 +1420,7 @@ def __init__(
         self._add_button.setToolTip("Add a repository or a folder to config.json")
         self._add_button.clicked.connect(self._on_add_repositories)
         header.addWidget(self._add_button)
-        self._check_button = FluentPushButton("Check", body, icon="rotate-cw")
+        self._check_button = FluentPushButton("Check", body, icon="refresh-cw")
         self._check_button.setToolTip("Re-check the selected repository")
         self._check_button.clicked.connect(self._check_current_repo)
         header.addWidget(self._check_button)
@@ -1485,13 +1485,13 @@ def __init__(
         buttons = QHBoxLayout()
         buttons.setSpacing(SPACE_S)
         # Qt treats a single "&" as a mnemonic; "&&" shows a literal ampersand.
-        self._commit_push_button = FluentPrimaryButton("Commit && push", middle, icon="upload")
+        self._commit_push_button = FluentPrimaryButton("Commit && push", middle, icon="arrow-up-from-line")
         self._commit_push_button.setDefault(True)
         self._commit_push_button.clicked.connect(self._on_commit_and_push)
         self._commit_button = FluentPushButton("Commit", middle)
         self._commit_button.clicked.connect(self._on_commit)
         bind_theme(self._commit_button, self._style_commit_button)
-        self._push_button = FluentPushButton("Push", middle, icon="upload")
+        self._push_button = FluentPushButton("Push", middle, icon="arrow-up-from-line")
         self._push_button.clicked.connect(self._on_push)
         bind_theme(self._push_button, self._style_push_button)
         self._desktop_button = FluentPushButton("Open in GitHub Desktop", middle)
@@ -1528,7 +1528,7 @@ def __init__(
             word_wrap=True,
         )
         # Accent primary: this note only appears when the tree is clean and push remains.
-        self._unpushed_push = FluentPrimaryButton("Push these commits", self._unpushed_note, icon="upload")
+        self._unpushed_push = FluentPrimaryButton("Push these commits", self._unpushed_note, icon="arrow-up-from-line")
         self._unpushed_push.clicked.connect(self._on_push)
         note_layout.addWidget(self._unpushed_label)
         note_layout.addWidget(self._unpushed_hint)

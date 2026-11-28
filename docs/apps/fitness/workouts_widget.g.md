@@ -307,7 +307,7 @@ class WorkoutsWidget(QWidget):
         self.button_stop.setMinimumWidth(110)
         self.button_stop.setFont(standard_bold_font)
         self.button_stop.setStyleSheet(_STOP_BUTTON_STYLE)
-        apply_lucide_button_icon(self.button_stop, "square")
+        apply_lucide_button_icon(self.button_stop, "square-stop")
         self.button_stop.clicked.connect(lambda: self.stop_workout_session(completed=False))
         session_layout.addWidget(self.button_stop)
         session_layout.addStretch(1)
@@ -912,7 +912,7 @@ class WorkoutsWidget(QWidget):
 def __init__(self, parent: QWidget | None = None) -> None
 ```
 
-Build the workouts UI; call `set_database_manager` before loading data.
+Build the workouts UI; call [`set_database_manager`](#%EF%B8%8F-method-set_database_manager) before loading data.
 
 <details>
 <summary>Code:</summary>

@@ -55,68 +55,6 @@ def qapp() -> QApplication:
     return app
 
 
-def _write_test_avif(path: Path) -> None:
-    Image.new("RGB", (64, 48), (120, 80, 40)).save(path, format="AVIF")
-
-
-def _overlay(dialog: FitnessExerciseLightboxDialog) -> LightboxPhaseOverlay:
-    overlay = dialog._phase_overlay
-    assert overlay is not None
-    return overlay
-
-
-def _details(_name: str, _item_id: int | None) -> FitnessLightboxDetails:
-    return FitnessLightboxDetails(
-        unit="times",
-        types=["Wide", "Narrow"],
-        selected_type="Wide",
-        value=10,
-        type_locals={"Wide": "Широкий", "Narrow": "Узкий"},
-    )
-
-
-def _plank_details(_name: str, _item_id: int | None) -> FitnessLightboxDetails:
-    return FitnessLightboxDetails(unit="sec.", types=[], selected_type="", value=5)
-
-
-def _long_plank_details(_name: str, _item_id: int | None) -> FitnessLightboxDetails:
-    return FitnessLightboxDetails(unit="sec.", types=[], selected_type="", value=90)
-
-
-def _item(
-    *,
-    item_id: int,
-    name: str,
-    sort_order: int,
-    target: str = "12",
-    unit: str = "times",
-) -> WorkoutItemRow:
-    return WorkoutItemRow(
-        id=item_id,
-        workout_id=1,
-        exercise_id=item_id,
-        type_id=3,
-        exercise_name=name,
-        type_name="Wide",
-        target_value=target,
-        sort_order=sort_order,
-        is_done=False,
-        process_id=None,
-        unit=unit,
-        calories_per_unit=1.0,
-        calories_modifier=1.0,
-    )
-
-
-def test_get_apps_fitness_lightbox_countdown_seconds_defaults_to_five() -> None:
-    assert get_apps_fitness_lightbox_countdown_seconds({}) == DEFAULT_FITNESS_LIGHTBOX_COUNTDOWN_SECONDS
-    assert get_apps_fitness_lightbox_countdown_seconds({"apps": {}}) == 5
-    assert get_apps_fitness_lightbox_countdown_seconds({"apps": {"fitness_lightbox_countdown_seconds": 8}}) == 8
-    assert get_apps_fitness_lightbox_countdown_seconds({"apps": {"fitness_lightbox_countdown_seconds": 0}}) == 0
-    assert get_apps_fitness_lightbox_countdown_seconds({"apps": {"fitness_lightbox_countdown_seconds": -3}}) == 0
-    assert get_apps_fitness_lightbox_countdown_seconds({"apps": {"fitness_lightbox_countdown_seconds": "nope"}}) == 5
-
-
 def test_allocated_exercise_seconds_splits_workout_evenly() -> None:
     assert allocated_exercise_seconds(45, 15) == 180
     assert allocated_exercise_seconds(0, 10) == 0
@@ -132,168 +70,6 @@ def test_default_exercise_type_prefers_plan_then_last_then_first() -> None:
     assert default_exercise_type(types, preferred="", last_used="", type_required=True) == "Wide"
     assert default_exercise_type(types, preferred="", last_used="Narrow", type_required=True) == "Narrow"
     assert default_exercise_type([], preferred="Wide", last_used="Wide", type_required=True) == ""
-
-
-def test_seconds_exercise_unit_and_minute_second_split() -> None:
-    assert is_seconds_exercise_unit("sec.")
-    assert is_seconds_exercise_unit("seconds")
-    assert not is_seconds_exercise_unit("min")
-    assert not is_seconds_exercise_unit("times")
-    assert not is_seconds_exercise_unit("m")
-    assert split_total_seconds(90) == (1, 30)
-    assert split_total_seconds(5) == (0, 5)
-    assert split_total_seconds(0) == (0, 0)
-    assert minutes_seconds_to_total(1, 30) == 90
-    assert minutes_seconds_to_total(0, 45) == 45
-
-
-def test_parse_exercise_value_and_format_mm_ss() -> None:
-    assert parse_exercise_value("12") == 12
-    assert parse_exercise_value("12.9") == 12
-    assert parse_exercise_value("bad") == 0
-    assert format_mm_ss(0) == "0:00"
-    assert format_mm_ss(75) == "1:15"
-
-
-def test_target_seconds_for_timed_exercise_units() -> None:
-    assert target_seconds_for_exercise("sec.", 5) == 5
-    assert target_seconds_for_exercise("seconds", 12) == 12
-    assert target_seconds_for_exercise("min", 2) == 120
-    assert target_seconds_for_exercise("times", 5) is None
-    assert target_seconds_for_exercise("sec.", 0) is None
-
-
-def test_stopwatch_countdown_then_elapsed_then_overtime() -> None:
-    watch = ExerciseStopwatch(countdown_seconds=2, limit_seconds=3)
-    idle = watch.snapshot()
-    assert idle.phase is StopwatchPhase.IDLE
-    assert idle.color is StopwatchColor.IDLE
-    started = watch.start()
-    assert started.phase is StopwatchPhase.COUNTDOWN
-    assert started.color is StopwatchColor.COUNTDOWN
-    assert started.display_seconds == 2
-    after_one = watch.advance(1000)
-    assert after_one.phase is StopwatchPhase.COUNTDOWN
-    assert after_one.display_seconds == 1
-    running = watch.advance(1000)
-    assert running.phase is StopwatchPhase.RUNNING
-    assert running.color is StopwatchColor.RUNNING
-    assert running.display_seconds == 0
-    later = watch.advance(3000)
-    assert later.is_overtime
-    assert later.color is StopwatchColor.OVERTIME
-    assert later.display_seconds == 3
-    assert later.is_running
-    paused = watch.pause()
-    assert not paused.is_running
-    watch.advance(5000)
-    assert watch.snapshot().display_seconds == 3
-    restarted = watch.restart()
-    assert restarted.phase is StopwatchPhase.COUNTDOWN
-    assert not restarted.is_overtime
-
-
-def test_stopwatch_stops_at_timed_exercise_limit() -> None:
-    watch = ExerciseStopwatch(countdown_seconds=0, limit_seconds=5, stop_at_limit=True)
-    watch.start()
-    snapshot = watch.advance(5000)
-    assert snapshot.phase is StopwatchPhase.FINISHED
-    assert snapshot.is_overtime
-    assert snapshot.color is StopwatchColor.FINISHED
-    assert snapshot.display_seconds == 5
-    assert not snapshot.is_running
-    watch.advance(2000)
-    assert watch.snapshot().display_seconds == 5
-    assert watch.snapshot().phase is StopwatchPhase.FINISHED
-    assert watch.snapshot().color is StopwatchColor.FINISHED
-    assert not watch.snapshot().is_running
-
-
-def test_stopwatch_stop_marks_finished() -> None:
-    watch = ExerciseStopwatch(countdown_seconds=2, limit_seconds=10)
-    watch.start()
-    watch.advance(500)
-    stopped = watch.stop()
-    assert stopped.phase is StopwatchPhase.FINISHED
-    assert stopped.color is StopwatchColor.FINISHED
-    assert not stopped.is_running
-    assert stopped.is_overtime
-    watch.advance(2000)
-    assert watch.snapshot().phase is StopwatchPhase.FINISHED
-    started = watch.start()
-    assert started.phase is StopwatchPhase.COUNTDOWN
-    assert started.is_running
-
-
-def test_lightbox_playback_view_prepare_run_and_finish() -> None:
-    countdown = ExerciseStopwatch(countdown_seconds=3, limit_seconds=None).start()
-    assert lightbox_playback_view(countdown).overlay is LightboxOverlayKind.PREPARE
-    assert lightbox_playback_view(countdown).countdown_seconds == 3
-    assert not lightbox_playback_view(countdown).animate
-    running = ExerciseStopwatch(countdown_seconds=0, limit_seconds=None).start()
-    view = lightbox_playback_view(running)
-    assert view.overlay is LightboxOverlayKind.NONE
-    assert view.animate
-    finished = ExerciseStopwatch(countdown_seconds=0, limit_seconds=5, stop_at_limit=True)
-    finished.start()
-    finish_view = lightbox_playback_view(finished.advance(5000))
-    assert finish_view.overlay is LightboxOverlayKind.FINISH
-    assert not finish_view.animate
-    assert not finish_view.freeze_first_frame
-
-
-def test_lightbox_playback_view_running_overtime_keeps_animation() -> None:
-    watch = ExerciseStopwatch(countdown_seconds=0, limit_seconds=10, stop_at_limit=False)
-    watch.start()
-    watch.advance(12_000)
-    snapshot = watch.snapshot()
-    assert snapshot.phase is StopwatchPhase.RUNNING
-    assert snapshot.is_overtime
-    assert snapshot.is_running
-    view = lightbox_playback_view(snapshot)
-    assert view.animate
-    assert view.overlay is LightboxOverlayKind.FINISH
-    watch.pause()
-    paused = lightbox_playback_view(watch.snapshot())
-    assert not paused.animate
-    assert paused.overlay is LightboxOverlayKind.FINISH
-
-
-def test_stopwatch_capture_and_restore_resumes_elapsed() -> None:
-    watch = ExerciseStopwatch(countdown_seconds=0, limit_seconds=10)
-    watch.start()
-    watch.advance(2500)
-    state = watch.capture_state()
-    assert state.phase is StopwatchPhase.RUNNING
-    assert state.elapsed_ms == 2500
-    assert state.running
-    restored = ExerciseStopwatch(countdown_seconds=0, limit_seconds=10)
-    snapshot = restored.apply_state(state)
-    assert snapshot.phase is StopwatchPhase.RUNNING
-    assert snapshot.display_seconds == 2
-    assert snapshot.is_running
-    restored.advance(800)
-    assert restored.snapshot().display_seconds == 3
-
-
-def test_stopwatch_skips_countdown_when_zero() -> None:
-    watch = ExerciseStopwatch(countdown_seconds=0, limit_seconds=None)
-    started = watch.start()
-    assert started.phase is StopwatchPhase.RUNNING
-    assert started.color is StopwatchColor.RUNNING
-    assert not started.is_overtime
-
-
-def test_fitness_timer_cue_sound_names() -> None:
-    assert fitness_timer_cue_sound_name("ready") == "fitness_ready.wav"
-    assert fitness_timer_cue_sound_name("go") == "fitness_go.wav"
-    assert fitness_timer_cue_sound_name("time_over") == "fitness_time_over.wav"
-    assert fitness_timer_cue_sound_name("paste") == "fitness_paste.wav"
-    assert fitness_timer_cue_sound_name("pause") == "fitness_pause.wav"
-    assert fitness_timer_cue_sound_name("continue") == "fitness_continue.wav"
-    assert fitness_timer_cue_sound_name("success") == "fitness_success.wav"
-    assert fitness_timer_cue_sound_name("applause") == "fitness_applause.wav"
-    assert fitness_timer_cue_sound_name("congratulations") == "fitness_congratulations.wav"
 
 
 def test_fitness_applause_sound_is_embedded(qapp: QApplication) -> None:  # noqa: ARG001
@@ -346,336 +122,6 @@ def test_fitness_lightbox_flashes_start_and_finish(
     assert overlay._number.isHidden()
     assert dialog._sidebar._prepare_label.isHidden()
     dialog.close()
-
-
-def test_fitness_lightbox_stops_on_timed_exercise_target(
-    tmp_path: Path,
-    qapp: QApplication,  # noqa: ARG001
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    img_dir = tmp_path / "fitness_img"
-    img_dir.mkdir()
-    _write_test_avif(img_dir / "Plank.avif")
-    manager = AvifManager(img_dir)
-    cues: list[str] = []
-    monkeypatch.setattr(
-        "harrix_swiss_knife.apps.fitness.fitness_lightbox.play_fitness_timer_cue",
-        cues.append,
-    )
-    monkeypatch.setattr(
-        "harrix_swiss_knife.apps.fitness.fitness_lightbox.stop_fitness_timer_alert",
-        lambda: None,
-    )
-    dialog = FitnessExerciseLightboxDialog(
-        ["Plank"],
-        avif_manager=manager,
-        details_loader=_plank_details,
-        confirm_handler=lambda _payload: True,
-        countdown_seconds=0,
-        workout_duration_min=10,
-        workout_items=[_item(item_id=1, name="Plank", sort_order=0, target="5")],
-    )
-    assert dialog._sidebar._limit_seconds == 5
-    assert dialog._sidebar._limit_label.text() == "Target 0:05"
-    dialog._sidebar._on_start()
-    dialog._sidebar._apply_snapshot(dialog._sidebar._stopwatch.advance(5000))
-    assert cues == ["go", "time_over"]
-    assert dialog._sidebar._prepare_label.isHidden()
-    overlay = _overlay(dialog)
-    assert not overlay.isHidden()
-    assert overlay._title.text() == "Finish"
-    assert dialog._sidebar._time_label.text() == "0:05"
-    assert not dialog._sidebar._stopwatch.snapshot().is_running
-    assert dialog._sidebar._stopwatch.snapshot().phase is StopwatchPhase.FINISHED
-    dialog.close()
-
-
-def test_fitness_lightbox_seconds_value_uses_minutes_seconds_and_syncs(
-    tmp_path: Path,
-    qapp: QApplication,  # noqa: ARG001
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    img_dir = tmp_path / "fitness_img"
-    img_dir.mkdir()
-    _write_test_avif(img_dir / "Plank.avif")
-    manager = AvifManager(img_dir)
-    monkeypatch.setattr(
-        "harrix_swiss_knife.apps.fitness.fitness_lightbox.play_fitness_timer_cue",
-        lambda _cue: None,
-    )
-    monkeypatch.setattr(
-        "harrix_swiss_knife.apps.fitness.fitness_lightbox.stop_fitness_timer_alert",
-        lambda: None,
-    )
-    dialog = FitnessExerciseLightboxDialog(
-        ["Plank"],
-        avif_manager=manager,
-        details_loader=_long_plank_details,
-        confirm_handler=lambda _payload: True,
-        countdown_seconds=0,
-        workout_duration_min=10,
-        workout_items=[_item(item_id=1, name="Plank", sort_order=0, target="90")],
-    )
-    sidebar = dialog._sidebar
-    assert sidebar._value_spin.isHidden()
-    assert not sidebar._value_duration_wrap.isHidden()
-    assert sidebar._unit_label.isHidden()
-    assert sidebar._value_minutes_spin.value() == 1
-    assert sidebar._value_seconds_spin.value() == 30
-    assert sidebar.value() == 90
-
-    sidebar._on_start()
-    assert sidebar.value() == 0
-    sidebar._apply_snapshot(sidebar._stopwatch.advance(65_000))
-    assert sidebar._time_label.text() == "1:05"
-    assert sidebar._value_minutes_spin.value() == 1
-    assert sidebar._value_seconds_spin.value() == 5
-    assert sidebar.value() == 65
-    dialog.close()
-
-
-def test_fitness_lightbox_rep_value_keeps_single_spin(
-    tmp_path: Path,
-    qapp: QApplication,  # noqa: ARG001
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    img_dir = tmp_path / "fitness_img"
-    img_dir.mkdir()
-    _write_test_avif(img_dir / "Push-ups.avif")
-    manager = AvifManager(img_dir)
-    monkeypatch.setattr(
-        "harrix_swiss_knife.apps.fitness.fitness_lightbox.play_fitness_timer_cue",
-        lambda _cue: None,
-    )
-    monkeypatch.setattr(
-        "harrix_swiss_knife.apps.fitness.fitness_lightbox.stop_fitness_timer_alert",
-        lambda: None,
-    )
-    dialog = FitnessExerciseLightboxDialog(
-        ["Push-ups"],
-        avif_manager=manager,
-        details_loader=_details,
-        confirm_handler=lambda _payload: True,
-        countdown_seconds=0,
-    )
-    sidebar = dialog._sidebar
-    assert not sidebar._value_spin.isHidden()
-    assert sidebar._value_duration_wrap.isHidden()
-    assert sidebar._value_spin.value() == 10
-    sidebar._on_start()
-    sidebar._apply_snapshot(sidebar._stopwatch.advance(3000))
-    assert sidebar._value_spin.value() == 10
-    dialog.close()
-
-
-def test_fitness_lightbox_type_combo_shows_local_names(
-    tmp_path: Path,
-    qapp: QApplication,  # noqa: ARG001
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    img_dir = tmp_path / "fitness_img"
-    img_dir.mkdir()
-    _write_test_avif(img_dir / "Push-ups.avif")
-    manager = AvifManager(img_dir)
-    monkeypatch.setattr(
-        "harrix_swiss_knife.apps.fitness.fitness_lightbox.play_fitness_timer_cue",
-        lambda _cue: None,
-    )
-    monkeypatch.setattr(
-        "harrix_swiss_knife.apps.fitness.fitness_lightbox.stop_fitness_timer_alert",
-        lambda: None,
-    )
-    dialog = FitnessExerciseLightboxDialog(
-        ["Push-ups"],
-        avif_manager=manager,
-        details_loader=_details,
-        confirm_handler=lambda _payload: True,
-        countdown_seconds=0,
-    )
-    combo = dialog._sidebar._type_combo
-    assert not combo.isHidden()
-    assert combo._two_line_mode
-    assert combo.itemText(0) == "Wide"
-    assert combo.itemData(0, NAME_LOCAL_ROLE) == "Широкий"
-    assert combo.itemData(1, NAME_LOCAL_ROLE) == "Узкий"
-    assert combo.currentText() == "Wide"
-    assert dialog._sidebar.selected_type() == "Wide"
-    dialog.close()
-
-
-def test_fitness_lightbox_pause_and_continue_cues(
-    tmp_path: Path,
-    qapp: QApplication,  # noqa: ARG001
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    img_dir = tmp_path / "fitness_img"
-    img_dir.mkdir()
-    _write_test_avif(img_dir / "Plank.avif")
-    manager = AvifManager(img_dir)
-    cues: list[str] = []
-    monkeypatch.setattr(
-        "harrix_swiss_knife.apps.fitness.fitness_lightbox.play_fitness_timer_cue",
-        cues.append,
-    )
-    monkeypatch.setattr(
-        "harrix_swiss_knife.apps.fitness.fitness_lightbox.stop_fitness_timer_alert",
-        lambda: None,
-    )
-    dialog = FitnessExerciseLightboxDialog(
-        ["Plank"],
-        avif_manager=manager,
-        details_loader=_plank_details,
-        confirm_handler=lambda _payload: True,
-        countdown_seconds=0,
-        workout_duration_min=10,
-        workout_items=[_item(item_id=1, name="Plank", sort_order=0, target="30")],
-    )
-    dialog._sidebar._on_start()
-    assert cues == ["go"]
-    dialog._sidebar._on_pause()
-    assert cues == ["go", "pause"]
-    dialog._sidebar._on_start()
-    assert cues == ["go", "pause", "continue"]
-    dialog.close()
-
-
-def test_fitness_lightbox_start_after_stop_replays_countdown_cues(
-    tmp_path: Path,
-    qapp: QApplication,  # noqa: ARG001
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    img_dir = tmp_path / "fitness_img"
-    img_dir.mkdir()
-    _write_test_avif(img_dir / "Push-ups.avif")
-    manager = AvifManager(img_dir)
-    cues: list[str] = []
-    monkeypatch.setattr(
-        "harrix_swiss_knife.apps.fitness.fitness_lightbox.play_fitness_timer_cue",
-        cues.append,
-    )
-    monkeypatch.setattr(
-        "harrix_swiss_knife.apps.fitness.fitness_lightbox.stop_fitness_timer_alert",
-        lambda: None,
-    )
-    dialog = FitnessExerciseLightboxDialog(
-        ["Push-ups"],
-        avif_manager=manager,
-        details_loader=_details,
-        confirm_handler=lambda _payload: True,
-        countdown_seconds=3,
-        workout_duration_min=1,
-        workout_items=[_item(item_id=1, name="Push-ups", sort_order=0)],
-    )
-    dialog._sidebar._on_start()
-    assert cues == ["ready", "3"]
-    dialog._sidebar._apply_snapshot(dialog._sidebar._stopwatch.advance(1000))
-    assert cues == ["ready", "3", "2"]
-    dialog._sidebar._on_stop()
-    assert "time_over" in cues
-    cues.clear()
-    dialog._sidebar._on_start()
-    assert cues[:2] == ["ready", "3"]
-    dialog._sidebar._apply_snapshot(dialog._sidebar._stopwatch.advance(1000))
-    assert cues == ["ready", "3", "2"]
-    dialog._sidebar._apply_snapshot(dialog._sidebar._stopwatch.advance(1000))
-    assert cues == ["ready", "3", "2", "1"]
-    dialog.close()
-
-
-def test_fitness_lightbox_space_toggles_timer_and_button_states(
-    tmp_path: Path,
-    qapp: QApplication,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    img_dir = tmp_path / "fitness_img"
-    img_dir.mkdir()
-    _write_test_avif(img_dir / "Plank.avif")
-    manager = AvifManager(img_dir)
-    monkeypatch.setattr(
-        "harrix_swiss_knife.apps.fitness.fitness_lightbox.play_fitness_timer_cue",
-        lambda _cue: None,
-    )
-    monkeypatch.setattr(
-        "harrix_swiss_knife.apps.fitness.fitness_lightbox.stop_fitness_timer_alert",
-        lambda: None,
-    )
-    dialog = FitnessExerciseLightboxDialog(
-        ["Plank"],
-        avif_manager=manager,
-        details_loader=_plank_details,
-        confirm_handler=lambda _payload: True,
-        countdown_seconds=0,
-    )
-    start = dialog.findChild(QPushButton, "fitnessLightboxStartButton")
-    pause = dialog.findChild(QPushButton, "fitnessLightboxPauseButton")
-    stop = dialog.findChild(QPushButton, "fitnessLightboxStopButton")
-    assert start is not None
-    assert pause is not None
-    assert stop is not None
-    assert start.isEnabled()
-    assert not pause.isEnabled()
-    assert not stop.isEnabled()
-    assert "#16A34A" in start.styleSheet()
-    assert "#DC2626" in stop.styleSheet()
-    assert stop.property("_harrix_lucide_name") == "square"
-
-    dialog.show()
-    qapp.processEvents()
-    QTest.keyClick(dialog, Qt.Key.Key_Space)
-    qapp.processEvents()
-    assert dialog._sidebar._stopwatch.snapshot().is_running
-    assert not start.isEnabled()
-    assert pause.isEnabled()
-    assert stop.isEnabled()
-
-    QTest.keyClick(dialog, Qt.Key.Key_Space)
-    qapp.processEvents()
-    assert not dialog._sidebar._stopwatch.snapshot().is_running
-    assert start.isEnabled()
-    assert not pause.isEnabled()
-    assert stop.isEnabled()
-    dialog.close()
-
-
-def test_fitness_lightbox_restores_timer_state_without_prepare(
-    tmp_path: Path,
-    qapp: QApplication,  # noqa: ARG001
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    img_dir = tmp_path / "fitness_img"
-    img_dir.mkdir()
-    _write_test_avif(img_dir / "Push-ups.avif")
-    manager = AvifManager(img_dir)
-    monkeypatch.setattr(
-        "harrix_swiss_knife.apps.fitness.fitness_lightbox.play_fitness_timer_cue",
-        lambda _cue: None,
-    )
-    monkeypatch.setattr(
-        "harrix_swiss_knife.apps.fitness.fitness_lightbox.stop_fitness_timer_alert",
-        lambda: None,
-    )
-    state = ExerciseStopwatchState(phase=StopwatchPhase.RUNNING, elapsed_ms=4500, running=True)
-    dialog = FitnessExerciseLightboxDialog(
-        ["Push-ups"],
-        avif_manager=manager,
-        details_loader=_details,
-        confirm_handler=lambda _payload: True,
-        countdown_seconds=5,
-        workout_duration_min=1,
-        workout_items=[_item(item_id=1, name="Push-ups", sort_order=0)],
-        auto_start_prepare=True,
-        initial_timer_state=state,
-    )
-    assert dialog._sidebar._prepare_label.isHidden()
-    assert _overlay(dialog).isHidden()
-    assert dialog._sidebar._time_label.text() == "0:04"
-    assert dialog._sidebar._tick.isActive()
-    dialog.close()
-    item_id, captured = dialog.captured_timer_state()
-    assert item_id == 1
-    assert captured is not None
-    assert captured.phase is StopwatchPhase.RUNNING
-    assert captured.elapsed_ms >= 4500
 
 
 def test_fitness_lightbox_has_splitter_sidebar_and_browse_confirm(
@@ -768,6 +214,375 @@ def test_fitness_lightbox_has_splitter_sidebar_and_browse_confirm(
     owner.close()
 
 
+def test_fitness_lightbox_pause_and_continue_cues(
+    tmp_path: Path,
+    qapp: QApplication,  # noqa: ARG001
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    img_dir = tmp_path / "fitness_img"
+    img_dir.mkdir()
+    _write_test_avif(img_dir / "Plank.avif")
+    manager = AvifManager(img_dir)
+    cues: list[str] = []
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.fitness.fitness_lightbox.play_fitness_timer_cue",
+        cues.append,
+    )
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.fitness.fitness_lightbox.stop_fitness_timer_alert",
+        lambda: None,
+    )
+    dialog = FitnessExerciseLightboxDialog(
+        ["Plank"],
+        avif_manager=manager,
+        details_loader=_plank_details,
+        confirm_handler=lambda _payload: True,
+        countdown_seconds=0,
+        workout_duration_min=10,
+        workout_items=[_item(item_id=1, name="Plank", sort_order=0, target="30")],
+    )
+    dialog._sidebar._on_start()
+    assert cues == ["go"]
+    dialog._sidebar._on_pause()
+    assert cues == ["go", "pause"]
+    dialog._sidebar._on_start()
+    assert cues == ["go", "pause", "continue"]
+    dialog.close()
+
+
+def test_fitness_lightbox_rep_value_keeps_single_spin(
+    tmp_path: Path,
+    qapp: QApplication,  # noqa: ARG001
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    img_dir = tmp_path / "fitness_img"
+    img_dir.mkdir()
+    _write_test_avif(img_dir / "Push-ups.avif")
+    manager = AvifManager(img_dir)
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.fitness.fitness_lightbox.play_fitness_timer_cue",
+        lambda _cue: None,
+    )
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.fitness.fitness_lightbox.stop_fitness_timer_alert",
+        lambda: None,
+    )
+    dialog = FitnessExerciseLightboxDialog(
+        ["Push-ups"],
+        avif_manager=manager,
+        details_loader=_details,
+        confirm_handler=lambda _payload: True,
+        countdown_seconds=0,
+    )
+    sidebar = dialog._sidebar
+    assert not sidebar._value_spin.isHidden()
+    assert sidebar._value_duration_wrap.isHidden()
+    assert sidebar._value_spin.value() == 10
+    sidebar._on_start()
+    sidebar._apply_snapshot(sidebar._stopwatch.advance(3000))
+    assert sidebar._value_spin.value() == 10
+    dialog.close()
+
+
+def test_fitness_lightbox_restores_timer_state_without_prepare(
+    tmp_path: Path,
+    qapp: QApplication,  # noqa: ARG001
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    img_dir = tmp_path / "fitness_img"
+    img_dir.mkdir()
+    _write_test_avif(img_dir / "Push-ups.avif")
+    manager = AvifManager(img_dir)
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.fitness.fitness_lightbox.play_fitness_timer_cue",
+        lambda _cue: None,
+    )
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.fitness.fitness_lightbox.stop_fitness_timer_alert",
+        lambda: None,
+    )
+    state = ExerciseStopwatchState(phase=StopwatchPhase.RUNNING, elapsed_ms=4500, running=True)
+    dialog = FitnessExerciseLightboxDialog(
+        ["Push-ups"],
+        avif_manager=manager,
+        details_loader=_details,
+        confirm_handler=lambda _payload: True,
+        countdown_seconds=5,
+        workout_duration_min=1,
+        workout_items=[_item(item_id=1, name="Push-ups", sort_order=0)],
+        auto_start_prepare=True,
+        initial_timer_state=state,
+    )
+    assert dialog._sidebar._prepare_label.isHidden()
+    assert _overlay(dialog).isHidden()
+    assert dialog._sidebar._time_label.text() == "0:04"
+    assert dialog._sidebar._tick.isActive()
+    dialog.close()
+    item_id, captured = dialog.captured_timer_state()
+    assert item_id == 1
+    assert captured is not None
+    assert captured.phase is StopwatchPhase.RUNNING
+    assert captured.elapsed_ms >= 4500
+
+
+def test_fitness_lightbox_seconds_value_uses_minutes_seconds_and_syncs(
+    tmp_path: Path,
+    qapp: QApplication,  # noqa: ARG001
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    img_dir = tmp_path / "fitness_img"
+    img_dir.mkdir()
+    _write_test_avif(img_dir / "Plank.avif")
+    manager = AvifManager(img_dir)
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.fitness.fitness_lightbox.play_fitness_timer_cue",
+        lambda _cue: None,
+    )
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.fitness.fitness_lightbox.stop_fitness_timer_alert",
+        lambda: None,
+    )
+    dialog = FitnessExerciseLightboxDialog(
+        ["Plank"],
+        avif_manager=manager,
+        details_loader=_long_plank_details,
+        confirm_handler=lambda _payload: True,
+        countdown_seconds=0,
+        workout_duration_min=10,
+        workout_items=[_item(item_id=1, name="Plank", sort_order=0, target="90")],
+    )
+    sidebar = dialog._sidebar
+    assert sidebar._value_spin.isHidden()
+    assert not sidebar._value_duration_wrap.isHidden()
+    assert sidebar._unit_label.isHidden()
+    assert sidebar._value_minutes_spin.value() == 1
+    assert sidebar._value_seconds_spin.value() == 30
+    assert sidebar.value() == 90
+
+    sidebar._on_start()
+    assert sidebar.value() == 0
+    sidebar._apply_snapshot(sidebar._stopwatch.advance(65_000))
+    assert sidebar._time_label.text() == "1:05"
+    assert sidebar._value_minutes_spin.value() == 1
+    assert sidebar._value_seconds_spin.value() == 5
+    assert sidebar.value() == 65
+    dialog.close()
+
+
+def test_fitness_lightbox_space_toggles_timer_and_button_states(
+    tmp_path: Path,
+    qapp: QApplication,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    img_dir = tmp_path / "fitness_img"
+    img_dir.mkdir()
+    _write_test_avif(img_dir / "Plank.avif")
+    manager = AvifManager(img_dir)
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.fitness.fitness_lightbox.play_fitness_timer_cue",
+        lambda _cue: None,
+    )
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.fitness.fitness_lightbox.stop_fitness_timer_alert",
+        lambda: None,
+    )
+    dialog = FitnessExerciseLightboxDialog(
+        ["Plank"],
+        avif_manager=manager,
+        details_loader=_plank_details,
+        confirm_handler=lambda _payload: True,
+        countdown_seconds=0,
+    )
+    start = dialog.findChild(QPushButton, "fitnessLightboxStartButton")
+    pause = dialog.findChild(QPushButton, "fitnessLightboxPauseButton")
+    stop = dialog.findChild(QPushButton, "fitnessLightboxStopButton")
+    assert start is not None
+    assert pause is not None
+    assert stop is not None
+    assert start.isEnabled()
+    assert not pause.isEnabled()
+    assert not stop.isEnabled()
+    assert "#16A34A" in start.styleSheet()
+    assert "#DC2626" in stop.styleSheet()
+    assert stop.property("_harrix_lucide_name") == "square-stop"
+
+    dialog.show()
+    qapp.processEvents()
+    QTest.keyClick(dialog, Qt.Key.Key_Space)
+    qapp.processEvents()
+    assert dialog._sidebar._stopwatch.snapshot().is_running
+    assert not start.isEnabled()
+    assert pause.isEnabled()
+    assert stop.isEnabled()
+
+    QTest.keyClick(dialog, Qt.Key.Key_Space)
+    qapp.processEvents()
+    assert not dialog._sidebar._stopwatch.snapshot().is_running
+    assert start.isEnabled()
+    assert not pause.isEnabled()
+    assert stop.isEnabled()
+    dialog.close()
+
+
+def test_fitness_lightbox_start_after_stop_replays_countdown_cues(
+    tmp_path: Path,
+    qapp: QApplication,  # noqa: ARG001
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    img_dir = tmp_path / "fitness_img"
+    img_dir.mkdir()
+    _write_test_avif(img_dir / "Push-ups.avif")
+    manager = AvifManager(img_dir)
+    cues: list[str] = []
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.fitness.fitness_lightbox.play_fitness_timer_cue",
+        cues.append,
+    )
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.fitness.fitness_lightbox.stop_fitness_timer_alert",
+        lambda: None,
+    )
+    dialog = FitnessExerciseLightboxDialog(
+        ["Push-ups"],
+        avif_manager=manager,
+        details_loader=_details,
+        confirm_handler=lambda _payload: True,
+        countdown_seconds=3,
+        workout_duration_min=1,
+        workout_items=[_item(item_id=1, name="Push-ups", sort_order=0)],
+    )
+    dialog._sidebar._on_start()
+    assert cues == ["ready", "3"]
+    dialog._sidebar._apply_snapshot(dialog._sidebar._stopwatch.advance(1000))
+    assert cues == ["ready", "3", "2"]
+    dialog._sidebar._on_stop()
+    assert "time_over" in cues
+    cues.clear()
+    dialog._sidebar._on_start()
+    assert cues[:2] == ["ready", "3"]
+    dialog._sidebar._apply_snapshot(dialog._sidebar._stopwatch.advance(1000))
+    assert cues == ["ready", "3", "2"]
+    dialog._sidebar._apply_snapshot(dialog._sidebar._stopwatch.advance(1000))
+    assert cues == ["ready", "3", "2", "1"]
+    dialog.close()
+
+
+def test_fitness_lightbox_stop_button_shows_finish_overlay(
+    tmp_path: Path,
+    qapp: QApplication,  # noqa: ARG001
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    img_dir = tmp_path / "fitness_img"
+    img_dir.mkdir()
+    _write_test_avif(img_dir / "Plank.avif")
+    manager = AvifManager(img_dir)
+    cues: list[str] = []
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.fitness.fitness_lightbox.play_fitness_timer_cue",
+        cues.append,
+    )
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.fitness.fitness_lightbox.stop_fitness_timer_alert",
+        lambda: None,
+    )
+    dialog = FitnessExerciseLightboxDialog(
+        ["Plank"],
+        avif_manager=manager,
+        details_loader=_plank_details,
+        confirm_handler=lambda _payload: True,
+        countdown_seconds=0,
+        workout_duration_min=10,
+        workout_items=[_item(item_id=1, name="Plank", sort_order=0, target="30")],
+    )
+    dialog._sidebar._on_start()
+    assert _overlay(dialog).isHidden()
+    dialog._sidebar._on_stop()
+    overlay = _overlay(dialog)
+    assert not overlay.isHidden()
+    assert overlay._title.text() == "Finish"
+    assert dialog._sidebar._prepare_label.isHidden()
+    assert dialog._sidebar._stopwatch.snapshot().phase is StopwatchPhase.FINISHED
+    assert cues == ["go", "time_over"]
+    dialog.close()
+
+
+def test_fitness_lightbox_stops_on_timed_exercise_target(
+    tmp_path: Path,
+    qapp: QApplication,  # noqa: ARG001
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    img_dir = tmp_path / "fitness_img"
+    img_dir.mkdir()
+    _write_test_avif(img_dir / "Plank.avif")
+    manager = AvifManager(img_dir)
+    cues: list[str] = []
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.fitness.fitness_lightbox.play_fitness_timer_cue",
+        cues.append,
+    )
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.fitness.fitness_lightbox.stop_fitness_timer_alert",
+        lambda: None,
+    )
+    dialog = FitnessExerciseLightboxDialog(
+        ["Plank"],
+        avif_manager=manager,
+        details_loader=_plank_details,
+        confirm_handler=lambda _payload: True,
+        countdown_seconds=0,
+        workout_duration_min=10,
+        workout_items=[_item(item_id=1, name="Plank", sort_order=0, target="5")],
+    )
+    assert dialog._sidebar._limit_seconds == 5
+    assert dialog._sidebar._limit_label.text() == "Target 0:05"
+    dialog._sidebar._on_start()
+    dialog._sidebar._apply_snapshot(dialog._sidebar._stopwatch.advance(5000))
+    assert cues == ["go", "time_over"]
+    assert dialog._sidebar._prepare_label.isHidden()
+    overlay = _overlay(dialog)
+    assert not overlay.isHidden()
+    assert overlay._title.text() == "Finish"
+    assert dialog._sidebar._time_label.text() == "0:05"
+    assert not dialog._sidebar._stopwatch.snapshot().is_running
+    assert dialog._sidebar._stopwatch.snapshot().phase is StopwatchPhase.FINISHED
+    dialog.close()
+
+
+def test_fitness_lightbox_type_combo_shows_local_names(
+    tmp_path: Path,
+    qapp: QApplication,  # noqa: ARG001
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    img_dir = tmp_path / "fitness_img"
+    img_dir.mkdir()
+    _write_test_avif(img_dir / "Push-ups.avif")
+    manager = AvifManager(img_dir)
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.fitness.fitness_lightbox.play_fitness_timer_cue",
+        lambda _cue: None,
+    )
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.fitness.fitness_lightbox.stop_fitness_timer_alert",
+        lambda: None,
+    )
+    dialog = FitnessExerciseLightboxDialog(
+        ["Push-ups"],
+        avif_manager=manager,
+        details_loader=_details,
+        confirm_handler=lambda _payload: True,
+        countdown_seconds=0,
+    )
+    combo = dialog._sidebar._type_combo
+    assert not combo.isHidden()
+    assert combo._two_line_mode
+    assert combo.itemText(0) == "Wide"
+    assert combo.itemData(0, NAME_LOCAL_ROLE) == "Широкий"  # ignore: HP001
+    assert combo.itemData(1, NAME_LOCAL_ROLE) == "Узкий"  # ignore: HP001
+    assert combo.currentText() == "Wide"
+    assert dialog._sidebar.selected_type() == "Wide"
+    dialog.close()
+
+
 def test_fitness_lightbox_workout_arrows_skip_confirm_and_confirm_advances(
     tmp_path: Path,
     qapp: QApplication,
@@ -817,40 +632,225 @@ def test_fitness_lightbox_workout_arrows_skip_confirm_and_confirm_advances(
     dialog.close()
 
 
-def test_fitness_lightbox_stop_button_shows_finish_overlay(
-    tmp_path: Path,
-    qapp: QApplication,  # noqa: ARG001
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    img_dir = tmp_path / "fitness_img"
-    img_dir.mkdir()
-    _write_test_avif(img_dir / "Plank.avif")
-    manager = AvifManager(img_dir)
-    cues: list[str] = []
-    monkeypatch.setattr(
-        "harrix_swiss_knife.apps.fitness.fitness_lightbox.play_fitness_timer_cue",
-        cues.append,
+def test_fitness_timer_cue_sound_names() -> None:
+    assert fitness_timer_cue_sound_name("ready") == "fitness_ready.wav"
+    assert fitness_timer_cue_sound_name("go") == "fitness_go.wav"
+    assert fitness_timer_cue_sound_name("time_over") == "fitness_time_over.wav"
+    assert fitness_timer_cue_sound_name("paste") == "fitness_paste.wav"
+    assert fitness_timer_cue_sound_name("pause") == "fitness_pause.wav"
+    assert fitness_timer_cue_sound_name("continue") == "fitness_continue.wav"
+    assert fitness_timer_cue_sound_name("success") == "fitness_success.wav"
+    assert fitness_timer_cue_sound_name("applause") == "fitness_applause.wav"
+    assert fitness_timer_cue_sound_name("congratulations") == "fitness_congratulations.wav"
+
+
+def test_get_apps_fitness_lightbox_countdown_seconds_defaults_to_five() -> None:
+    assert get_apps_fitness_lightbox_countdown_seconds({}) == DEFAULT_FITNESS_LIGHTBOX_COUNTDOWN_SECONDS
+    assert get_apps_fitness_lightbox_countdown_seconds({"apps": {}}) == 5
+    assert get_apps_fitness_lightbox_countdown_seconds({"apps": {"fitness_lightbox_countdown_seconds": 8}}) == 8
+    assert get_apps_fitness_lightbox_countdown_seconds({"apps": {"fitness_lightbox_countdown_seconds": 0}}) == 0
+    assert get_apps_fitness_lightbox_countdown_seconds({"apps": {"fitness_lightbox_countdown_seconds": -3}}) == 0
+    assert get_apps_fitness_lightbox_countdown_seconds({"apps": {"fitness_lightbox_countdown_seconds": "nope"}}) == 5
+
+
+def test_lightbox_playback_view_prepare_run_and_finish() -> None:
+    countdown = ExerciseStopwatch(countdown_seconds=3, limit_seconds=None).start()
+    assert lightbox_playback_view(countdown).overlay is LightboxOverlayKind.PREPARE
+    assert lightbox_playback_view(countdown).countdown_seconds == 3
+    assert not lightbox_playback_view(countdown).animate
+    running = ExerciseStopwatch(countdown_seconds=0, limit_seconds=None).start()
+    view = lightbox_playback_view(running)
+    assert view.overlay is LightboxOverlayKind.NONE
+    assert view.animate
+    finished = ExerciseStopwatch(countdown_seconds=0, limit_seconds=5, stop_at_limit=True)
+    finished.start()
+    finish_view = lightbox_playback_view(finished.advance(5000))
+    assert finish_view.overlay is LightboxOverlayKind.FINISH
+    assert not finish_view.animate
+    assert not finish_view.freeze_first_frame
+
+
+def test_lightbox_playback_view_running_overtime_keeps_animation() -> None:
+    watch = ExerciseStopwatch(countdown_seconds=0, limit_seconds=10, stop_at_limit=False)
+    watch.start()
+    watch.advance(12_000)
+    snapshot = watch.snapshot()
+    assert snapshot.phase is StopwatchPhase.RUNNING
+    assert snapshot.is_overtime
+    assert snapshot.is_running
+    view = lightbox_playback_view(snapshot)
+    assert view.animate
+    assert view.overlay is LightboxOverlayKind.FINISH
+    watch.pause()
+    paused = lightbox_playback_view(watch.snapshot())
+    assert not paused.animate
+    assert paused.overlay is LightboxOverlayKind.FINISH
+
+
+def test_parse_exercise_value_and_format_mm_ss() -> None:
+    assert parse_exercise_value("12") == 12
+    assert parse_exercise_value("12.9") == 12
+    assert parse_exercise_value("bad") == 0
+    assert format_mm_ss(0) == "0:00"
+    assert format_mm_ss(75) == "1:15"
+
+
+def test_seconds_exercise_unit_and_minute_second_split() -> None:
+    assert is_seconds_exercise_unit("sec.")
+    assert is_seconds_exercise_unit("seconds")
+    assert not is_seconds_exercise_unit("min")
+    assert not is_seconds_exercise_unit("times")
+    assert not is_seconds_exercise_unit("m")
+    assert split_total_seconds(90) == (1, 30)
+    assert split_total_seconds(5) == (0, 5)
+    assert split_total_seconds(0) == (0, 0)
+    assert minutes_seconds_to_total(1, 30) == 90
+    assert minutes_seconds_to_total(0, 45) == 45
+
+
+def test_stopwatch_capture_and_restore_resumes_elapsed() -> None:
+    watch = ExerciseStopwatch(countdown_seconds=0, limit_seconds=10)
+    watch.start()
+    watch.advance(2500)
+    state = watch.capture_state()
+    assert state.phase is StopwatchPhase.RUNNING
+    assert state.elapsed_ms == 2500
+    assert state.running
+    restored = ExerciseStopwatch(countdown_seconds=0, limit_seconds=10)
+    snapshot = restored.apply_state(state)
+    assert snapshot.phase is StopwatchPhase.RUNNING
+    assert snapshot.display_seconds == 2
+    assert snapshot.is_running
+    restored.advance(800)
+    assert restored.snapshot().display_seconds == 3
+
+
+def test_stopwatch_countdown_then_elapsed_then_overtime() -> None:
+    watch = ExerciseStopwatch(countdown_seconds=2, limit_seconds=3)
+    idle = watch.snapshot()
+    assert idle.phase is StopwatchPhase.IDLE
+    assert idle.color is StopwatchColor.IDLE
+    started = watch.start()
+    assert started.phase is StopwatchPhase.COUNTDOWN
+    assert started.color is StopwatchColor.COUNTDOWN
+    assert started.display_seconds == 2
+    after_one = watch.advance(1000)
+    assert after_one.phase is StopwatchPhase.COUNTDOWN
+    assert after_one.display_seconds == 1
+    running = watch.advance(1000)
+    assert running.phase is StopwatchPhase.RUNNING
+    assert running.color is StopwatchColor.RUNNING
+    assert running.display_seconds == 0
+    later = watch.advance(3000)
+    assert later.is_overtime
+    assert later.color is StopwatchColor.OVERTIME
+    assert later.display_seconds == 3
+    assert later.is_running
+    paused = watch.pause()
+    assert not paused.is_running
+    watch.advance(5000)
+    assert watch.snapshot().display_seconds == 3
+    restarted = watch.restart()
+    assert restarted.phase is StopwatchPhase.COUNTDOWN
+    assert not restarted.is_overtime
+
+
+def test_stopwatch_skips_countdown_when_zero() -> None:
+    watch = ExerciseStopwatch(countdown_seconds=0, limit_seconds=None)
+    started = watch.start()
+    assert started.phase is StopwatchPhase.RUNNING
+    assert started.color is StopwatchColor.RUNNING
+    assert not started.is_overtime
+
+
+def test_stopwatch_stop_marks_finished() -> None:
+    watch = ExerciseStopwatch(countdown_seconds=2, limit_seconds=10)
+    watch.start()
+    watch.advance(500)
+    stopped = watch.stop()
+    assert stopped.phase is StopwatchPhase.FINISHED
+    assert stopped.color is StopwatchColor.FINISHED
+    assert not stopped.is_running
+    assert stopped.is_overtime
+    watch.advance(2000)
+    assert watch.snapshot().phase is StopwatchPhase.FINISHED
+    started = watch.start()
+    assert started.phase is StopwatchPhase.COUNTDOWN
+    assert started.is_running
+
+
+def test_stopwatch_stops_at_timed_exercise_limit() -> None:
+    watch = ExerciseStopwatch(countdown_seconds=0, limit_seconds=5, stop_at_limit=True)
+    watch.start()
+    snapshot = watch.advance(5000)
+    assert snapshot.phase is StopwatchPhase.FINISHED
+    assert snapshot.is_overtime
+    assert snapshot.color is StopwatchColor.FINISHED
+    assert snapshot.display_seconds == 5
+    assert not snapshot.is_running
+    watch.advance(2000)
+    assert watch.snapshot().display_seconds == 5
+    assert watch.snapshot().phase is StopwatchPhase.FINISHED
+    assert watch.snapshot().color is StopwatchColor.FINISHED
+    assert not watch.snapshot().is_running
+
+
+def test_target_seconds_for_timed_exercise_units() -> None:
+    assert target_seconds_for_exercise("sec.", 5) == 5
+    assert target_seconds_for_exercise("seconds", 12) == 12
+    assert target_seconds_for_exercise("min", 2) == 120
+    assert target_seconds_for_exercise("times", 5) is None
+    assert target_seconds_for_exercise("sec.", 0) is None
+
+
+def _details(_name: str, _item_id: int | None) -> FitnessLightboxDetails:
+    return FitnessLightboxDetails(
+        unit="times",
+        types=["Wide", "Narrow"],
+        selected_type="Wide",
+        value=10,
+        type_locals={"Wide": "Широкий", "Narrow": "Узкий"},  # ignore: HP001
     )
-    monkeypatch.setattr(
-        "harrix_swiss_knife.apps.fitness.fitness_lightbox.stop_fitness_timer_alert",
-        lambda: None,
+
+
+def _item(
+    *,
+    item_id: int,
+    name: str,
+    sort_order: int,
+    target: str = "12",
+    unit: str = "times",
+) -> WorkoutItemRow:
+    return WorkoutItemRow(
+        id=item_id,
+        workout_id=1,
+        exercise_id=item_id,
+        type_id=3,
+        exercise_name=name,
+        type_name="Wide",
+        target_value=target,
+        sort_order=sort_order,
+        is_done=False,
+        process_id=None,
+        unit=unit,
+        calories_per_unit=1.0,
+        calories_modifier=1.0,
     )
-    dialog = FitnessExerciseLightboxDialog(
-        ["Plank"],
-        avif_manager=manager,
-        details_loader=_plank_details,
-        confirm_handler=lambda _payload: True,
-        countdown_seconds=0,
-        workout_duration_min=10,
-        workout_items=[_item(item_id=1, name="Plank", sort_order=0, target="30")],
-    )
-    dialog._sidebar._on_start()
-    assert _overlay(dialog).isHidden()
-    dialog._sidebar._on_stop()
-    overlay = _overlay(dialog)
-    assert not overlay.isHidden()
-    assert overlay._title.text() == "Finish"
-    assert dialog._sidebar._prepare_label.isHidden()
-    assert dialog._sidebar._stopwatch.snapshot().phase is StopwatchPhase.FINISHED
-    assert cues == ["go", "time_over"]
-    dialog.close()
+
+
+def _long_plank_details(_name: str, _item_id: int | None) -> FitnessLightboxDetails:
+    return FitnessLightboxDetails(unit="sec.", types=[], selected_type="", value=90)
+
+
+def _overlay(dialog: FitnessExerciseLightboxDialog) -> LightboxPhaseOverlay:
+    overlay = dialog._phase_overlay
+    assert overlay is not None
+    return overlay
+
+
+def _plank_details(_name: str, _item_id: int | None) -> FitnessLightboxDetails:
+    return FitnessLightboxDetails(unit="sec.", types=[], selected_type="", value=5)
+
+
+def _write_test_avif(path: Path) -> None:
+    Image.new("RGB", (64, 48), (120, 80, 40)).save(path, format="AVIF")

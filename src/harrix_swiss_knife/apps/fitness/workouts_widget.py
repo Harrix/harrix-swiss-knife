@@ -362,7 +362,7 @@ class WorkoutsWidget(QWidget):
         self.button_stop.setMinimumWidth(110)
         self.button_stop.setFont(standard_bold_font)
         self.button_stop.setStyleSheet(_STOP_BUTTON_STYLE)
-        apply_lucide_button_icon(self.button_stop, "square")
+        apply_lucide_button_icon(self.button_stop, "square-stop")
         self.button_stop.clicked.connect(lambda: self.stop_workout_session(completed=False))
         session_layout.addWidget(self.button_stop)
         session_layout.addStretch(1)

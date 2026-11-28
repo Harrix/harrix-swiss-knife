@@ -354,7 +354,7 @@ Build the Fitness lightbox.
 Args:
 
 - `exercises` (`Sequence[str]`): Exercise names in navigation order.
-- `avif_manager` ([`AvifManager`](../common/avif_manager.g.md#%EF%B8%8F-class-avifmanager)): Loader for static and animated AVIF files.
+- `avif_manager` (`AvifManager`): Loader for static and animated AVIF files.
 - `details_loader` (`DetailsLoader`): Loads types, unit, and default value.
 - `confirm_handler` (`ConfirmHandler`): Persists a completed set.
 - `current_index` (`int`): Initial exercise index. Defaults to `0`.
@@ -900,7 +900,7 @@ class FitnessLightboxSidebar(QFrame):
         )
         self._pause_button = self._build_timer_button("pause", "Pause", "fitnessLightboxPauseButton")
         self._stop_button = self._build_timer_button(
-            "square",
+            "square-stop",
             "Stop",
             "fitnessLightboxStopButton",
             style=_TIMER_BUTTON_STOP_STYLE,

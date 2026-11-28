@@ -697,7 +697,7 @@ class FitnessLightboxSidebar(QFrame):
         )
         self._pause_button = self._build_timer_button("pause", "Pause", "fitnessLightboxPauseButton")
         self._stop_button = self._build_timer_button(
-            "square",
+            "square-stop",
             "Stop",
             "fitnessLightboxStopButton",
             style=_TIMER_BUTTON_STOP_STYLE,

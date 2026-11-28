@@ -115,7 +115,9 @@ def test_toast_action_icons_are_lucide(qapp: QApplication) -> None:  # noqa: ARG
     default_side = action_button_icon_side(DEFAULT_ACTION_BUTTON_SIDE)
     compact_side = action_button_icon_side(COMPACT_ACTION_BUTTON_SIDE)
     toast = ToastProgressNotification("Working…", cancellable=True)
-    assert toast._collapse_button.icon().cacheKey() == create_lucide_icon("minus", default_side, color=white).cacheKey()
+    assert (
+        toast._collapse_button.icon().cacheKey() == create_lucide_icon("minimize", default_side, color=white).cacheKey()
+    )
     assert toast._close_button.icon().cacheKey() == create_lucide_icon("x", default_side, color=white).cacheKey()
     toast.set_pinned(pinned=True)
     assert (
