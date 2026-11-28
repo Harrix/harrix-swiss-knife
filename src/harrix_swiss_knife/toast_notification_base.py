@@ -25,18 +25,18 @@ _COLLAPSE_ICON = "minus"
 _EXPAND_ICON = "square"
 _ACTION_ICON_COLOR = QColor(255, 255, 255)
 
-DEFAULT_ACTION_BUTTON_SIDE = 24
-COMPACT_ACTION_BUTTON_SIDE = 18
+DEFAULT_ACTION_BUTTON_SIDE = 20
+COMPACT_ACTION_BUTTON_SIDE = 14
+# Glyph is slightly smaller than the hit target so corner controls feel lighter.
+ACTION_BUTTON_ICON_INSET = 2
 ACTION_BUTTON_GAP = 4
 ACTION_BUTTON_MARGIN_DEFAULT = 8
 ACTION_BUTTON_MARGIN_COMPACT = 4
-ACTION_BUTTON_TEXT_GAP = 10
+ACTION_BUTTON_TEXT_GAP = 12
 LABEL_PAD_TOP_DEFAULT = 16
 LABEL_PAD_BOTTOM_DEFAULT = 15
-LABEL_PAD_LEFT_DEFAULT = 24
 LABEL_PAD_TOP_COMPACT = 10
 LABEL_PAD_BOTTOM_COMPACT = 8
-LABEL_PAD_LEFT_COMPACT = 14
 CANCEL_HINT_FONT_SIZE = "10pt"
 CANCEL_HINT_FONT_SIZE_COMPACT = "8pt"
 
@@ -334,10 +334,11 @@ class ToastNotificationBase(QDialog):
 
     def _apply_collapse_button_icon(self, *, compact: bool) -> None:
         side = COMPACT_ACTION_BUTTON_SIDE if compact else DEFAULT_ACTION_BUTTON_SIDE
+        icon_side = action_button_icon_side(side)
         name = _EXPAND_ICON if self._is_pinned else _COLLAPSE_ICON
         self._collapse_button.setFixedSize(side, side)
-        self._collapse_button.setIconSize(QSize(side, side))
-        self._collapse_button.setIcon(make_action_icon(side, name))
+        self._collapse_button.setIconSize(QSize(icon_side, icon_side))
+        self._collapse_button.setIcon(make_action_icon(icon_side, name))
         self._collapse_button.setToolTip("Expand" if self._is_pinned else "Collapse")
 
     def _apply_compact_style(self) -> None:
@@ -410,6 +411,11 @@ class _AllowWidgetInputFilter(QObject):
 def action_button_edge_margin(*, compact: bool) -> int:
     """Return the inset of corner action buttons from the toast label edges."""
     return ACTION_BUTTON_MARGIN_COMPACT if compact else ACTION_BUTTON_MARGIN_DEFAULT
+
+
+def action_button_icon_side(button_side: int) -> int:
+    """Return the Lucide glyph size for a toast action button hit target."""
+    return max(button_side - 2 * ACTION_BUTTON_ICON_INSET, 10)
 
 
 def compute_toast_stack_positions(
@@ -545,6 +551,9 @@ def toast_action_buttons_reserved_width(*, compact: bool, extra_buttons: int = 1
 def toast_label_padding(*, compact: bool, bottom: int | None = None) -> str:
     """Return CSS padding that keeps toast text clear of corner action buttons.
 
+    Horizontal padding is mirrored: the left inset matches the right-side space
+    reserved for collapse/close so the toast does not look lopsided.
+
     Args:
 
     - `compact` (`bool`): Pinned compact layout.
@@ -552,19 +561,17 @@ def toast_label_padding(*, compact: bool, bottom: int | None = None) -> str:
 
     Returns:
 
-    - `str`: CSS padding such as `16px 70px 15px 24px`.
+    - `str`: CSS padding such as `16px 64px 15px 64px`.
 
     """
     if compact:
         top = LABEL_PAD_TOP_COMPACT
-        left = LABEL_PAD_LEFT_COMPACT
         bottom_px = LABEL_PAD_BOTTOM_COMPACT if bottom is None else bottom
     else:
         top = LABEL_PAD_TOP_DEFAULT
-        left = LABEL_PAD_LEFT_DEFAULT
         bottom_px = LABEL_PAD_BOTTOM_DEFAULT if bottom is None else bottom
-    right = toast_action_buttons_reserved_width(compact=compact)
-    return f"{top}px {right}px {bottom_px}px {left}px"
+    horizontal = toast_action_buttons_reserved_width(compact=compact)
+    return f"{top}px {horizontal}px {bottom_px}px {horizontal}px"
 
 
 def _toast_home_point(area: QRect, size: QSize, *, pinned: bool, margin: int) -> QPoint:
