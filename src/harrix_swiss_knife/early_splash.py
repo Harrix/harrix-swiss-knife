@@ -39,6 +39,9 @@ _GAP_DIP = 20
 _TOAST_TEXT_GAP_DIP = 12
 _BUTTON_DIP = 28
 _TOAST_BUTTON_DIP = 20
+# Keep the expand control in the top-right corner, above the title/status block.
+_TOAST_BUTTON_MARGIN_DIP = 6
+_FULL_BUTTON_MARGIN_DIP = 12
 _TITLE_PT = 20
 _BODY_PT = 16
 _TOAST_TITLE_PT = 14
@@ -250,12 +253,15 @@ def _apply_window_geometry(user32: ctypes.WinDLL, hwnd: int) -> bool:
 
 def _button_rect(hwnd: int) -> wintypes.RECT:
     dpi = _dpi_for_hwnd(hwnd)
-    size = _dip(_TOAST_BUTTON_DIP if _runtime.minimized else _BUTTON_DIP, dpi)
-    # Match the content-side inset so the toast chrome stays symmetric.
-    pad = _dip(_TOAST_PAD_DIP if _runtime.minimized else 12, dpi)
+    if _runtime.minimized:
+        size = _dip(_TOAST_BUTTON_DIP, dpi)
+        margin = _dip(_TOAST_BUTTON_MARGIN_DIP, dpi)
+    else:
+        size = _dip(_BUTTON_DIP, dpi)
+        margin = _dip(_FULL_BUTTON_MARGIN_DIP, dpi)
     client = _client_rect(hwnd)
     width = int(client.right - client.left)
-    return _rect(width - pad - size, pad, size, size)
+    return _rect(width - margin - size, margin, size, size)
 
 
 def _centered_rect(hwnd: int) -> tuple[int, int, int, int]:
