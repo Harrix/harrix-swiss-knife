@@ -5,11 +5,13 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QSize, Qt
+from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QFrame, QGraphicsOpacityEffect, QGridLayout, QLabel, QPushButton
 
 from harrix_swiss_knife.apps.common.avif_manager import load_image_pixmap
 from harrix_swiss_knife.apps.common.widgets.image_lightbox_dialog import show_image_lightbox
+from harrix_swiss_knife.qt_lucide_icon import apply_lucide_button_icon
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -19,14 +21,18 @@ if TYPE_CHECKING:
 
 _THUMB_SIZE = 96
 _REMOVE_BTN_SIZE = 24
+_REMOVE_ICON_SIZE = 14
+_ICON_ON_FILL = QColor(255, 255, 255)
+_REMOVE_ICON = "x"
+_UNDO_ICON = "rotate-ccw"
 _REMOVE_BUTTON_STYLE = (
     "QPushButton { background: #e53935; color: white; border: none; border-radius: 12px; "
-    "font-size: 16px; font-weight: bold; padding: 0; min-width: 0; min-height: 0; }"
+    "padding: 0; min-width: 0; min-height: 0; }"
     "QPushButton:hover { background: #c62828; }"
 )
 _UNDO_BUTTON_STYLE = (
     "QPushButton { background: #43a047; color: white; border: none; border-radius: 12px; "
-    "font-size: 14px; font-weight: bold; padding: 0; min-width: 0; min-height: 0; }"
+    "padding: 0; min-width: 0; min-height: 0; }"
     "QPushButton:hover { background: #2e7d32; }"
 )
 
@@ -77,11 +83,18 @@ class ImageThumbnailItem(QFrame):
             thumb_label.setText(Path(image_path).name)
         grid.addWidget(thumb_label, 0, 0)
 
-        remove_btn = QPushButton("×")  # noqa: RUF001
+        remove_btn = QPushButton()
         remove_btn.setFixedSize(_REMOVE_BTN_SIZE, _REMOVE_BTN_SIZE)
+        remove_btn.setIconSize(QSize(_REMOVE_ICON_SIZE, _REMOVE_ICON_SIZE))
         remove_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         remove_btn.setStyleSheet(_REMOVE_BUTTON_STYLE)
         remove_btn.setToolTip("Remove image" if not soft_remove else "Mark for removal")
+        apply_lucide_button_icon(
+            remove_btn,
+            _REMOVE_ICON,
+            icon_size=_REMOVE_ICON_SIZE,
+            color=_ICON_ON_FILL,
+        )
         remove_btn.clicked.connect(self._handle_remove_clicked)
         grid.addWidget(remove_btn, 0, 0, Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight)
         self._remove_button = remove_btn
@@ -107,14 +120,24 @@ class ImageThumbnailItem(QFrame):
             effect = QGraphicsOpacityEffect(self)
             effect.setOpacity(0.35)
             self.setGraphicsEffect(effect)
-            self._remove_button.setText("↺")
             self._remove_button.setStyleSheet(_UNDO_BUTTON_STYLE)
+            apply_lucide_button_icon(
+                self._remove_button,
+                _UNDO_ICON,
+                icon_size=_REMOVE_ICON_SIZE,
+                color=_ICON_ON_FILL,
+            )
             self._remove_button.setToolTip("Undo removal")
             self.setToolTip("Marked for removal — undo or save to delete from the note")
         else:
             self.setGraphicsEffect(None)  # ty: ignore[invalid-argument-type]
-            self._remove_button.setText("×")  # noqa: RUF001
             self._remove_button.setStyleSheet(_REMOVE_BUTTON_STYLE)
+            apply_lucide_button_icon(
+                self._remove_button,
+                _REMOVE_ICON,
+                icon_size=_REMOVE_ICON_SIZE,
+                color=_ICON_ON_FILL,
+            )
             self._remove_button.setToolTip("Mark for removal")
             self.setToolTip("Click to preview")
 

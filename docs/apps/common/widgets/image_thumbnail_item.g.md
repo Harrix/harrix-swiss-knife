@@ -75,11 +75,18 @@ class ImageThumbnailItem(QFrame):
             thumb_label.setText(Path(image_path).name)
         grid.addWidget(thumb_label, 0, 0)
 
-        remove_btn = QPushButton("×")  # noqa: RUF001
+        remove_btn = QPushButton()
         remove_btn.setFixedSize(_REMOVE_BTN_SIZE, _REMOVE_BTN_SIZE)
+        remove_btn.setIconSize(QSize(_REMOVE_ICON_SIZE, _REMOVE_ICON_SIZE))
         remove_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         remove_btn.setStyleSheet(_REMOVE_BUTTON_STYLE)
         remove_btn.setToolTip("Remove image" if not soft_remove else "Mark for removal")
+        apply_lucide_button_icon(
+            remove_btn,
+            _REMOVE_ICON,
+            icon_size=_REMOVE_ICON_SIZE,
+            color=_ICON_ON_FILL,
+        )
         remove_btn.clicked.connect(self._handle_remove_clicked)
         grid.addWidget(remove_btn, 0, 0, Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight)
         self._remove_button = remove_btn
@@ -105,14 +112,24 @@ class ImageThumbnailItem(QFrame):
             effect = QGraphicsOpacityEffect(self)
             effect.setOpacity(0.35)
             self.setGraphicsEffect(effect)
-            self._remove_button.setText("↺")
             self._remove_button.setStyleSheet(_UNDO_BUTTON_STYLE)
+            apply_lucide_button_icon(
+                self._remove_button,
+                _UNDO_ICON,
+                icon_size=_REMOVE_ICON_SIZE,
+                color=_ICON_ON_FILL,
+            )
             self._remove_button.setToolTip("Undo removal")
             self.setToolTip("Marked for removal — undo or save to delete from the note")
         else:
             self.setGraphicsEffect(None)  # ty: ignore[invalid-argument-type]
-            self._remove_button.setText("×")  # noqa: RUF001
             self._remove_button.setStyleSheet(_REMOVE_BUTTON_STYLE)
+            apply_lucide_button_icon(
+                self._remove_button,
+                _REMOVE_ICON,
+                icon_size=_REMOVE_ICON_SIZE,
+                color=_ICON_ON_FILL,
+            )
             self._remove_button.setToolTip("Mark for removal")
             self.setToolTip("Click to preview")
 
@@ -181,11 +198,18 @@ def __init__(
             thumb_label.setText(Path(image_path).name)
         grid.addWidget(thumb_label, 0, 0)
 
-        remove_btn = QPushButton("×")  # noqa: RUF001
+        remove_btn = QPushButton()
         remove_btn.setFixedSize(_REMOVE_BTN_SIZE, _REMOVE_BTN_SIZE)
+        remove_btn.setIconSize(QSize(_REMOVE_ICON_SIZE, _REMOVE_ICON_SIZE))
         remove_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         remove_btn.setStyleSheet(_REMOVE_BUTTON_STYLE)
         remove_btn.setToolTip("Remove image" if not soft_remove else "Mark for removal")
+        apply_lucide_button_icon(
+            remove_btn,
+            _REMOVE_ICON,
+            icon_size=_REMOVE_ICON_SIZE,
+            color=_ICON_ON_FILL,
+        )
         remove_btn.clicked.connect(self._handle_remove_clicked)
         grid.addWidget(remove_btn, 0, 0, Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight)
         self._remove_button = remove_btn
@@ -239,14 +263,24 @@ def set_marked_for_removal(self, *, marked: bool) -> None:
             effect = QGraphicsOpacityEffect(self)
             effect.setOpacity(0.35)
             self.setGraphicsEffect(effect)
-            self._remove_button.setText("↺")
             self._remove_button.setStyleSheet(_UNDO_BUTTON_STYLE)
+            apply_lucide_button_icon(
+                self._remove_button,
+                _UNDO_ICON,
+                icon_size=_REMOVE_ICON_SIZE,
+                color=_ICON_ON_FILL,
+            )
             self._remove_button.setToolTip("Undo removal")
             self.setToolTip("Marked for removal — undo or save to delete from the note")
         else:
             self.setGraphicsEffect(None)  # ty: ignore[invalid-argument-type]
-            self._remove_button.setText("×")  # noqa: RUF001
             self._remove_button.setStyleSheet(_REMOVE_BUTTON_STYLE)
+            apply_lucide_button_icon(
+                self._remove_button,
+                _REMOVE_ICON,
+                icon_size=_REMOVE_ICON_SIZE,
+                color=_ICON_ON_FILL,
+            )
             self._remove_button.setToolTip("Mark for removal")
             self.setToolTip("Click to preview")
 ```
