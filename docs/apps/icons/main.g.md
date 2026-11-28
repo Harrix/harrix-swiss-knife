@@ -730,13 +730,14 @@ class MainWindow(QMainWindow, AppWindowMixin):
         toolbar.setContentsMargins(SPACE_S, SPACE_XS, SPACE_S, SPACE_XS)
         toolbar.setSpacing(SPACE_S)
         toolbar.addWidget(QLabel("Folder"), alignment=Qt.AlignmentFlag.AlignVCenter)
-        self.folder_combo = QComboBox()
+        self.folder_combo = FolderLibraryCombo()
         self.folder_combo.setMinimumWidth(220)
         self.folder_combo.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.folder_combo.setToolTip(
             "Open icons library root. This is separate from the Folders filter in the left pane.",
         )
         self.folder_combo.currentIndexChanged.connect(self._on_folder_combo_changed)
+        self.folder_combo.add_folder_requested.connect(self._on_open_folder)
         toolbar.addWidget(self.folder_combo, stretch=1)
 
         toolbar.addWidget(QLabel("Icon size"), alignment=Qt.AlignmentFlag.AlignVCenter)
