@@ -33,6 +33,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QListWidget,
     QListWidgetItem,
+    QMenu,
     QMessageBox,
     QPlainTextEdit,
     QPushButton,
@@ -82,6 +83,8 @@ from harrix_swiss_knife.actions.common.text_result_dialog import (
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.dialogs.text_image_source_dialog import TextImageSourceDialog
 from harrix_swiss_knife.apps.common.qt_main_window import apply_app_window_size_and_position
+from harrix_swiss_knife.apps.common.table_context_menu import add_reveal_in_explorer_action
+from harrix_swiss_knife.apps.common.ui_helpers import reveal_in_file_explorer
 from harrix_swiss_knife.apps.common.widgets.image_picker import ImagePickerMode
 from harrix_swiss_knife.fluent.theme import enable_fluent_theme, is_fluent_themed
 from harrix_swiss_knife.qt_action_card_grid import configure_action_card_grid
@@ -96,8 +99,10 @@ from harrix_swiss_knife.qt_lucide_icon import (
     COPY_BUTTON_ICON,
     DEFAULT_LUCIDE_BUTTON_ICON_SIZE,
     OK_BUTTON_ICON,
+    add_lucide_action,
     apply_lucide_dialog_buttons,
     create_lucide_icon,
+    lucide_svg_path,
     make_ai_lucide_push_button,
     make_lucide_push_button,
     style_accept_button,
@@ -114,6 +119,8 @@ COMMIT_OFFER_COPY_CODE = 11
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Collection
+
+    from PySide6.QtCore import QPoint
 
     from harrix_swiss_knife.actions.common.action_usage_stats_browser import ActionUsageStatsRow
     from harrix_swiss_knife.actions.common.image_table import ExtractedTable
@@ -2216,7 +2223,11 @@ class ActionDialogService:
             lw.setIconSize(QSize(icon_size, icon_size))
             lw.setGridSize(QSize(icon_size + 56, icon_size + 40))
             lw.setWordWrap(True)
-            lw.setSelectionMode(QListWidget.SelectionMode.NoSelection)
+            lw.setSelectionMode(QListWidget.SelectionMode.SingleSelection)
+            lw.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+            lw.customContextMenuRequested.connect(
+                lambda pos, list_widget=lw: self._on_lucide_thumbnail_context_menu(list_widget, pos)
+            )
             lw.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
             style_transparent_icon_grid(lw)
             for name in names:
@@ -2237,6 +2248,33 @@ class ActionDialogService:
         scroll.setWidget(body)
         panel_layout.addWidget(scroll, stretch=1)
         return panel
+
+    def _on_lucide_thumbnail_context_menu(self, list_widget: QListWidget, pos: QPoint) -> None:
+        """Offer Reveal in Explorer and Copy icon name for a Lucide thumbnail."""
+        item = list_widget.itemAt(pos)
+        if item is None:
+            return
+        list_widget.setCurrentItem(item)
+        name = item.text().strip()
+        if not name:
+            return
+        menu = QMenu(list_widget)
+        reveal_action = add_reveal_in_explorer_action(menu)
+        copy_action = add_lucide_action(menu, "Copy icon name", COPY_BUTTON_ICON)
+        chosen = menu.exec(list_widget.mapToGlobal(pos))
+        if chosen is reveal_action:
+            path = lucide_svg_path(name)
+            if path is None:
+                message_box.warning(list_widget, "Reveal in File Explorer", f"SVG not found for `{name}`.")
+                return
+            try:
+                reveal_in_file_explorer(path)
+            except OSError as exc:
+                message_box.warning(list_widget, "Reveal in File Explorer", str(exc))
+            return
+        if chosen is copy_action:
+            QGuiApplication.clipboard().setText(name)
+            self._show_toast(f"Copied `{name}`")
 
     def _resolve_folder_choice(
         self,

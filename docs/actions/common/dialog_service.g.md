@@ -2160,7 +2160,11 @@ class ActionDialogService:
             lw.setIconSize(QSize(icon_size, icon_size))
             lw.setGridSize(QSize(icon_size + 56, icon_size + 40))
             lw.setWordWrap(True)
-            lw.setSelectionMode(QListWidget.SelectionMode.NoSelection)
+            lw.setSelectionMode(QListWidget.SelectionMode.SingleSelection)
+            lw.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+            lw.customContextMenuRequested.connect(
+                lambda pos, list_widget=lw: self._on_lucide_thumbnail_context_menu(list_widget, pos)
+            )
             lw.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
             style_transparent_icon_grid(lw)
             for name in names:
@@ -2181,6 +2185,33 @@ class ActionDialogService:
         scroll.setWidget(body)
         panel_layout.addWidget(scroll, stretch=1)
         return panel
+
+    def _on_lucide_thumbnail_context_menu(self, list_widget: QListWidget, pos: QPoint) -> None:
+        """Offer Reveal in Explorer and Copy icon name for a Lucide thumbnail."""
+        item = list_widget.itemAt(pos)
+        if item is None:
+            return
+        list_widget.setCurrentItem(item)
+        name = item.text().strip()
+        if not name:
+            return
+        menu = QMenu(list_widget)
+        reveal_action = add_reveal_in_explorer_action(menu)
+        copy_action = add_lucide_action(menu, "Copy icon name", COPY_BUTTON_ICON)
+        chosen = menu.exec(list_widget.mapToGlobal(pos))
+        if chosen is reveal_action:
+            path = lucide_svg_path(name)
+            if path is None:
+                message_box.warning(list_widget, "Reveal in File Explorer", f"SVG not found for `{name}`.")
+                return
+            try:
+                reveal_in_file_explorer(path)
+            except OSError as exc:
+                message_box.warning(list_widget, "Reveal in File Explorer", str(exc))
+            return
+        if chosen is copy_action:
+            QGuiApplication.clipboard().setText(name)
+            self._show_toast(f"Copied `{name}`")
 
     def _resolve_folder_choice(
         self,

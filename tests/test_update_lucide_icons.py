@@ -5,9 +5,13 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from PySide6.QtGui import QIcon
+import pytest
+from PySide6.QtCore import QPoint, QSize
+from PySide6.QtGui import QGuiApplication, QIcon
+from PySide6.QtWidgets import QApplication, QListWidget, QListWidgetItem
 
 import harrix_swiss_knife.qt_lucide_icon as lucide_mod
+from harrix_swiss_knife.actions.common.dialog_service import ActionDialogService
 from harrix_swiss_knife.actions.common.quick_launcher_registry import iter_menu_structure
 from harrix_swiss_knife.actions.development.update_lucide_icons import (
     LUCIDE_COMMIT_MESSAGE,
@@ -20,6 +24,17 @@ from harrix_swiss_knife.actions.development.update_lucide_icons import (
 from harrix_swiss_knife.assets.sync_lucide_icons import LucideSyncResult, read_lucide_version
 from harrix_swiss_knife.menu_structure import get_menu_structure
 from harrix_swiss_knife.qt_lucide_icon import clear_lucide_icon_caches
+
+
+@pytest.fixture
+def qapp() -> QApplication:
+    app = QApplication.instance()
+    if app is None:
+        return QApplication([])
+    if not isinstance(app, QApplication):
+        msg = "QApplication.instance() returned a non-QApplication object."
+        raise TypeError(msg)
+    return app
 
 
 def test_change_kind_classifies_porcelain_status() -> None:
@@ -108,6 +123,77 @@ def test_list_lucide_git_changes_splits_added_and_modified(tmp_path: Path) -> No
     assert changes.svg_names == ("new-icon", "old-icon")
 
 
+def test_lucide_thumbnail_context_menu_copies_icon_name(qapp: QApplication) -> None:
+    """Thumbnail context menu can copy the Lucide icon ID."""
+    assert qapp is not None
+    toast = MagicMock()
+    dialogs = _make_dialog_service(toast)
+    panel = dialogs._lucide_thumbnail_panel([("Added (1)", ["sparkles"])], caption="preview")
+    assert panel is not None
+    list_widget = panel.findChild(QListWidget)
+    assert list_widget is not None
+    item = list_widget.item(0)
+    assert item is not None
+    copy_action = MagicMock()
+    with (
+        patch.object(list_widget, "itemAt", return_value=item),
+        patch("harrix_swiss_knife.actions.common.dialog_service.QMenu") as menu_cls,
+        patch(
+            "harrix_swiss_knife.actions.common.dialog_service.add_reveal_in_explorer_action",
+            return_value=MagicMock(),
+        ),
+        patch(
+            "harrix_swiss_knife.actions.common.dialog_service.add_lucide_action",
+            return_value=copy_action,
+        ),
+    ):
+        menu = menu_cls.return_value
+        menu.exec.return_value = copy_action
+        dialogs._on_lucide_thumbnail_context_menu(list_widget, QPoint(0, 0))
+    assert QGuiApplication.clipboard().text() == "sparkles"
+    toast.assert_called_once_with("Copied `sparkles`")
+
+
+def test_lucide_thumbnail_context_menu_reveals_in_explorer(
+    qapp: QApplication,
+    tmp_path: Path,
+) -> None:
+    """Thumbnail context menu can reveal the SVG in File Explorer."""
+    assert qapp is not None
+    toast = MagicMock()
+    dialogs = _make_dialog_service(toast)
+    list_widget = QListWidget()
+    list_widget.addItem(QListWidgetItem("sparkles"))
+    item = list_widget.item(0)
+    assert item is not None
+    svg = tmp_path / "sparkles.svg"
+    svg.write_text("<svg></svg>", encoding="utf-8")
+    reveal_action = MagicMock()
+    with (
+        patch.object(list_widget, "itemAt", return_value=item),
+        patch("harrix_swiss_knife.actions.common.dialog_service.QMenu") as menu_cls,
+        patch(
+            "harrix_swiss_knife.actions.common.dialog_service.add_reveal_in_explorer_action",
+            return_value=reveal_action,
+        ),
+        patch(
+            "harrix_swiss_knife.actions.common.dialog_service.add_lucide_action",
+            return_value=MagicMock(),
+        ),
+        patch(
+            "harrix_swiss_knife.actions.common.dialog_service.lucide_svg_path",
+            return_value=svg,
+        ),
+        patch(
+            "harrix_swiss_knife.actions.common.dialog_service.reveal_in_file_explorer",
+        ) as reveal_mock,
+    ):
+        menu = menu_cls.return_value
+        menu.exec.return_value = reveal_action
+        dialogs._on_lucide_thumbnail_context_menu(list_widget, QPoint(0, 0))
+    reveal_mock.assert_called_once_with(svg)
+
+
 def test_on_update_lucide_icons_in_menu_structure() -> None:
     """Dev menu registers OnUpdateLucideIcons."""
     assert OnUpdateLucideIcons in list(iter_menu_structure(get_menu_structure()))
@@ -170,3 +256,13 @@ def test_thread_after_clears_caches_and_summarizes(tmp_path: Path) -> None:
     assert ("Added (1)", ["sparkles"]) in kwargs["lucide_sections"]
     assert ("Updated (1)", ["save"]) in kwargs["lucide_sections"]
     assert "Git" in kwargs["lucide_caption"]
+
+
+def _make_dialog_service(toast: MagicMock) -> ActionDialogService:
+    return ActionDialogService(
+        default_size=QSize(800, 600),
+        compact_size=QSize(480, 360),
+        add_line=MagicMock(),
+        show_toast=toast,
+        create_emoji_icon=MagicMock(return_value=QIcon()),
+    )
