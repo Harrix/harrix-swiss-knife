@@ -6,9 +6,9 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-from PySide6.QtCore import QPoint, QSize
+from PySide6.QtCore import QPoint, QSize, Qt
 from PySide6.QtGui import QGuiApplication, QIcon
-from PySide6.QtWidgets import QApplication, QListWidget, QListWidgetItem
+from PySide6.QtWidgets import QApplication, QListWidget, QListWidgetItem, QSplitter
 
 import harrix_swiss_knife.qt_lucide_icon as lucide_mod
 from harrix_swiss_knife.actions.common.dialog_service import ActionDialogService
@@ -128,7 +128,11 @@ def test_lucide_thumbnail_context_menu_copies_icon_name(qapp: QApplication) -> N
     assert qapp is not None
     toast = MagicMock()
     dialogs = _make_dialog_service(toast)
-    panel = dialogs._lucide_thumbnail_panel([("Added (1)", ["sparkles"])], caption="preview")
+    panel = dialogs._lucide_thumbnail_panel(
+        [("Added (1)", ["sparkles"])],
+        caption="preview",
+        fit_heights=False,
+    )
     assert panel is not None
     list_widget = panel.findChild(QListWidget)
     assert list_widget is not None
@@ -192,6 +196,23 @@ def test_lucide_thumbnail_context_menu_reveals_in_explorer(
         menu.exec.return_value = reveal_action
         dialogs._on_lucide_thumbnail_context_menu(list_widget, QPoint(0, 0))
     reveal_mock.assert_called_once_with(svg)
+
+
+def test_lucide_thumbnail_panel_fills_halves_when_not_fitting(qapp: QApplication) -> None:
+    """Result-dialog Lucide panel splits Added/Updated 50/50 without a scroll body."""
+    assert qapp is not None
+    dialogs = _make_dialog_service(MagicMock())
+    panel = dialogs._lucide_thumbnail_panel(
+        [("Added (1)", ["sparkles"]), ("Updated (1)", ["save"])],
+        caption="preview",
+        fit_heights=False,
+    )
+    assert panel is not None
+    splitters = panel.findChildren(QSplitter)
+    assert len(splitters) == 1
+    assert splitters[0].orientation() == Qt.Orientation.Vertical
+    assert splitters[0].count() == 2
+    assert len(panel.findChildren(QListWidget)) == 2
 
 
 def test_on_update_lucide_icons_in_menu_structure() -> None:

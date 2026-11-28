@@ -1837,7 +1837,8 @@ class ActionDialogService:
             text_edit = ResultTextBrowser()
             _apply_result_text(text_edit, current_text)
             text_edit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-            text_edit.setMinimumHeight(self._default_size.height() - 120)
+            if thumbnails is None:
+                text_edit.setMinimumHeight(self._default_size.height() - 120)
             text_edit.moveCursor(QTextCursor.MoveOperation.End)
 
             if thumbnails is None:
@@ -1847,11 +1848,17 @@ class ActionDialogService:
                 splitter.setChildrenCollapsible(False)
                 splitter.addWidget(text_edit)
                 splitter.addWidget(thumbnails)
-                splitter.setStretchFactor(0, 1)
-                splitter.setStretchFactor(1, 1)
-                half = max(320, self._default_size.width() // 2)
-                splitter.setSizes([half, half])
+                # Log column smaller; Lucide preview column wider.
+                splitter.setStretchFactor(0, 2)
+                splitter.setStretchFactor(1, 3)
                 layout.addWidget(splitter, stretch=1)
+
+                def _apply_column_sizes() -> None:
+                    total = max(splitter.width(), 1)
+                    left = max(280, total * 2 // 5)
+                    splitter.setSizes([left, max(360, total - left)])
+
+                QTimer.singleShot(0, _apply_column_sizes)
 
             def _scroll_to_end() -> None:
                 scrollbar = text_edit.verticalScrollBar()
@@ -1941,16 +1948,16 @@ class ActionDialogService:
 
             layout.addLayout(button_layout)
 
-        dialog_size = self._default_size
         if thumbnails is not None:
-            dialog_size = QSize(max(self._default_size.width(), 1100), self._default_size.height())
-        result, _dialog = self._exec_standard_dialog(
-            title,
-            _build,
-            stretch_row=0,
-            adaptive=False,
-            size=dialog_size,
-        )
+            result, _dialog = self._exec_app_sized_dialog(title, _build)
+        else:
+            result, _dialog = self._exec_standard_dialog(
+                title,
+                _build,
+                stretch_row=0,
+                adaptive=False,
+                size=self._default_size,
+            )
         if has_action_buttons:
             if result in (
                 RERUN_DIALOG_CODE,
@@ -1965,6 +1972,27 @@ class ActionDialogService:
     def _apply_lucide_dialog_buttons(self, buttons: QDialogButtonBox) -> None:
         """Set Lucide icons on standard QDialogButtonBox buttons."""
         apply_lucide_dialog_buttons(buttons, icon_size=DEFAULT_LUCIDE_BUTTON_ICON_SIZE)
+
+    def _exec_app_sized_dialog(
+        self,
+        title: str,
+        build: Callable[[QDialog, QVBoxLayout], None],
+        *,
+        parent: QWidget | None = None,
+    ) -> tuple[int, QDialog]:
+        """Create and execute a dialog sized like food/finance/habits app Windows."""
+        dialog_parent = QApplication.activeWindow() if parent is None else parent
+        dialog = QDialog(dialog_parent)
+        if not is_fluent_themed(dialog):
+            enable_fluent_theme(dialog)
+        dialog.setWindowTitle(title)
+        layout = QVBoxLayout()
+        build(dialog, layout)
+        dialog.setLayout(layout)
+        layout.setStretch(0, 1)
+        apply_app_window_size_and_position(dialog)
+        result = dialog.exec()
+        return result, dialog
 
     def _exec_compact_dialog(
         self,
@@ -2125,6 +2153,30 @@ class ActionDialogService:
             return None
         return current_item.text(), checkbox.isChecked()
 
+    def _lucide_thumbnail_list(self, names: list[str], *, icon_size: int) -> QListWidget:
+        """Create an IconMode list of Lucide thumbnails with the shared context menu."""
+        lw = QListWidget()
+        lw.setViewMode(QListWidget.ViewMode.IconMode)
+        lw.setResizeMode(QListWidget.ResizeMode.Adjust)
+        lw.setMovement(QListWidget.Movement.Static)
+        lw.setSpacing(8)
+        lw.setIconSize(QSize(icon_size, icon_size))
+        lw.setGridSize(QSize(icon_size + 56, icon_size + 40))
+        lw.setWordWrap(True)
+        lw.setSelectionMode(QListWidget.SelectionMode.SingleSelection)
+        lw.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        lw.customContextMenuRequested.connect(
+            lambda pos, list_widget=lw: self._on_lucide_thumbnail_context_menu(list_widget, pos)
+        )
+        lw.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        style_transparent_icon_grid(lw)
+        for name in names:
+            item = QListWidgetItem(create_lucide_icon(name, icon_size), name)
+            item.setToolTip(name)
+            item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
+            lw.addItem(item)
+        return lw
+
     def _lucide_thumbnail_panel(
         self,
         sections: list[tuple[str, list[str]]],
@@ -2133,7 +2185,12 @@ class ActionDialogService:
         icon_size: int = 48,
         fit_heights: bool = True,
     ) -> QWidget | None:
-        """Build a scrollable Lucide thumbnail panel, or `None` when empty."""
+        """Build a Lucide thumbnail panel, or `None` when empty.
+
+        When `fit_heights` is `False` (result dialog), sections share height
+        equally in a vertical splitter and each grid fills its half.
+
+        """
         filled = [(section_title, names) for section_title, names in sections if names]
         if not filled:
             return None
@@ -2144,6 +2201,29 @@ class ActionDialogService:
         if caption:
             panel_layout.addWidget(QLabel(caption))
 
+        if not fit_heights:
+            cards = [
+                self._lucide_thumbnail_section(title, names, icon_size=icon_size, expand=True)
+                for title, names in filled
+            ]
+            if len(cards) == 1:
+                panel_layout.addWidget(cards[0], stretch=1)
+            else:
+                v_splitter = QSplitter(Qt.Orientation.Vertical)
+                v_splitter.setChildrenCollapsible(False)
+                for index, card in enumerate(cards):
+                    v_splitter.addWidget(card)
+                    v_splitter.setStretchFactor(index, 1)
+
+                def _equalize_sections() -> None:
+                    height = max(v_splitter.height(), 1)
+                    share = height // len(cards)
+                    v_splitter.setSizes([share] * len(cards))
+
+                QTimer.singleShot(0, _equalize_sections)
+                panel_layout.addWidget(v_splitter, stretch=1)
+            return panel
+
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QScrollArea.Shape.NoFrame)
@@ -2151,40 +2231,45 @@ class ActionDialogService:
         body = QWidget()
         body_layout = QVBoxLayout(body)
         body_layout.setContentsMargins(0, 0, 0, 0)
+        height_cap = max(180, (self._default_size.height() - 160) // max(1, len(filled)))
         for section_title, names in filled:
-            lw = QListWidget()
-            lw.setViewMode(QListWidget.ViewMode.IconMode)
-            lw.setResizeMode(QListWidget.ResizeMode.Adjust)
-            lw.setMovement(QListWidget.Movement.Static)
-            lw.setSpacing(8)
-            lw.setIconSize(QSize(icon_size, icon_size))
-            lw.setGridSize(QSize(icon_size + 56, icon_size + 40))
-            lw.setWordWrap(True)
-            lw.setSelectionMode(QListWidget.SelectionMode.SingleSelection)
-            lw.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-            lw.customContextMenuRequested.connect(
-                lambda pos, list_widget=lw: self._on_lucide_thumbnail_context_menu(list_widget, pos)
-            )
-            lw.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-            style_transparent_icon_grid(lw)
-            for name in names:
-                item = QListWidgetItem(create_lucide_icon(name, icon_size), name)
-                item.setToolTip(name)
-                item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
-                lw.addItem(item)
-            if fit_heights:
-                fit_widget_height(
-                    lw,
-                    icon_grid_content_height(lw),
-                    maximum=max(180, (self._default_size.height() - 160) // max(1, len(filled))),
+            body_layout.addWidget(
+                self._lucide_thumbnail_section(
+                    section_title,
+                    names,
+                    icon_size=icon_size,
+                    expand=False,
+                    height_cap=height_cap,
                 )
-            section, _, section_layout = create_command_section(title=section_title)
-            section_layout.addWidget(lw)
-            body_layout.addWidget(section)
+            )
         body_layout.addStretch(1)
         scroll.setWidget(body)
         panel_layout.addWidget(scroll, stretch=1)
         return panel
+
+    def _lucide_thumbnail_section(
+        self,
+        section_title: str,
+        names: list[str],
+        *,
+        icon_size: int,
+        expand: bool,
+        height_cap: int | None = None,
+    ) -> QWidget:
+        """Create one Added/Updated card; `expand` fills a vertical splitter half."""
+        lw = self._lucide_thumbnail_list(names, icon_size=icon_size)
+        section, _, section_layout = create_command_section(title=section_title)
+        if expand:
+            section.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+            section_layout.addWidget(lw, stretch=1)
+        else:
+            fit_widget_height(
+                lw,
+                icon_grid_content_height(lw),
+                maximum=height_cap if height_cap is not None else max(180, self._default_size.height() - 160),
+            )
+            section_layout.addWidget(lw)
+        return section
 
     def _on_lucide_thumbnail_context_menu(self, list_widget: QListWidget, pos: QPoint) -> None:
         """Offer Reveal in Explorer and Copy icon name for a Lucide thumbnail."""
@@ -4475,7 +4560,8 @@ def show_text_multiline(
             text_edit = ResultTextBrowser()
             _apply_result_text(text_edit, current_text)
             text_edit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-            text_edit.setMinimumHeight(self._default_size.height() - 120)
+            if thumbnails is None:
+                text_edit.setMinimumHeight(self._default_size.height() - 120)
             text_edit.moveCursor(QTextCursor.MoveOperation.End)
 
             if thumbnails is None:
@@ -4485,11 +4571,17 @@ def show_text_multiline(
                 splitter.setChildrenCollapsible(False)
                 splitter.addWidget(text_edit)
                 splitter.addWidget(thumbnails)
-                splitter.setStretchFactor(0, 1)
-                splitter.setStretchFactor(1, 1)
-                half = max(320, self._default_size.width() // 2)
-                splitter.setSizes([half, half])
+                # Log column smaller; Lucide preview column wider.
+                splitter.setStretchFactor(0, 2)
+                splitter.setStretchFactor(1, 3)
                 layout.addWidget(splitter, stretch=1)
+
+                def _apply_column_sizes() -> None:
+                    total = max(splitter.width(), 1)
+                    left = max(280, total * 2 // 5)
+                    splitter.setSizes([left, max(360, total - left)])
+
+                QTimer.singleShot(0, _apply_column_sizes)
 
             def _scroll_to_end() -> None:
                 scrollbar = text_edit.verticalScrollBar()
@@ -4579,16 +4671,16 @@ def show_text_multiline(
 
             layout.addLayout(button_layout)
 
-        dialog_size = self._default_size
         if thumbnails is not None:
-            dialog_size = QSize(max(self._default_size.width(), 1100), self._default_size.height())
-        result, _dialog = self._exec_standard_dialog(
-            title,
-            _build,
-            stretch_row=0,
-            adaptive=False,
-            size=dialog_size,
-        )
+            result, _dialog = self._exec_app_sized_dialog(title, _build)
+        else:
+            result, _dialog = self._exec_standard_dialog(
+                title,
+                _build,
+                stretch_row=0,
+                adaptive=False,
+                size=self._default_size,
+            )
         if has_action_buttons:
             if result in (
                 RERUN_DIALOG_CODE,
