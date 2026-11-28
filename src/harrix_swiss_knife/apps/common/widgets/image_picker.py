@@ -197,6 +197,14 @@ class ImagePicker(QWidget):
             self._setup_picker_ui()
         bind_theme(self, self._refresh_drop_style)
 
+    def capture_screenshot_region(self) -> None:
+        """Capture a screen region via `capture_region` and feed it into the picker."""
+        image = capture_region(show_preview=False, show_shutter_button=True)
+        if image is None or image.isNull():
+            return
+        # `capture_region` already copies the image to the clipboard.
+        self._paste_image_from_clipboard()
+
     def configure_filename_row(
         self,
         date_edit: QDateEdit | None,
@@ -579,7 +587,7 @@ class ImagePicker(QWidget):
             button_layout.addWidget(add_button)
         if self._show_screenshot_button:
             screenshot_button = make_lucide_push_button("Screenshot", _SCREENSHOT_BUTTON_ICON)
-            screenshot_button.clicked.connect(self._capture_screenshot_region)
+            screenshot_button.clicked.connect(self.capture_screenshot_region)
             button_layout.addWidget(screenshot_button)
         if self._show_paste_button:
             paste_button = make_lucide_push_button("Paste", "clipboard-paste")
@@ -596,14 +604,6 @@ class ImagePicker(QWidget):
         if self._mode == ImagePickerMode.MULTI:
             button_layout.addStretch()
         return button_layout
-
-    def _capture_screenshot_region(self) -> None:
-        """Capture a screen region via `capture_region` and feed it into the picker."""
-        image = capture_region(show_preview=False, show_shutter_button=True)
-        if image is None or image.isNull():
-            return
-        # `capture_region` already copies the image to the clipboard.
-        self._paste_image_from_clipboard()
 
     def _clear_all_multi(self) -> None:
         for thumb in self._thumbnail_items:
@@ -698,7 +698,7 @@ class ImagePicker(QWidget):
         button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         button.setStyleSheet(_zone_icon_button_qss(self))
         button.installEventFilter(self)
-        button.clicked.connect(self._capture_screenshot_region)
+        button.clicked.connect(self.capture_screenshot_region)
         self._zone_screenshot_button = button
         return button
 

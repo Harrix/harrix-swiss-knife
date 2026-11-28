@@ -22,6 +22,7 @@ lang: en
   - [⚙️ Method `closeEvent`](#%EF%B8%8F-method-closeevent)
   - [⚙️ Method `delete_record`](#%EF%B8%8F-method-delete_record)
   - [⚙️ Method `eventFilter`](#%EF%B8%8F-method-eventfilter)
+  - [⚙️ Method `hideEvent`](#%EF%B8%8F-method-hideevent)
   - [⚙️ Method `keyPressEvent`](#%EF%B8%8F-method-keypressevent)
   - [⚙️ Method `nativeEvent`](#%EF%B8%8F-method-nativeevent)
   - [⚙️ Method `on_add_account`](#%EF%B8%8F-method-on_add_account)
@@ -52,6 +53,7 @@ lang: en
   - [⚙️ Method `set_chart_last_year`](#%EF%B8%8F-method-set_chart_last_year)
   - [⚙️ Method `set_presentation_mode`](#%EF%B8%8F-method-set_presentation_mode)
   - [⚙️ Method `set_today_date`](#%EF%B8%8F-method-set_today_date)
+  - [⚙️ Method `showEvent`](#%EF%B8%8F-method-showevent)
   - [⚙️ Method `show_tables`](#%EF%B8%8F-method-show_tables)
   - [⚙️ Method `update_all`](#%EF%B8%8F-method-update_all)
   - [⚙️ Method `update_filter_comboboxes`](#%EF%B8%8F-method-update_filter_comboboxes)
@@ -119,6 +121,7 @@ class MainWindow(
         self._apply_fluent_window_chrome()
         self.setupUi(self)
         self._is_closing = False
+        self._ai_screenshot_fab: FinanceAiScreenshotFab | None = None
         self.presentation_mode = presentation_mode
         self.db_manager: database_manager.DatabaseManager | None = None
         self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
@@ -383,6 +386,7 @@ class MainWindow(
             return
 
         self._is_closing = True
+        self._dispose_ai_screenshot_fab()
         persist_transactions_splitter_sizes(self)
         persist_finance_tabs_splitter_sizes(self)
         self._stop_background_transaction_translate_timer()
@@ -560,6 +564,20 @@ class MainWindow(
             return True
 
         return super().eventFilter(obj, event)
+
+    def hideEvent(self, event: QHideEvent) -> None:  # noqa: N802
+        """Hide the floating AI screenshot control when Finance is closed or hidden.
+
+        Minimizing Finance keeps the floating button visible so receipts can still
+        be captured while the tracker is in the background.
+
+        """
+        super().hideEvent(event)
+        if self.isMinimized():
+            return
+        fab = self._ai_screenshot_fab
+        if fab is not None:
+            fab.hide_for_finance()
 
     def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
         """Handle key press events for the main window.
@@ -1181,6 +1199,13 @@ class MainWindow(
         today_qdate: QDate = QDate.currentDate()
         self.dateEdit.setDate(today_qdate)
         self.dateEdit_exchange.setDate(today_qdate)
+
+    def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
+        """Show the floating AI screenshot control with the Finance window."""
+        super().showEvent(event)
+        fab = self._ai_screenshot_fab
+        if fab is not None and not self._is_closing:
+            fab.show_for_finance()
 
     @requires_database(is_show_warning=False)
     def show_tables(self) -> None:
@@ -1891,6 +1916,7 @@ class MainWindow(
             hint_text="Attach receipt · Ctrl+V",
         )
         self.verticalLayout_2.insertWidget(1, self._ai_image_drop_zone)
+        self._ai_screenshot_fab = FinanceAiScreenshotFab(self._on_ai_screenshot_fab_clicked)
         install_line_edit_search_chrome(
             self.lineEdit_description,
             leading_icon="notepad-text",
@@ -2159,6 +2185,16 @@ class MainWindow(
         proxy: QSortFilterProxyModel = RecordIdSortProxyModel()
         proxy.setSourceModel(model)
         return proxy
+
+    def _dispose_ai_screenshot_fab(self) -> None:
+        """Tear down the floating Add-with-AI screenshot control."""
+        fab = self._ai_screenshot_fab
+        self._ai_screenshot_fab = None
+        if fab is None:
+            return
+        fab.hide_for_finance()
+        fab.close()
+        fab.deleteLater()
 
     def _dispose_models(self) -> None:
         """Detach all models from QTableView and delete them."""
@@ -3765,6 +3801,13 @@ class MainWindow(
             self._refresh_test_balance_dialog_table(table)
         finally:
             self._set_descendant_buttons_enabled(dialog, enabled=True)
+
+    def _on_ai_screenshot_fab_clicked(self) -> None:
+        """Capture a region into the Add with AI drop zone from the floating button."""
+        zone = getattr(self, "_ai_image_drop_zone", None)
+        if zone is None:
+            return
+        zone.capture_screenshot_region()
 
     def _on_autocomplete_selected(self, text: str) -> None:
         """Handle autocomplete selection and populate form fields.
@@ -6936,6 +6979,7 @@ def __init__(self, *, hide_on_close: bool = False, presentation_mode: bool = Fal
         self._apply_fluent_window_chrome()
         self.setupUi(self)
         self._is_closing = False
+        self._ai_screenshot_fab: FinanceAiScreenshotFab | None = None
         self.presentation_mode = presentation_mode
         self.db_manager: database_manager.DatabaseManager | None = None
         self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
@@ -7295,6 +7339,7 @@ def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
             return
 
         self._is_closing = True
+        self._dispose_ai_screenshot_fab()
         persist_transactions_splitter_sizes(self)
         persist_finance_tabs_splitter_sizes(self)
         self._stop_background_transaction_translate_timer()
@@ -7495,6 +7540,32 @@ def eventFilter(self, obj: QObject, event: QEvent) -> bool:  # noqa: N802
             return True
 
         return super().eventFilter(obj, event)
+```
+
+</details>
+
+### ⚙️ Method `hideEvent`
+
+```python
+def hideEvent(self, event: QHideEvent) -> None
+```
+
+Hide the floating AI screenshot control when Finance is closed or hidden.
+
+Minimizing Finance keeps the floating button visible so receipts can still
+be captured while the tracker is in the background.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def hideEvent(self, event: QHideEvent) -> None:  # noqa: N802
+        super().hideEvent(event)
+        if self.isMinimized():
+            return
+        fab = self._ai_screenshot_fab
+        if fab is not None:
+            fab.hide_for_finance()
 ```
 
 </details>
@@ -8520,6 +8591,27 @@ def set_today_date(self) -> None:
         today_qdate: QDate = QDate.currentDate()
         self.dateEdit.setDate(today_qdate)
         self.dateEdit_exchange.setDate(today_qdate)
+```
+
+</details>
+
+### ⚙️ Method `showEvent`
+
+```python
+def showEvent(self, event: QShowEvent) -> None
+```
+
+Show the floating AI screenshot control with the Finance window.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
+        super().showEvent(event)
+        fab = self._ai_screenshot_fab
+        if fab is not None and not self._is_closing:
+            fab.show_for_finance()
 ```
 
 </details>

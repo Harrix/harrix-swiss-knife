@@ -42,8 +42,10 @@ from PySide6.QtGui import (
     QAction,
     QCloseEvent,
     QColor,
+    QHideEvent,
     QKeyEvent,
     QMouseEvent,
+    QShowEvent,
     QStandardItem,
     QStandardItemModel,
 )
@@ -161,6 +163,7 @@ from harrix_swiss_knife.apps.common.widgets.shrinkable_scroll_area import instal
 from harrix_swiss_knife.apps.common.word_wrap_header import install_word_wrap_header
 from harrix_swiss_knife.apps.finance import database_manager, window
 from harrix_swiss_knife.apps.finance.account_edit_dialog import AccountEditDialog
+from harrix_swiss_knife.apps.finance.ai_screenshot_fab import FinanceAiScreenshotFab
 from harrix_swiss_knife.apps.finance.ai_source_dialog import AiSourceDialog
 from harrix_swiss_knife.apps.finance.amount_expression_dialog import AmountExpressionDialog
 from harrix_swiss_knife.apps.finance.balance_check_worker import BalanceCheckResult, BalanceCheckWorker
@@ -387,6 +390,7 @@ class MainWindow(
         self._apply_fluent_window_chrome()
         self.setupUi(self)
         self._is_closing = False
+        self._ai_screenshot_fab: FinanceAiScreenshotFab | None = None
         self.presentation_mode = presentation_mode
         self.db_manager: database_manager.DatabaseManager | None = None
         self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
@@ -651,6 +655,7 @@ class MainWindow(
             return
 
         self._is_closing = True
+        self._dispose_ai_screenshot_fab()
         persist_transactions_splitter_sizes(self)
         persist_finance_tabs_splitter_sizes(self)
         self._stop_background_transaction_translate_timer()
@@ -828,6 +833,20 @@ class MainWindow(
             return True
 
         return super().eventFilter(obj, event)
+
+    def hideEvent(self, event: QHideEvent) -> None:  # noqa: N802
+        """Hide the floating AI screenshot control when Finance is closed or hidden.
+
+        Minimizing Finance keeps the floating button visible so receipts can still
+        be captured while the tracker is in the background.
+
+        """
+        super().hideEvent(event)
+        if self.isMinimized():
+            return
+        fab = self._ai_screenshot_fab
+        if fab is not None:
+            fab.hide_for_finance()
 
     def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
         """Handle key press events for the main window.
@@ -1449,6 +1468,13 @@ class MainWindow(
         today_qdate: QDate = QDate.currentDate()
         self.dateEdit.setDate(today_qdate)
         self.dateEdit_exchange.setDate(today_qdate)
+
+    def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
+        """Show the floating AI screenshot control with the Finance window."""
+        super().showEvent(event)
+        fab = self._ai_screenshot_fab
+        if fab is not None and not self._is_closing:
+            fab.show_for_finance()
 
     @requires_database(is_show_warning=False)
     def show_tables(self) -> None:
@@ -2159,6 +2185,7 @@ class MainWindow(
             hint_text="Attach receipt · Ctrl+V",
         )
         self.verticalLayout_2.insertWidget(1, self._ai_image_drop_zone)
+        self._ai_screenshot_fab = FinanceAiScreenshotFab(self._on_ai_screenshot_fab_clicked)
         install_line_edit_search_chrome(
             self.lineEdit_description,
             leading_icon="notepad-text",
@@ -2427,6 +2454,16 @@ class MainWindow(
         proxy: QSortFilterProxyModel = RecordIdSortProxyModel()
         proxy.setSourceModel(model)
         return proxy
+
+    def _dispose_ai_screenshot_fab(self) -> None:
+        """Tear down the floating Add-with-AI screenshot control."""
+        fab = self._ai_screenshot_fab
+        self._ai_screenshot_fab = None
+        if fab is None:
+            return
+        fab.hide_for_finance()
+        fab.close()
+        fab.deleteLater()
 
     def _dispose_models(self) -> None:
         """Detach all models from QTableView and delete them."""
@@ -4033,6 +4070,13 @@ class MainWindow(
             self._refresh_test_balance_dialog_table(table)
         finally:
             self._set_descendant_buttons_enabled(dialog, enabled=True)
+
+    def _on_ai_screenshot_fab_clicked(self) -> None:
+        """Capture a region into the Add with AI drop zone from the floating button."""
+        zone = getattr(self, "_ai_image_drop_zone", None)
+        if zone is None:
+            return
+        zone.capture_screenshot_region()
 
     def _on_autocomplete_selected(self, text: str) -> None:
         """Handle autocomplete selection and populate form fields.

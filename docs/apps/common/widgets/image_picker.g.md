@@ -13,6 +13,7 @@ lang: en
 
 - [🏛️ Class `ImagePicker`](#%EF%B8%8F-class-imagepicker)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `capture_screenshot_region`](#%EF%B8%8F-method-capture_screenshot_region)
   - [⚙️ Method `configure_filename_row`](#%EF%B8%8F-method-configure_filename_row)
   - [⚙️ Method `eventFilter`](#%EF%B8%8F-method-eventfilter)
   - [⚙️ Method `get_image_bytes_and_mime`](#%EF%B8%8F-method-get_image_bytes_and_mime)
@@ -142,6 +143,14 @@ class ImagePicker(QWidget):
         else:
             self._setup_picker_ui()
         bind_theme(self, self._refresh_drop_style)
+
+    def capture_screenshot_region(self) -> None:
+        """Capture a screen region via `capture_region` and feed it into the picker."""
+        image = capture_region(show_preview=False, show_shutter_button=True)
+        if image is None or image.isNull():
+            return
+        # `capture_region` already copies the image to the clipboard.
+        self._paste_image_from_clipboard()
 
     def configure_filename_row(
         self,
@@ -525,7 +534,7 @@ class ImagePicker(QWidget):
             button_layout.addWidget(add_button)
         if self._show_screenshot_button:
             screenshot_button = make_lucide_push_button("Screenshot", _SCREENSHOT_BUTTON_ICON)
-            screenshot_button.clicked.connect(self._capture_screenshot_region)
+            screenshot_button.clicked.connect(self.capture_screenshot_region)
             button_layout.addWidget(screenshot_button)
         if self._show_paste_button:
             paste_button = make_lucide_push_button("Paste", "clipboard-paste")
@@ -542,14 +551,6 @@ class ImagePicker(QWidget):
         if self._mode == ImagePickerMode.MULTI:
             button_layout.addStretch()
         return button_layout
-
-    def _capture_screenshot_region(self) -> None:
-        """Capture a screen region via `capture_region` and feed it into the picker."""
-        image = capture_region(show_preview=False, show_shutter_button=True)
-        if image is None or image.isNull():
-            return
-        # `capture_region` already copies the image to the clipboard.
-        self._paste_image_from_clipboard()
 
     def _clear_all_multi(self) -> None:
         for thumb in self._thumbnail_items:
@@ -644,7 +645,7 @@ class ImagePicker(QWidget):
         button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         button.setStyleSheet(_zone_icon_button_qss(self))
         button.installEventFilter(self)
-        button.clicked.connect(self._capture_screenshot_region)
+        button.clicked.connect(self.capture_screenshot_region)
         self._zone_screenshot_button = button
         return button
 
@@ -990,7 +991,7 @@ Initialize the image picker.
 
 Args:
 
-- `mode`: `SINGLE`, `MULTI`, or `COMPACT`.
+- [`mode`](#%EF%B8%8F-method-mode-property): `SINGLE`, `MULTI`, or `COMPACT`.
 - `save_dir`: When set, images are copied into `save_dir/img/`.
 - `max_image_side`: Optional downscale limit for stored / pasted images.
 - `fallback_text_edit`: Paste text here when clipboard has text (single mode).
@@ -1074,6 +1075,28 @@ def __init__(
         else:
             self._setup_picker_ui()
         bind_theme(self, self._refresh_drop_style)
+```
+
+</details>
+
+### ⚙️ Method `capture_screenshot_region`
+
+```python
+def capture_screenshot_region(self) -> None
+```
+
+Capture a screen region via `capture_region` and feed it into the picker.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def capture_screenshot_region(self) -> None:
+        image = capture_region(show_preview=False, show_shutter_button=True)
+        if image is None or image.isNull():
+            return
+        # `capture_region` already copies the image to the clipboard.
+        self._paste_image_from_clipboard()
 ```
 
 </details>
