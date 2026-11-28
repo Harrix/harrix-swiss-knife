@@ -535,7 +535,7 @@ def food_autocomplete_popup_icon_size() -> QSize:
 def food_autocomplete_row_icon(entry: FoodAutocompleteEntry) -> QIcon
 ```
 
-Build leading markers: catalog/recipe emoji, then colored Lucide coffee for drinks.
+Build leading Lucide markers: recipe/catalog food, then coffee for drinks.
 
 <details>
 <summary>Code:</summary>
@@ -544,9 +544,9 @@ Build leading markers: catalog/recipe emoji, then colored Lucide coffee for drin
 def food_autocomplete_row_icon(entry: FoodAutocompleteEntry) -> QIcon:
     icons: list[QIcon] = []
     if entry.is_recipe:
-        icons.append(create_emoji_icon(RECIPE_EMOJI, FOOD_AUTOCOMPLETE_ICON_SIZE))
+        icons.append(create_recipe_icon(FOOD_AUTOCOMPLETE_ICON_SIZE))
     elif entry.is_food_item:
-        icons.append(create_emoji_icon(FOOD_ITEM_EMOJI, FOOD_AUTOCOMPLETE_ICON_SIZE))
+        icons.append(create_food_item_icon(FOOD_AUTOCOMPLETE_ICON_SIZE))
     if entry.is_drink:
         icons.append(create_drink_icon(FOOD_AUTOCOMPLETE_ICON_SIZE))
     return _compose_icon_row(icons, FOOD_AUTOCOMPLETE_ICON_SIZE, FOOD_AUTOCOMPLETE_ICON_GAP)

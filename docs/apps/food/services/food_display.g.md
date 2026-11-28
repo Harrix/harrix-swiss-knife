@@ -12,6 +12,8 @@ lang: en
 ## Contents
 
 - [🔧 Function `create_drink_icon`](#-function-create_drink_icon)
+- [🔧 Function `create_food_item_icon`](#-function-create_food_item_icon)
+- [🔧 Function `create_recipe_icon`](#-function-create_recipe_icon)
 - [🔧 Function `extract_food_name_from_display`](#-function-extract_food_name_from_display)
 - [🔧 Function `format_food_name_with_calories`](#-function-format_food_name_with_calories)
 - [🔧 Function `install_drink_checkbox_icon`](#-function-install_drink_checkbox_icon)
@@ -33,6 +35,42 @@ Return the dark-blue Lucide coffee icon used for drinks.
 ```python
 def create_drink_icon(size: int = DRINK_ICON_SIZE) -> QIcon:
     return create_lucide_icon(DRINK_LUCIDE_ICON, size)
+```
+
+</details>
+
+## 🔧 Function `create_food_item_icon`
+
+```python
+def create_food_item_icon(size: int = DRINK_ICON_SIZE) -> QIcon
+```
+
+Return the Lucide salad icon used for catalog food items.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def create_food_item_icon(size: int = DRINK_ICON_SIZE) -> QIcon:
+    return create_lucide_icon(FOOD_ITEM_LUCIDE_ICON, size)
+```
+
+</details>
+
+## 🔧 Function `create_recipe_icon`
+
+```python
+def create_recipe_icon(size: int = DRINK_ICON_SIZE) -> QIcon
+```
+
+Return the Lucide cooking-pot icon used for recipes.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def create_recipe_icon(size: int = DRINK_ICON_SIZE) -> QIcon:
+    return create_lucide_icon(RECIPE_LUCIDE_ICON, size)
 ```
 
 </details>
@@ -75,8 +113,9 @@ def format_food_name_with_calories(food_name: str, calories_per_100g: float | No
 
 Append `(… kcal/portion)` or `(… kcal/100g)` when values exist.
 
-Recipes get `RECIPE_EMOJI`. Drink markers use Lucide coffee icons at list /
-checkbox call sites ([`create_drink_icon`](#-function-create_drink_icon)); `is_drink` is kept for callers.
+Recipes still get a `RECIPE_EMOJI` text prefix in some list labels. Autocomplete
+and drink checkboxes use Lucide icons ([`create_recipe_icon`](#-function-create_recipe_icon), [`create_drink_icon`](#-function-create_drink_icon));
+`is_drink` is kept for callers.
 
 <details>
 <summary>Code:</summary>

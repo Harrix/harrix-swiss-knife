@@ -22,13 +22,12 @@ from PySide6.QtWidgets import QAbstractItemView, QCompleter, QLabel, QStyleOptio
 from shiboken6 import isValid
 
 from harrix_swiss_knife.apps.food.services.food_display import (
-    FOOD_ITEM_EMOJI,
-    RECIPE_EMOJI,
     create_drink_icon,
+    create_food_item_icon,
+    create_recipe_icon,
     format_food_name_with_calories,
 )
 from harrix_swiss_knife.keyboard_layout_search import autocomplete_match_tier
-from harrix_swiss_knife.qt_emoji_icon import create_emoji_icon
 
 if TYPE_CHECKING:
     from harrix_swiss_knife.apps.food.database_manager import FoodAutocompleteEntry
@@ -297,12 +296,12 @@ def food_autocomplete_popup_icon_size() -> QSize:
 
 
 def food_autocomplete_row_icon(entry: FoodAutocompleteEntry) -> QIcon:
-    """Build leading markers: catalog/recipe emoji, then colored Lucide coffee for drinks."""
+    """Build leading Lucide markers: recipe/catalog food, then coffee for drinks."""
     icons: list[QIcon] = []
     if entry.is_recipe:
-        icons.append(create_emoji_icon(RECIPE_EMOJI, FOOD_AUTOCOMPLETE_ICON_SIZE))
+        icons.append(create_recipe_icon(FOOD_AUTOCOMPLETE_ICON_SIZE))
     elif entry.is_food_item:
-        icons.append(create_emoji_icon(FOOD_ITEM_EMOJI, FOOD_AUTOCOMPLETE_ICON_SIZE))
+        icons.append(create_food_item_icon(FOOD_AUTOCOMPLETE_ICON_SIZE))
     if entry.is_drink:
         icons.append(create_drink_icon(FOOD_AUTOCOMPLETE_ICON_SIZE))
     return _compose_icon_row(icons, FOOD_AUTOCOMPLETE_ICON_SIZE, FOOD_AUTOCOMPLETE_ICON_GAP)

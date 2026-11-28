@@ -138,6 +138,8 @@ LUCIDE_ICON_COLORS: dict[str, str] = {
     # Food drink markers — brand ink, not warm orange (soft-blue chrome).
     "coffee": BRAND_INK,
     "cup-soda": BRAND_INK,
+    "cooking-pot": BRAND_INK,
+    "salad": BRAND_INK,
 }
 
 _ICON_NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
@@ -216,6 +218,7 @@ CHROME_EMOJI_TO_LUCIDE: dict[str, str] = {
     "🏷": "tag",
     "🍽️": "utensils",
     "🍽": "utensils",
+    "🥗": "salad",
     "🍳": "cooking-pot",
     "⚖️": "scale",
     "⚖": "scale",

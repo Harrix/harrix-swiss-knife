@@ -20,12 +20,24 @@ DRINK_EMOJI = "🥤"
 DRINK_LUCIDE_ICON = "coffee"
 DRINK_ICON_SIZE = 16
 FOOD_ITEM_EMOJI = "🥗"
+FOOD_ITEM_LUCIDE_ICON = "salad"
 RECIPE_EMOJI = "🍽"
+RECIPE_LUCIDE_ICON = "cooking-pot"
 
 
 def create_drink_icon(size: int = DRINK_ICON_SIZE) -> QIcon:
     """Return the dark-blue Lucide coffee icon used for drinks."""
     return create_lucide_icon(DRINK_LUCIDE_ICON, size)
+
+
+def create_food_item_icon(size: int = DRINK_ICON_SIZE) -> QIcon:
+    """Return the Lucide salad icon used for catalog food items."""
+    return create_lucide_icon(FOOD_ITEM_LUCIDE_ICON, size)
+
+
+def create_recipe_icon(size: int = DRINK_ICON_SIZE) -> QIcon:
+    """Return the Lucide cooking-pot icon used for recipes."""
+    return create_lucide_icon(RECIPE_LUCIDE_ICON, size)
 
 
 def extract_food_name_from_display(display_text: str) -> str:
@@ -55,8 +67,9 @@ def format_food_name_with_calories(
 ) -> str:
     """Append `(… kcal/portion)` or `(… kcal/100g)` when values exist.
 
-    Recipes get `RECIPE_EMOJI`. Drink markers use Lucide coffee icons at list /
-    checkbox call sites (`create_drink_icon`); `is_drink` is kept for callers.
+    Recipes still get a `RECIPE_EMOJI` text prefix in some list labels. Autocomplete
+    and drink checkboxes use Lucide icons (`create_recipe_icon`, `create_drink_icon`);
+    `is_drink` is kept for callers.
 
     """
     if not food_name:
