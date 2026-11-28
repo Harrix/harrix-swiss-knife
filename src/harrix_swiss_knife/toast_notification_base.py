@@ -22,7 +22,8 @@ if TYPE_CHECKING:
     from PySide6.QtGui import QResizeEvent
 
 _COLLAPSE_ICON = "minus"
-_EXPAND_ICON = "square"
+# Corner brackets read as "expand", not a missing-glyph tofu square.
+_EXPAND_ICON = "maximize"
 _ACTION_ICON_COLOR = QColor(255, 255, 255)
 
 DEFAULT_ACTION_BUTTON_SIDE = 20

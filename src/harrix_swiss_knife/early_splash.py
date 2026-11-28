@@ -27,16 +27,18 @@ _SECONDS_PER_HOUR = 3600
 _SECONDS_PER_MINUTE = 60
 _WIDTH_DIP = 400
 _HEIGHT_DIP = 160
-_TOAST_WIDTH_DIP = 300
+_TOAST_WIDTH_DIP = 280
 _TOAST_HEIGHT_DIP = 72
 _TOAST_MARGIN_DIP = 20
 _RADIUS_DIP = 8
 _LOGO_DIP = 72
 _TOAST_LOGO_DIP = 40
 _PAD_DIP = 28
-_TOAST_PAD_DIP = 14
+_TOAST_PAD_DIP = 16
 _GAP_DIP = 20
+_TOAST_TEXT_GAP_DIP = 12
 _BUTTON_DIP = 28
+_TOAST_BUTTON_DIP = 20
 _TITLE_PT = 20
 _BODY_PT = 16
 _TOAST_TITLE_PT = 14
@@ -88,9 +90,6 @@ _BUTTON_HOVER_COLOR = 0x00404040
 _TEXT_COLOR = 0x00FFFFFF
 _DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 = -4
 _PROCESS_PER_MONITOR_DPI_AWARE = 2
-_MINIMIZE_GLYPH = "\u2212"
-_EXPAND_GLYPH = "\u25a1"
-
 _LRESULT = ctypes.c_ssize_t
 _WNDPROC = ctypes.WINFUNCTYPE(_LRESULT, wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM)
 
@@ -251,8 +250,9 @@ def _apply_window_geometry(user32: ctypes.WinDLL, hwnd: int) -> bool:
 
 def _button_rect(hwnd: int) -> wintypes.RECT:
     dpi = _dpi_for_hwnd(hwnd)
-    size = _dip(_BUTTON_DIP, dpi)
-    pad = _dip(8 if _runtime.minimized else 12, dpi)
+    size = _dip(_TOAST_BUTTON_DIP if _runtime.minimized else _BUTTON_DIP, dpi)
+    # Match the content-side inset so the toast chrome stays symmetric.
+    pad = _dip(_TOAST_PAD_DIP if _runtime.minimized else 12, dpi)
     client = _client_rect(hwnd)
     width = int(client.right - client.left)
     return _rect(width - pad - size, pad, size, size)
@@ -327,7 +327,6 @@ def _draw_chrome_button(
     gdi32: ctypes.WinDLL,
     hdc: int,
     hwnd: int,
-    font: int,
 ) -> None:
     box = _button_rect(hwnd)
     if _runtime.button_hover:
@@ -335,8 +334,10 @@ def _draw_chrome_button(
         if fill:
             user32.FillRect(hdc, ctypes.byref(box), fill)
             gdi32.DeleteObject(fill)
-    glyph = _EXPAND_GLYPH if _runtime.minimized else _MINIMIZE_GLYPH
-    _draw_line(user32, gdi32, hdc, glyph, box, font, align=_DT_CENTER)
+    if _runtime.minimized:
+        _draw_maximize_glyph(gdi32, hdc, box)
+    else:
+        _draw_minimize_glyph(gdi32, hdc, box)
 
 
 def _draw_line(
@@ -355,11 +356,69 @@ def _draw_line(
         gdi32.SelectObject(hdc, previous)
 
 
+def _draw_line_segment(gdi32: ctypes.WinDLL, hdc: int, x1: int, y1: int, x2: int, y2: int) -> None:
+    gdi32.MoveToEx(hdc, x1, y1, None)
+    gdi32.LineTo(hdc, x2, y2)
+
+
 def _draw_logo(user32: ctypes.WinDLL, hdc: int, x: int, y: int, size: int) -> None:
     icon = _ensure_logo_icon(size)
     if not icon:
         return
     user32.DrawIconEx(hdc, x, y, icon, size, size, 0, None, _DI_NORMAL)
+
+
+def _draw_maximize_glyph(gdi32: ctypes.WinDLL, hdc: int, box: wintypes.RECT) -> None:
+    """Draw Lucide-style maximize corners (not a tofu Unicode square)."""
+    left = int(box.left)
+    top = int(box.top)
+    right = int(box.right)
+    bottom = int(box.bottom)
+    size = min(right - left, bottom - top)
+    inset = max(3, size // 4)
+    arm = max(3, size // 3)
+    stroke = max(2, size // 10)
+    pen = gdi32.CreatePen(_PS_SOLID, stroke, _TEXT_COLOR)
+    if not pen:
+        return
+    old_pen = gdi32.SelectObject(hdc, pen)
+    x0, y0 = left + inset, top + inset
+    x1, y1 = right - inset - 1, bottom - inset - 1
+    # Top-left corner
+    _draw_line_segment(gdi32, hdc, x0, y0 + arm, x0, y0)
+    _draw_line_segment(gdi32, hdc, x0, y0, x0 + arm, y0)
+    # Top-right corner
+    _draw_line_segment(gdi32, hdc, x1 - arm, y0, x1, y0)
+    _draw_line_segment(gdi32, hdc, x1, y0, x1, y0 + arm)
+    # Bottom-left corner
+    _draw_line_segment(gdi32, hdc, x0, y1 - arm, x0, y1)
+    _draw_line_segment(gdi32, hdc, x0, y1, x0 + arm, y1)
+    # Bottom-right corner
+    _draw_line_segment(gdi32, hdc, x1 - arm, y1, x1, y1)
+    _draw_line_segment(gdi32, hdc, x1, y1 - arm, x1, y1)
+    if old_pen:
+        gdi32.SelectObject(hdc, old_pen)
+    gdi32.DeleteObject(pen)
+
+
+def _draw_minimize_glyph(gdi32: ctypes.WinDLL, hdc: int, box: wintypes.RECT) -> None:
+    """Draw a caption-style minimize dash."""
+    left = int(box.left)
+    top = int(box.top)
+    right = int(box.right)
+    bottom = int(box.bottom)
+    size = min(right - left, bottom - top)
+    inset = max(4, size // 4)
+    y = (top + bottom) // 2
+    stroke = max(2, size // 9)
+    pen = gdi32.CreatePen(_PS_SOLID, stroke, _TEXT_COLOR)
+    if not pen:
+        return
+    old_pen = gdi32.SelectObject(hdc, pen)
+    _draw_line_segment(gdi32, hdc, left + inset, y, right - inset - 1, y)
+    if old_pen:
+        gdi32.SelectObject(hdc, old_pen)
+    gdi32.DeleteObject(pen)
 
 
 def _enable_dpi_awareness() -> None:
@@ -489,19 +548,19 @@ def _paint_full_content(
 ) -> None:
     title_font = _create_font(gdi32, point_size=_TITLE_PT, dpi=dpi)
     body_font = _create_font(gdi32, point_size=_BODY_PT, dpi=dpi)
-    button_font = _create_font(gdi32, point_size=_BODY_PT, dpi=dpi)
     pad = _dip(_PAD_DIP, dpi)
     logo_size = _dip(_LOGO_DIP, dpi)
     button = _button_rect(hwnd)
+    text_gap = _dip(8, dpi)
     has_logo = bool(_ensure_logo_icon(logo_size))
     text_x = pad
-    text_w = max(1, int(button.left) - pad - _dip(8, dpi))
+    text_w = max(1, int(button.left) - pad - text_gap)
     align = _DT_CENTER
     if has_logo:
         logo_y = max(0, (height - logo_size) // 2)
         _draw_logo(user32, hdc, pad, logo_y, logo_size)
         text_x = pad + logo_size + _dip(_GAP_DIP, dpi)
-        text_w = max(1, int(button.left) - text_x - _dip(8, dpi))
+        text_w = max(1, int(button.left) - text_x - text_gap)
         align = _DT_LEFT
     band = max(1, height // 3)
     _draw_line(user32, gdi32, hdc, title, _rect(text_x, band // 8, text_w, band), title_font, align=align)
@@ -515,13 +574,11 @@ def _paint_full_content(
         body_font,
         align=align,
     )
-    _draw_chrome_button(user32, gdi32, hdc, hwnd, button_font)
+    _draw_chrome_button(user32, gdi32, hdc, hwnd)
     if title_font:
         gdi32.DeleteObject(title_font)
     if body_font:
         gdi32.DeleteObject(body_font)
-    if button_font:
-        gdi32.DeleteObject(button_font)
 
 
 def _paint_toast_content(
@@ -537,17 +594,17 @@ def _paint_toast_content(
 ) -> None:
     title_font = _create_font(gdi32, point_size=_TOAST_TITLE_PT, dpi=dpi)
     body_font = _create_font(gdi32, point_size=_TOAST_BODY_PT, dpi=dpi)
-    button_font = _create_font(gdi32, point_size=_TOAST_BODY_PT, dpi=dpi)
     pad = _dip(_TOAST_PAD_DIP, dpi)
     logo_size = _dip(_TOAST_LOGO_DIP, dpi)
     button = _button_rect(hwnd)
+    text_gap = _dip(_TOAST_TEXT_GAP_DIP, dpi)
     has_logo = bool(_ensure_logo_icon(logo_size))
     text_x = pad
     if has_logo:
         logo_y = max(0, (height - logo_size) // 2)
         _draw_logo(user32, hdc, pad, logo_y, logo_size)
-        text_x = pad + logo_size + _dip(12, dpi)
-    text_w = max(1, int(button.left) - text_x - _dip(6, dpi))
+        text_x = pad + logo_size + text_gap
+    text_w = max(1, int(button.left) - text_x - text_gap)
     mid = height // 2
     _draw_line(user32, gdi32, hdc, title, _rect(text_x, 4, text_w, mid - 2), title_font, align=_DT_LEFT)
     _draw_line(
@@ -559,13 +616,11 @@ def _paint_toast_content(
         body_font,
         align=_DT_LEFT,
     )
-    _draw_chrome_button(user32, gdi32, hdc, hwnd, button_font)
+    _draw_chrome_button(user32, gdi32, hdc, hwnd)
     if title_font:
         gdi32.DeleteObject(title_font)
     if body_font:
         gdi32.DeleteObject(body_font)
-    if button_font:
-        gdi32.DeleteObject(button_font)
 
 
 def _pump_once(user32: ctypes.WinDLL, msg: wintypes.MSG) -> bool:

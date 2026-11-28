@@ -105,13 +105,23 @@ def test_progress_toast_zero_total_is_indeterminate(qapp: QApplication) -> None:
 
 
 def test_toast_action_icons_are_lucide(qapp: QApplication) -> None:  # noqa: ARG001
+    from harrix_swiss_knife.toast_notification_base import (  # noqa: PLC0415
+        COMPACT_ACTION_BUTTON_SIDE,
+        DEFAULT_ACTION_BUTTON_SIDE,
+        action_button_icon_side,
+    )
+
     white = QColor(255, 255, 255)
+    default_side = action_button_icon_side(DEFAULT_ACTION_BUTTON_SIDE)
+    compact_side = action_button_icon_side(COMPACT_ACTION_BUTTON_SIDE)
     toast = ToastProgressNotification("Working…", cancellable=True)
-    assert toast._collapse_button.icon().cacheKey() == create_lucide_icon("minus", 24, color=white).cacheKey()
-    assert toast._close_button.icon().cacheKey() == create_lucide_icon("x", 24, color=white).cacheKey()
+    assert toast._collapse_button.icon().cacheKey() == create_lucide_icon("minus", default_side, color=white).cacheKey()
+    assert toast._close_button.icon().cacheKey() == create_lucide_icon("x", default_side, color=white).cacheKey()
     toast.set_pinned(pinned=True)
-    assert toast._collapse_button.icon().cacheKey() == create_lucide_icon("square", 18, color=white).cacheKey()
-    assert toast._close_button.icon().cacheKey() == create_lucide_icon("x", 18, color=white).cacheKey()
+    assert (
+        toast._collapse_button.icon().cacheKey() == create_lucide_icon("maximize", compact_side, color=white).cacheKey()
+    )
+    assert toast._close_button.icon().cacheKey() == create_lucide_icon("x", compact_side, color=white).cacheKey()
     toast.close()
 
 
