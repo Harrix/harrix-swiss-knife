@@ -145,7 +145,9 @@ class GitCommitChartsPage(QWidget):
         self._start_loading_toast()
         roots = configured_git_roots()
         scope = self._scope
-        worker = _CommitsChartWorker(roots, scope, force=force, parent=self)
+        # Keep the worker unparented so window teardown can wait without Qt
+        # destroying a still-running QThread (Qt 6.12 aborts on that).
+        worker = _CommitsChartWorker(roots, scope, force=force)
         self._worker = worker
 
         def cleanup() -> None:
@@ -163,6 +165,19 @@ class GitCommitChartsPage(QWidget):
         super().showEvent(event)
         if not self._cache_ready and not self._busy:
             self.refresh()
+
+    def stop_background_work(self) -> None:
+        """Join the chart scan QThread before the parent window is destroyed."""
+        self._close_loading_toast()
+        worker = self._worker
+        self._worker = None
+        self._busy = False
+        if worker is None:
+            return
+        if worker.isRunning() and not worker.wait(3000):
+            worker.terminate()
+            worker.wait(1000)
+        worker.deleteLater()
 
     def _clear_timeline(self) -> None:
         while self._time_layout.count():

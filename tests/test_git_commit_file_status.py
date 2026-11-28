@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from harrix_swiss_knife.apps.git_commit.window import _file_status_glyph
+from harrix_swiss_knife.apps.git_commit.window import _file_status_glyph, stop_active_git_commit_window
 
 
 def test_deleted_uses_square_minus() -> None:
@@ -16,6 +16,11 @@ def test_modified_uses_square_letter_m() -> None:
     assert _file_status_glyph(" M") == ("square-letter-m", "caution", "Modified")
     assert _file_status_glyph("M ") == ("square-letter-m", "caution", "Modified")
     assert _file_status_glyph("MM") == ("square-letter-m", "caution", "Modified")
+
+
+def test_stop_active_git_commit_window_noop_without_window() -> None:
+    """Quit cleanup is safe when the Git commit window was never opened."""
+    stop_active_git_commit_window()
 
 
 def test_untracked_and_added_use_square_plus() -> None:

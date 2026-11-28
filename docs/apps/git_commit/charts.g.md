@@ -15,6 +15,7 @@ lang: en
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `refresh`](#%EF%B8%8F-method-refresh)
   - [⚙️ Method `showEvent`](#%EF%B8%8F-method-showevent)
+  - [⚙️ Method `stop_background_work`](#%EF%B8%8F-method-stop_background_work)
 
 </details>
 
@@ -123,22 +124,18 @@ class GitCommitChartsPage(QWidget):
         self._start_loading_toast()
         roots = configured_git_roots()
         scope = self._scope
-        worker = _CommitsChartWorker(roots, scope, force=force, parent=self)
+        # Keep the worker unparented so window teardown can wait without Qt
+        # destroying a still-running QThread (Qt 6.12 aborts on that).
+        worker = _CommitsChartWorker(roots, scope, force=force)
         self._worker = worker
-
-        def on_ok(payload: object) -> None:
-            self._on_loaded(payload)
-
-        def on_fail(message: str) -> None:
-            self._on_failed(message)
 
         def cleanup() -> None:
             if self._worker is worker:
                 self._worker = None
             worker.deleteLater()
 
-        worker.finished_ok.connect(on_ok)
-        worker.failed.connect(on_fail)
+        worker.finished_ok.connect(self._on_loaded)
+        worker.failed.connect(self._on_failed)
         worker.finished.connect(cleanup)
         worker.start()
 
@@ -147,6 +144,19 @@ class GitCommitChartsPage(QWidget):
         super().showEvent(event)
         if not self._cache_ready and not self._busy:
             self.refresh()
+
+    def stop_background_work(self) -> None:
+        """Join the chart scan QThread before the parent window is destroyed."""
+        self._close_loading_toast()
+        worker = self._worker
+        self._worker = None
+        self._busy = False
+        if worker is None:
+            return
+        if worker.isRunning() and not worker.wait(3000):
+            worker.terminate()
+            worker.wait(1000)
+        worker.deleteLater()
 
     def _clear_timeline(self) -> None:
         while self._time_layout.count():
@@ -485,22 +495,18 @@ def refresh(self, *, force: bool = False) -> None:
         self._start_loading_toast()
         roots = configured_git_roots()
         scope = self._scope
-        worker = _CommitsChartWorker(roots, scope, force=force, parent=self)
+        # Keep the worker unparented so window teardown can wait without Qt
+        # destroying a still-running QThread (Qt 6.12 aborts on that).
+        worker = _CommitsChartWorker(roots, scope, force=force)
         self._worker = worker
-
-        def on_ok(payload: object) -> None:
-            self._on_loaded(payload)
-
-        def on_fail(message: str) -> None:
-            self._on_failed(message)
 
         def cleanup() -> None:
             if self._worker is worker:
                 self._worker = None
             worker.deleteLater()
 
-        worker.finished_ok.connect(on_ok)
-        worker.failed.connect(on_fail)
+        worker.finished_ok.connect(self._on_loaded)
+        worker.failed.connect(self._on_failed)
         worker.finished.connect(cleanup)
         worker.start()
 ```
@@ -523,6 +529,33 @@ def showEvent(self, event: Any) -> None:  # noqa: N802
         super().showEvent(event)
         if not self._cache_ready and not self._busy:
             self.refresh()
+```
+
+</details>
+
+### ⚙️ Method `stop_background_work`
+
+```python
+def stop_background_work(self) -> None
+```
+
+Join the chart scan QThread before the parent window is destroyed.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def stop_background_work(self) -> None:
+        self._close_loading_toast()
+        worker = self._worker
+        self._worker = None
+        self._busy = False
+        if worker is None:
+            return
+        if worker.isRunning() and not worker.wait(3000):
+            worker.terminate()
+            worker.wait(1000)
+        worker.deleteLater()
 ```
 
 </details>

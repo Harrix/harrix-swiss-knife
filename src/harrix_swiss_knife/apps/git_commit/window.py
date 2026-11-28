@@ -366,14 +366,8 @@ class DirtyReposCommitWindow(QDialog):
 
     def closeEvent(self, event: Any) -> None:  # noqa: N802
         """Stop timers, join workers, and clear the singleton when closing."""
-        self._refresh_timer.stop()
-        self._splitter_save_timer.stop()
+        self.stop_background_workers()
         self._save_splitter_sizes()
-        for worker in list(self._workers):
-            if worker.isRunning() and not worker.wait(3000):
-                worker.terminate()
-                worker.wait(1000)
-        self._workers.clear()
         global _active_window  # noqa: PLW0603
         if _active_window is self:
             _active_window = None
@@ -412,6 +406,17 @@ class DirtyReposCommitWindow(QDialog):
             return
         initial = [Path(path).resolve() for path in repos]
         self._set_statuses(refresh_repo_statuses(initial))
+
+    def stop_background_workers(self) -> None:
+        """Join Git/commit and Charts QThreads before this window is destroyed."""
+        self._refresh_timer.stop()
+        self._splitter_save_timer.stop()
+        self._charts_page.stop_background_work()
+        for worker in list(self._workers):
+            if worker.isRunning() and not worker.wait(3000):
+                worker.terminate()
+                worker.wait(1000)
+        self._workers.clear()
 
     def _accept_suggestion(self, text: str) -> None:
         self._applying_suggestion = True
@@ -1252,7 +1257,9 @@ class DirtyReposCommitWindow(QDialog):
         busy: bool = True,
         on_fail: Callable[[str], None] | None = None,
     ) -> None:
-        worker = _FnWorker(fn, parent=self)
+        # No QObject parent: parenting a running QThread to the window makes Qt
+        # destroy it on quit before closeEvent can wait, which aborts the process.
+        worker = _FnWorker(fn)
         self._workers.append(worker)
 
         def finished(result: Any) -> None:
@@ -1672,6 +1679,15 @@ def show_dirty_repos_commit_window(
     window.raise_()
     window.activateWindow()
     return window
+
+
+def stop_active_git_commit_window() -> None:
+    """Join Git commit window workers and close the singleton (tray Exit / quit)."""
+    window = _active_window
+    if window is None:
+        return
+    window.stop_background_workers()
+    window.close()
 
 
 def _empty_hint(parent: QWidget, text: str) -> FluentText:

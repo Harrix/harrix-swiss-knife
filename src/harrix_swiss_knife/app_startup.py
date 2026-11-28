@@ -518,6 +518,7 @@ def _on_about_to_quit() -> None:
     from harrix_swiss_knife.apps.finance.exchange_rates_operations import (  # noqa: PLC0415
         join_released_qthreads,
     )
+    from harrix_swiss_knife.apps.git_commit.window import stop_active_git_commit_window  # noqa: PLC0415
     from harrix_swiss_knife.integrations.bothub.qt_runner import (  # noqa: PLC0415
         stop_active_bothub_workers,
     )
@@ -525,6 +526,8 @@ def _on_about_to_quit() -> None:
 
     stop_active_bothub_workers()
     stop_active_action_workers()
+    # Git commit window keeps unparented QThreads for scans / Charts / summary.
+    stop_active_git_commit_window()
     # Finance may have detached exchange-rate workers while a yfinance call is in flight.
     join_released_qthreads()
     release_held_instance()
