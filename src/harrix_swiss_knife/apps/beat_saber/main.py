@@ -6,9 +6,11 @@ import contextlib
 import shutil
 import sys
 import tempfile
+from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, cast
+from time import sleep
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 import harrix_pylib as h
 from PySide6.QtCore import Qt
@@ -48,7 +50,13 @@ from harrix_swiss_knife.beat_saber_saves.pack import (
 from harrix_swiss_knife.beat_saber_saves.paths import default_export_zip_path, pc_saves_dir, quest_remote_files_dir
 from harrix_swiss_knife.installer.icon_assets import apply_window_icon
 from harrix_swiss_knife.paths import get_config_path_str
+from harrix_swiss_knife.toast_countdown_notification import ToastCountdownNotification
 from harrix_swiss_knife.win11_caption import install_win11_caption, try_handle_win11_caption_native_event
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+_T = TypeVar("_T")
 
 
 class MainWindow(AppWindowMixin, QMainWindow, Ui_MainWindow):
@@ -62,6 +70,7 @@ class MainWindow(AppWindowMixin, QMainWindow, Ui_MainWindow):
         """Build the window, open SQLite, and seed from backups when empty."""
         super().__init__()
         self.presentation_mode = presentation_mode
+        self._busy_operation = False
         self._apply_fluent_window_chrome()
         self.setupUi(self)
         self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
@@ -80,6 +89,13 @@ class MainWindow(AppWindowMixin, QMainWindow, Ui_MainWindow):
         if handled is not None:
             return handled
         return cast("tuple[bool, int]", super().nativeEvent(event_type, message))
+
+    def _ensure_idle(self) -> bool:
+        """Return `True` when no long sync/export/import is already running."""
+        if not self._busy_operation:
+            return True
+        message_box.warning(self, "Beat Saber tracker", "Another operation is already running.")
+        return False
 
     def _fill_table(self, table: Any, headers: list[str], rows: list[tuple[Any, ...]]) -> None:
         table.clear()
@@ -134,9 +150,15 @@ class MainWindow(AppWindowMixin, QMainWindow, Ui_MainWindow):
             return
         if not self.db_manager.needs_first_run_seed():
             return
-        seed = seed_official_catalog(self.db_manager.db_path)
+        db_path = self.db_manager.db_path
         folder = beat_saber_backup_root(self._app_config)
-        imported = ingest_backup_folder(self.db_manager.db_path, folder, seed_catalog=False)
+
+        def _work() -> tuple[Any, Any]:
+            seed = seed_official_catalog(db_path)
+            imported = ingest_backup_folder(db_path, folder, seed_catalog=False)
+            return seed, imported
+
+        seed, imported = self._run_with_toast("Seeding Beat Saber from backups…", _work)
         message_box.information(
             self,
             "Beat Saber tracker",
@@ -144,29 +166,48 @@ class MainWindow(AppWindowMixin, QMainWindow, Ui_MainWindow):
         )
 
     def _on_backup_db(self) -> None:
-        if self.db_manager is None:
+        if self.db_manager is None or not self._ensure_idle():
             return
         stamp = datetime.now(UTC).astimezone().strftime("%Y%m%d-%H%M%S")
         dest_dir = beat_saber_backup_root(self._app_config) / "db" / f"beat-saber-db-{stamp}"
-        dest_dir.mkdir(parents=True, exist_ok=True)
+        db_path = self.db_manager.db_path
         dest = dest_dir / "beat_saber.db"
-        shutil.copy2(self.db_manager.db_path, dest)
-        message_box.information(self, "Backup DB", f"Copied database to:\n{dest}")
+
+        def _work() -> Path:
+            dest_dir.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(db_path, dest)
+            return dest
+
+        copied = self._run_with_toast("Backing up Beat Saber database…", _work)
+        message_box.information(self, "Backup DB", f"Copied database to:\n{copied}")
 
     def _on_export(self, source: str) -> None:
-        if self.db_manager is None:
+        if self.db_manager is None or not self._ensure_idle():
             return
         zip_path = default_export_zip_path(self._app_config)
+        db_path = self.db_manager.db_path
         if source == "pc":
-            result = export_pc_saves(zip_path)
+
+            def _work_pc() -> Any:
+                result = export_pc_saves(zip_path)
+                if result.ok and result.zip_path is not None:
+                    ingest_backup_zip(db_path, result.zip_path, source_override=source)
+                return result
+
+            result = self._run_with_toast("Exporting Beat Saber PC saves…", _work_pc)
         else:
             device = self._pick_quest_device()
             if device is None:
                 return
             adb, serial = device
-            result = export_quest_saves(adb, serial, zip_path)
-        if result.ok and result.zip_path is not None:
-            ingest_backup_zip(self.db_manager.db_path, result.zip_path, source_override=source)
+
+            def _work_quest() -> Any:
+                result = export_quest_saves(adb, serial, zip_path)
+                if result.ok and result.zip_path is not None:
+                    ingest_backup_zip(db_path, result.zip_path, source_override=source)
+                return result
+
+            result = self._run_with_toast("Exporting Beat Saber Quest saves…", _work_quest)
         text = result.message
         if result.lines:
             text += "\n\n" + "\n".join(result.lines[-40:])
@@ -174,7 +215,7 @@ class MainWindow(AppWindowMixin, QMainWindow, Ui_MainWindow):
         self._refresh_all_views()
 
     def _on_import_backups(self) -> None:
-        if self.db_manager is None:
+        if self.db_manager is None or not self._ensure_idle():
             return
         folder = beat_saber_backup_root(self._app_config)
         choice = message_box.question(
@@ -184,8 +225,12 @@ class MainWindow(AppWindowMixin, QMainWindow, Ui_MainWindow):
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.Yes,
         )
+        db_path = self.db_manager.db_path
         if choice == QMessageBox.StandardButton.Yes:
-            result = ingest_backup_folder(self.db_manager.db_path, folder)
+            result = self._run_with_toast(
+                "Importing Beat Saber backups…",
+                lambda: ingest_backup_folder(db_path, folder),
+            )
             message_box.information(self, "Import backups", result.message + "\n\n" + "\n".join(result.lines[:20]))
             self._refresh_all_views()
             return
@@ -197,15 +242,20 @@ class MainWindow(AppWindowMixin, QMainWindow, Ui_MainWindow):
         )
         if not files:
             return
-        lines: list[str] = []
-        for file_path in files:
-            one = ingest_backup_zip(self.db_manager.db_path, file_path)
-            lines.append(f"{Path(file_path).name}: {one.message}")
+
+        def _work_files() -> list[str]:
+            lines: list[str] = []
+            for file_path in files:
+                one = ingest_backup_zip(db_path, file_path)
+                lines.append(f"{Path(file_path).name}: {one.message}")
+            return lines
+
+        lines = self._run_with_toast("Importing Beat Saber backup ZIPs…", _work_files)
         message_box.information(self, "Import backups", "\n".join(lines))
         self._refresh_all_views()
 
     def _on_import_save(self, source: str) -> None:
-        if self.db_manager is None:
+        if self.db_manager is None or not self._ensure_idle():
             return
         folder = beat_saber_backup_root(self._app_config)
         chosen, _ = QFileDialog.getOpenFileName(self, f"Import ZIP to {source.upper()}", str(folder), "ZIP (*.zip)")
@@ -221,16 +271,29 @@ class MainWindow(AppWindowMixin, QMainWindow, Ui_MainWindow):
         )
         if proceed != QMessageBox.StandardButton.Yes:
             return
+        db_path = self.db_manager.db_path
         if source == "pc":
-            result = import_pc_saves(zip_path)
+
+            def _work_pc() -> Any:
+                result = import_pc_saves(zip_path)
+                if result.ok:
+                    ingest_backup_zip(db_path, zip_path, source_override=source)
+                return result
+
+            result = self._run_with_toast("Importing Beat Saber ZIP to PC…", _work_pc)
         else:
             device = self._pick_quest_device()
             if device is None:
                 return
             adb, serial = device
-            result = import_quest_saves(adb, serial, zip_path)
-        if result.ok:
-            ingest_backup_zip(self.db_manager.db_path, zip_path, source_override=source)
+
+            def _work_quest() -> Any:
+                result = import_quest_saves(adb, serial, zip_path)
+                if result.ok:
+                    ingest_backup_zip(db_path, zip_path, source_override=source)
+                return result
+
+            result = self._run_with_toast("Importing Beat Saber ZIP to Quest…", _work_quest)
         message_box.information(self, f"Import {source.upper()}", result.message)
         self._refresh_all_views()
 
@@ -242,37 +305,49 @@ class MainWindow(AppWindowMixin, QMainWindow, Ui_MainWindow):
         self._refresh_all_views()
 
     def _on_sync_pc(self) -> None:
-        if self.db_manager is None:
+        if self.db_manager is None or not self._ensure_idle():
             return
         player = pc_saves_dir() / "PlayerData.dat"
         if not player.is_file():
             message_box.warning(self, "Sync from PC", f"`PlayerData.dat` not found:\n{player}")
             return
-        result = ingest_player_data(self.db_manager.db_path, player, source="pc", note="sync from PC")
+        db_path = self.db_manager.db_path
+        result = self._run_with_toast(
+            "Syncing Beat Saber clears from PC…",
+            lambda: ingest_player_data(db_path, player, source="pc", note="sync from PC"),
+        )
         message_box.information(self, "Sync from PC", result.message)
         self._refresh_all_views()
 
     def _on_sync_quest(self) -> None:
-        if self.db_manager is None:
+        if self.db_manager is None or not self._ensure_idle():
             return
         device = self._pick_quest_device()
         if device is None:
             return
         adb, serial = device
         remote = f"{quest_remote_files_dir()}/PlayerData.dat"
-        with tempfile.TemporaryDirectory(prefix="hsk-bs-sync-") as tmp:
-            local = Path(tmp) / "PlayerData.dat"
-            process = adb_pull(adb, serial, remote, local)
-            if process.returncode != 0 or not local.is_file():
-                detail = "\n".join(part for part in (process.stdout.strip(), process.stderr.strip()) if part)
-                message_box.warning(self, "Sync from Quest", f"adb pull failed.\n{detail}")
-                return
-            result = ingest_player_data(
-                self.db_manager.db_path,
-                local,
-                source="quest",
-                note=f"sync from Quest {serial}",
-            )
+        db_path = self.db_manager.db_path
+
+        def _work() -> tuple[Any, str]:
+            with tempfile.TemporaryDirectory(prefix="hsk-bs-sync-") as tmp:
+                local = Path(tmp) / "PlayerData.dat"
+                process = adb_pull(adb, serial, remote, local)
+                if process.returncode != 0 or not local.is_file():
+                    detail = "\n".join(part for part in (process.stdout.strip(), process.stderr.strip()) if part)
+                    return None, detail
+                result = ingest_player_data(
+                    db_path,
+                    local,
+                    source="quest",
+                    note=f"sync from Quest {serial}",
+                )
+                return result, ""
+
+        result, detail = self._run_with_toast("Syncing Beat Saber clears from Quest…", _work)
+        if result is None:
+            message_box.warning(self, "Sync from Quest", f"adb pull failed.\n{detail}")
+            return
         message_box.information(self, "Sync from Quest", result.message)
         self._refresh_all_views()
 
@@ -344,6 +419,22 @@ class MainWindow(AppWindowMixin, QMainWindow, Ui_MainWindow):
                 ["Observed", "Song", "Pack", "Source", "Mode", "Diff", "Rank", "FC", "Score"],
                 self.db_manager.list_history(search=search),
             )
+
+    def _run_with_toast(self, message: str, work: Callable[[], _T]) -> _T:
+        """Run blocking I/O off the UI thread while a countdown toast is visible."""
+        self._busy_operation = True
+        toast = ToastCountdownNotification(message, parent=self)
+        toast.start_countdown()
+        try:
+            with ThreadPoolExecutor(max_workers=1) as pool:
+                future = pool.submit(work)
+                while not future.done():
+                    toast.pump_events()
+                    sleep(0.05)
+                return future.result()
+        finally:
+            toast.close()
+            self._busy_operation = False
 
     def _selected_difficulty(self) -> int | None:
         index = self.combo_difficulty.currentIndex()
