@@ -27,7 +27,8 @@ class FolderLibraryCombo(QComboBox)
 Combo of icon library roots with a sticky footer to open another folder.
 
 The footer sits below the scrollable popup list so it stays visible even when
-there are many pinned libraries.
+there are many pinned libraries. It is styled like a list row, not a toolbar
+button, so it matches the folder names above.
 
 <details>
 <summary>Code:</summary>
@@ -64,6 +65,7 @@ class FolderLibraryCombo(QComboBox):
             return
         layout = container.layout()
         footer = self._ensure_footer(container)
+        self._match_footer_to_list_row(footer, view)
         if isinstance(layout, QBoxLayout) and not self._footer_attached:
             layout.addWidget(footer)
             self._footer_attached = True
@@ -84,25 +86,42 @@ class FolderLibraryCombo(QComboBox):
         footer = QPushButton(_ADD_FOLDER_LABEL, container)
         footer.setObjectName("vectorIconsAddFolderFooter")
         footer.setCursor(Qt.CursorShape.PointingHandCursor)
-        footer.setMinimumHeight(_FOOTER_MIN_HEIGHT)
+        footer.setFlat(True)
+        footer.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         footer.setStyleSheet(
-            button_idle_qss() + f" QPushButton#vectorIconsAddFolderFooter {{"
-            f" border-top: 1px solid {INPUT_BORDER};"
-            f" border-left: none; border-right: none; border-bottom: none;"
+            f"QPushButton#vectorIconsAddFolderFooter {{"
+            f" background: transparent;"
+            f" border: none;"
+            f" border-top: 1px solid {HAIRLINE};"
             f" border-radius: 0px;"
-            f" background-color: {SURFACE};"
+            f" color: {MUTED_TEXT};"
             f" text-align: left;"
-            f" padding-left: 10px;"
+            f" padding: 2px 8px;"
+            f" font-weight: normal;"
             f"}}"
-            f" QPushButton#vectorIconsAddFolderFooter:hover {{"
-            f" background-color: {HAIRLINE};"
+            f"QPushButton#vectorIconsAddFolderFooter:hover {{"
+            f" background-color: {SELECTION_HOVER};"
+            f" color: {MUTED_TEXT};"
+            f"}}"
+            f"QPushButton#vectorIconsAddFolderFooter:pressed {{"
+            f" background-color: {SELECTION_HOVER};"
             f"}}"
         )
-        apply_lucide_button_icon(footer, _ADD_FOLDER_ICON, icon_size=_FOOTER_ICON_SIZE)
         footer.setToolTip("Choose another icons library folder to open")
         footer.clicked.connect(self._on_footer_clicked)
         self._footer = footer
         return footer
+
+    def _match_footer_to_list_row(self, footer: QPushButton, view: QWidget) -> None:
+        """Align footer height with a popup list row when possible."""
+        row_height = 0
+        size_hint_for_row = getattr(view, "sizeHintForRow", None)
+        if callable(size_hint_for_row) and self.count() > 0:
+            row_height = int(size_hint_for_row(0))
+        if row_height <= 0:
+            row_height = _FOOTER_MIN_HEIGHT
+        footer.setMinimumHeight(row_height)
+        footer.setMaximumHeight(row_height)
 
     def _on_footer_clicked(self) -> None:
         self.hidePopup()

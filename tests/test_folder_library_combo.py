@@ -34,7 +34,7 @@ def test_folder_library_combo_emits_add_folder_requested(qapp: QApplication) -> 
     combo._attach_or_show_footer()
     footer = combo._footer
     assert footer is not None
-    assert "Add folder" in footer.text()
+    assert footer.text() == "+ Add folder…"
     assert combo._footer_attached
     footer.click()
     handler.assert_called_once()
